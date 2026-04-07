@@ -1,0 +1,116 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h1>Admin Dashboard</h1>
+        <p>Kiểm soát đơn hàng, mã giảm giá và doanh thu</p>
+    </div>
+
+    <div class="stats-grid">
+        <article class="stat-card"><h3>Tổng đơn</h3><p>{{ total_orders }}</p></article>
+        <article class="stat-card"><h3>Chờ xử lý</h3><p>{{ pending_orders }}</p></article>
+        <article class="stat-card"><h3>Đang xử lý</h3><p>{{ processing_orders }}</p></article>
+        <article class="stat-card"><h3>Đang giao</h3><p>{{ shipping_orders }}</p></article>
+        <article class="stat-card"><h3>Hoàn thành</h3><p>{{ delivered_orders }}</p></article>
+        <article class="stat-card"><h3>Đã hủy</h3><p>{{ cancelled_orders }}</p></article>
+        <article class="stat-card"><h3>Doanh thu hoàn thành</h3><p>{{ total_revenue }} VND</p></article>
+        <article class="stat-card"><h3>Doanh thu tháng</h3><p>{{ month_revenue }} VND</p></article>
+        <article class="stat-card"><h3>Mã giảm giá active</h3><p>{{ active_coupons }}</p></article>
+    </div>
+</section>
+
+<section class="section-space">
+    <div class="section-head">
+        <h2>Doanh thu theo ngày (14 ngày gần nhất)</h2>
+    </div>
+    <div class="table-wrap">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Ngày</th>
+                    <th>Số đơn hoàn thành</th>
+                    <th>Doanh thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in daily_revenue %}
+                <tr>
+                    <td>{{ row.day|date:"d/m/Y" }}</td>
+                    <td>{{ row.orders_count }}</td>
+                    <td>{{ row.total }} VND</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">Chưa có dữ liệu doanh thu.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="section-space">
+    <div class="section-head">
+        <h2>Đơn hàng gần nhất</h2>
+    </div>
+    <div class="table-wrap">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Trạng thái</th>
+                    <th>Thanh toán</th>
+                    <th>Tổng tiền</th>
+                    <th>Mã giảm giá</th>
+                    <th>Ngày tạo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.get_status_display }}</td>
+                    <td>{{ order.get_payment_method_display }}</td>
+                    <td>{{ order.total_amount }} VND</td>
+                    <td>{{ order.coupon_code|default:"-" }}</td>
+                    <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">Chưa có đơn hàng.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="section-space">
+    <div class="section-head">
+        <h2>Sản phẩm sắp hết hàng (<=5)</h2>
+    </div>
+    <div class="table-wrap">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th>Tồn kho</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in low_stock_products %}
+                <tr>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.category.name }}</td>
+                    <td>{{ product.stock }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">Không có sản phẩm nào sắp hết hàng.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

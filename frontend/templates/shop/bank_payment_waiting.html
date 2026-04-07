@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Cho thanh toan ngan hang{% endblock %}
+
+{% block content %}
+<section class="section-space center-box">
+    <h1>Cho thanh toan ngan hang</h1>
+    <p>Ma don hang: <strong>#{{ order.id }}</strong></p>
+    <p>Vui long quet ma QR va hoan tat thanh toan trong <strong>{{ payment_timeout_minutes }} phut</strong>.</p>
+
+    <div class="bank-transfer-box order-bank-box" style="display:block;">
+        <p>Ngan hang: <strong>{{ selected_bank_name }}</strong></p>
+        <p>So tai khoan: <strong>{{ shop_bank_account }}</strong></p>
+        <p>Chu tai khoan: <strong>{{ shop_account_name }}</strong></p>
+        <p>Noi dung: <strong>DH{{ order.id }}</strong></p>
+        <img src="{{ qr_url }}" alt="QR chuyen khoan don hang {{ order.id }}">
+        <p>Thoi gian con lai: <strong id="countdown-text">--:--</strong></p>
+        <p><small>He thong se tu dong kiem tra trang thai. Qua han 15 phut, don hang se bi huy.</small></p>
+    </div>
+</section>
+
+<script>
+    (function () {
+        var countdownText = document.getElementById("countdown-text");
+        if (!countdownText) return;
+
+        var expiresAt = new Date("{{ expires_at_iso }}");
+        var statusUrl = "{% url 'orders:bank_payment_status' order.id %}";
+        var successUrl = "{% url 'orders:order_success' order.id %}";
+        var failedUrl = "{% url 'orders:order_failed' order.id %}";
+
+        function updateCountdown() {
+            var now = new Date();
+            var diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
+            var mm = String(Math.floor(diff / 60)).padStart(2, "0");
+            var ss = String(diff % 60).padStart(2, "0");
+            countdownText.textContent = mm + ":" + ss;
+            if (diff <= 0) {
+                window.location.href = failedUrl;
+            }
+        }
+
+        function checkStatus() {
+            fetch(statusUrl, { credentials: "same-origin" })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.state === "success") {
+                        window.location.href = successUrl;
+                        return;
+                    }
+                    if (data.state === "failed") {
+                        window.location.href = failedUrl;
+                    }
+                })
+                .catch(function () {});
+        }
+
+        updateCountdown();
+        checkStatus();
+        setInterval(updateCountdown, 1000);
+        setInterval(checkStatus, 5000);
+    })();
+</script>
+{% endblock %}

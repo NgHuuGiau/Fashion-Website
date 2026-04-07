@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<section class="detail-layout">
+    <div class="detail-media">
+        {% if product.get_image %}
+        <img src="{{ product.get_image }}" alt="{{ product.name }}">
+        {% else %}
+        <div class="fallback detail-fallback">{{ product.category.name|slice:":3"|upper }}</div>
+        {% endif %}
+    </div>
+
+    <div class="detail-info">
+        <p class="category">{{ product.category.name|upper }}</p>
+        <h1>{{ product.name }}</h1>
+        <p class="price big">{{ product.price }} VND</p>
+        <p class="desc">{{ product.description|default:"Streetwear item chất liệu cao cấp, thiết kế theo tinh thần tối giản nhưng cá tính." }}</p>
+
+        {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-form-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn ghost small">
+                {% if is_in_wishlist %}<i class="fa-solid fa-heart"></i> Bỏ yêu thích{% else %}<i class="fa-regular fa-heart"></i> Thêm yêu thích{% endif %}
+            </button>
+        </form>
+        {% else %}
+        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để lưu yêu thích</a>
+        {% endif %}
+
+        <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form">
+            {% csrf_token %}
+            {% if variants and requires_variant %}
+            <div class="variant-block">
+                <p class="variant-title">Chọn màu và size</p>
+                <div class="variant-pickers" id="variant-picker" data-default-variant="{{ default_variant_id|default:'' }}">
+                    <div class="form-group">
+                        <label for="color-select">Màu</label>
+                        <select id="color-select">
+                            {% for color in color_options %}
+                            <option value="{{ color }}" {% if color == default_color %}selected{% endif %}>{{ color }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size-select">Size</label>
+                        <select id="size-select">
+                            {% for size in size_options %}
+                            <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <p class="stock" id="variant-stock-text"></p>
+                <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
+                {{ variant_data_json|json_script:"variant-data" }}
+            </div>
+            {% elif requires_variant %}
+            <p class="error">Sản phẩm này chưa có biến thể màu/size. Vui lòng quay lại sau.</p>
+            {% endif %}
+            <label for="qty">Số lượng</label>
+            <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}">
+            <input type="hidden" name="next" value="{% url 'orders:cart_detail' %}">
+            <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>MUA NGAY</button>
+        </form>
+    </div>
+</section>
+
+{% if related_products %}
+<section class="section-space">
+    <div class="section-head"><h2>SẢN PHẨM LIÊN QUAN</h2></div>
+    <div class="product-grid product-grid-featured">
+        {% for item in related_products %}
+        <article class="product-card">
+            <a href="{% url 'products:product_detail' item.id item.slug %}" class="card-media">
+                {% if item.get_image %}
+                <img src="{{ item.get_image }}" alt="{{ item.name }}">
+                {% else %}
+                <span class="fallback">{{ item.category.name|slice:":3"|upper }}</span>
+                {% endif %}
+            </a>
+            <div class="card-body">
+                <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name }}</a></h3>
+                <p class="price">{{ item.price }} VND</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

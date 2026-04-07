@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}DIRTY STYLE | Vietnamese Streetwear{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-main">
+        <p class="eyebrow">DROP OF THE WEEK</p>
+        <h1>WEAR LOUD.<br>MOVE FAST.</h1>
+        <p>Streetwear cho Gen Z: form thoải mái, màu hợp trend, dễ phối đi học, đi chơi, đi làm.</p>
+        <div class="hero-badges">
+            <span>Local Brand VN</span>
+            <span>Form Chuẩn Châu Á</span>
+            <span>Đổi Trả 5 Ngày</span>
+        </div>
+    </div>
+</section>
+
+<section class="category-strip">
+    <a href="{% url 'products:product_list' %}" class="chip {% if not selected_category %}active{% endif %}">Tất cả</a>
+    <a href="{% url 'products:product_list' %}?category=ao" class="chip {% if selected_category and selected_category.slug == 'ao' %}active{% endif %}">Áo</a>
+    <a href="{% url 'products:product_list' %}?category=quan" class="chip {% if selected_category and selected_category.slug == 'quan' %}active{% endif %}">Quần</a>
+    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ kiện</a>
+</section>
+
+<section class="filter-panel">
+    <form method="get" class="filter-form">
+        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
+        {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
+
+        <label>
+            Giá từ
+            <input type="number" name="min_price" value="{{ min_price }}" min="0" step="1000" placeholder="0">
+        </label>
+        <label>
+            Đến
+            <input type="number" name="max_price" value="{{ max_price }}" min="0" step="1000" placeholder="999000">
+        </label>
+        <label>
+            Sắp xếp
+            <select name="sort">
+                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Mới nhất</option>
+                <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
+                <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
+                <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Tên A-Z</option>
+            </select>
+        </label>
+        <button type="submit" class="btn small">Áp dụng</button>
+        <a href="{% url 'products:product_list' %}" class="btn ghost small">Xóa lọc</a>
+    </form>
+</section>
+
+{% if is_random_home and slider_products %}
+<section class="section-space">
+    <div class="section-head">
+        <h2>HOT TRENDING NOW</h2>
+        <p>Lướt ngang để xem nhanh các item nổi bật</p>
+    </div>
+    <div class="slider-wrap">
+        <div class="slider-track">
+            {% for product in slider_products %}
+            <a class="product-card slider-card product-card-link" href="{% url 'products:product_detail' product.id product.slug %}">
+                <div class="card-media">
+                    {% if product.get_image %}
+                    <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
+                    <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                    {% else %}
+                    <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                    {% endif %}
+                    <span class="tag">HOT</span>
+                </div>
+                <div class="card-body">
+                    <h3>{{ product.name }}</h3>
+                    <p class="price">{{ product.price }} VND</p>
+                </div>
+            </a>
+            {% endfor %}
+            {% for product in slider_products %}
+            <a class="product-card slider-card product-card-link" href="{% url 'products:product_detail' product.id product.slug %}">
+                <div class="card-media">
+                    {% if product.get_image %}
+                    <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
+                    <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                    {% else %}
+                    <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                    {% endif %}
+                    <span class="tag">HOT</span>
+                </div>
+                <div class="card-body">
+                    <h3>{{ product.name }}</h3>
+                    <p class="price">{{ product.price }} VND</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% elif is_random_home %}
+<section class="section-space">
+    <div class="section-head">
+        <h2>HOT TRENDING NOW</h2>
+        <p>Hiện chưa có sản phẩm HOT. Hệ thống đang dùng danh sách sản phẩm mới nhất.</p>
+    </div>
+</section>
+{% endif %}
+
+<section class="section-space">
+    <div class="section-head">
+        <h2>{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}KẾT QUẢ SẢN PHẨM{% endif %}</h2>
+    </div>
+
+    <div class="product-grid">
+        {% for product in products %}
+        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link">
+            <div class="card-media">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
+                <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                {% else %}
+                <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                {% endif %}
+                {% if product.featured %}<span class="tag">HOT</span>{% endif %}
+                {% if request.user.is_authenticated and product.id in wishlist_product_ids %}
+                <span class="fav-badge" aria-label="Đã yêu thích"><i class="fa-solid fa-heart"></i></span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h3>{{ product.name }}</h3>
+                <p class="price">{{ product.price }} VND</p>
+            </div>
+        </a>
+        {% empty %}
+        <p>Không có sản phẩm phù hợp.</p>
+        {% endfor %}
+    </div>
+
+    {% if products.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Phân trang sản phẩm">
+        {% if products.has_previous %}
+        <a class="page-link" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ products.previous_page_number }}">← Trước</a>
+        {% else %}
+        <span class="page-link disabled">← Trước</span>
+        {% endif %}
+
+        <span class="page-current">Trang {{ products.number }}/{{ products.paginator.num_pages }}</span>
+
+        {% if products.has_next %}
+        <a class="page-link" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ products.next_page_number }}">Sau →</a>
+        {% else %}
+        <span class="page-link disabled">Sau →</span>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

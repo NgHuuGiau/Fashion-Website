@@ -1,0 +1,25 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Đăng nhập{% endblock %}
+
+{% block content %}
+<section class="auth-wrap section-space">
+    <div class="form-box auth-box">
+        <h1>Đăng nhập</h1>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}">
+            <div class="form-group">
+                <label for="id_username">Tên đăng nhập</label>
+                <input type="text" id="id_username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Mật khẩu</label>
+                <input type="password" id="id_password" name="password" required>
+            </div>
+            <button type="submit" class="btn">Đăng nhập</button>
+        </form>
+        <p>Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
+    </div>
+</section>
+{% endblock %}

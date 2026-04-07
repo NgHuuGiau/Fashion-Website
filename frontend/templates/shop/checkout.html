@@ -1,0 +1,102 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Thanh toán{% endblock %}
+
+{% block content %}
+<section class="checkout-layout section-space">
+    <div>
+        <div class="section-head">
+            <h1>Thông tin thanh toán</h1>
+        </div>
+
+        <form method="post" class="form-box">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group {% if field.name == 'bank_code' %}bank-field{% endif %}" {% if field.name == 'bank_code' %}id="bank-code-wrap"{% endif %}>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small>{{ field.help_text }}</small>
+                {% endif %}
+                {% if field.errors %}
+                <small class="error">{{ field.errors|striptags }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="bank-transfer-box" id="bank-transfer-box">
+                <h3>Thông tin chuyển khoản</h3>
+                <p>Ngân hàng nhận: <strong id="bank-name-label">Vietcombank</strong></p>
+                <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+                <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+                <p>Nội dung chuyển khoản: <strong id="transfer-note-label">DH-TAM</strong></p>
+                <img src="{{ demo_qr_url }}" alt="QR chuyển khoản" id="bank-qr-image">
+                <small class="muted">Quét mã để chuyển khoản nhanh. Sau khi chuyển khoản, bấm xác nhận đặt hàng.</small>
+            </div>
+
+            <button type="submit" class="btn">Xác nhận đặt hàng</button>
+        </form>
+    </div>
+
+    <aside class="summary-box">
+        <h2>Đơn hàng</h2>
+        {% for item in items %}
+        <p>{{ item.product.name }} x {{ item.quantity }} <span>{{ item.subtotal }} VND</span></p>
+        {% endfor %}
+        <hr>
+        <p>Tạm tính <span>{{ subtotal }} VND</span></p>
+        <p>Phí vận chuyển <span>{{ shipping_fee }} VND</span></p>
+        <p>Giảm giá <span>-{{ discount_amount }} VND</span></p>
+        {% if shipping_fee == 0 %}
+        <p><small>Đơn hàng đã được miễn phí vận chuyển (từ {{ freeship_threshold }} VND).</small></p>
+        {% endif %}
+        <p class="total-row">Tổng cộng <span>{{ total }} VND</span></p>
+    </aside>
+</section>
+
+<script>
+    (function () {
+        var paymentSelect = document.getElementById("id_payment_method");
+        var bankSelect = document.getElementById("id_bank_code");
+        var bankCodeWrap = document.getElementById("bank-code-wrap");
+        var bankBox = document.getElementById("bank-transfer-box");
+        var bankNameLabel = document.getElementById("bank-name-label");
+        var transferNoteLabel = document.getElementById("transfer-note-label");
+        var bankQrImage = document.getElementById("bank-qr-image");
+        if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage) {
+            return;
+        }
+
+        var accountNo = "{{ shop_bank_account }}";
+        var accountName = "{{ shop_account_name|urlencode }}";
+        var amount = "{{ total|floatformat:0 }}";
+        var bankBins = {
+            VCB: { name: "Vietcombank", bin: "970436" },
+            TCB: { name: "Techcombank", bin: "970407" },
+            MB: { name: "MBBank", bin: "970422" },
+            ACB: { name: "ACB", bin: "970416" },
+            BIDV: { name: "BIDV", bin: "970418" },
+            VPB: { name: "VPBank", bin: "970432" }
+        };
+
+        function updateDisplay() {
+            var isBank = paymentSelect.value === "bank";
+            bankCodeWrap.style.display = isBank ? "block" : "none";
+            bankBox.style.display = isBank ? "block" : "none";
+            if (!isBank) return;
+
+            var bankCode = bankSelect.value || "VCB";
+            var bank = bankBins[bankCode] || bankBins.VCB;
+            var note = "DH-TAM";
+            var qr = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
+            bankNameLabel.textContent = bank.name;
+            transferNoteLabel.textContent = note;
+            bankQrImage.src = qr;
+        }
+
+        paymentSelect.addEventListener("change", updateDisplay);
+        bankSelect.addEventListener("change", updateDisplay);
+        updateDisplay();
+    })();
+</script>
+{% endblock %}

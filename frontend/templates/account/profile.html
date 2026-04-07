@@ -1,0 +1,17 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Tài khoản của tôi{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username }}</h1>
+        <p>Email: {{ request.user.email|default:"Chưa cập nhật" }}</p>
+        <p>Số điện thoại: {{ request.user.profile.phone_number|default:"Chưa cập nhật" }}</p>
+    </div>
+    <div class="profile-actions">
+        <a href="{% url 'orders:my_orders' %}" class="btn">Đơn hàng của tôi</a>
+        <a href="{% url 'products:product_list' %}" class="btn ghost">Tiếp tục mua sắm</a>
+    </div>
+</section>
+{% endblock %}

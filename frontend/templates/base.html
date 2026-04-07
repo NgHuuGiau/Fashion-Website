@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HUUGIAU Local Brand{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="topline">FREE SHIP TOÀN QUỐC CHO ĐƠN TỪ 499K</div>
+
+    <header class="site-header">
+        <div class="container nav-wrap">
+            <div class="header-left">
+                <button type="button" class="hamburger-btn" id="menu-toggle" aria-label="Mở menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <a href="{% url 'products:product_list' %}" class="logo" aria-label="Trang chủ">HUUGIAU</a>
+            </div>
+            <div class="header-right">
+                <form class="header-search" method="get" action="{% url 'products:product_list' %}">
+                    <input type="text" name="q" placeholder="Tìm sản phẩm..." value="{{ request.GET.q|default:'' }}">
+                </form>
+                <a href="{% url 'orders:cart_detail' %}" class="icon-btn cart-btn" aria-label="Giỏ hàng">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h-2l-1 2v1h2l2.6 8.4h8.8l2.2-7H8.1"/><circle cx="10" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg>
+                    <span class="icon-count">{{ cart_item_count }}</span>
+                </a>
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'users:profile' %}" class="icon-btn" aria-label="Tài khoản">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+                </a>
+                {% else %}
+                <a href="{% url 'users:login' %}" class="icon-btn" aria-label="Đăng nhập">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="menu-overlay" id="menu-overlay"></div>
+    <aside class="side-menu" id="side-menu">
+        <button type="button" class="close-menu" id="menu-close" aria-label="Đóng menu">×</button>
+        <a href="{% url 'products:product_list' %}">Sản phẩm</a>
+        <a href="{% url 'products:product_list' %}?category=ao">Áo</a>
+        <a href="{% url 'products:product_list' %}?category=quan">Quần</a>
+        <a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'orders:my_orders' %}">Đơn hàng</a>
+        <a href="{% url 'products:wishlist_list' %}">Yêu thích</a>
+        <a href="{% url 'users:profile' %}">Tài khoản của tôi</a>
+        <a href="{% url 'users:logout' %}">Đăng xuất</a>
+        {% else %}
+        <a href="{% url 'users:login' %}">Đăng nhập</a>
+        <a href="{% url 'users:register' %}">Đăng ký</a>
+        {% endif %}
+        {% if request.user.is_staff %}
+        <a href="{% url 'orders:admin_dashboard' %}">Bảng điều khiển</a>
+        <a href="/admin/">Quản trị</a>
+        {% endif %}
+    </aside>
+
+    <main class="container page-wrap">
+        {% if messages %}
+        <div class="message-stack">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-wrap">
+            <div>
+                <h3>THƯƠNG HIỆU</h3>
+                <p>Streetwear Việt Nam dành cho giới trẻ thích bản sắc riêng.</p>
+            </div>
+            <div>
+                <h3>HỖ TRỢ</h3>
+                <p>Hotline: AAA</p>
+                <p>Email: AAA</p>
+            </div>
+            <div>
+                <h3>CỬA HÀNG</h3>
+                <p>AAA</p>
+                <p>AAA</p>
+            </div>
+        </div>
+    </footer>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

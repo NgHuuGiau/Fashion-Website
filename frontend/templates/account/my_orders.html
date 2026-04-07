@@ -1,0 +1,43 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Đơn hàng của tôi{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h1>Đơn hàng của tôi</h1>
+    </div>
+
+    {% if orders %}
+    <div class="orders-list">
+        {% for order in orders %}
+        <article class="order-card">
+            <div class="order-header">
+                <h3>#{{ order.id }}</h3>
+                <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+            </div>
+            <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
+            <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
+            <p>Tổng tiền: <strong>{{ order.total_amount }} VND</strong></p>`r`n            {% if order.coupon_code %}<p>Mã giảm giá: <strong>{{ order.coupon_code }}</strong></p>{% endif %}
+            <div class="profile-actions order-actions">
+                <a href="{% url 'orders:order_review' order.id %}" class="btn ghost inline-auto">Xem lại thông tin</a>
+                {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
+                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn inline-auto">Thanh toán ngay</a>
+                {% endif %}
+            </div>
+            <ul>
+                {% for item in order.items.all %}
+                <li>{{ item.product.name }} x {{ item.quantity }}</li>
+                {% if item.selected_color or item.selected_size %}
+                <li><small>Màu: {{ item.selected_color|default:"-" }} | Size: {{ item.selected_size|default:"-" }}</small></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Bạn chưa có đơn hàng nào.</p>
+    {% endif %}
+</section>
+{% endblock %}

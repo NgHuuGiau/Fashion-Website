@@ -1,0 +1,101 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'backend/**'
+      - 'requirements.txt'
+    paths-ignore:
+      - 'frontend/**'
+      - 'database/**'
+      - '**.md'
+      - '**.txt'
+      - '!requirements.txt'
+
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'backend/**'
+      - 'requirements.txt'
+    paths-ignore:
+      - 'frontend/**'
+      - 'database/**'
+      - '**.md'
+
+  # Quét định kỳ hàng tháng (ngày 1, 0:00 UTC)
+  schedule:
+    - cron: "0 0 1 * *"
+
+jobs:
+  analyze:
+    name: Analyze Python (CodeQL)
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read        # Cần để đọc workflow metadata
+
+    strategy:
+      fail-fast: false     # Tiếp tục kể cả khi 1 job thất bại
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ──────────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"          # Cache pip dependencies để tăng tốc
+
+      # ── 3. Cài dependencies (cần cho autobuild & phân tích đúng) ─────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install django
+          fi
+
+      # ── 4. Khởi tạo CodeQL ───────────────────────────────────────────────
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          # Chỉ quét thư mục backend (Django source), bỏ qua .venv, frontend
+          config: |
+            paths:
+              - backend
+            paths-ignore:
+              - backend/db.sqlite3.corrupt.20260407.bak
+              - "**/__pycache__/**"
+              - "**/*.pyc"
+          # Bật thêm các query suite bảo mật nâng cao
+          queries: +security-extended,security-and-quality
+
+      # ── 5. Autobuild ──────────────────────────────────────────────────────
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      # ── 6. Phân tích CodeQL ───────────────────────────────────────────────
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+          output: sarif-results
+          # Upload kết quả lên GitHub Security tab
+          upload: true
+
+      # ── 7. Lưu kết quả SARIF dưới dạng artifact ──────────────────────────
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()    # Luôn upload kể cả khi bước trước thất bại
+        with:
+          name: python-codeql-sarif-${{ github.run_number }}
+          path: sarif-results
+          retention-days: 14

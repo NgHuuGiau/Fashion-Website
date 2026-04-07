@@ -1,0 +1,42 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Django
+*.log
+local_settings.py
+media/
+staticfiles/
+
+# Database local runtime
+*.sqlite3
+*.db
+!database/seed_data.sql
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local notes (do not push)
+Ghi Chú.txt
+a.txt
+LOCAL_NOTES.md
+

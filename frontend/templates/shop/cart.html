@@ -1,0 +1,77 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Giỏ hàng{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h1>Giỏ hàng</h1>
+    </div>
+
+    {% if items %}
+    <div class="table-wrap">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Tạm tính</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <a href="{% url 'products:product_detail' item.product.id item.product.slug %}">{{ item.product.name }}</a>
+                        {% if item.variant %}
+                        <div><small>Màu: {{ item.variant.color_name }} - Size: {{ item.variant.size }}</small></div>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.price }} VND</td>
+                    <td>
+                        <form method="post" action="{% url 'orders:cart_update' %}" class="inline-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="item_key" value="{{ item.item_key }}">
+                            <input type="number" name="quantity" min="1" value="{{ item.quantity }}">
+                            <button type="submit" class="btn small">Cập nhật</button>
+                        </form>
+                    </td>
+                    <td>{{ item.subtotal }} VND</td>
+                    <td>
+                        <form method="post" action="{% url 'orders:cart_remove' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="item_key" value="{{ item.item_key }}">
+                            <button type="submit" class="btn danger small">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="checkout-box">
+        <p>Tạm tính: <strong>{{ subtotal }} VND</strong></p>
+        <p>Phí vận chuyển: <strong>{{ shipping_fee }} VND</strong></p>
+        {% if shipping_fee == 0 %}
+        <p><small>Bạn đã được miễn phí vận chuyển (đơn từ {{ freeship_threshold }} VND).</small></p>
+        {% endif %}
+        <p>Tổng tiền: <strong>{{ total }} VND</strong></p>
+        <form method="post" action="{% url 'orders:cart_clear_all' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn ghost">Xóa toàn bộ giỏ</button>
+        </form>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'orders:checkout' %}" class="btn">Thanh toán</a>
+        {% else %}
+        <p>Bạn cần đăng nhập để thanh toán.</p>
+        <a href="{% url 'users:login' %}?next={% url 'orders:checkout' %}" class="btn">Đăng nhập để thanh toán</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <p>Giỏ hàng của bạn đang trống.</p>
+    <a href="{% url 'products:product_list' %}" class="btn">Tiếp tục mua sắm</a>
+    {% endif %}
+</section>
+{% endblock %}

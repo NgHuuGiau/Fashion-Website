@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng ký{% endblock %}
+
+{% block content %}
+<section class="auth-wrap section-space">
+    <div class="form-box auth-box">
+        <h1>Đăng ký tài khoản</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="error">{{ form.non_field_errors|striptags }}</div>
+            {% endif %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small class="help-text">{{ field.help_text|safe }}</small>
+                {% endif %}
+                {% if field.errors %}
+                <small class="error">{{ field.errors|striptags }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn">Tạo tài khoản</button>
+        </form>
+        <p>Đã có tài khoản? <a href="{% url 'users:login' %}">Đăng nhập</a></p>
+    </div>
+</section>
+
+<style>
+.password-requirements {
+    margin: 4px 0 0 16px;
+    padding: 0;
+    list-style: disc;
+    color: #888;
+    font-size: 0.82rem;
+    line-height: 1.7;
+}
+</style>
+{% endblock %}
+

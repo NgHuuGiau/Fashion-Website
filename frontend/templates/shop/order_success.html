@@ -1,0 +1,70 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Đặt hàng thành công{% endblock %}
+
+{% block content %}
+<section class="section-space center-box">
+    <h1>Đặt hàng thành công</h1>
+    <p>Mã đơn hàng của bạn: <strong>#{{ order.id }}</strong></p>
+    <p>Phương thức thanh toán: <strong>{{ order.get_payment_method_display }}</strong></p>
+    <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
+    <p>Tạm tính: <strong>{{ order.subtotal_amount }} VND</strong></p>
+    <p>Phí ship: <strong>{{ order.shipping_fee }} VND</strong></p>
+    <p>Giảm giá: <strong>-{{ order.discount_amount }} VND</strong>{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}</p>
+    <p>Tổng thanh toán: <strong>{{ order.total_amount }} VND</strong></p>
+    {% if order.payment_method == "bank" and qr_url %}
+    <div class="bank-transfer-box order-bank-box">
+        <h3>Quét mã để chuyển khoản</h3>
+        <p>Ngân hàng: <strong>{{ selected_bank_name }}</strong></p>
+        <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+        <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+        <p>Nội dung chuyển khoản: <strong>DH{{ order.id }}</strong></p>
+        <img src="{{ qr_url }}" alt="QR chuyển khoản đơn hàng {{ order.id }}">
+        {% if not order.is_paid and order.status != "cancelled" %}
+        <p><small>Hãy dùng điện thoại quét mã. Sau khi quét xong, bấm nút bên dưới để mở bước xác nhận.</small></p>
+        <button type="button" class="btn ghost scan-done-btn" id="scan-done-btn">Tôi đã quét mã trên điện thoại</button>
+        <div class="payment-action-row hidden" id="payment-action-row">
+            <form method="post" action="{% url 'orders:bank_payment_cancel' order.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn danger">Không đặt nữa / Hủy</button>
+            </form>
+            <form method="post" action="{% url 'orders:bank_payment_confirm' order.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn">Đã thanh toán</button>
+            </form>
+        </div>
+        {% elif order.is_paid %}
+        <p><strong>Đơn hàng đã ghi nhận thanh toán chuyển khoản.</strong></p>
+        {% else %}
+        <p><strong>Đơn hàng đã hủy.</strong></p>
+        {% endif %}
+    </div>
+    <script>
+        (function () {
+            var scanDoneBtn = document.getElementById("scan-done-btn");
+            var actionRow = document.getElementById("payment-action-row");
+            if (!scanDoneBtn || !actionRow) return;
+
+            var switchedApp = false;
+            function showActions() {
+                actionRow.classList.remove("hidden");
+                scanDoneBtn.style.display = "none";
+            }
+
+            scanDoneBtn.addEventListener("click", showActions);
+
+            document.addEventListener("visibilitychange", function () {
+                if (document.hidden) {
+                    switchedApp = true;
+                    return;
+                }
+                if (switchedApp) {
+                    showActions();
+                }
+            });
+        })();
+    </script>
+    {% endif %}
+    <a href="{% url 'orders:my_orders' %}" class="btn">Xem đơn hàng của tôi</a>
+</section>
+{% endblock %}

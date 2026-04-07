@@ -1,0 +1,38 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Danh sách yêu thích{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h2>SẢN PHẨM YÊU THÍCH</h2>
+        <p>{{ products|length }} ITEMS</p>
+    </div>
+
+    <div class="product-grid">
+        {% for product in products %}
+        <article class="product-card">
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name }}">
+                {% else %}
+                <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                {% endif %}
+                <span class="fav-badge"><i class="fa-solid fa-heart"></i></span>
+            </a>
+            <div class="card-body">
+                <h3><a href="{% url 'products:product_detail' product.id product.slug %}">{{ product.name }}</a></h3>
+                <p class="price">{{ product.price }} VND</p>
+                <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-inline-remove">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'products:wishlist_list' %}">
+                    <button type="submit" class="btn ghost small">Bỏ yêu thích</button>
+                </form>
+            </div>
+        </article>
+        {% empty %}
+        <p>Bạn chưa thêm sản phẩm nào vào yêu thích.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
