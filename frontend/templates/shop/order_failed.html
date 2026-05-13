@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Don hang chua thanh cong{% endblock %}
+{% block title %}Đơn hàng chưa thành công{% endblock %}
 
 {% block content %}
 <section class="section-space center-box">
-    <h1>Don hang chua thanh cong</h1>
-    <p>Ma don hang: <strong>#{{ order.id }}</strong></p>
-    <p>Trang thai hien tai: <strong>{{ order.get_status_display }}</strong></p>
-    <p>Ly do: <strong>{{ failed_reason }}</strong></p>
-    <div class="profile-actions center-actions">
-        <a href="{% url 'orders:my_orders' %}" class="btn ghost inline-auto">Xem don hang cua toi</a>
-        <a href="{% url 'products:product_list' %}" class="btn inline-auto">Tiep tuc mua sam</a>
+    <div class="empty-state failure-card">
+        <h1>Đơn hàng chưa thành công</h1>
+        <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
+        <p>Trạng thái hiện tại: <strong>{{ order.get_status_display }}</strong></p>
+        <p>Lý do: <strong>{{ failed_reason }}</strong></p>
+        <div class="profile-actions center-actions">
+            <a href="{% url 'orders:my_orders' %}" class="btn ghost inline-auto">Xem đơn hàng của tôi</a>
+            <a href="{% url 'products:product_list' %}" class="btn inline-auto">Tiếp tục mua sắm</a>
+        </div>
     </div>
 </section>
 {% endblock %}

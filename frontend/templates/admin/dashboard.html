@@ -1,12 +1,12 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}Admin Dashboard{% endblock %}
+{% block title %}Bảng điều khiển quản trị{% endblock %}
 
 {% block content %}
 <section class="section-space">
     <div class="section-head">
-        <h1>Admin Dashboard</h1>
-        <p>Kiểm soát đơn hàng, mã giảm giá và doanh thu</p>
+        <h1>Bảng điều khiển quản trị</h1>
+        <p>Theo dõi đơn hàng, doanh thu, mã giảm giá và tồn kho trong một màn hình gọn.</p>
     </div>
 
     <div class="stats-grid">
@@ -16,15 +16,16 @@
         <article class="stat-card"><h3>Đang giao</h3><p>{{ shipping_orders }}</p></article>
         <article class="stat-card"><h3>Hoàn thành</h3><p>{{ delivered_orders }}</p></article>
         <article class="stat-card"><h3>Đã hủy</h3><p>{{ cancelled_orders }}</p></article>
-        <article class="stat-card"><h3>Doanh thu hoàn thành</h3><p>{{ total_revenue }} VND</p></article>
-        <article class="stat-card"><h3>Doanh thu tháng</h3><p>{{ month_revenue }} VND</p></article>
+        <article class="stat-card"><h3>Doanh thu hoàn thành</h3><p>{{ total_revenue|vnd }}đ</p></article>
+        <article class="stat-card"><h3>Doanh thu tháng</h3><p>{{ month_revenue|vnd }}đ</p></article>
         <article class="stat-card"><h3>Mã giảm giá active</h3><p>{{ active_coupons }}</p></article>
     </div>
 </section>
 
 <section class="section-space">
     <div class="section-head">
-        <h2>Doanh thu theo ngày (14 ngày gần nhất)</h2>
+        <h2>Doanh thu theo ngày</h2>
+        <p>14 ngày gần nhất để bạn nhìn nhanh nhịp bán hàng.</p>
     </div>
     <div class="table-wrap">
         <table class="cart-table">
@@ -40,7 +41,7 @@
                 <tr>
                     <td>{{ row.day|date:"d/m/Y" }}</td>
                     <td>{{ row.orders_count }}</td>
-                    <td>{{ row.total }} VND</td>
+                    <td>{{ row.total|vnd }}đ</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="3">Chưa có dữ liệu doanh thu.</td></tr>
@@ -74,7 +75,7 @@
                     <td>{{ order.customer_name }}</td>
                     <td>{{ order.get_status_display }}</td>
                     <td>{{ order.get_payment_method_display }}</td>
-                    <td>{{ order.total_amount }} VND</td>
+                    <td>{{ order.total_amount|vnd }}đ</td>
                     <td>{{ order.coupon_code|default:"-" }}</td>
                     <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
                 </tr>
@@ -88,7 +89,7 @@
 
 <section class="section-space">
     <div class="section-head">
-        <h2>Sản phẩm sắp hết hàng (<=5)</h2>
+        <h2>Sản phẩm sắp hết hàng (≤ 5)</h2>
     </div>
     <div class="table-wrap">
         <table class="cart-table">

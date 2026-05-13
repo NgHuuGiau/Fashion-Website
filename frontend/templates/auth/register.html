@@ -3,10 +3,11 @@
 {% block title %}Đăng ký{% endblock %}
 
 {% block content %}
-<section class="auth-wrap section-space">
-    <div class="form-box auth-box">
+<section class="auth-layout section-space">
+    <div class="auth-panel">
         <h1>Đăng ký tài khoản</h1>
-        <form method="post">
+        <p>Tạo tài khoản để lưu đơn hàng, wishlist và hoàn tất thanh toán thuận tiện hơn.</p>
+        <form method="post" class="auth-form">
             {% csrf_token %}
             {% if form.non_field_errors %}
             <div class="error">{{ form.non_field_errors|striptags }}</div>
@@ -25,19 +26,19 @@
             {% endfor %}
             <button type="submit" class="btn">Tạo tài khoản</button>
         </form>
-        <p>Đã có tài khoản? <a href="{% url 'users:login' %}">Đăng nhập</a></p>
+        <p class="auth-footnote">Đã có tài khoản? <a href="{% url 'users:login' %}">Đăng nhập</a></p>
     </div>
+
+    <aside class="auth-benefits">
+        <div>
+            <h2>Sáng, gọn, rõ ràng</h2>
+            <p>Biểu mẫu được đặt trong hệ giao diện light mode duy nhất để đọc nội dung, lỗi nhập liệu và CTA dễ hơn.</p>
+        </div>
+        <ul class="password-requirements">
+            <li>Dùng mật khẩu đủ mạnh để bảo vệ tài khoản.</li>
+            <li>Thông tin giao hàng có thể được cập nhật sau trong hồ sơ.</li>
+            <li>Sau khi đăng ký, bạn có thể mua hàng và theo dõi đơn ngay.</li>
+        </ul>
+    </aside>
 </section>
-
-<style>
-.password-requirements {
-    margin: 4px 0 0 16px;
-    padding: 0;
-    list-style: disc;
-    color: #888;
-    font-size: 0.82rem;
-    line-height: 1.7;
-}
-</style>
 {% endblock %}
-

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Đơn hàng của tôi{% endblock %}
 
@@ -6,19 +6,26 @@
 <section class="section-space">
     <div class="section-head">
         <h1>Đơn hàng của tôi</h1>
+        <p>Theo dõi trạng thái thanh toán, xem lại chi tiết và quay lại bước xử lý nếu đơn chưa hoàn tất.</p>
     </div>
 
     {% if orders %}
     <div class="orders-list">
         {% for order in orders %}
-        <article class="order-card">
+        <article class="order-card order-card-rich">
             <div class="order-header">
-                <h3>#{{ order.id }}</h3>
-                <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                <div>
+                    <h3>#{{ order.id }}</h3>
+                    <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                </div>
+                <span class="chip {% if order.is_paid %}active{% endif %}">{% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</span>
             </div>
-            <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
-            <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
-            <p>Tổng tiền: <strong>{{ order.total_amount }} VND</strong></p>`r`n            {% if order.coupon_code %}<p>Mã giảm giá: <strong>{{ order.coupon_code }}</strong></p>{% endif %}
+            <div class="order-meta-grid">
+                <p>Trạng thái <strong>{{ order.get_status_display }}</strong></p>
+                <p>Thanh toán <strong>{{ order.get_payment_method_display }}</strong></p>
+                <p>Tổng tiền <strong>{{ order.total_amount|vnd }}đ</strong></p>
+                {% if order.coupon_code %}<p>Mã giảm giá <strong>{{ order.coupon_code }}</strong></p>{% endif %}
+            </div>
             <div class="profile-actions order-actions">
                 <a href="{% url 'orders:order_review' order.id %}" class="btn ghost inline-auto">Xem lại thông tin</a>
                 {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
@@ -37,7 +44,11 @@
         {% endfor %}
     </div>
     {% else %}
-    <p>Bạn chưa có đơn hàng nào.</p>
+    <div class="empty-state">
+        <h2>Bạn chưa có đơn hàng nào</h2>
+        <p>Khám phá danh mục sản phẩm và bắt đầu đơn đầu tiên với những item dễ mặc, dễ phối.</p>
+        <a href="{% url 'products:product_list' %}" class="btn small">Xem sản phẩm</a>
+    </div>
     {% endif %}
 </section>
 {% endblock %}

@@ -1,18 +1,65 @@
 {% extends "base.html" %}
 
-{% block title %}DIRTY STYLE | Vietnamese Streetwear{% endblock %}
+{% block title %}DIRTY STYLE | Streetwear Việt cho nhịp sống thành phố{% endblock %}
 
 {% block content %}
 <section class="hero">
-    <div class="hero-main">
-        <p class="eyebrow">DROP OF THE WEEK</p>
-        <h1>WEAR LOUD.<br>MOVE FAST.</h1>
-        <p>Streetwear cho Gen Z: form thoải mái, màu hợp trend, dễ phối đi học, đi chơi, đi làm.</p>
-        <div class="hero-badges">
-            <span>Local Brand VN</span>
-            <span>Form Chuẩn Châu Á</span>
-            <span>Đổi Trả 5 Ngày</span>
+    <div class="hero-grid">
+        <div class="hero-main">
+            <p class="eyebrow">DROP MỚI MỖI TUẦN</p>
+            <h1>MẶC CHẤT. RA PHỐ NỔI.</h1>
+            <p class="hero-copy">Streetwear dễ mặc, lên form gọn và đủ nổi bật để bạn xuất hiện gọn gàng từ lớp học, quán cà phê đến những buổi hẹn cuối tuần.</p>
+            <div class="hero-badges">
+                <span>Thiết kế local brand</span>
+                <span>Form chuẩn Châu Á</span>
+                <span>Đổi trả trong 5 ngày</span>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'products:product_list' %}" class="btn small">Khám phá bộ sưu tập</a>
+                <a href="{% url 'products:product_list' %}?category=ao" class="btn ghost small">Xem áo mới</a>
+            </div>
         </div>
+        <div class="hero-aside">
+            <div class="hero-card highlight">
+                <strong>Tuyển chọn đáng mua</strong>
+                <p>Hình ảnh sạch, tông màu đồng bộ và sản phẩm được chọn theo hướng trẻ, gọn, dễ phối đồ mỗi ngày.</p>
+            </div>
+            <div class="feature-stat-grid">
+                <div class="hero-card">
+                    <strong>48h</strong>
+                    <p>Xử lý đơn nhanh</p>
+                </div>
+                <div class="hero-card">
+                    <strong>499K</strong>
+                    <p>Miễn phí vận chuyển</p>
+                </div>
+                <div class="hero-card">
+                    <strong>New</strong>
+                    <p>Cập nhật drop mới liên tục</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="intro-grid">
+    <div class="intro-panel">
+        <h3>Giao diện sáng, sản phẩm nổi bật</h3>
+        <p>Mọi điểm chạm được tinh chỉnh để hình ảnh, giá bán và hành động mua hàng nổi rõ hơn trên cả desktop lẫn mobile.</p>
+    </div>
+    <div class="stats-grid">
+        <article class="stat-card">
+            <h3>Dễ phối</h3>
+            <p>Mặc đi học, đi chơi hay đi làm đều hợp.</p>
+        </article>
+        <article class="stat-card">
+            <h3>Đứng form</h3>
+            <p>Chất liệu và phom dáng ưu tiên cảm giác gọn gàng.</p>
+        </article>
+        <article class="stat-card">
+            <h3>Mua nhanh</h3>
+            <p>Lọc gọn, xem rõ và chốt đơn thuận tay hơn.</p>
+        </article>
     </div>
 </section>
 
@@ -20,7 +67,7 @@
     <a href="{% url 'products:product_list' %}" class="chip {% if not selected_category %}active{% endif %}">Tất cả</a>
     <a href="{% url 'products:product_list' %}?category=ao" class="chip {% if selected_category and selected_category.slug == 'ao' %}active{% endif %}">Áo</a>
     <a href="{% url 'products:product_list' %}?category=quan" class="chip {% if selected_category and selected_category.slug == 'quan' %}active{% endif %}">Quần</a>
-    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ kiện</a>
+    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ Kiện</a>
 </section>
 
 <section class="filter-panel">
@@ -54,7 +101,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>HOT TRENDING NOW</h2>
-        <p>Lướt ngang để xem nhanh các item nổi bật</p>
+        <p>Lướt nhanh các item đang được quan tâm nhất tuần này.</p>
     </div>
     <div class="slider-wrap">
         <div class="slider-track">
@@ -63,15 +110,15 @@
                 <div class="card-media">
                     {% if product.get_image %}
                     <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                    <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                    <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                     {% else %}
-                    <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                    <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                     {% endif %}
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
                     <h3>{{ product.name }}</h3>
-                    <p class="price">{{ product.price }} VND</p>
+                    <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
             </a>
             {% endfor %}
@@ -80,15 +127,15 @@
                 <div class="card-media">
                     {% if product.get_image %}
                     <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                    <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                    <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                     {% else %}
-                    <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                    <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                     {% endif %}
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
                     <h3>{{ product.name }}</h3>
-                    <p class="price">{{ product.price }} VND</p>
+                    <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
             </a>
             {% endfor %}
@@ -107,6 +154,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}KẾT QUẢ SẢN PHẨM{% endif %}</h2>
+        <p>{% if is_random_home %}Những lựa chọn dễ mặc, dễ phối và có điểm nhấn cho nhịp sống thành phố.{% else %}Tìm nhanh món hợp gu rồi chốt đơn gọn trong vài bước.{% endif %}</p>
     </div>
 
     <div class="product-grid">
@@ -115,9 +163,9 @@
             <div class="card-media">
                 {% if product.get_image %}
                 <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                <span class="fallback fallback-js" style="display:none;">{{ product.category.name|slice:":3"|upper }}</span>
+                <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% else %}
-                <span class="fallback">{{ product.category.name|slice:":3"|upper }}</span>
+                <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% endif %}
                 {% if product.featured %}<span class="tag">HOT</span>{% endif %}
                 {% if request.user.is_authenticated and product.id in wishlist_product_ids %}
@@ -126,11 +174,15 @@
             </div>
             <div class="card-body">
                 <h3>{{ product.name }}</h3>
-                <p class="price">{{ product.price }} VND</p>
+                <p class="price">{{ product.price|vnd }}đ</p>
             </div>
         </a>
         {% empty %}
-        <p>Không có sản phẩm phù hợp.</p>
+        <div class="empty-state">
+            <h2>Chưa có sản phẩm phù hợp</h2>
+            <p>Thử bỏ bớt bộ lọc hoặc quay lại danh mục chính để xem thêm sản phẩm.</p>
+            <a href="{% url 'products:product_list' %}" class="btn small">Xem toàn bộ sản phẩm</a>
+        </div>
         {% endfor %}
     </div>
 

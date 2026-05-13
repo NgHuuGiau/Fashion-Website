@@ -3,20 +3,35 @@
 {% block title %}{{ product.name }}{% endblock %}
 
 {% block content %}
-<section class="detail-layout">
-    <div class="detail-media">
+<section class="detail-layout section-space">
+    <div class="detail-media detail-media-shell">
         {% if product.get_image %}
         <img src="{{ product.get_image }}" alt="{{ product.name }}">
         {% else %}
-        <div class="fallback detail-fallback">{{ product.category.name|slice:":3"|upper }}</div>
+        <div class="fallback detail-fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</div>
         {% endif %}
     </div>
 
-    <div class="detail-info">
-        <p class="category">{{ product.category.name|upper }}</p>
+    <div class="detail-info detail-stack">
+        <div class="detail-topline">
+            <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|upper }}{% endif %}</p>
+            {% if product.featured %}<span class="chip active">HOT ITEM</span>{% endif %}
+        </div>
+
         <h1>{{ product.name }}</h1>
-        <p class="price big">{{ product.price }} VND</p>
-        <p class="desc">{{ product.description|default:"Streetwear item chất liệu cao cấp, thiết kế theo tinh thần tối giản nhưng cá tính." }}</p>
+        <p class="price big">{{ product.price|vnd }}đ</p>
+        <p class="desc">{{ product.description|default:"Thiết kế gọn gàng, dễ phối và đủ nổi bật để đồng hành cùng nhịp sống thành phố mỗi ngày." }}</p>
+
+        <div class="detail-highlights">
+            <div class="hero-card">
+                <strong>Dễ phối đồ</strong>
+                <p>Hợp để đi học, đi làm hoặc xuống phố cuối tuần.</p>
+            </div>
+            <div class="hero-card">
+                <strong>Kiểm tra tồn kho</strong>
+                <p>Chọn màu và size để xem ngay biến thể còn hàng.</p>
+            </div>
+        </div>
 
         {% if request.user.is_authenticated %}
         <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-form-inline">
@@ -58,19 +73,25 @@
                 {{ variant_data_json|json_script:"variant-data" }}
             </div>
             {% elif requires_variant %}
-            <p class="error">Sản phẩm này chưa có biến thể màu/size. Vui lòng quay lại sau.</p>
+            <p class="error">Sản phẩm này chưa có biến thể màu hoặc size. Vui lòng quay lại sau.</p>
             {% endif %}
-            <label for="qty">Số lượng</label>
-            <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}">
+
+            <div class="qty-block">
+                <label for="qty">Số lượng</label>
+                <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}">
+            </div>
             <input type="hidden" name="next" value="{% url 'orders:cart_detail' %}">
-            <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>MUA NGAY</button>
+            <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>Thêm vào giỏ</button>
         </form>
     </div>
 </section>
 
 {% if related_products %}
 <section class="section-space">
-    <div class="section-head"><h2>SẢN PHẨM LIÊN QUAN</h2></div>
+    <div class="section-head">
+        <h2>GỢI Ý PHÙ HỢP</h2>
+        <p>Những lựa chọn cùng tinh thần, cùng nhịp phối với item bạn đang xem.</p>
+    </div>
     <div class="product-grid product-grid-featured">
         {% for item in related_products %}
         <article class="product-card">
@@ -78,12 +99,12 @@
                 {% if item.get_image %}
                 <img src="{{ item.get_image }}" alt="{{ item.name }}">
                 {% else %}
-                <span class="fallback">{{ item.category.name|slice:":3"|upper }}</span>
+                <span class="fallback">{% if item.category.slug == 'quan' %}QUẦN{% elif item.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% endif %}
             </a>
             <div class="card-body">
                 <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name }}</a></h3>
-                <p class="price">{{ item.price }} VND</p>
+                <p class="price">{{ item.price|vnd }}đ</p>
             </div>
         </article>
         {% endfor %}

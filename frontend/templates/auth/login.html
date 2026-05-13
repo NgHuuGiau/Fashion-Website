@@ -1,12 +1,13 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Đăng nhập{% endblock %}
 
 {% block content %}
-<section class="auth-wrap section-space">
-    <div class="form-box auth-box">
+<section class="auth-layout section-space">
+    <div class="auth-panel">
         <h1>Đăng nhập</h1>
-        <form method="post">
+        <p>Truy cập tài khoản để theo dõi đơn hàng, lưu wishlist và thanh toán nhanh hơn.</p>
+        <form method="post" class="auth-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.GET.next }}">
             <div class="form-group">
@@ -19,7 +20,19 @@
             </div>
             <button type="submit" class="btn">Đăng nhập</button>
         </form>
-        <p>Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
+        <p class="auth-footnote">Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
     </div>
+
+    <aside class="auth-benefits">
+        <div>
+            <h2>Một tài khoản, nhiều tiện hơn</h2>
+            <p>Toàn bộ trải nghiệm được giữ theo giao diện sáng để thao tác nhanh và nhìn rõ nội dung quan trọng.</p>
+        </div>
+        <ul>
+            <li>Lưu sản phẩm yêu thích để xem lại sau.</li>
+            <li>Theo dõi trạng thái đơn hàng trong một nơi.</li>
+            <li>Rút ngắn thời gian nhập thông tin khi mua lần tiếp theo.</li>
+        </ul>
+    </aside>
 </section>
 {% endblock %}

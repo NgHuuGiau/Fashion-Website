@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Thanh toán{% endblock %}
 
@@ -7,22 +7,58 @@
     <div>
         <div class="section-head">
             <h1>Thông tin thanh toán</h1>
+            <p>Điền địa chỉ nhận hàng và chọn phương thức phù hợp để hoàn tất đơn thật gọn.</p>
         </div>
 
         <form method="post" class="form-box">
             {% csrf_token %}
-            {% for field in form %}
-            <div class="form-group {% if field.name == 'bank_code' %}bank-field{% endif %}" {% if field.name == 'bank_code' %}id="bank-code-wrap"{% endif %}>
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small>{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <small class="error">{{ field.errors|striptags }}</small>
-                {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.customer_name.id_for_label }}">{{ form.customer_name.label }}</label>
+                {{ form.customer_name }}
+                {% if form.customer_name.errors %}<small class="error">{{ form.customer_name.errors|striptags }}</small>{% endif %}
             </div>
-            {% endfor %}
+
+            <div class="form-group">
+                <label for="{{ form.customer_email.id_for_label }}">{{ form.customer_email.label }}</label>
+                {{ form.customer_email }}
+                {% if form.customer_email.errors %}<small class="error">{{ form.customer_email.errors|striptags }}</small>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<small class="error">{{ form.phone.errors|striptags }}</small>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.shipping_address.id_for_label }}">{{ form.shipping_address.label }}</label>
+                {{ form.shipping_address }}
+                {% if form.shipping_address.errors %}<small class="error">{{ form.shipping_address.errors|striptags }}</small>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.payment_method.id_for_label }}">{{ form.payment_method.label }}</label>
+                {{ form.payment_method }}
+                {% if form.payment_method.errors %}<small class="error">{{ form.payment_method.errors|striptags }}</small>{% endif %}
+            </div>
+
+            <div class="payment-method-grid" id="payment-method-grid">
+                <article class="payment-method-card" data-method-card="cod">
+                    <strong>Thanh toán tiền mặt</strong>
+                    <p>Nhận hàng rồi thanh toán. Phù hợp nếu bạn muốn chốt đơn nhanh mà chưa cần chuyển khoản trước.</p>
+                </article>
+                <article class="payment-method-card" data-method-card="bank">
+                    <strong>Chuyển khoản ngân hàng</strong>
+                    <p>Chọn ngân hàng, quét QR và xác nhận thanh toán để hệ thống xử lý đơn thuận tiện hơn.</p>
+                </article>
+            </div>
+
+            <div class="form-group bank-field" id="bank-code-wrap">
+                <label for="{{ form.bank_code.id_for_label }}">{{ form.bank_code.label }}</label>
+                {{ form.bank_code }}
+                {% if form.bank_code.errors %}<small class="error">{{ form.bank_code.errors|striptags }}</small>{% endif %}
+            </div>
 
             <div class="bank-transfer-box" id="bank-transfer-box">
                 <h3>Thông tin chuyển khoản</h3>
@@ -31,7 +67,25 @@
                 <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
                 <p>Nội dung chuyển khoản: <strong id="transfer-note-label">DH-TAM</strong></p>
                 <img src="{{ demo_qr_url }}" alt="QR chuyển khoản" id="bank-qr-image">
-                <small class="muted">Quét mã để chuyển khoản nhanh. Sau khi chuyển khoản, bấm xác nhận đặt hàng.</small>
+                <small class="muted">Quét mã để mở app ngân hàng nhanh hơn. Sau khi chuyển khoản, bấm xác nhận để tiếp tục.</small>
+            </div>
+
+            <div class="payment-note-box" id="cod-note-box">
+                <h3>Thanh toán khi nhận hàng</h3>
+                <p>Bạn chỉ cần xác nhận đơn. Cửa hàng sẽ liên hệ và bạn thanh toán bằng tiền mặt khi đơn được giao tới.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.coupon_code.id_for_label }}">{{ form.coupon_code.label }}</label>
+                {{ form.coupon_code }}
+                {% if form.coupon_code.help_text %}<small>{{ form.coupon_code.help_text }}</small>{% endif %}
+                {% if form.coupon_code.errors %}<small class="error">{{ form.coupon_code.errors|striptags }}</small>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.errors %}<small class="error">{{ form.note.errors|striptags }}</small>{% endif %}
             </div>
 
             <button type="submit" class="btn">Xác nhận đặt hàng</button>
@@ -39,18 +93,18 @@
     </div>
 
     <aside class="summary-box">
-        <h2>Đơn hàng</h2>
+        <h2>Đơn hàng của bạn</h2>
         {% for item in items %}
-        <p>{{ item.product.name }} x {{ item.quantity }} <span>{{ item.subtotal }} VND</span></p>
+        <p>{{ item.product.name }} x {{ item.quantity }} <span>{{ item.subtotal|vnd }}đ</span></p>
         {% endfor %}
         <hr>
-        <p>Tạm tính <span>{{ subtotal }} VND</span></p>
-        <p>Phí vận chuyển <span>{{ shipping_fee }} VND</span></p>
-        <p>Giảm giá <span>-{{ discount_amount }} VND</span></p>
+        <p>Tạm tính <span>{{ subtotal|vnd }}đ</span></p>
+        <p>Phí vận chuyển <span>{{ shipping_fee|vnd }}đ</span></p>
+        <p>Giảm giá <span>-{{ discount_amount|vnd }}đ</span></p>
         {% if shipping_fee == 0 %}
-        <p><small>Đơn hàng đã được miễn phí vận chuyển (từ {{ freeship_threshold }} VND).</small></p>
+        <p><small>Đơn hàng đã được miễn phí vận chuyển từ {{ freeship_threshold|vnd }}đ.</small></p>
         {% endif %}
-        <p class="total-row">Tổng cộng <span>{{ total }} VND</span></p>
+        <p class="total-row">Tổng cộng <span>{{ total|vnd }}đ</span></p>
     </aside>
 </section>
 
@@ -63,7 +117,9 @@
         var bankNameLabel = document.getElementById("bank-name-label");
         var transferNoteLabel = document.getElementById("transfer-note-label");
         var bankQrImage = document.getElementById("bank-qr-image");
-        if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage) {
+        var codNoteBox = document.getElementById("cod-note-box");
+        var methodCards = document.querySelectorAll("[data-method-card]");
+        if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox) {
             return;
         }
 
@@ -83,6 +139,12 @@
             var isBank = paymentSelect.value === "bank";
             bankCodeWrap.style.display = isBank ? "block" : "none";
             bankBox.style.display = isBank ? "block" : "none";
+            codNoteBox.style.display = isBank ? "none" : "block";
+
+            methodCards.forEach(function (card) {
+                card.classList.toggle("active", card.getAttribute("data-method-card") === paymentSelect.value);
+            });
+
             if (!isBank) return;
 
             var bankCode = bankSelect.value || "VCB";

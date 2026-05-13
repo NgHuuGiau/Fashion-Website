@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Cho thanh toan ngan hang{% endblock %}
+{% block title %}Chờ thanh toán ngân hàng{% endblock %}
 
 {% block content %}
 <section class="section-space center-box">
-    <h1>Cho thanh toan ngan hang</h1>
-    <p>Ma don hang: <strong>#{{ order.id }}</strong></p>
-    <p>Vui long quet ma QR va hoan tat thanh toan trong <strong>{{ payment_timeout_minutes }} phut</strong>.</p>
+    <h1>Chờ thanh toán ngân hàng</h1>
+    <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
+    <p>Vui lòng quét mã QR và hoàn tất thanh toán trong <strong>{{ payment_timeout_minutes }} phút</strong>.</p>
 
-    <div class="bank-transfer-box order-bank-box" style="display:block;">
-        <p>Ngan hang: <strong>{{ selected_bank_name }}</strong></p>
-        <p>So tai khoan: <strong>{{ shop_bank_account }}</strong></p>
-        <p>Chu tai khoan: <strong>{{ shop_account_name }}</strong></p>
-        <p>Noi dung: <strong>DH{{ order.id }}</strong></p>
-        <img src="{{ qr_url }}" alt="QR chuyen khoan don hang {{ order.id }}">
-        <p>Thoi gian con lai: <strong id="countdown-text">--:--</strong></p>
-        <p><small>He thong se tu dong kiem tra trang thai. Qua han 15 phut, don hang se bi huy.</small></p>
+    <div class="bank-transfer-box order-bank-box bank-box-visible">
+        <p>Ngân hàng: <strong>{{ selected_bank_name }}</strong></p>
+        <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+        <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+        <p>Nội dung: <strong>DH{{ order.id }}</strong></p>
+        <img src="{{ qr_url }}" alt="QR chuyển khoản đơn hàng {{ order.id }}">
+        <p>Thời gian còn lại: <strong id="countdown-text">--:--</strong></p>
+        <p><small>Hệ thống sẽ tự kiểm tra trạng thái. Quá hạn {{ payment_timeout_minutes }} phút, đơn hàng sẽ bị hủy.</small></p>
     </div>
 </section>
 

@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}Xem lai don hang{% endblock %}
+{% block title %}Xem lại đơn hàng{% endblock %}
 
 {% block content %}
 <section class="section-space">
     <div class="section-head">
-        <h1>Don hang #{{ order.id }}</h1>
+        <h1>Đơn hàng #{{ order.id }}</h1>
         <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
     </div>
 
     <div class="detail-layout">
         <div class="form-box">
-            <p>Trang thai: <strong>{{ order.get_status_display }}</strong></p>
-            <p>Thanh toan: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Da thanh toan{% else %}Chua thanh toan{% endif %}</p>
-            <p>Tong tien: <strong>{{ order.total_amount }} VND</strong></p>
+            <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
+            <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
+            <p>Tổng tiền: <strong>{{ order.total_amount|vnd }}đ</strong></p>
             {% if order.coupon_code %}
-            <p>Ma giam gia: <strong>{{ order.coupon_code }}</strong></p>
+            <p>Mã giảm giá: <strong>{{ order.coupon_code }}</strong></p>
             {% endif %}
 
             <hr class="separator">
-            <h3>Thong tin giao hang</h3>
+            <h3>Thông tin giao hàng</h3>
             {% if can_edit %}
             <form method="post">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label>Ho va ten</label>
+                    <label>Họ và tên</label>
                     <input type="text" name="customer_name" value="{{ order.customer_name }}" required>
                 </div>
                 <div class="form-group">
@@ -32,16 +32,16 @@
                     <input type="email" name="customer_email" value="{{ order.customer_email }}">
                 </div>
                 <div class="form-group">
-                    <label>So dien thoai</label>
+                    <label>Số điện thoại</label>
                     <input type="text" name="phone" value="{{ order.phone }}" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric">
                 </div>
                 <div class="form-group">
-                    <label>Dia chi nhan hang</label>
+                    <label>Địa chỉ nhận hàng</label>
                     <textarea name="shipping_address" rows="3" required>{{ order.shipping_address }}</textarea>
                 </div>
                 {% if order.payment_method == "bank" and not order.is_paid %}
                 <div class="form-group">
-                    <label>Chon ngan hang</label>
+                    <label>Chọn ngân hàng</label>
                     <select name="bank_code">
                         {% for code, item in bank_choices %}
                         <option value="{{ code }}" {% if order.bank_code == code %}selected{% endif %}>{{ item.name }}</option>
@@ -50,13 +50,13 @@
                 </div>
                 {% endif %}
                 <div class="form-group">
-                    <label>Ghi chu</label>
+                    <label>Ghi chú</label>
                     <textarea name="note" rows="3">{{ order.note }}</textarea>
                 </div>
                 <div class="profile-actions">
-                    <button type="submit" class="btn ghost inline-auto">Luu chinh sua</button>
+                    <button type="submit" class="btn ghost inline-auto">Lưu chỉnh sửa</button>
                     {% if order.payment_method == "bank" and not order.is_paid %}
-                    <button type="submit" name="action" value="pay_now" class="btn inline-auto">Luu va di toi quet ma</button>
+                    <button type="submit" name="action" value="pay_now" class="btn inline-auto">Lưu và đi tới quét mã</button>
                     {% endif %}
                 </div>
             </form>
@@ -70,31 +70,36 @@
         </div>
 
         <aside class="summary-box">
-            <h2>San pham trong don</h2>
+            <h2>Sản phẩm trong đơn</h2>
             {% for item in order.items.all %}
             <p>
                 {{ item.product.name }} x {{ item.quantity }}
-                <span>{{ item.subtotal }} VND</span>
+                <span>{{ item.subtotal|vnd }}đ</span>
             </p>
             {% if item.selected_color or item.selected_size %}
-            <p><small>Mau: {{ item.selected_color|default:"-" }} | Size: {{ item.selected_size|default:"-" }}</small></p>
+            <p><small>Màu: {{ item.selected_color|default:"-" }} | Size: {{ item.selected_size|default:"-" }}</small></p>
             {% endif %}
             {% endfor %}
             <hr>
-            <p>Tam tinh <span>{{ order.subtotal_amount }} VND</span></p>
-            <p>Phi ship <span>{{ order.shipping_fee }} VND</span></p>
-            <p>Giam gia <span>-{{ order.discount_amount }} VND</span></p>
-            <p class="total-row">Tong cong <span>{{ order.total_amount }} VND</span></p>
+            <p>Tạm tính <span>{{ order.subtotal_amount|vnd }}đ</span></p>
+            <p>Phí ship <span>{{ order.shipping_fee|vnd }}đ</span></p>
+            <p>Giảm giá <span>-{{ order.discount_amount|vnd }}đ</span></p>
+            <p class="total-row">Tổng cộng <span>{{ order.total_amount|vnd }}đ</span></p>
 
             {% if order.payment_method == "bank" and not order.is_paid and order.status != "cancelled" %}
             <div class="bank-transfer-box bank-box-visible">
-                <h3>Thong tin quet ma</h3>
-                <p>Ngan hang: <strong>{{ selected_bank_name }}</strong></p>
-                <p>So tai khoan: <strong>{{ shop_bank_account }}</strong></p>
-                <p>Chu tai khoan: <strong>{{ shop_account_name }}</strong></p>
-                <p>Noi dung: <strong>DH{{ order.id }}</strong></p>
-                <img src="{{ qr_url }}" alt="QR thanh toan {{ order.id }}">
-                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Di toi trang cho thanh toan</a>
+                <h3>Thông tin quét mã</h3>
+                <p>Ngân hàng: <strong>{{ selected_bank_name }}</strong></p>
+                <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+                <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+                <p>Nội dung: <strong>DH{{ order.id }}</strong></p>
+                <img src="{{ qr_url }}" alt="QR thanh toán {{ order.id }}">
+                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Đi tới trang chờ thanh toán</a>
+            </div>
+            {% elif order.payment_method == "cod" %}
+            <div class="payment-note-box bank-box-visible">
+                <h3>Thanh toán tiền mặt khi nhận hàng</h3>
+                <p>Bạn không cần quét mã. Cửa hàng sẽ xác nhận đơn và bạn thanh toán bằng tiền mặt khi nhận hàng.</p>
             </div>
             {% endif %}
         </aside>

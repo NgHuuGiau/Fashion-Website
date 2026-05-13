@@ -1,16 +1,34 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Tài khoản của tôi{% endblock %}
 
 {% block content %}
-<section class="section-space">
-    <div class="section-head">
-        <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username }}</h1>
-        <p>Email: {{ request.user.email|default:"Chưa cập nhật" }}</p>
-        <p>Số điện thoại: {{ request.user.profile.phone_number|default:"Chưa cập nhật" }}</p>
+<section class="section-space account-shell">
+    <div class="account-hero">
+        <div class="section-head">
+            <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username }}</h1>
+            <p>Quản lý thông tin, đơn hàng và các sản phẩm bạn quan tâm tại một nơi.</p>
+        </div>
+
+        <div class="account-grid">
+            <article class="hero-card highlight">
+                <strong>Email</strong>
+                <p>{{ request.user.email|default:"Chưa cập nhật" }}</p>
+            </article>
+            <article class="hero-card">
+                <strong>Số điện thoại</strong>
+                <p>{{ request.user.profile.phone_number|default:"Chưa cập nhật" }}</p>
+            </article>
+            <article class="hero-card">
+                <strong>Tài khoản</strong>
+                <p>{{ request.user.username }}</p>
+            </article>
+        </div>
     </div>
+
     <div class="profile-actions">
         <a href="{% url 'orders:my_orders' %}" class="btn">Đơn hàng của tôi</a>
+        <a href="{% url 'products:wishlist_list' %}" class="btn ghost">Yêu thích</a>
         <a href="{% url 'products:product_list' %}" class="btn ghost">Tiếp tục mua sắm</a>
     </div>
 </section>

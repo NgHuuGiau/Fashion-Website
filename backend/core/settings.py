@@ -94,6 +94,9 @@ TEMPLATES = [
         "DIRS": [BASE_DIR / "frontend/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
+            "builtins": [
+                "products.templatetags.shop_format",
+            ],
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
@@ -110,7 +113,7 @@ WSGI_APPLICATION = "core.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.getenv("DB_PATH", str(BASE_DIR / "database/db.sqlite3")),
+        "NAME": os.getenv("DB_PATH") or str(BASE_DIR / "database/db.sqlite3"),
     }
 }
 
@@ -139,7 +142,7 @@ SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
 # INTERNAL_IPS = ["127.0.0.1"]
 
-if DEBUG:
+if DEBUG and env_bool("ENABLE_SQL_LOGGING", False):
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,

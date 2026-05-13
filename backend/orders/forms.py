@@ -1,10 +1,6 @@
 from django import forms
 
 
-
-# ----------------------------------
-# | KHỐI LỚP (CLASS): CHECKOUTFORM |
-# ----------------------------------
 class CheckoutForm(forms.Form):
     BANK_CHOICES = [
         ("", "-- Chọn ngân hàng --"),
@@ -19,17 +15,22 @@ class CheckoutForm(forms.Form):
     customer_name = forms.CharField(max_length=150, label="Họ và tên")
     customer_email = forms.EmailField(required=False, label="Email")
     phone = forms.CharField(
-        max_length=20, 
+        max_length=20,
         label="Số điện thoại",
-        widget=forms.TextInput(attrs={
-            "oninput": "this.value = this.value.replace(/[^0-9]/g, '')",
-            "inputmode": "numeric"
-        })
+        widget=forms.TextInput(
+            attrs={
+                "oninput": "this.value = this.value.replace(/[^0-9]/g, '')",
+                "inputmode": "numeric",
+            }
+        ),
     )
-    shipping_address = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}), label="Địa chỉ nhận hàng")
+    shipping_address = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4}),
+        label="Địa chỉ nhận hàng",
+    )
     payment_method = forms.ChoiceField(
         choices=[
-            ("cod", "Tiền mặt khi nhận hàng"),
+            ("cod", "Thanh toán tiền mặt khi nhận hàng"),
             ("bank", "Chuyển khoản ngân hàng"),
         ],
         label="Phương thức thanh toán",
@@ -51,10 +52,6 @@ class CheckoutForm(forms.Form):
         label="Ghi chú",
     )
 
-
-    # -------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): CLEAN |
-    # -------------------------------
     def clean(self):
         cleaned_data = super().clean()
         payment_method = cleaned_data.get("payment_method")
@@ -68,14 +65,13 @@ class CheckoutForm(forms.Form):
 
         return cleaned_data
 
-
-    # -------------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): CLEAN_PHONE |
-    # -------------------------------------
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "").strip()
         if phone:
             import re
+
             if not re.fullmatch(r"[0-9]{9,15}", phone):
-                raise forms.ValidationError("Số điện thoại không hợp lệ, vui lòng chỉ nhập số (từ 9 đến 15 chữ số).")
+                raise forms.ValidationError(
+                    "Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số."
+                )
         return phone

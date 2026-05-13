@@ -16,7 +16,7 @@
         "slug": "ao-thun-boxy-signature",
         "image_url": "",
         "price": 320000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Áo"
     },
     {
@@ -26,23 +26,23 @@
         "slug": "ao-thun-faded-wash",
         "image_url": "",
         "price": 335000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Áo"
     },
     {
         "id": 4,
         "category_id": 1,
-        "name": "Áo polo Knit Urban",
+        "name": "Áo polo dệt Urban",
         "slug": "ao-polo-knit-urban",
         "image_url": "",
         "price": 350000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Áo"
     },
     {
         "id": 5,
         "category_id": 1,
-        "name": "Áo hoodie Zip Raw Edge",
+        "name": "Áo hoodie khóa kéo Raw Edge",
         "slug": "ao-hoodie-zip-raw-edge",
         "image_url": "",
         "price": 365000,
@@ -66,7 +66,7 @@
         "slug": "ao-sweatshirt-varsity",
         "image_url": "",
         "price": 395000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Áo"
     },
     {
@@ -86,13 +86,13 @@
         "slug": "ao-khoac-gio-wind-layer",
         "image_url": "",
         "price": 425000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Áo"
     },
     {
         "id": 10,
         "category_id": 1,
-        "name": "Áo khoac bomber Mono",
+        "name": "Áo khoác bomber Mono",
         "slug": "ao-khoac-bomber-mono",
         "image_url": "",
         "price": 440000,
@@ -112,7 +112,7 @@
     {
         "id": 12,
         "category_id": 1,
-        "name": "Áo tanktop Base Layer",
+        "name": "Áo tank top Base Layer",
         "slug": "ao-tanktop-base-layer",
         "image_url": "",
         "price": 470000,
@@ -136,13 +136,13 @@
         "slug": "ao-cardigan-knit-loose",
         "image_url": "",
         "price": 500000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Áo"
     },
     {
         "id": 15,
         "category_id": 1,
-        "name": "Áo denim jacket Blue Stone",
+        "name": "Áo khoác denim Blue Stone",
         "slug": "ao-denim-jacket-blue-stone",
         "image_url": "",
         "price": 515000,
@@ -152,7 +152,7 @@
     {
         "id": 16,
         "category_id": 1,
-        "name": "Áo coach jacket Track Unit",
+        "name": "Áo khoác coach Track Unit",
         "slug": "ao-coach-jacket-track-unit",
         "image_url": "",
         "price": 530000,
@@ -202,7 +202,7 @@
     {
         "id": 21,
         "category_id": 2,
-        "name": "Quầnn cargo Multi Pocket",
+        "name": "Quần cargo Multi Pocket",
         "slug": "quan-cargo-multi-pocket",
         "image_url": "",
         "price": 435000,
@@ -212,7 +212,7 @@
     {
         "id": 22,
         "category_id": 2,
-        "name": "Quầnn jogger Cuff Tech",
+        "name": "Quần jogger Cuff Tech",
         "slug": "quan-jogger-cuff-tech",
         "image_url": "",
         "price": 450000,
@@ -222,47 +222,47 @@
     {
         "id": 23,
         "category_id": 2,
-        "name": "Quầnn jeans Straight 90s",
+        "name": "Quần jeans Straight 90s",
         "slug": "quan-jeans-straight-90s",
         "image_url": "",
         "price": 465000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Quần"
     },
     {
         "id": 24,
         "category_id": 2,
-        "name": "Quầnn jeans Baggy Fade",
+        "name": "Quần jeans Baggy Fade",
         "slug": "quan-jeans-baggy-fade",
         "image_url": "",
         "price": 480000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Quần"
     },
     {
         "id": 25,
         "category_id": 2,
-        "name": "Quầnn short Utility",
+        "name": "Quần short Utility",
         "slug": "quan-short-utility",
         "image_url": "",
         "price": 495000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Quần"
     },
     {
         "id": 26,
         "category_id": 2,
-        "name": "Quầnn short Sweat Basic",
+        "name": "Quần short nỉ Basic",
         "slug": "quan-short-sweat-basic",
         "image_url": "",
         "price": 510000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Quần"
     },
     {
         "id": 27,
         "category_id": 2,
-        "name": "Quầnn tây Relax Fit",
+        "name": "Quần tây Relax Fit",
         "slug": "quan-tay-relax-fit",
         "image_url": "",
         "price": 525000,
@@ -272,7 +272,7 @@
     {
         "id": 28,
         "category_id": 2,
-        "name": "Quầnn dù Parachute",
+        "name": "Quần dù Parachute",
         "slug": "quan-du-parachute",
         "image_url": "",
         "price": 540000,
@@ -282,7 +282,7 @@
     {
         "id": 29,
         "category_id": 2,
-        "name": "Quầnn track pant Side Line",
+        "name": "Quần track pants Side Line",
         "slug": "quan-track-pant-side-line",
         "image_url": "",
         "price": 555000,
@@ -292,17 +292,17 @@
     {
         "id": 30,
         "category_id": 2,
-        "name": "Quầnn nỉ Daily",
+        "name": "Quần nỉ Daily",
         "slug": "quan-ni-daily",
         "image_url": "",
         "price": 570000,
-        "featured": 0,
+        "featured": 1,
         "category_name": "Quần"
     },
     {
         "id": 31,
         "category_id": 2,
-        "name": "Quầnn cargo Ripstop",
+        "name": "Quần cargo Ripstop",
         "slug": "quan-cargo-ripstop",
         "image_url": "",
         "price": 585000,
@@ -312,7 +312,7 @@
     {
         "id": 32,
         "category_id": 2,
-        "name": "Quầnn denim raw hem",
+        "name": "Quần denim Raw Hem",
         "slug": "quan-denim-raw-hem",
         "image_url": "",
         "price": 600000,
@@ -322,7 +322,7 @@
     {
         "id": 33,
         "category_id": 2,
-        "name": "Quầnn shorts denim washed",
+        "name": "Quần short denim Washed",
         "slug": "quan-shorts-denim-washed",
         "image_url": "",
         "price": 615000,
@@ -332,7 +332,7 @@
     {
         "id": 34,
         "category_id": 2,
-        "name": "Quầnn chinos loose",
+        "name": "Quần chino Loose Fit",
         "slug": "quan-chinos-loose",
         "image_url": "",
         "price": 630000,
@@ -342,7 +342,7 @@
     {
         "id": 35,
         "category_id": 2,
-        "name": "Quầnn ống rộng Pleated",
+        "name": "Quần ống rộng Pleated",
         "slug": "quan-ong-rong-pleated",
         "image_url": "",
         "price": 645000,
@@ -352,32 +352,32 @@
     {
         "id": 36,
         "category_id": 3,
-        "name": "Nón lưỡi trai",
+        "name": "Nón lưỡi trai Basic",
         "slug": "non-luoi-trai-swe",
         "image_url": "",
         "price": 135000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 37,
         "category_id": 3,
-        "name": "Beanie Ribbed",
+        "name": "Mũ len Beanie Ribbed",
         "slug": "beanie-ribbed",
         "image_url": "",
         "price": 150000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 38,
         "category_id": 3,
-        "name": "Túi đeo chéo Minỉ Pack",
+        "name": "Túi đeo chéo Mini Pack",
         "slug": "tui-deo-cheo-mini-pack",
         "image_url": "",
         "price": 165000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 39,
@@ -387,7 +387,7 @@
         "image_url": "",
         "price": 180000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 40,
@@ -397,7 +397,7 @@
         "image_url": "",
         "price": 195000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 41,
@@ -407,17 +407,17 @@
         "image_url": "",
         "price": 210000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 42,
         "category_id": 3,
-        "name": "Vi minỉ Reflect",
+        "name": "Ví mini Reflect",
         "slug": "vi-mini-reflect",
         "image_url": "",
         "price": 225000,
         "featured": 1,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 43,
@@ -427,17 +427,17 @@
         "image_url": "",
         "price": 240000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 44,
         "category_id": 3,
-        "name": "Móc khóa carabiner",
+        "name": "Móc khóa Carabiner",
         "slug": "moc-khoa-carabiner",
         "image_url": "",
         "price": 255000,
-        "featured": 0,
-        "category_name": "Phụ kiện"
+        "featured": 1,
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 45,
@@ -447,17 +447,17 @@
         "image_url": "",
         "price": 270000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 46,
         "category_id": 3,
-        "name": "Bình nước steel 500ml",
+        "name": "Bình nước thép 500ml",
         "slug": "binh-nuoc-steel-500ml",
         "image_url": "",
         "price": 285000,
-        "featured": 1,
-        "category_name": "Phụ kiện"
+        "featured": 0,
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 47,
@@ -467,27 +467,27 @@
         "image_url": "",
         "price": 300000,
         "featured": 1,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 48,
         "category_id": 3,
-        "name": "Kính mát frame vuông",
+        "name": "Kính mát gọng vuông",
         "slug": "kinh-mat-frame-vuong",
         "image_url": "",
         "price": 315000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 49,
         "category_id": 3,
-        "name": "Gang tây ngon cut",
+        "name": "Găng tay ngón cụt",
         "slug": "gang-tay-ngon-cut",
         "image_url": "",
         "price": 330000,
         "featured": 0,
-        "category_name": "Phụ kiện"
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 50,
@@ -496,8 +496,8 @@
         "slug": "khau-trang-3-lop-swe",
         "image_url": "",
         "price": 345000,
-        "featured": 0,
-        "category_name": "Phụ kiện"
+        "featured": 1,
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 51,
@@ -522,17 +522,17 @@
     {
         "id": 53,
         "category_id": 2,
-        "name": "Cargo Pants Street Fit",
+        "name": "Quần cargo Street Fit",
         "slug": "cargo-pants-street-fit",
         "image_url": "",
         "price": 560000,
-        "featured": 1,
+        "featured": 0,
         "category_name": "Quần"
     },
     {
         "id": 54,
         "category_id": 2,
-        "name": "Jeans Baggy Fade Blue",
+        "name": "Quần jeans Baggy Fade Blue",
         "slug": "jeans-baggy-fade-blue",
         "image_url": "",
         "price": 590000,
@@ -542,17 +542,17 @@
     {
         "id": 55,
         "category_id": 3,
-        "name": "Cap Logo Minimal",
+        "name": "Mũ lưỡi trai Logo Minimal",
         "slug": "cap-logo-minimal",
         "image_url": "",
         "price": 190000,
-        "featured": 1,
-        "category_name": "Phụ kiện"
+        "featured": 0,
+        "category_name": "Phụ Kiện"
     },
     {
         "id": 56,
         "category_id": 2,
-        "name": "Jogger Cuff Tech",
+        "name": "Quần jogger Tech Cuff",
         "slug": "jogger-cuff-tech",
         "image_url": "",
         "price": 490000,
