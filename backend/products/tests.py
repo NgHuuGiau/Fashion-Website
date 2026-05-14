@@ -135,6 +135,16 @@ class ProductViewsTest(TestCase):
         self.assertNotContains(response, "Quần test")
 
 
+    # ---------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_PRODUCT_LIST_FILTER_BY_DOTTED_PRICE_RANGE |
+    # ---------------------------------------------------------------------
+    def test_product_list_filter_by_dotted_price_range(self):
+        response = self.client.get(reverse("products:product_list"), {"min_price": "300.000", "max_price": "399.000"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Áo test")
+        self.assertNotContains(response, "Quần test")
+
+
     # -----------------------------------------------------------
     # | HÀM XỬ LÝ (FUNCTION): TEST_PRODUCT_LIST_SORT_PRICE_DESC |
     # -----------------------------------------------------------

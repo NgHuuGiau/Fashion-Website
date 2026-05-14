@@ -416,3 +416,32 @@
         }
     });
 })();
+
+(function () {
+    var priceInputs = Array.prototype.slice.call(document.querySelectorAll("[data-price-input]"));
+
+    if (!priceInputs.length) {
+        return;
+    }
+
+    function formatPriceInputValue(value) {
+        var digits = String(value || "").replace(/\D/g, "");
+        if (!digits) {
+            return "";
+        }
+
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    priceInputs.forEach(function (input) {
+        input.value = formatPriceInputValue(input.value);
+
+        input.addEventListener("input", function () {
+            input.value = formatPriceInputValue(input.value);
+        });
+
+        input.addEventListener("blur", function () {
+            input.value = formatPriceInputValue(input.value);
+        });
+    });
+})();

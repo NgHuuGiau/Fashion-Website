@@ -52,16 +52,32 @@
     <div class="detail-info detail-stack">
         <div class="detail-topline">
             <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|upper }}{% endif %}</p>
+            <p class="detail-code">Mã sản phẩm • {{ product.slug|upper }}</p>
         </div>
 
         <h1>{{ product.name }}</h1>
         <p class="price big">{{ product.price|vnd }}đ</p>
-        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để đồng hành cùng nhịp sống thành phố mỗi ngày." }}</p>
+        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để dùng hằng ngày mà không bị nhạt." }}</p>
+
+        <div class="detail-highlights">
+            <article class="detail-highlight-card">
+                <strong>Dễ mặc</strong>
+                <span>Hợp đi học, đi chơi, cà phê hoặc xuống phố cuối tuần.</span>
+            </article>
+            <article class="detail-highlight-card">
+                <strong>Dễ xem</strong>
+                <span>Ảnh lớn, gallery gọn và thông tin mua hàng đặt đúng chỗ.</span>
+            </article>
+            <article class="detail-highlight-card">
+                <strong>Dễ chốt</strong>
+                <span>Có hỗ trợ size, kiểm tra hàng và theo dõi đơn ngay trên web.</span>
+            </article>
+        </div>
 
         {% if request.user.is_authenticated %}
-        <p class="detail-favorite-note">{% if is_in_wishlist %}Sản phẩm này đang nằm trong danh sách yêu thích của bạn.{% else %}Bấm tim trên ảnh để lưu sản phẩm yêu thích nhanh hơn.{% endif %}</p>
+        <p class="detail-favorite-note">{% if is_in_wishlist %}Sản phẩm này đang có trong danh sách yêu thích của bạn.{% else %}Bấm tim để lưu lại món này và quay lại so sánh sau.{% endif %}</p>
         {% else %}
-        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để thích sản phẩm</a>
+        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để lưu yêu thích</a>
         {% endif %}
 
         <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form">
@@ -99,6 +115,11 @@
                 <label for="qty">Số lượng</label>
                 <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}">
             </div>
+            <div class="detail-promise">
+                <span>Freeship từ 499K</span>
+                <span>Tư vấn size nhanh</span>
+                <span>Theo dõi đơn dễ</span>
+            </div>
             <input type="hidden" name="next" value="{% url 'orders:cart_detail' %}">
             <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>Thêm vào giỏ</button>
         </form>
@@ -109,7 +130,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>GỢI Ý PHÙ HỢP</h2>
-        <p>Những lựa chọn cùng tinh thần và cùng nhịp phối với item bạn đang xem.</p>
+        <p>Những món cùng tinh thần để bạn ghép outfit nhanh hơn.</p>
     </div>
     <div class="product-grid product-grid-featured">
         {% for item in related_products %}
@@ -122,6 +143,7 @@
                 {% endif %}
             </a>
             <div class="card-body">
+                <p class="card-category">{{ item.category.name }}</p>
                 <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name }}</a></h3>
                 <p class="price">{{ item.price|vnd }}đ</p>
             </div>

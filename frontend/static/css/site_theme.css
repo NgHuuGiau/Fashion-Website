@@ -567,10 +567,37 @@ button {
 
 .filter-form {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.75rem;
     align-items: flex-end;
     padding: 1rem;
+}
+
+.filter-summary {
+    min-height: 52px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 0.1rem;
+    border: 1px dashed rgba(111, 56, 26, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 226, 210, 0.72));
+    padding: 0.65rem 0.75rem;
+    text-align: center;
+}
+
+.filter-summary strong {
+    font-family: 'Archivo Expanded', sans-serif;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.filter-summary span {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .filter-form label {
@@ -846,6 +873,14 @@ button {
     gap: 0.28rem;
 }
 
+.card-category {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .card-body h3 {
     line-height: 1.45;
     margin-bottom: 0.45rem;
@@ -911,6 +946,14 @@ button {
     font-size: 0.9rem;
 }
 
+.detail-code {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
 .detail-topline {
     display: flex;
     align-items: center;
@@ -937,6 +980,50 @@ button {
     opacity: 0.52;
     transform: scale(0.985);
     filter: saturate(0.92);
+}
+
+.detail-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.detail-highlight-card {
+    display: grid;
+    gap: 0.32rem;
+    padding: 0.95rem;
+    border-radius: 18px;
+    border: 1px solid rgba(111, 56, 26, 0.12);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 226, 210, 0.65));
+}
+
+.detail-highlight-card strong {
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+}
+
+.detail-highlight-card span {
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.detail-promise {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.detail-promise span {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.48rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(111, 56, 26, 0.12);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
 }
 
 .detail-gallery-arrow {

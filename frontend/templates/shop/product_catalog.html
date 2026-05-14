@@ -6,23 +6,23 @@
 <section class="hero">
     <div class="hero-grid">
         <div class="hero-main">
-            <p class="eyebrow">DROP MỚI MỖI TUẦN</p>
-            <h1>LÊN ĐỒ NHANH. MẶC LÀ CÓ GU.</h1>
-            <p class="hero-copy">Từ áo, quần đến phụ kiện đều được chọn theo hướng trẻ, gọn và dễ phối. Vào là thấy ngay món hợp vibe, chốt nhanh mà vẫn nổi bật mỗi lần xuống phố.</p>
+            <p class="eyebrow">NEW DROP • MẶC NHANH • PHỐI DỄ</p>
+            <h1>Đồ gọn, chất rõ, chốt nhanh.</h1>
+            <p class="hero-copy">Chọn áo, quần và phụ kiện theo hướng dễ mặc hằng ngày nhưng vẫn đủ cá tính. Vào là thấy ngay món hợp gu, không cần lướt quá lâu.</p>
             <div class="hero-badges">
-                <span>Thiết kế local brand độc quyền</span>
-                <span>Form lên gọn, ảnh xem rõ</span>
-                <span>Mỗi sản phẩm có gallery chi tiết</span>
+                <span>Ảnh rõ, xem nhanh</span>
+                <span>Form dễ phối</span>
+                <span>Lọc gọn theo giá</span>
             </div>
             <div class="hero-actions">
-                <a href="{% url 'products:product_list' %}" class="btn small">Khám phá bộ sưu tập</a>
+                <a href="{% url 'products:product_list' %}" class="btn small">Xem toàn bộ</a>
                 <a href="{% url 'products:product_list' %}?category=ao" class="btn ghost small">Xem áo mới</a>
             </div>
         </div>
         <div class="hero-aside">
             <div class="hero-card highlight">
-                <strong>Chọn đúng món, chốt đúng gu</strong>
-                <p>Ảnh sản phẩm được làm riêng cho từng mẫu để bạn nhìn rõ tinh thần của item, xem nhanh và chọn đúng thứ mình muốn mặc.</p>
+                <strong>Mua nhanh, đỡ phân vân</strong>
+                <p>Danh mục rõ, giá dễ lọc và trang chi tiết tập trung đúng thông tin cần để chốt đơn.</p>
             </div>
             <div class="feature-stat-grid">
                 <div class="hero-card">
@@ -31,11 +31,11 @@
                 </div>
                 <div class="hero-card">
                     <strong>499K</strong>
-                    <p>Freeship toàn quốc từ mốc này</p>
+                    <p>Freeship toàn quốc từ mức này</p>
                 </div>
                 <div class="hero-card">
                     <strong>New</strong>
-                    <p>Drop mới liên tục, hạn chế đụng style</p>
+                    <p>Drop đều, outfit không bị lặp</p>
                 </div>
             </div>
         </div>
@@ -44,21 +44,21 @@
 
 <section class="intro-grid">
     <div class="intro-panel">
-        <h3>Xem rõ sản phẩm, xuống tiền đỡ lăn tăn</h3>
-        <p>Mỗi mẫu đều có tên rõ, hình riêng và cách hiển thị gọn để bạn lướt nhanh, so sánh dễ và chốt đơn không bị rối mắt.</p>
+        <h3>Ít chữ hơn, dễ chọn hơn</h3>
+        <p>Mọi phần nội dung đều được rút gọn để người xem nhìn nhanh, so sánh dễ và chốt món phù hợp ngay trên điện thoại hoặc máy tính.</p>
     </div>
     <div class="stats-grid">
         <article class="stat-card">
+            <h3>Dễ mặc</h3>
+            <p>Đi học, đi chơi hay đi cà phê đều dùng được.</p>
+        </article>
+        <article class="stat-card">
             <h3>Dễ phối</h3>
-            <p>Đi học, đi chơi hay đi làm đều lên đồ được ngay.</p>
+            <p>Ưu tiên form gọn và màu dễ ghép outfit.</p>
         </article>
         <article class="stat-card">
-            <h3>Lên form ổn</h3>
-            <p>Phom và tinh thần hình ảnh ưu tiên cảm giác trẻ, gọn và có điểm nhấn.</p>
-        </article>
-        <article class="stat-card">
-            <h3>Mua nhanh</h3>
-            <p>Lọc rõ, xem ảnh kỹ, chốt đơn mượt hơn trên cả điện thoại lẫn máy tính.</p>
+            <h3>Dễ chốt</h3>
+            <p>Giá rõ, ảnh sạch, thao tác mượt.</p>
         </article>
     </div>
 </section>
@@ -77,11 +77,11 @@
 
         <label>
             Giá từ
-            <input type="number" name="min_price" value="{{ min_price }}" min="0" step="1000" placeholder="0">
+            <input type="text" name="min_price" value="{{ min_price }}" inputmode="numeric" autocomplete="off" data-price-input placeholder="0">
         </label>
         <label>
             Đến
-            <input type="number" name="max_price" value="{{ max_price }}" min="0" step="1000" placeholder="999000">
+            <input type="text" name="max_price" value="{{ max_price }}" inputmode="numeric" autocomplete="off" data-price-input placeholder="999.000">
         </label>
         <label>
             Sắp xếp
@@ -92,6 +92,10 @@
                 <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Tên A-Z</option>
             </select>
         </label>
+        <div class="filter-summary">
+            <strong>{{ total_products }}</strong>
+            <span>sản phẩm phù hợp</span>
+        </div>
         <button type="submit" class="btn small">Áp dụng</button>
         <a href="{% url 'products:product_list' %}" class="btn ghost small">Xóa lọc</a>
     </form>
@@ -101,7 +105,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>HOT TRENDING NOW</h2>
-        <p>Những item đang được săn nhiều nhất tuần này, vào là thấy ngay món đáng xuống tiền.</p>
+        <p>Những item đang được chọn nhiều vì dễ mặc, dễ phối và lên đồ nhanh.</p>
     </div>
     <div class="slider-wrap">
         <div class="slider-track">
@@ -117,6 +121,7 @@
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
+                    <p class="card-category">{{ product.category.name }}</p>
                     <h3>{{ product.name }}</h3>
                     <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
@@ -134,6 +139,7 @@
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
+                    <p class="card-category">{{ product.category.name }}</p>
                     <h3>{{ product.name }}</h3>
                     <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
@@ -146,7 +152,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>HOT TRENDING NOW</h2>
-        <p>Hiện chưa có sản phẩm gắn HOT, hệ thống đang ưu tiên hiển thị các mẫu mới nhất cho bạn xem trước.</p>
+        <p>Hiện chưa có sản phẩm gắn HOT. Shop đang ưu tiên hiển thị các mẫu mới để bạn xem trước.</p>
     </div>
 </section>
 {% endif %}
@@ -154,7 +160,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}KẾT QUẢ SẢN PHẨM{% endif %}</h2>
-        <p>{% if is_random_home %}Các lựa chọn dễ mặc, dễ lên outfit và đủ chất để dùng hằng ngày mà không bị nhàm.{% else %}Tìm đúng món hợp gu rồi chốt đơn nhanh trong vài thao tác.{% endif %}</p>
+        <p>{% if is_random_home %}Các lựa chọn dễ mặc mỗi ngày nhưng vẫn giữ được chất riêng.{% else %}Danh sách đã được lọc theo nhu cầu của bạn.{% endif %}</p>
     </div>
 
     <div class="product-grid">
@@ -173,15 +179,16 @@
                 {% endif %}
             </div>
             <div class="card-body">
+                <p class="card-category">{{ product.category.name }}</p>
                 <h3>{{ product.name }}</h3>
                 <p class="price">{{ product.price|vnd }}đ</p>
             </div>
         </a>
         {% empty %}
         <div class="empty-state">
-            <h2>Chưa có sản phẩm hợp gu lúc này</h2>
-            <p>Thử bỏ bớt bộ lọc hoặc quay lại danh mục chính để xem thêm những mẫu đang lên kệ.</p>
-            <a href="{% url 'products:product_list' %}" class="btn small">Xem toàn bộ sản phẩm</a>
+            <h2>Chưa có sản phẩm phù hợp</h2>
+            <p>Thử nới khoảng giá hoặc quay lại toàn bộ catalog để xem thêm mẫu khác.</p>
+            <a href="{% url 'products:product_list' %}" class="btn small">Xem tất cả</a>
         </div>
         {% endfor %}
     </div>
