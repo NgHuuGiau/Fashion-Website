@@ -94,25 +94,89 @@
 
 (function () {
     var mainImage = document.getElementById("detail-main-image");
-    var thumbs = document.querySelectorAll("[data-detail-image]");
+    var thumbs = Array.prototype.slice.call(document.querySelectorAll("[data-detail-image]"));
+    var prevButton = document.getElementById("detail-prev-image");
+    var nextButton = document.getElementById("detail-next-image");
+    var switchTimer = null;
 
     if (!mainImage || !thumbs.length) {
         return;
     }
 
-    thumbs.forEach(function (thumb) {
-        thumb.addEventListener("click", function () {
-            var url = thumb.getAttribute("data-detail-image");
-            if (!url) {
-                return;
-            }
+    var currentIndex = thumbs.findIndex(function (thumb) {
+        return thumb.classList.contains("active");
+    });
+    if (currentIndex < 0) {
+        currentIndex = 0;
+    }
 
-            mainImage.src = url;
-            thumbs.forEach(function (item) {
-                item.classList.remove("active");
-            });
-            thumb.classList.add("active");
+    function showImageAt(index) {
+        if (!thumbs.length) {
+            return;
+        }
+
+        var normalizedIndex = index;
+        if (normalizedIndex < 0) {
+            normalizedIndex = thumbs.length - 1;
+        }
+        if (normalizedIndex >= thumbs.length) {
+            normalizedIndex = 0;
+        }
+
+        var activeThumb = thumbs[normalizedIndex];
+        var url = activeThumb.getAttribute("data-detail-image");
+        var thumbPreview = activeThumb.querySelector("img");
+        if (!url) {
+            return;
+        }
+
+        currentIndex = normalizedIndex;
+        thumbs.forEach(function (item) {
+            item.classList.remove("active");
         });
+        activeThumb.classList.add("active");
+
+        if (mainImage.src === url) {
+            if (thumbPreview && thumbPreview.alt) {
+                mainImage.alt = thumbPreview.alt;
+            }
+            return;
+        }
+
+        if (switchTimer) {
+            window.clearTimeout(switchTimer);
+        }
+
+        mainImage.classList.add("is-switching");
+        switchTimer = window.setTimeout(function () {
+            mainImage.src = url;
+            if (thumbPreview && thumbPreview.alt) {
+                mainImage.alt = thumbPreview.alt;
+            }
+            switchTimer = null;
+        }, 120);
+    }
+
+    thumbs.forEach(function (thumb, index) {
+        thumb.addEventListener("click", function () {
+            showImageAt(index);
+        });
+    });
+
+    if (prevButton) {
+        prevButton.addEventListener("click", function () {
+            showImageAt(currentIndex - 1);
+        });
+    }
+
+    if (nextButton) {
+        nextButton.addEventListener("click", function () {
+            showImageAt(currentIndex + 1);
+        });
+    }
+
+    mainImage.addEventListener("load", function () {
+        mainImage.classList.remove("is-switching");
     });
 })();
 

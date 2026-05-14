@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260514g">
+    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260514s">
 </head>
 <body>
     <div class="topline">FREE SHIP TOÀN QUỐC CHO ĐƠN TỪ 499K</div>
@@ -17,7 +17,11 @@
         <div class="container nav-wrap">
             <div class="header-left">
                 <button type="button" class="hamburger-btn" id="menu-toggle" aria-label="Mở menu">
-                    <i class="fa-solid fa-bars"></i>
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
                 </button>
                 <div class="brand-block">
                     <a href="{% url 'products:product_list' %}" class="logo" aria-label="Trang chủ">HUUGIAU</a>
@@ -130,7 +134,7 @@
             <button type="submit" class="btn small">Gửi</button>
         </form>
     </section>
-    <script src="/static/js/site_interactions.js?v=20260514g"></script>
+    <script src="/static/js/site_interactions.js?v=20260514s"></script>
     <script>
         (function () {
             var launcher = document.getElementById("chat-launcher");

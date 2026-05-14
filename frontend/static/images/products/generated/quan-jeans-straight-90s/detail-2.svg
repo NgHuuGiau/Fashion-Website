@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" role="img" aria-label="Quần jeans Straight 90s">
+  <rect width="1200" height="1400" fill="#eef1f4" />
+  <circle cx="980" cy="220" r="180" fill="#cfdce6" />
+  <circle cx="220" cy="1180" r="170" fill="#cfdce6" />
+  <rect x="70" y="70" width="1060" height="1260" rx="48" fill="none" stroke="#4d6a81" stroke-opacity="0.18" stroke-width="4" />
+  <text x="110" y="150" fill="#4d6a81" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="4">HUUGIAU ORIGINAL</text>
+  <text x="110" y="220" fill="#16181b" font-family="'Archivo Expanded', Arial, sans-serif" font-size="62" font-weight="800">Quần jeans Straight 90s</text>
+  <text x="110" y="272" fill="#16181b" fill-opacity="0.72" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="30">Close-up / detail view</text>
+  
+  <g transform="translate(300 270)">
+    <path d="M180 0h240l70 150-70 690H280L230 480 180 840H40L110 150Z" fill="#4d6a81" />
+    <path d="M230 70h140l36 104-42 592H290L260 430 230 766H156L200 174Z" fill="#cfdce6" />
+    <rect x="208" y="240" width="72" height="110" rx="18" fill="#16181b" fill-opacity="0.16" />
+    <rect x="320" y="240" width="72" height="110" rx="18" fill="#16181b" fill-opacity="0.16" />
+    <text x="300" y="930" text-anchor="middle" fill="#16181b" font-family="'Archivo Expanded', Arial, sans-serif" font-size="40">WIDE LEG</text>
+  </g>
+  <text x="110" y="1248" fill="#16181b" fill-opacity="0.7" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="28">Original product artwork generated locally for this project</text>
+</svg>

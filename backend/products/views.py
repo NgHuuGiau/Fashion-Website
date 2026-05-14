@@ -449,10 +449,10 @@ def wishlist_toggle(request, product_id):
     product = get_object_or_404(Product, id=product_id, available=True)
     item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
     if created:
-        messages.success(request, "Đã thêm vào danh sách yêu thích.")
+        messages.success(request, f"Đã thích sản phẩm {product.name}.")
     else:
         item.delete()
-        messages.info(request, "Đã bỏ khỏi danh sách yêu thích.")
+        messages.info(request, f"Đã bỏ thích sản phẩm {product.name}.")
 
     next_url = request.POST.get("next") or request.GET.get("next")
     if not next_url:

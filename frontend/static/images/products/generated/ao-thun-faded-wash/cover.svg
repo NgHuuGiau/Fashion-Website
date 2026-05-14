@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" role="img" aria-label="Áo thun Faded Wash">
+  <rect width="1200" height="1400" fill="#f7efe6" />
+  <circle cx="980" cy="220" r="180" fill="#e9d5c1" />
+  <circle cx="220" cy="1180" r="170" fill="#e9d5c1" />
+  <rect x="70" y="70" width="1060" height="1260" rx="48" fill="none" stroke="#9b5c36" stroke-opacity="0.18" stroke-width="4" />
+  <text x="110" y="150" fill="#9b5c36" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="4">HUUGIAU ORIGINAL</text>
+  <text x="110" y="220" fill="#1c1713" font-family="'Archivo Expanded', Arial, sans-serif" font-size="62" font-weight="800">Áo thun Faded Wash</text>
+  <text x="110" y="272" fill="#1c1713" fill-opacity="0.72" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="30">Original catalog artwork</text>
+  
+  <g transform="translate(185 310)">
+    <path d="M180 40 300 0 420 40 520 150 450 250 450 710 150 710 150 250 80 150Z" fill="#9b5c36" />
+    <path d="M230 96 300 58 370 96 420 160 375 210 375 648 225 648 225 210 180 160Z" fill="#e9d5c1" />
+    <circle cx="300" cy="150" r="42" fill="#f7efe6" />
+    <text x="300" y="370" text-anchor="middle" fill="#1c1713" font-family="'Archivo Expanded', Arial, sans-serif" font-size="40">MẶC CHẤT</text>
+    <text x="300" y="425" text-anchor="middle" fill="#1c1713" fill-opacity="0.74" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="26">URBAN FORM</text>
+  </g>
+  <text x="110" y="1248" fill="#1c1713" fill-opacity="0.7" font-family="'Be Vietnam Pro', Arial, sans-serif" font-size="28">Original product artwork generated locally for this project</text>
+</svg>

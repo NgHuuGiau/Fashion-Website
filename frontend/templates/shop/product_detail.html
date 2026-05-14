@@ -7,6 +7,26 @@
     <div class="detail-media-column">
         <div class="detail-media detail-media-shell">
             {% if gallery_images %}
+            <div class="detail-media-badges">
+                {% if product.featured %}<span class="tag detail-tag">HOT</span>{% endif %}
+                {% if request.user.is_authenticated %}
+                <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="detail-favorite-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="detail-favorite-btn{% if is_in_wishlist %} active{% endif %}" aria-label="{% if is_in_wishlist %}Bỏ yêu thích{% else %}Thích sản phẩm{% endif %}">
+                        <span class="detail-favorite-heart" aria-hidden="true">♥</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% if gallery_images|length > 1 %}
+            <button type="button" class="detail-gallery-arrow detail-gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
+                <span class="detail-arrow-glyph" aria-hidden="true">‹</span>
+            </button>
+            <button type="button" class="detail-gallery-arrow detail-gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
+                <span class="detail-arrow-glyph" aria-hidden="true">›</span>
+            </button>
+            {% endif %}
             <img src="{{ gallery_images.0.url }}" alt="{{ product.name }}" id="detail-main-image">
             {% else %}
             <div class="fallback detail-fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</div>
@@ -32,34 +52,16 @@
     <div class="detail-info detail-stack">
         <div class="detail-topline">
             <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|upper }}{% endif %}</p>
-            {% if product.featured %}<span class="chip active">HOT ITEM</span>{% endif %}
         </div>
 
         <h1>{{ product.name }}</h1>
         <p class="price big">{{ product.price|vnd }}đ</p>
         <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để đồng hành cùng nhịp sống thành phố mỗi ngày." }}</p>
 
-        <div class="detail-highlights">
-            <div class="hero-card">
-                <strong>Ảnh thật rõ hơn</strong>
-                <p>Shop có thể đăng từ 0 đến 6 hình cho mỗi sản phẩm để bạn xem kỹ hơn từng góc.</p>
-            </div>
-            <div class="hero-card">
-                <strong>Kiểm tra tồn kho</strong>
-                <p>Chọn màu và size để xem ngay biến thể còn hàng trước khi thêm vào giỏ.</p>
-            </div>
-        </div>
-
         {% if request.user.is_authenticated %}
-        <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-form-inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" class="btn ghost small">
-                {% if is_in_wishlist %}<i class="fa-solid fa-heart"></i> Bỏ yêu thích{% else %}<i class="fa-regular fa-heart"></i> Thêm yêu thích{% endif %}
-            </button>
-        </form>
+        <p class="detail-favorite-note">{% if is_in_wishlist %}Sản phẩm này đang nằm trong danh sách yêu thích của bạn.{% else %}Bấm tim trên ảnh để lưu sản phẩm yêu thích nhanh hơn.{% endif %}</p>
         {% else %}
-        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để lưu yêu thích</a>
+        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để thích sản phẩm</a>
         {% endif %}
 
         <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form">
