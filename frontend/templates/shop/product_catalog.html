@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}DIRTY STYLE | Streetwear Việt cho nhịp sống thành phố{% endblock %}
+{% block title %}HUUGIAU | Streetwear local cho nhịp sống thành phố{% endblock %}
 
 {% block content %}
 <section class="hero">
     <div class="hero-grid">
         <div class="hero-main">
             <p class="eyebrow">DROP MỚI MỖI TUẦN</p>
-            <h1>MẶC CHẤT. RA PHỐ NỔI.</h1>
-            <p class="hero-copy">Streetwear dễ mặc, lên form gọn và đủ nổi bật để bạn xuất hiện gọn gàng từ lớp học, quán cà phê đến những buổi hẹn cuối tuần.</p>
+            <h1>MẶC CHẤT. LÊN PHỐ. NỔI BẬT.</h1>
+            <p class="hero-copy">Những item dễ mặc nhưng không nhạt. Lên đồ đi học, đi chơi, cà phê hay xuống phố đều gọn, chất và đủ khiến người khác phải ngoái nhìn.</p>
             <div class="hero-badges">
-                <span>Thiết kế local brand</span>
-                <span>Form chuẩn Châu Á</span>
-                <span>Đổi trả trong 5 ngày</span>
+                <span>Thiết kế local brand có gu</span>
+                <span>Form tôn dáng, dễ phối</span>
+                <span>Đổi trả nhanh trong 5 ngày</span>
             </div>
             <div class="hero-actions">
                 <a href="{% url 'products:product_list' %}" class="btn small">Khám phá bộ sưu tập</a>
@@ -21,21 +21,21 @@
         </div>
         <div class="hero-aside">
             <div class="hero-card highlight">
-                <strong>Tuyển chọn đáng mua</strong>
-                <p>Hình ảnh sạch, tông màu đồng bộ và sản phẩm được chọn theo hướng trẻ, gọn, dễ phối đồ mỗi ngày.</p>
+                <strong>Chọn đồ dễ, lên outfit nhanh</strong>
+                <p>Shop chọn sẵn các mẫu đang hợp gu giới trẻ: tông sạch, form đẹp, dễ phối và đủ nổi để mặc một lần là muốn diện tiếp.</p>
             </div>
             <div class="feature-stat-grid">
                 <div class="hero-card">
                     <strong>48h</strong>
-                    <p>Xử lý đơn nhanh</p>
+                    <p>Xử lý đơn nhanh, chốt gọn</p>
                 </div>
                 <div class="hero-card">
                     <strong>499K</strong>
-                    <p>Miễn phí vận chuyển</p>
+                    <p>Freeship toàn quốc từ mốc này</p>
                 </div>
                 <div class="hero-card">
                     <strong>New</strong>
-                    <p>Cập nhật drop mới liên tục</p>
+                    <p>Drop mới liên tục, không sợ đụng style</p>
                 </div>
             </div>
         </div>
@@ -44,21 +44,21 @@
 
 <section class="intro-grid">
     <div class="intro-panel">
-        <h3>Giao diện sáng, sản phẩm nổi bật</h3>
-        <p>Mọi điểm chạm được tinh chỉnh để hình ảnh, giá bán và hành động mua hàng nổi rõ hơn trên cả desktop lẫn mobile.</p>
+        <h3>Đồ đẹp phải khiến bạn muốn bấm mua ngay</h3>
+        <p>Từ ảnh sản phẩm, giá bán đến thao tác mua hàng đều được làm gọn để bạn xem nhanh, chọn lẹ và chốt đơn không bị rối.</p>
     </div>
     <div class="stats-grid">
         <article class="stat-card">
             <h3>Dễ phối</h3>
-            <p>Mặc đi học, đi chơi hay đi làm đều hợp.</p>
+            <p>Mặc đi học, đi chơi hay đi làm đều hợp vibe.</p>
         </article>
         <article class="stat-card">
-            <h3>Đứng form</h3>
-            <p>Chất liệu và phom dáng ưu tiên cảm giác gọn gàng.</p>
+            <h3>Lên form ổn</h3>
+            <p>Chất liệu và phom ưu tiên cảm giác gọn, trẻ và có điểm nhấn.</p>
         </article>
         <article class="stat-card">
             <h3>Mua nhanh</h3>
-            <p>Lọc gọn, xem rõ và chốt đơn thuận tay hơn.</p>
+            <p>Lọc rõ, xem dễ, chốt đơn mượt hơn trên cả điện thoại lẫn máy tính.</p>
         </article>
     </div>
 </section>
@@ -67,7 +67,7 @@
     <a href="{% url 'products:product_list' %}" class="chip {% if not selected_category %}active{% endif %}">Tất cả</a>
     <a href="{% url 'products:product_list' %}?category=ao" class="chip {% if selected_category and selected_category.slug == 'ao' %}active{% endif %}">Áo</a>
     <a href="{% url 'products:product_list' %}?category=quan" class="chip {% if selected_category and selected_category.slug == 'quan' %}active{% endif %}">Quần</a>
-    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ Kiện</a>
+    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ kiện</a>
 </section>
 
 <section class="filter-panel">
@@ -101,7 +101,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>HOT TRENDING NOW</h2>
-        <p>Lướt nhanh các item đang được quan tâm nhất tuần này.</p>
+        <p>Những item đang được săn nhiều nhất tuần này, vào là thấy ngay món đáng xuống tiền.</p>
     </div>
     <div class="slider-wrap">
         <div class="slider-track">
@@ -146,7 +146,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>HOT TRENDING NOW</h2>
-        <p>Hiện chưa có sản phẩm HOT. Hệ thống đang dùng danh sách sản phẩm mới nhất.</p>
+        <p>Hiện chưa có sản phẩm gắn HOT, hệ thống đang ưu tiên hiển thị các mẫu mới nhất cho bạn xem trước.</p>
     </div>
 </section>
 {% endif %}
@@ -154,7 +154,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}KẾT QUẢ SẢN PHẨM{% endif %}</h2>
-        <p>{% if is_random_home %}Những lựa chọn dễ mặc, dễ phối và có điểm nhấn cho nhịp sống thành phố.{% else %}Tìm nhanh món hợp gu rồi chốt đơn gọn trong vài bước.{% endif %}</p>
+        <p>{% if is_random_home %}Các lựa chọn dễ mặc, dễ lên outfit và đủ chất để dùng hằng ngày mà không bị nhàm.{% else %}Tìm đúng món hợp gu rồi chốt đơn nhanh trong vài thao tác.{% endif %}</p>
     </div>
 
     <div class="product-grid">
@@ -179,8 +179,8 @@
         </a>
         {% empty %}
         <div class="empty-state">
-            <h2>Chưa có sản phẩm phù hợp</h2>
-            <p>Thử bỏ bớt bộ lọc hoặc quay lại danh mục chính để xem thêm sản phẩm.</p>
+            <h2>Chưa có sản phẩm hợp gu lúc này</h2>
+            <p>Thử bỏ bớt bộ lọc hoặc quay lại danh mục chính để xem thêm những mẫu đang lên kệ.</p>
             <a href="{% url 'products:product_list' %}" class="btn small">Xem toàn bộ sản phẩm</a>
         </div>
         {% endfor %}

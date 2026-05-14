@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260514g">
 </head>
 <body>
     <div class="topline">FREE SHIP TOÀN QUỐC CHO ĐƠN TỪ 499K</div>
@@ -99,6 +99,65 @@
             </div>
         </div>
     </footer>
-    <script src="/static/js/main.js"></script>
+
+    <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Mở hỗ trợ mua hàng">
+        <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+    </button>
+
+    <div class="chatbox-backdrop hidden" id="chatbox-backdrop"></div>
+
+    <section class="chatbox hidden" id="support-chatbox" aria-label="Hỗ trợ mua hàng" data-chat-endpoint="{% url 'products:support_chat_reply' %}">
+        <div class="chatbox-header">
+            <div>
+                <p class="chatbox-kicker">Tư vấn nhanh</p>
+                <h3>Hỗ trợ mua hàng</h3>
+            </div>
+            <button type="button" class="chatbox-close" id="chatbox-close" aria-label="Đóng chat">×</button>
+        </div>
+        <div class="chatbox-body" id="chatbox-messages">
+            <article class="chat-message bot">
+                <p>Chào bạn, mình có thể hỗ trợ về size, còn hàng, ship, thanh toán và đổi trả. Bạn có thể hỏi nối tiếp như đang chat với nhân viên, ví dụ: 1m72 rồi nhắn tiếp 68kg.</p>
+            </article>
+        </div>
+        <div class="chatbox-suggestions" id="chatbox-suggestions">
+            <button type="button" class="chat-suggestion">Phí ship thế nào?</button>
+            <button type="button" class="chat-suggestion">Có thanh toán chuyển khoản không?</button>
+            <button type="button" class="chat-suggestion">Làm sao theo dõi đơn?</button>
+            <button type="button" class="chat-suggestion">Mình cao 1m72 nặng 68kg mặc size gì?</button>
+        </div>
+        <form class="chatbox-form" id="chatbox-form">
+            <input type="text" id="chatbox-input" placeholder="VD: mình cao 1m72, rồi nhắn tiếp 68kg..." autocomplete="off">
+            <button type="submit" class="btn small">Gửi</button>
+        </form>
+    </section>
+    <script src="/static/js/site_interactions.js?v=20260514g"></script>
+    <script>
+        (function () {
+            var launcher = document.getElementById("chat-launcher");
+            var chatbox = document.getElementById("support-chatbox");
+            var backdrop = document.getElementById("chatbox-backdrop");
+            var closeBtn = document.getElementById("chatbox-close");
+
+            if (!launcher || !chatbox || !backdrop || !closeBtn) {
+                return;
+            }
+
+            function openChatbox() {
+                chatbox.classList.remove("hidden");
+                backdrop.classList.remove("hidden");
+                launcher.classList.add("hidden");
+            }
+
+            function closeChatbox() {
+                chatbox.classList.add("hidden");
+                backdrop.classList.add("hidden");
+                launcher.classList.remove("hidden");
+            }
+
+            launcher.addEventListener("click", openChatbox);
+            closeBtn.addEventListener("click", closeChatbox);
+            backdrop.addEventListener("click", closeChatbox);
+        })();
+    </script>
 </body>
 </html>

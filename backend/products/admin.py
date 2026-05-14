@@ -1,6 +1,6 @@
 ﻿from django.contrib import admin
 
-from .models import Category, Product, ProductVariant, WishlistItem
+from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
 
 
 @admin.register(Category)
@@ -58,3 +58,15 @@ class WishlistItemAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "created")
     list_filter = ("created",)
     search_fields = ("user__username", "product__name")
+
+
+@admin.register(SupportFAQ)
+
+# -----------------------------------
+# | KHỐI LỚP (CLASS): SUPPORTFAQADMIN |
+# -----------------------------------
+class SupportFAQAdmin(admin.ModelAdmin):
+    list_display = ("question", "priority", "is_active", "updated")
+    list_filter = ("is_active",)
+    list_editable = ("priority", "is_active")
+    search_fields = ("question", "keywords", "answer")

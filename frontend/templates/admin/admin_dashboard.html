@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Bảng điều khiển quản trị{% endblock %}
+
+{% block content %}
+<section class="section-space">
+    <div class="section-head">
+        <h1>Bảng điều khiển quản trị</h1>
+        <p>Theo dõi đơn hàng, doanh thu và cập nhật sản phẩm trong cùng một màn hình.</p>
+    </div>
+
+    <div class="stats-grid">
+        <article class="stat-card"><h3>Tổng đơn</h3><p>{{ total_orders }}</p></article>
+        <article class="stat-card"><h3>Chờ xử lý</h3><p>{{ pending_orders }}</p></article>
+        <article class="stat-card"><h3>Đang xử lý</h3><p>{{ processing_orders }}</p></article>
+        <article class="stat-card"><h3>Đang giao</h3><p>{{ shipping_orders }}</p></article>
+        <article class="stat-card"><h3>Hoàn thành</h3><p>{{ delivered_orders }}</p></article>
+        <article class="stat-card"><h3>Đã hủy</h3><p>{{ cancelled_orders }}</p></article>
+        <article class="stat-card"><h3>Doanh thu</h3><p>{{ total_revenue|vnd }}đ</p></article>
+        <article class="stat-card"><h3>Doanh thu tháng</h3><p>{{ month_revenue|vnd }}đ</p></article>
+        <article class="stat-card"><h3>Coupon đang bật</h3><p>{{ active_coupons }}</p></article>
+    </div>
+</section>
+
+<section class="section-space admin-product-shell">
+    <div class="section-head">
+        <div>
+            <h2>{% if editing_product %}Chỉnh sửa sản phẩm{% else %}Thêm sản phẩm mới{% endif %}</h2>
+            <p>Mỗi sản phẩm có thể để từ 0 đến 6 hình ảnh. Ưu tiên dùng ảnh riêng của shop để giảm rủi ro bản quyền.</p>
+        </div>
+        {% if editing_product %}
+        <a href="{% url 'orders:admin_dashboard' %}" class="btn ghost small">Tạo mới</a>
+        {% endif %}
+    </div>
+
+    {% if product_form_errors %}
+    <div class="message error">
+        {% for error in product_form_errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="admin-product-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_product">
+        <input type="hidden" name="product_id" value="{{ product_form.product_id }}">
+        <input type="hidden" name="gallery_count" value="{{ product_form.gallery_count|default:0 }}">
+
+        <div class="admin-form-grid">
+            <label class="admin-field">
+                <span>Danh mục</span>
+                <select name="category_id" required>
+                    <option value="">Chọn danh mục</option>
+                    {% for category in product_categories %}
+                    <option value="{{ category.id }}" {% if product_form.category_id == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="admin-field">
+                <span>Tên sản phẩm</span>
+                <input type="text" name="name" value="{{ product_form.name }}" placeholder="VD: Áo khoác local brand" required>
+            </label>
+
+            <label class="admin-field">
+                <span>Giá bán</span>
+                <input type="number" name="price" min="0" step="1" value="{{ product_form.price }}" placeholder="499000" required>
+            </label>
+
+            <label class="admin-field">
+                <span>Tồn kho tổng</span>
+                <input type="number" name="stock" min="0" step="1" value="{{ product_form.stock }}" placeholder="Tự động tính nếu có biến thể">
+            </label>
+
+            <label class="admin-field admin-field-wide">
+                <span>URL ảnh đại diện</span>
+                <input type="url" name="image_url" value="{{ product_form.image_url }}" placeholder="https://...">
+            </label>
+
+            <label class="admin-field admin-field-wide">
+                <span>Upload ảnh đại diện</span>
+                <input type="file" name="image" accept="image/*">
+            </label>
+
+            <label class="admin-field admin-field-full">
+                <span>Thêm ảnh chi tiết sản phẩm</span>
+                <input type="file" name="gallery_images" accept="image/*" multiple>
+                <small class="help-text">Có thể thêm nhiều ảnh trong một lần. Tổng số ảnh của sản phẩm không được vượt quá 6.</small>
+            </label>
+
+            {% if editing_product_gallery %}
+            <div class="admin-field admin-field-full">
+                <span>Ảnh chi tiết hiện có</span>
+                <div class="admin-gallery-grid">
+                    {% for image in editing_product_gallery %}
+                    <label class="admin-gallery-card">
+                        <img src="{{ image.image.url }}" alt="{{ editing_product.name }} ảnh {{ forloop.counter }}">
+                        <span><input type="checkbox" name="remove_gallery_image_ids" value="{{ image.id }}"> Xóa ảnh này</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <label class="admin-field admin-field-full">
+                <span>Mô tả chi tiết</span>
+                <textarea name="description" rows="5" placeholder="Chất liệu, form dáng, cách phối đồ, hướng dẫn bảo quản...">{{ product_form.description }}</textarea>
+            </label>
+        </div>
+
+        <div class="admin-switches">
+            <label><input type="checkbox" name="available" {% if product_form.available %}checked{% endif %}> Đang bán</label>
+            <label><input type="checkbox" name="featured" {% if product_form.featured %}checked{% endif %}> Nổi bật</label>
+        </div>
+
+        <div class="admin-variant-panel">
+            <div class="section-head">
+                <div>
+                    <h2>Bảng biến thể màu và size</h2>
+                    <p>Danh mục áo và quần nên nhập đầy đủ màu, size và tồn kho từng dòng.</p>
+                </div>
+                <button type="button" class="btn ghost small" id="add-variant-row">Thêm dòng</button>
+            </div>
+
+            <div class="table-wrap">
+                <table class="cart-table admin-variant-table">
+                    <thead>
+                        <tr>
+                            <th>Màu sắc</th>
+                            <th>Mã màu</th>
+                            <th>Size</th>
+                            <th>Tồn kho</th>
+                            <th>Hiển thị</th>
+                            <th>Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="variant-table-body">
+                        {% for row in product_form_variant_rows %}
+                        <tr class="variant-row">
+                            <td><input type="hidden" name="variant_row_key[]" value="{{ row.row_key }}"><input type="text" name="variant_color_name[]" value="{{ row.color_name }}" placeholder="Đen"></td>
+                            <td><input type="text" name="variant_color_code[]" value="{{ row.color_code }}" placeholder="#111111"></td>
+                            <td><input type="text" name="variant_size[]" value="{{ row.size }}" placeholder="M"></td>
+                            <td><input type="number" name="variant_stock[]" min="0" step="1" value="{{ row.stock }}" placeholder="0"></td>
+                            <td class="variant-check"><input type="checkbox" name="variant_is_active[]" value="{{ row.row_key }}" {% if row.is_active %}checked{% endif %}></td>
+                            <td><button type="button" class="btn danger small variant-remove">Xóa</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <button type="submit" class="btn inline-auto">{% if editing_product %}Lưu cập nhật{% else %}Lưu sản phẩm{% endif %}</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-space">
+    <div class="section-head">
+        <h2>Sản phẩm gần đây</h2>
+        <p>Sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
+    </div>
+    <div class="table-wrap">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Tên sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th>Giá</th>
+                    <th>Tồn kho</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in recent_products %}
+                <tr>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.category.name }}</td>
+                    <td>{{ product.price|vnd }}đ</td>
+                    <td>{{ product.stock }}</td>
+                    <td>
+                        {% if product.available %}
+                            {% if product.stock > 0 %}Đang bán{% else %}Hết hàng{% endif %}
+                        {% else %}
+                            Ẩn / Hết hàng
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="admin-row-actions">
+                            <a href="{% url 'orders:admin_dashboard' %}?edit={{ product.id }}" class="btn ghost small">Sửa</a>
+                            <form method="post" class="admin-inline-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="mark_out_of_stock">
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                <button type="submit" class="btn small">Hết hàng</button>
+                            </form>
+                            <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa sản phẩm này?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_product">
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                <button type="submit" class="btn danger small">Xóa</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6">Chưa có sản phẩm nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -9,30 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # | HÀM XỬ LÝ (FUNCTION): LOAD_ENV_FILE |
 # ---------------------------------------
 def load_env_file(env_path):
-    if not env_path.exists():
-        return
-
-    file_text = None
-    raw = env_path.read_bytes()
-    for encoding in ("utf-8-sig", "utf-16", "utf-16-le", "utf-16-be"):
-        try:
-            file_text = raw.decode(encoding)
-            break
-        except UnicodeDecodeError:
-            continue
-
-    if file_text is None:
-        return
-
-    for line in file_text.splitlines():
-        row = line.strip()
-        if not row or row.startswith("#") or "=" not in row:
-            continue
-        key, value = row.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
+    return
 
 
 
@@ -56,8 +33,6 @@ def env_list(name, default=None):
         return default or []
     return [item.strip() for item in value.split(",") if item.strip()]
 
-
-load_env_file(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-in-env")
 DEBUG = env_bool("DEBUG", True)

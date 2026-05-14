@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Product, ProductVariant, WishlistItem
+from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
 
 
 
@@ -291,3 +291,58 @@ class WishlistFeatureTest(TestCase):
         response = self.client.get(reverse("products:wishlist_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo wishlist")
+
+
+
+# ---------------------------------------
+# | KHỐI LỚP (CLASS): SUPPORTCHATAPITEST |
+# ---------------------------------------
+class SupportChatApiTest(TestCase):
+
+    # -------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): SETUP |
+    # -------------------------------
+    def setUp(self):
+        SupportFAQ.objects.create(
+            question="Bao hanh ra sao?",
+            keywords="bao hanh,loi ky thuat",
+            answer="Shop ho tro bao hanh loi ky thuat.",
+            priority=1,
+            is_active=True,
+        )
+
+
+    # ------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_SUPPORT_CHAT_REPLY_MATCHES_DATABASE |
+    # ------------------------------------------------------------------
+    def test_support_chat_reply_matches_database(self):
+        response = self.client.get(reverse("products:support_chat_reply"), {"q": "San pham co bao hanh loi ky thuat khong"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["reply"], "Shop ho tro bao hanh loi ky thuat.")
+
+
+    # -----------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_SUPPORT_CHAT_REPLY_EMPTY_QUESTION_REJECTED |
+    # -----------------------------------------------------------------------
+    def test_support_chat_reply_empty_question_rejected(self):
+        response = self.client.get(reverse("products:support_chat_reply"), {"q": ""})
+        self.assertEqual(response.status_code, 400)
+
+
+    # -------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_SUPPORT_CHAT_REPLY_CAN_RECOMMEND_SIZE |
+    # -------------------------------------------------------------------
+    def test_support_chat_reply_can_recommend_size(self):
+        response = self.client.get(reverse("products:support_chat_reply"), {"q": "Mình cao 1m72 nặng 68kg mặc size gì?"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("size", response.json()["reply"].lower())
+        self.assertIn("68kg", response.json()["reply"])
+
+
+    # ------------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_SUPPORT_CHAT_REPLY_ASKS_FOR_MISSING_WEIGHT |
+    # ------------------------------------------------------------------------
+    def test_support_chat_reply_asks_for_missing_weight(self):
+        response = self.client.get(reverse("products:support_chat_reply"), {"q": "Mình cao 1m68 mặc size gì?"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("cân nặng", response.json()["reply"].lower())

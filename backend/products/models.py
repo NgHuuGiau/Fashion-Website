@@ -62,7 +62,34 @@ class Product(models.Model):
     def get_image(self):
         if self.image:
             return self.image.url
-        return self.image_url
+        if self.image_url:
+            return self.image_url
+        first_gallery_image = self.gallery_images.order_by("sort_order", "id").first()
+        if first_gallery_image:
+            return first_gallery_image.image.url
+        return ""
+
+    def get_gallery_images(self):
+        images = []
+        seen_urls = set()
+
+        primary_url = self.get_image()
+        if primary_url:
+            images.append({"url": primary_url, "is_primary": True})
+            seen_urls.add(primary_url)
+
+        for item in self.gallery_images.order_by("sort_order", "id"):
+            gallery_url = item.image.url
+            if gallery_url in seen_urls:
+                continue
+            images.append({"url": gallery_url, "is_primary": False})
+            seen_urls.add(gallery_url)
+
+        return images[:6]
+
+    def total_image_count(self):
+        base_count = 1 if (self.image or self.image_url) else 0
+        return min(6, base_count + self.gallery_images.count())
 
 
 
@@ -89,6 +116,21 @@ class ProductVariant(models.Model):
         return f"{self.product.name} - {self.color_name} / {self.size}"
 
 
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name="gallery_images", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="products/gallery/%Y/%m/%d", verbose_name="Ảnh gallery")
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Thứ tự")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ảnh sản phẩm"
+        verbose_name_plural = "Ảnh sản phẩm"
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"{self.product.name} - ảnh {self.id}"
+
+
 
 # ----------------------------------
 # | KHỐI LỚP (CLASS): WISHLISTITEM |
@@ -110,3 +152,33 @@ class WishlistItem(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.product.name}"
+
+
+
+# -------------------------------
+# | KHỐI LỚP (CLASS): SUPPORTFAQ |
+# -------------------------------
+class SupportFAQ(models.Model):
+    question = models.CharField(max_length=255, verbose_name="Câu hỏi")
+    keywords = models.CharField(max_length=255, blank=True, verbose_name="Từ khóa")
+    answer = models.TextField(verbose_name="Câu trả lời")
+    priority = models.PositiveSmallIntegerField(default=100, verbose_name="Độ ưu tiên")
+    is_active = models.BooleanField(default=True, verbose_name="Đang dùng")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+
+    # --------------------------
+    # | KHỐI LỚP (CLASS): META |
+    # --------------------------
+    class Meta:
+        verbose_name = "FAQ hỗ trợ"
+        verbose_name_plural = "FAQ hỗ trợ"
+        ordering = ["priority", "id"]
+        indexes = [
+            models.Index(fields=["is_active", "priority"]),
+            models.Index(fields=["question"]),
+        ]
+
+    def __str__(self):
+        return self.question

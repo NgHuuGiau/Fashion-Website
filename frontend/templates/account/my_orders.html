@@ -6,8 +6,34 @@
 <section class="section-space">
     <div class="section-head">
         <h1>Đơn hàng của tôi</h1>
-        <p>Theo dõi trạng thái thanh toán, xem lại chi tiết và quay lại bước xử lý nếu đơn chưa hoàn tất.</p>
+        <p>Mỗi tài khoản chỉ xem được đơn của chính mình. Đơn đang giao và đang xử lý sẽ được ưu tiên hiện lên trước để bạn theo dõi nhanh hơn.</p>
     </div>
+
+    {% if active_tracking_order %}
+    <article class="order-card order-card-rich">
+        <div class="section-head">
+            <div>
+                <h2>Đơn cần theo dõi ngay</h2>
+                <p>#{{ active_tracking_order.id }} - {{ active_tracking_order.get_status_display }}</p>
+            </div>
+            <span class="chip active">{{ active_tracking_order.eta_label }}</span>
+        </div>
+        <div class="order-meta-grid">
+            <p>Ngày đặt <strong>{{ active_tracking_order.created_at|date:"d/m/Y H:i" }}</strong></p>
+            <p>Ngày dự kiến <strong>{{ active_tracking_order.eta_date|date:"d/m/Y" }}</strong></p>
+            <p>Thanh toán <strong>{% if active_tracking_order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</strong></p>
+            <p>Tổng tiền <strong>{{ active_tracking_order.total_amount|vnd }}đ</strong></p>
+        </div>
+        <ul>
+            {% for item in active_tracking_order.items.all %}
+            <li>{{ item.product.name }} x {{ item.quantity }}</li>
+            {% endfor %}
+        </ul>
+        <div class="profile-actions order-actions">
+            <a href="{% url 'orders:order_review' active_tracking_order.id %}" class="btn inline-auto">Theo dõi đơn này</a>
+        </div>
+    </article>
+    {% endif %}
 
     {% if orders %}
     <div class="orders-list">
@@ -24,10 +50,11 @@
                 <p>Trạng thái <strong>{{ order.get_status_display }}</strong></p>
                 <p>Thanh toán <strong>{{ order.get_payment_method_display }}</strong></p>
                 <p>Tổng tiền <strong>{{ order.total_amount|vnd }}đ</strong></p>
+                <p>Dự kiến giao <strong>{{ order.eta_date|date:"d/m/Y" }}</strong></p>
                 {% if order.coupon_code %}<p>Mã giảm giá <strong>{{ order.coupon_code }}</strong></p>{% endif %}
             </div>
             <div class="profile-actions order-actions">
-                <a href="{% url 'orders:order_review' order.id %}" class="btn ghost inline-auto">Xem lại thông tin</a>
+                <a href="{% url 'orders:order_review' order.id %}" class="btn ghost inline-auto">Xem chi tiết đơn</a>
                 {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn inline-auto">Thanh toán ngay</a>
                 {% endif %}

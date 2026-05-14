@@ -782,6 +782,11 @@ button {
     gap: 1rem;
 }
 
+.detail-media-column {
+    display: grid;
+    gap: 0.8rem;
+}
+
 .detail-media {
     min-height: 480px;
     overflow: hidden;
@@ -818,6 +823,34 @@ button {
 
 .detail-media-shell {
     background: linear-gradient(180deg, #fffefb, #f1e4d6);
+}
+
+.detail-gallery-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+    gap: 0.65rem;
+}
+
+.detail-thumb {
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 1 / 1;
+    box-shadow: var(--shadow-sm);
+}
+
+.detail-thumb.active {
+    border-color: rgba(143, 79, 42, 0.45);
+    box-shadow: 0 16px 28px rgba(143, 79, 42, 0.14);
+}
+
+.detail-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .detail-highlights {
@@ -1267,6 +1300,308 @@ button {
     background: rgba(255, 248, 241, 0.86);
 }
 
+.admin-product-shell,
+.admin-product-form,
+.admin-variant-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    padding: 1.15rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-field {
+    display: grid;
+    gap: 0.38rem;
+}
+
+.admin-field span,
+.admin-switches label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+    width: 100%;
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 12px;
+    padding: 0.78rem 0.84rem;
+    background: #fffdf9;
+    color: var(--text);
+}
+
+.admin-field textarea {
+    resize: vertical;
+    min-height: 132px;
+}
+
+.admin-field-wide,
+.admin-field-full {
+    grid-column: span 2;
+}
+
+.admin-switches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    padding: 0 0.2rem;
+}
+
+.admin-switches label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.admin-switches input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.admin-variant-table input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 10px;
+    padding: 0.65rem 0.72rem;
+    background: #fffdf9;
+}
+
+.variant-check {
+    text-align: center;
+}
+
+.variant-check input {
+    width: 18px;
+    height: 18px;
+}
+
+.admin-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.admin-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 0.75rem;
+}
+
+.admin-gallery-card {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.admin-gallery-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.admin-gallery-card span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.admin-row-actions,
+.admin-inline-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.admin-row-actions {
+    flex-wrap: wrap;
+}
+
+.chat-launcher {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    width: 62px;
+    height: 62px;
+    border: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8f4f2a, #c86c39);
+    color: #fffdfa;
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+    cursor: pointer;
+    box-shadow: 0 22px 40px rgba(111, 56, 26, 0.28);
+    z-index: 110;
+}
+
+.chat-launcher:hover {
+    transform: translateY(-2px);
+}
+
+.chatbox {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 5.8rem;
+    width: min(380px, calc(100vw - 1.5rem));
+    max-height: min(78vh, 640px);
+    background: rgba(255, 252, 247, 0.98);
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 28px;
+    box-shadow: 0 28px 60px rgba(72, 49, 26, 0.2);
+    overflow: hidden;
+    z-index: 111;
+    display: flex;
+    flex-direction: column;
+}
+
+.chatbox-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(32, 26, 22, 0.24);
+    z-index: 109;
+}
+
+.chatbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1rem 0.9rem;
+    background: linear-gradient(135deg, #f8e6d6, #fff8f1);
+    border-bottom: 1px solid rgba(111, 56, 26, 0.08);
+}
+
+.chatbox-kicker {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+.chatbox-header h3 {
+    font-family: 'Archivo Expanded', sans-serif;
+    font-size: 0.95rem;
+    margin-top: 0.18rem;
+}
+
+.chatbox-close {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.84);
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--text);
+}
+
+.chatbox-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 1rem;
+    display: grid;
+    gap: 0.7rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(248, 238, 226, 0.6)),
+        radial-gradient(circle at top right, rgba(240, 223, 209, 0.7), transparent 32%);
+}
+
+.chat-message {
+    display: flex;
+}
+
+.chat-message p {
+    max-width: 86%;
+    padding: 0.78rem 0.9rem;
+    border-radius: 18px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.chat-message.bot p {
+    background: #fff;
+    border: 1px solid rgba(111, 56, 26, 0.12);
+    color: var(--text);
+    border-bottom-left-radius: 8px;
+}
+
+.chat-message.user {
+    justify-content: flex-end;
+}
+
+.chat-message.user p {
+    background: linear-gradient(135deg, #8f4f2a, #c86c39);
+    color: #fffdf8;
+    border-bottom-right-radius: 8px;
+}
+
+.chatbox-suggestions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    padding: 0 1rem 1rem;
+    max-height: 110px;
+    overflow-y: auto;
+}
+
+.chat-suggestion {
+    border: 1px solid rgba(111, 56, 26, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+.chatbox-form {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    padding: 0 1rem 1rem;
+    background: rgba(255, 252, 247, 0.98);
+}
+
+.chatbox-form input {
+    border: 1px solid rgba(111, 56, 26, 0.14);
+    border-radius: 14px;
+    padding: 0.8rem 0.9rem;
+    background: #fffdf9;
+}
+
+.chatbox-form input:focus {
+    outline: 2px solid rgba(143, 79, 42, 0.18);
+    border-color: rgba(143, 79, 42, 0.36);
+}
+
 .footer-wrap {
     display: grid;
     grid-template-columns: 1.1fr 1fr 1fr;
@@ -1383,6 +1718,15 @@ button {
     .empty-state {
         border-radius: 20px;
     }
+
+    .admin-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-field-wide,
+    .admin-field-full {
+        grid-column: auto;
+    }
 }
 
 @media (max-width: 560px) {
@@ -1434,5 +1778,25 @@ button {
 
     .btn {
         padding: 0.74rem 0.9rem;
+    }
+
+    .chat-launcher {
+        right: 0.8rem;
+        bottom: 0.8rem;
+        width: 58px;
+        height: 58px;
+    }
+
+    .chatbox {
+        right: 0.5rem;
+        left: 0.5rem;
+        bottom: 5.3rem;
+        width: auto;
+        border-radius: 24px;
+        max-height: min(78vh, 560px);
+    }
+
+    .chatbox-body {
+        min-height: 220px;
     }
 }

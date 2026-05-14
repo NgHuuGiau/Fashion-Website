@@ -601,3 +601,120 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertIn("low_stock_products", response.context)
         self.assertIn("daily_revenue", response.context)
         self.assertIn("active_coupons", response.context)
+
+
+    # -------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_ADMIN_DASHBOARD_STAFF_CAN_CREATE_PRODUCT |
+    # -------------------------------------------------------------------
+    def test_admin_dashboard_staff_can_create_product(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "category_id": str(self.category_ao.id),
+                "name": "Ao bomber moi",
+                "price": "650000",
+                "stock": "0",
+                "description": "Form boxy local brand",
+                "image_url": "https://example.com/bomber.jpg",
+                "available": "on",
+                "featured": "on",
+                "variant_row_key[]": ["row-1", "row-2"],
+                "variant_color_name[]": ["Den", "Den"],
+                "variant_color_code[]": ["#111111", "#111111"],
+                "variant_size[]": ["M", "L"],
+                "variant_stock[]": ["4", "6"],
+                "variant_is_active[]": ["row-1", "row-2"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        product = Product.objects.get(name="Ao bomber moi")
+        self.assertEqual(product.category, self.category_ao)
+        self.assertEqual(product.stock, 10)
+        self.assertEqual(product.price, Decimal("650000"))
+        self.assertEqual(product.variants.count(), 2)
+
+
+    # ------------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_ADMIN_DASHBOARD_APPAREL_REQUIRES_VARIANTS |
+    # ------------------------------------------------------------------------
+    def test_admin_dashboard_apparel_requires_variants(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "category_id": str(self.category_ao.id),
+                "name": "Ao thieu bien the",
+                "price": "550000",
+                "stock": "5",
+                "description": "Khong co size mau",
+                "available": "on",
+                "variant_row_key[]": ["row-1"],
+                "variant_color_name[]": [""],
+                "variant_color_code[]": ["#111111"],
+                "variant_size[]": [""],
+                "variant_stock[]": [""],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Danh mục áo/quần cần ít nhất một biến thể màu và size.")
+        self.assertFalse(Product.objects.filter(name="Ao thieu bien the").exists())
+
+
+    # ------------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_ADMIN_DASHBOARD_CAN_MARK_OUT_OF_STOCK |
+    # ------------------------------------------------------------------
+    def test_admin_dashboard_can_mark_out_of_stock(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "mark_out_of_stock",
+                "product_id": str(self.product_ao.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.product_ao.refresh_from_db()
+        self.variant_black_l.refresh_from_db()
+        self.assertFalse(self.product_ao.available)
+        self.assertEqual(self.product_ao.stock, 0)
+        self.assertEqual(self.variant_black_l.stock, 0)
+
+
+    # --------------------------------------------------------------
+    # | HÀM XỬ LÝ (FUNCTION): TEST_ADMIN_DASHBOARD_CAN_UPDATE_PRODUCT |
+    # --------------------------------------------------------------
+    def test_admin_dashboard_can_update_product(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "save_product",
+                "product_id": str(self.product_ao.id),
+                "category_id": str(self.category_ao.id),
+                "name": "Ao hoodie da sua",
+                "price": "700000",
+                "stock": "0",
+                "description": "Cap nhat mo ta",
+                "image_url": "https://example.com/updated.jpg",
+                "available": "on",
+                "featured": "on",
+                "variant_row_key[]": ["row-1"],
+                "variant_color_name[]": ["Đen"],
+                "variant_color_code[]": ["#111111"],
+                "variant_size[]": ["XL"],
+                "variant_stock[]": ["9"],
+                "variant_is_active[]": ["row-1"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.product_ao.refresh_from_db()
+        self.assertEqual(self.product_ao.name, "Ao hoodie da sua")
+        self.assertEqual(self.product_ao.stock, 9)
+        self.assertEqual(self.product_ao.variants.count(), 1)
+        variant = self.product_ao.variants.first()
+        self.assertEqual(variant.size, "XL")

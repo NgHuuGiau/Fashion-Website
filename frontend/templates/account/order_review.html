@@ -5,8 +5,11 @@
 {% block content %}
 <section class="section-space">
     <div class="section-head">
-        <h1>Đơn hàng #{{ order.id }}</h1>
-        <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+        <div>
+            <h1>Đơn hàng #{{ order.id }}</h1>
+            <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        <span class="chip active">{{ tracking_order.eta_label }}</span>
     </div>
 
     <div class="detail-layout">
@@ -14,6 +17,8 @@
             <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
             <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
             <p>Tổng tiền: <strong>{{ order.total_amount|vnd }}đ</strong></p>
+            <p>Giao dự kiến: <strong>{{ tracking_order.eta_date|date:"d/m/Y" }}</strong></p>
+            <p>Khu vực xử lý: <strong>{% if tracking_order.eta_days <= 3 %}Gần TP.HCM{% elif tracking_order.eta_days >= 7 %}Khu vực xa / miền Bắc{% else %}Liên tỉnh{% endif %}</strong></p>
             {% if order.coupon_code %}
             <p>Mã giảm giá: <strong>{{ order.coupon_code }}</strong></p>
             {% endif %}
@@ -38,6 +43,7 @@
                 <div class="form-group">
                     <label>Địa chỉ nhận hàng</label>
                     <textarea name="shipping_address" rows="3" required>{{ order.shipping_address }}</textarea>
+                    <small class="help-text">Shop đang tính thời gian giao theo khu vực địa lý trong địa chỉ này.</small>
                 </div>
                 {% if order.payment_method == "bank" and not order.is_paid %}
                 <div class="form-group">

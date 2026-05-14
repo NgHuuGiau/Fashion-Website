@@ -5,8 +5,6 @@ $env:PYTHONIOENCODING = "utf-8"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
-$envFile = Join-Path $repoRoot ".env"
-$envExample = Join-Path $repoRoot ".env.example"
 $testUrl = "http://127.0.0.1:8010/"
 $serverProcess = $null
 
@@ -17,26 +15,6 @@ function Step($message) {
 
 if (-not (Test-Path $pythonExe)) {
     throw "Khong tim thay Python trong .venv: $pythonExe"
-}
-
-if (-not (Test-Path $envFile)) {
-    if (Test-Path $envExample) {
-        Copy-Item $envExample $envFile -Force
-    } else {
-        @"
-SECRET_KEY=django-insecure-change-this-before-deploy
-DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost,testserver
-DB_PATH=
-SECURE_SSL_REDIRECT=False
-SESSION_COOKIE_SECURE=False
-CSRF_COOKIE_SECURE=False
-SECURE_HSTS_SECONDS=0
-SECURE_HSTS_INCLUDE_SUBDOMAINS=False
-SECURE_HSTS_PRELOAD=False
-ENABLE_SQL_LOGGING=False
-"@ | Set-Content -Path $envFile -Encoding UTF8
-    }
 }
 
 try {

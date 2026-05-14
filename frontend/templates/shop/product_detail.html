@@ -4,11 +4,28 @@
 
 {% block content %}
 <section class="detail-layout section-space">
-    <div class="detail-media detail-media-shell">
-        {% if product.get_image %}
-        <img src="{{ product.get_image }}" alt="{{ product.name }}">
-        {% else %}
-        <div class="fallback detail-fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</div>
+    <div class="detail-media-column">
+        <div class="detail-media detail-media-shell">
+            {% if gallery_images %}
+            <img src="{{ gallery_images.0.url }}" alt="{{ product.name }}" id="detail-main-image">
+            {% else %}
+            <div class="fallback detail-fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</div>
+            {% endif %}
+        </div>
+
+        {% if gallery_images|length > 1 %}
+        <div class="detail-gallery-strip">
+            {% for image in gallery_images %}
+            <button
+                type="button"
+                class="detail-thumb{% if forloop.first %} active{% endif %}"
+                data-detail-image="{{ image.url }}"
+                aria-label="Xem ảnh {{ forloop.counter }} của {{ product.name }}"
+            >
+                <img src="{{ image.url }}" alt="{{ product.name }} ảnh {{ forloop.counter }}">
+            </button>
+            {% endfor %}
+        </div>
         {% endif %}
     </div>
 
@@ -20,16 +37,16 @@
 
         <h1>{{ product.name }}</h1>
         <p class="price big">{{ product.price|vnd }}đ</p>
-        <p class="desc">{{ product.description|default:"Thiết kế gọn gàng, dễ phối và đủ nổi bật để đồng hành cùng nhịp sống thành phố mỗi ngày." }}</p>
+        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để đồng hành cùng nhịp sống thành phố mỗi ngày." }}</p>
 
         <div class="detail-highlights">
             <div class="hero-card">
-                <strong>Dễ phối đồ</strong>
-                <p>Hợp để đi học, đi làm hoặc xuống phố cuối tuần.</p>
+                <strong>Ảnh thật rõ hơn</strong>
+                <p>Shop có thể đăng từ 0 đến 6 hình cho mỗi sản phẩm để bạn xem kỹ hơn từng góc.</p>
             </div>
             <div class="hero-card">
                 <strong>Kiểm tra tồn kho</strong>
-                <p>Chọn màu và size để xem ngay biến thể còn hàng.</p>
+                <p>Chọn màu và size để xem ngay biến thể còn hàng trước khi thêm vào giỏ.</p>
             </div>
         </div>
 
@@ -90,7 +107,7 @@
 <section class="section-space">
     <div class="section-head">
         <h2>GỢI Ý PHÙ HỢP</h2>
-        <p>Những lựa chọn cùng tinh thần, cùng nhịp phối với item bạn đang xem.</p>
+        <p>Những lựa chọn cùng tinh thần và cùng nhịp phối với item bạn đang xem.</p>
     </div>
     <div class="product-grid product-grid-featured">
         {% for item in related_products %}
