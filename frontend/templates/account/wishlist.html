@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Danh sách yêu thích{% endblock %}
 
 {% block content %}
@@ -11,17 +13,13 @@
 
     <div class="product-grid">
         {% for product in products %}
-        <article class="product-card">
-            <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media">
-                {% if product.get_image %}
-                <img src="{{ product.get_image }}" alt="{{ product.name }}">
-                {% else %}
+        <article class="product-card product-card-text-only">
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media card-media-text">
                 <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                {% endif %}
                 <span class="fav-badge"><i class="fa-solid fa-heart"></i></span>
             </a>
             <div class="card-body">
-                <h3><a href="{% url 'products:product_detail' product.id product.slug %}">{{ product.name }}</a></h3>
+                <h3><a href="{% url 'products:product_detail' product.id product.slug %}">{{ product.name|repair_text }}</a></h3>
                 <p class="price">{{ product.price|vnd }}đ</p>
                 <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-inline-remove">
                     {% csrf_token %}

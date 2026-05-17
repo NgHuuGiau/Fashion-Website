@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Xem lại đơn hàng{% endblock %}
 
 {% block content %}
@@ -30,19 +32,19 @@
                 {% csrf_token %}
                 <div class="form-group">
                     <label>Họ và tên</label>
-                    <input type="text" name="customer_name" value="{{ order.customer_name }}" required>
+                    <input type="text" name="customer_name" value="{{ order.customer_name|repair_text }}" required>
                 </div>
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" name="customer_email" value="{{ order.customer_email }}">
+                    <input type="email" name="customer_email" value="{{ order.customer_email|repair_text }}">
                 </div>
                 <div class="form-group">
                     <label>Số điện thoại</label>
-                    <input type="text" name="phone" value="{{ order.phone }}" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric">
+                    <input type="text" name="phone" value="{{ order.phone|repair_text }}" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric">
                 </div>
                 <div class="form-group">
                     <label>Địa chỉ nhận hàng</label>
-                    <textarea name="shipping_address" rows="3" required>{{ order.shipping_address }}</textarea>
+                    <textarea name="shipping_address" rows="3" required>{{ order.shipping_address|repair_text }}</textarea>
                     <small class="help-text">Shop đang tính thời gian giao theo khu vực địa lý trong địa chỉ này.</small>
                 </div>
                 {% if order.payment_method == "bank" and not order.is_paid %}
@@ -57,7 +59,7 @@
                 {% endif %}
                 <div class="form-group">
                     <label>Ghi chú</label>
-                    <textarea name="note" rows="3">{{ order.note }}</textarea>
+                    <textarea name="note" rows="3">{{ order.note|repair_text }}</textarea>
                 </div>
                 <div class="profile-actions">
                     <button type="submit" class="btn ghost inline-auto">Lưu chỉnh sửa</button>
@@ -67,11 +69,11 @@
                 </div>
             </form>
             {% else %}
-            <p><strong>{{ order.customer_name }}</strong></p>
-            <p>{{ order.phone }}</p>
-            <p>{{ order.customer_email }}</p>
-            <p>{{ order.shipping_address }}</p>
-            <p>{{ order.note }}</p>
+            <p><strong>{{ order.customer_name|repair_text }}</strong></p>
+            <p>{{ order.phone|repair_text }}</p>
+            <p>{{ order.customer_email|repair_text }}</p>
+            <p>{{ order.shipping_address|repair_text }}</p>
+            <p>{{ order.note|repair_text }}</p>
             {% endif %}
         </div>
 
@@ -79,11 +81,11 @@
             <h2>Sản phẩm trong đơn</h2>
             {% for item in order.items.all %}
             <p>
-                {{ item.product.name }} x {{ item.quantity }}
+                {{ item.product.name|repair_text }} x {{ item.quantity }}
                 <span>{{ item.subtotal|vnd }}đ</span>
             </p>
             {% if item.selected_color or item.selected_size %}
-            <p><small>Màu: {{ item.selected_color|default:"-" }} | Size: {{ item.selected_size|default:"-" }}</small></p>
+            <p><small>Màu: {{ item.selected_color|default:"-"|repair_text }} | Size: {{ item.selected_size|default:"-"|repair_text }}</small></p>
             {% endif %}
             {% endfor %}
             <hr>

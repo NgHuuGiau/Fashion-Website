@@ -1,4 +1,4 @@
-from django.contrib import messages
+﻿from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, Q, Sum
@@ -11,6 +11,23 @@ from products.models import Category, Product, ProductImage, ProductVariant
 
 from .cart import safe_int
 from .models import Coupon, Order
+
+
+def build_gallery_slot_rows(product=None):
+    slots = []
+    images_by_sort_order = {}
+    if product:
+        images_by_sort_order = {item.sort_order: item for item in product.gallery_images.order_by("sort_order", "id")[:6]}
+
+    for index in range(6):
+        slots.append(
+            {
+                "slot_index": index,
+                "label": f"Slot {index + 1}",
+                "image": images_by_sort_order.get(index),
+            }
+        )
+    return slots
 
 
 def build_admin_product_form_data(request=None):
@@ -164,6 +181,7 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "product_form_errors": form_errors or [],
         "editing_product": editing_product,
         "editing_product_gallery": editing_product.gallery_images.all()[:6] if editing_product else [],
+        "editing_product_gallery_slots": build_gallery_slot_rows(editing_product),
     }
 
 
@@ -172,6 +190,16 @@ def save_admin_product(request, product=None):
     errors = []
     uploaded_gallery_images = [item for item in request.FILES.getlist("gallery_images") if item]
     remove_gallery_image_ids = {str(item).strip() for item in form_data["remove_gallery_image_ids"] if str(item).strip()}
+    slot_uploads = []
+    slot_remove_indexes = set()
+
+    for index in range(6):
+        uploaded_file = request.FILES.get(f"gallery_slot_{index}")
+        remove_requested = request.POST.get(f"remove_gallery_slot_{index}") == "on"
+        if uploaded_file:
+            slot_uploads.append((index, uploaded_file))
+        if remove_requested:
+            slot_remove_indexes.add(index)
 
     category = Category.objects.filter(id=form_data["category_id"]).first()
     if not category:
@@ -194,13 +222,16 @@ def save_admin_product(request, product=None):
     existing_gallery_count = 0
     if product:
         existing_base_count = 1 if (product.image or product.image_url) else 0
-        existing_gallery_count = product.gallery_images.exclude(id__in=remove_gallery_image_ids).count()
+        existing_gallery_count = (
+            product.gallery_images.exclude(id__in=remove_gallery_image_ids).exclude(sort_order__in=slot_remove_indexes).count()
+        )
+        existing_gallery_count = min(existing_gallery_count + len(slot_uploads), 6)
 
     new_base_count = 1 if (request.FILES.get("image") or form_data["image_url"]) else 0
     if not new_base_count and product:
         new_base_count = existing_base_count
 
-    total_images_after_save = new_base_count + existing_gallery_count + len(uploaded_gallery_images)
+    total_images_after_save = new_base_count + min(6, existing_gallery_count + len(uploaded_gallery_images))
     if total_images_after_save > 6:
         errors.append("Mỗi sản phẩm chỉ được tối đa 6 hình ảnh. Bạn có thể để 0 đến 6 hình, nhưng không được vượt quá 6.")
 
@@ -304,6 +335,8 @@ def save_admin_product(request, product=None):
             product.variants.all().delete()
             if remove_gallery_image_ids:
                 product.gallery_images.filter(id__in=remove_gallery_image_ids).delete()
+            if slot_remove_indexes:
+                product.gallery_images.filter(sort_order__in=slot_remove_indexes).delete()
 
         for row in variant_rows:
             ProductVariant.objects.create(
@@ -315,10 +348,25 @@ def save_admin_product(request, product=None):
                 is_active=row["is_active"],
             )
 
+        existing_images_by_sort = {item.sort_order: item for item in product.gallery_images.order_by("sort_order", "id")[:6]}
+        for slot_index, image_file in slot_uploads:
+            existing_image = existing_images_by_sort.get(slot_index)
+            if existing_image:
+                existing_image.image = image_file
+                existing_image.sort_order = slot_index
+                existing_image.save(update_fields=["image", "sort_order"])
+            else:
+                ProductImage.objects.create(product=product, image=image_file, sort_order=slot_index)
+
         current_gallery_count = product.gallery_images.count()
         for offset, image_file in enumerate(uploaded_gallery_images, start=current_gallery_count):
+            if offset >= 6:
+                break
             ProductImage.objects.create(product=product, image=image_file, sort_order=offset)
         for index, item in enumerate(product.gallery_images.order_by("sort_order", "id")):
+            if index >= 6:
+                item.delete()
+                continue
             if item.sort_order != index:
                 item.sort_order = index
                 item.save(update_fields=["sort_order"])

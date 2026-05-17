@@ -1,4 +1,4 @@
-import json
+﻿import json
 import re
 import unicodedata
 
@@ -57,6 +57,22 @@ HUMAN_SUPPORT_KEYWORDS = ("tu van truc tiep", "nguoi that", "nhan vien", "goi la
 STYLE_RECOMMEND_KEYWORDS = ("goi y", "phoi do", "mix do", "mac sao", "set do", "outfit")
 STOCK_KEYWORDS = ("con hang", "het hang", "ton kho", "con size", "con mau")
 
+COLOR_DISPLAY_MAP = {
+    "den": "Đen",
+    "đen": "Đen",
+    "trang": "Trắng",
+    "trắng": "Trắng",
+    "do": "Đỏ",
+    "đỏ": "Đỏ",
+    "xanh": "Xanh",
+    "xam": "Xám",
+    "xám": "Xám",
+    "nau": "Nâu",
+    "nâu": "Nâu",
+    "be": "Be",
+    "kem": "Kem",
+}
+
 
 def normalize_vn_text(value):
     text = (value or "").casefold()
@@ -73,6 +89,81 @@ def parse_price(value):
         return parsed if parsed >= 0 else None
     except (TypeError, ValueError):
         return None
+
+
+def repair_mojibake_text(value):
+    text = str(value or "")
+    try:
+        repaired = text.encode("latin1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+    return repaired
+
+
+def format_color_label(color_name):
+    repaired = repair_mojibake_text(color_name)
+    normalized = normalize_vn_text(repaired).strip()
+    if normalized in COLOR_DISPLAY_MAP:
+        return COLOR_DISPLAY_MAP[normalized]
+    return repaired
+
+
+def build_gallery_placeholder(product, slot_index):
+    from urllib.parse import quote
+
+    category_label = {
+        "ao": "AO",
+        "quan": "QUAN",
+        "phu-kien": "PHU KIEN",
+    }.get(product.category.slug, "SAN PHAM")
+    slot_label = f"{slot_index + 1:02d}"
+    svg = f"""
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'>
+        <defs>
+            <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+                <stop offset='0%' stop-color='#fffdf8' />
+                <stop offset='100%' stop-color='#f1e1d0' />
+            </linearGradient>
+        </defs>
+        <rect width='900' height='900' rx='40' fill='url(#bg)' />
+        <rect x='64' y='64' width='772' height='772' rx='36' fill='none' stroke='#d7bda8' stroke-dasharray='18 14' />
+        <text x='450' y='410' text-anchor='middle' fill='#8f4f2a' font-family='Arial, sans-serif' font-size='54' font-weight='700' letter-spacing='12'>{category_label}</text>
+        <text x='450' y='500' text-anchor='middle' fill='#4c3729' font-family='Arial, sans-serif' font-size='96' font-weight='800'>{slot_label}</text>
+        <text x='450' y='574' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='28'>CHUA CO HINH</text>
+    </svg>
+    """.strip()
+    return f"data:image/svg+xml;utf8,{quote(svg)}"
+
+
+def build_detail_gallery_slots(product, gallery_images):
+    actual_images = list(gallery_images[:6])
+    slots = []
+
+    for index in range(6):
+        if index < len(actual_images):
+            image = actual_images[index]
+            slots.append(
+                {
+                    "url": image["url"],
+                    "thumb_url": image["url"],
+                    "alt": f"{product.name} - ảnh {index + 1}",
+                    "is_placeholder": False,
+                    "slot_index": index,
+                }
+            )
+        else:
+            placeholder_url = build_gallery_placeholder(product, index)
+            slots.append(
+                {
+                    "url": placeholder_url,
+                    "thumb_url": placeholder_url,
+                    "alt": f"{product.name} - slot {index + 1}",
+                    "is_placeholder": True,
+                    "slot_index": index,
+                }
+            )
+
+    return slots
 
 
 def get_support_chat_state(request):
@@ -399,9 +490,13 @@ def product_detail(request, pk, slug):
         default_variant = variants.first()
 
     variant_data = list(variants.values("id", "color_name", "size", "stock"))
-    color_options = sorted({item["color_name"] for item in variant_data})
+    color_options = [
+        {"value": color_name, "label": format_color_label(color_name)}
+        for color_name in sorted({item["color_name"] for item in variant_data})
+    ]
     size_options = sorted({item["size"] for item in variant_data})
-    gallery_images = product.get_gallery_images()
+    gallery_images = product.get_detail_gallery_images()
+    detail_gallery_slots = build_detail_gallery_slots(product, gallery_images)
     is_in_wishlist = False
     if request.user.is_authenticated:
         is_in_wishlist = WishlistItem.objects.filter(user=request.user, product=product).exists()
@@ -418,6 +513,7 @@ def product_detail(request, pk, slug):
             "default_color": default_variant.color_name if default_variant else "",
             "default_size": default_variant.size if default_variant else "",
             "gallery_images": gallery_images,
+            "detail_gallery_slots": detail_gallery_slots,
             "color_options": color_options,
             "size_options": size_options,
             "variant_data_json": json.dumps(variant_data),

@@ -1,21 +1,15 @@
-import os
+﻿import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 
-# ---------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): LOAD_ENV_FILE |
-# ---------------------------------------
 def load_env_file(env_path):
     return
 
 
 
-# ----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): ENV_BOOL |
-# ----------------------------------
 def env_bool(name, default=False):
     value = os.getenv(name)
     if value is None:
@@ -24,9 +18,6 @@ def env_bool(name, default=False):
 
 
 
-# ----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): ENV_LIST |
-# ----------------------------------
 def env_list(name, default=None):
     value = os.getenv(name)
     if not value:
@@ -115,7 +106,6 @@ SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
-# INTERNAL_IPS = ["127.0.0.1"]
 
 if DEBUG and env_bool("ENABLE_SQL_LOGGING", False):
     LOGGING = {

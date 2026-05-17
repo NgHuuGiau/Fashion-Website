@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$SkipMigrate,
     [switch]$SkipSeed,
     [int]$Port = 8000,
@@ -21,26 +21,26 @@ function Step($message) {
 }
 
 if (-not (Test-Path $pythonExe)) {
-    throw "Khong tim thay Python trong .venv: $pythonExe"
+    throw "Không tìm thấy Python trong `.venv`: $pythonExe"
 }
 
 Push-Location $backendDir
 try {
-    Step "Kiem tra cau hinh"
+    Step "Kiểm tra cấu hình"
     & $pythonExe manage.py check
 
     if (-not $SkipMigrate) {
-        Step "Chay migrate"
+        Step "Chạy migrate"
         & $pythonExe manage.py migrate
     }
 
     if (-not $SkipSeed) {
-        Step "Dong bo san pham"
+        Step "Đồng bộ sản phẩm"
         & $pythonExe manage.py seed_products --sync
     }
 
-    Step "Bat server local"
-    Write-Host "Mo: $openUrl" -ForegroundColor Green
+    Step "Bật server local"
+    Write-Host "Mở: $openUrl" -ForegroundColor Green
     Start-Process $openUrl
     & $pythonExe manage.py runserver $bind
 }

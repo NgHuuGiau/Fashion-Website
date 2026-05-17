@@ -1,19 +1,13 @@
-﻿from django.conf import settings
+from pathlib import Path
+
+from django.conf import settings
 from django.db import models
 
 
-
-# ------------------------------
-# | KHỐI LỚP (CLASS): CATEGORY |
-# ------------------------------
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên danh mục")
     slug = models.SlugField(unique=True)
 
-
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         verbose_name = "Danh mục"
         verbose_name_plural = "Danh mục"
@@ -23,10 +17,6 @@ class Category(models.Model):
         return self.name
 
 
-
-# -----------------------------
-# | KHỐI LỚP (CLASS): PRODUCT |
-# -----------------------------
 class Product(models.Model):
     category = models.ForeignKey(Category, related_name="products", on_delete=models.CASCADE)
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
@@ -41,10 +31,6 @@ class Product(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ("-created",)
         indexes = [
@@ -55,25 +41,46 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-
-    # -----------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): GET_IMAGE |
-    # -----------------------------------
     def get_image(self):
         if self.image:
             return self.image.url
         if self.image_url:
             return self.image_url
+
+        generated_cover = self._build_generated_asset_url("cover.svg")
+        if generated_cover:
+            return generated_cover
+
         first_gallery_image = self.gallery_images.order_by("sort_order", "id").first()
         if first_gallery_image:
             return first_gallery_image.image.url
         return ""
 
-    def get_gallery_images(self):
+    def _build_generated_asset_url(self, filename):
+        if not self.slug:
+            return ""
+
+        relative_path = Path("products") / "generated" / self.slug / filename
+        asset_path = Path(settings.MEDIA_ROOT) / relative_path
+        if not asset_path.exists():
+            return ""
+
+        relative_url = str(relative_path).replace("\\", "/")
+        return f"{settings.MEDIA_URL}{relative_url}"
+
+    def _generated_detail_images(self):
+        images = []
+        for filename in ("detail-1.svg", "detail-2.svg"):
+            image_url = self._build_generated_asset_url(filename)
+            if image_url:
+                images.append({"url": image_url, "is_primary": False})
+        return images
+
+    def get_gallery_images(self, include_primary=True):
         images = []
         seen_urls = set()
 
-        primary_url = self.get_image()
+        primary_url = self.get_image() if include_primary else ""
         if primary_url:
             images.append({"url": primary_url, "is_primary": True})
             seen_urls.add(primary_url)
@@ -85,17 +92,31 @@ class Product(models.Model):
             images.append({"url": gallery_url, "is_primary": False})
             seen_urls.add(gallery_url)
 
+        if not images:
+            for generated_image in self._generated_detail_images():
+                gallery_url = generated_image["url"]
+                if gallery_url in seen_urls:
+                    continue
+                images.append(generated_image)
+                seen_urls.add(gallery_url)
+
         return images[:6]
+
+    def get_detail_gallery_images(self):
+        images = self.get_gallery_images(include_primary=False)
+        if images:
+            return images
+
+        primary_url = self.get_image()
+        if primary_url:
+            return [{"url": primary_url, "is_primary": True}]
+        return []
 
     def total_image_count(self):
         base_count = 1 if (self.image or self.image_url) else 0
         return min(6, base_count + self.gallery_images.count())
 
 
-
-# ------------------------------------
-# | KHỐI LỚP (CLASS): PRODUCTVARIANT |
-# ------------------------------------
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
     color_name = models.CharField(max_length=50, verbose_name="Màu sắc")
@@ -104,10 +125,6 @@ class ProductVariant(models.Model):
     stock = models.PositiveIntegerField(default=0, verbose_name="Tồn kho")
     is_active = models.BooleanField(default=True, verbose_name="Hiển thị")
 
-
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ["color_name", "size"]
         unique_together = ("product", "color_name", "size")
@@ -131,19 +148,11 @@ class ProductImage(models.Model):
         return f"{self.product.name} - ảnh {self.id}"
 
 
-
-# ----------------------------------
-# | KHỐI LỚP (CLASS): WISHLISTITEM |
-# ----------------------------------
 class WishlistItem(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishlist_items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="wishlist_items")
     created = models.DateTimeField(auto_now_add=True)
 
-
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         verbose_name = "Sản phẩm yêu thích"
         verbose_name_plural = "Sản phẩm yêu thích"
@@ -154,10 +163,6 @@ class WishlistItem(models.Model):
         return f"{self.user} - {self.product.name}"
 
 
-
-# -------------------------------
-# | KHỐI LỚP (CLASS): SUPPORTFAQ |
-# -------------------------------
 class SupportFAQ(models.Model):
     question = models.CharField(max_length=255, verbose_name="Câu hỏi")
     keywords = models.CharField(max_length=255, blank=True, verbose_name="Từ khóa")
@@ -167,10 +172,6 @@ class SupportFAQ(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         verbose_name = "FAQ hỗ trợ"
         verbose_name_plural = "FAQ hỗ trợ"

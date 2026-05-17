@@ -6,9 +6,6 @@ from django.utils import timezone
 
 
 
-# ----------------------------
-# | KHỐI LỚP (CLASS): COUPON |
-# ----------------------------
 class Coupon(models.Model):
     TYPE_PERCENT = "percent"
     TYPE_FIXED = "fixed"
@@ -34,9 +31,6 @@ class Coupon(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ["code"]
 
@@ -44,9 +38,6 @@ class Coupon(models.Model):
         return self.code
 
 
-    # ---------------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): IS_USABLE_NOW |
-    # ---------------------------------------
     def is_usable_now(self):
         now = timezone.now()
         if not self.is_active:
@@ -61,9 +52,6 @@ class Coupon(models.Model):
 
 
 
-# ---------------------------
-# | KHỐI LỚP (CLASS): ORDER |
-# ---------------------------
 class Order(models.Model):
     STATUS_CHOICES = [
         ("pending", "Chờ xử lý"),
@@ -100,9 +88,6 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ["-created_at"]
 
@@ -111,9 +96,6 @@ class Order(models.Model):
 
 
 
-# -------------------------------
-# | KHỐI LỚP (CLASS): ORDERITEM |
-# -------------------------------
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="order_items")
@@ -127,8 +109,5 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name}"
 
 
-    # ----------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): SUBTOTAL |
-    # ----------------------------------
     def subtotal(self):
         return self.price * self.quantity

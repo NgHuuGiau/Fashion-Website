@@ -1,12 +1,7 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 import os
 import sys
 
-# ------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): MAIN       |
-# | Khởi chạy các tác vụ quản trị    |
-# | của framework Django             |
-# ------------------------------------
 def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
     try:

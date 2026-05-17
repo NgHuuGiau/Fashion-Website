@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Đơn hàng của tôi{% endblock %}
 
 {% block content %}
@@ -26,7 +28,7 @@
         </div>
         <ul>
             {% for item in active_tracking_order.items.all %}
-            <li>{{ item.product.name }} x {{ item.quantity }}</li>
+            <li>{{ item.product.name|repair_text }} x {{ item.quantity }}</li>
             {% endfor %}
         </ul>
         <div class="profile-actions order-actions">
@@ -61,9 +63,9 @@
             </div>
             <ul>
                 {% for item in order.items.all %}
-                <li>{{ item.product.name }} x {{ item.quantity }}</li>
+                <li>{{ item.product.name|repair_text }} x {{ item.quantity }}</li>
                 {% if item.selected_color or item.selected_size %}
-                <li><small>Màu: {{ item.selected_color|default:"-" }} | Size: {{ item.selected_size|default:"-" }}</small></li>
+                <li><small>Màu: {{ item.selected_color|default:"-"|repair_text }} | Size: {{ item.selected_size|default:"-"|repair_text }}</small></li>
                 {% endif %}
                 {% endfor %}
             </ul>

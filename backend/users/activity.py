@@ -2,9 +2,6 @@
 
 
 
-# --------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): LOG_ACTIVITY |
-# --------------------------------------
 def log_activity(request, event_type="action", metadata=None, status_code=200):
     if metadata is None:
         metadata = {}

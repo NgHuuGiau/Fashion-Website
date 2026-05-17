@@ -8,9 +8,6 @@ from .forms import RegisterForm
 
 
 
-# --------------------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): _SYNC_VISITOR_AUTH_STATE |
-# --------------------------------------------------
 def _sync_visitor_auth_state(request, user):
     visitor = getattr(request, "visitor_session", None)
     if not visitor:
@@ -21,9 +18,6 @@ def _sync_visitor_auth_state(request, user):
 
 
 
-# ---------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): REGISTER_VIEW |
-# ---------------------------------------
 def register_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -53,9 +47,6 @@ def register_view(request):
 
 
 
-# ------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): LOGIN_VIEW |
-# ------------------------------------
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -78,10 +69,6 @@ def login_view(request):
 
 
 @login_required
-
-# -------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): LOGOUT_VIEW |
-# -------------------------------------
 def logout_view(request):
     log_activity(request, event_type="logout", metadata={"username": request.user.username})
     _sync_visitor_auth_state(request, None)
@@ -91,9 +78,5 @@ def logout_view(request):
 
 
 @login_required
-
-# --------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): PROFILE_VIEW |
-# --------------------------------------
 def profile_view(request):
     return render(request, "account/profile.html")

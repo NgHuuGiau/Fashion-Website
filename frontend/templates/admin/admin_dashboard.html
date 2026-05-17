@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Bảng điều khiển quản trị{% endblock %}
 
 {% block content %}
@@ -26,7 +28,7 @@
     <div class="section-head">
         <div>
             <h2>{% if editing_product %}Chỉnh sửa sản phẩm{% else %}Thêm sản phẩm mới{% endif %}</h2>
-            <p>Mỗi sản phẩm có thể để từ 0 đến 6 hình ảnh. Ưu tiên dùng ảnh riêng của shop để giảm rủi ro bản quyền.</p>
+            <p>Mỗi sản phẩm có 6 slot ảnh chi tiết cố định để hiển thị ở trang khách.</p>
         </div>
         {% if editing_product %}
         <a href="{% url 'orders:admin_dashboard' %}" class="btn ghost small">Tạo mới</a>
@@ -83,25 +85,35 @@
                 <input type="file" name="image" accept="image/*">
             </label>
 
-            <label class="admin-field admin-field-full">
-                <span>Thêm ảnh chi tiết sản phẩm</span>
-                <input type="file" name="gallery_images" accept="image/*" multiple>
-                <small class="help-text">Có thể thêm nhiều ảnh trong một lần. Tổng số ảnh của sản phẩm không được vượt quá 6.</small>
-            </label>
-
-            {% if editing_product_gallery %}
             <div class="admin-field admin-field-full">
-                <span>Ảnh chi tiết hiện có</span>
-                <div class="admin-gallery-grid">
-                    {% for image in editing_product_gallery %}
-                    <label class="admin-gallery-card">
-                        <img src="{{ image.image.url }}" alt="{{ editing_product.name }} ảnh {{ forloop.counter }}">
-                        <span><input type="checkbox" name="remove_gallery_image_ids" value="{{ image.id }}"> Xóa ảnh này</span>
+                <span>6 ảnh chi tiết cố định</span>
+                <div class="admin-gallery-grid admin-gallery-grid-fixed">
+                    {% for slot in editing_product_gallery_slots %}
+                    <label class="admin-gallery-card admin-gallery-slot-card">
+                        {% if slot.image %}
+                        <img src="{{ slot.image.image.url }}" alt="{{ editing_product.name }} ảnh {{ forloop.counter }}">
+                        {% else %}
+                        <div class="admin-gallery-slot-empty">
+                            <strong>Slot {{ forloop.counter }}</strong>
+                            <span>Chưa có hình</span>
+                        </div>
+                        {% endif %}
+                        <small class="help-text">{{ slot.label }}</small>
+                        <input type="file" name="gallery_slot_{{ slot.slot_index }}" accept="image/*">
+                        {% if slot.image %}
+                        <span><input type="checkbox" name="remove_gallery_slot_{{ slot.slot_index }}"> Xóa ảnh slot này</span>
+                        {% endif %}
                     </label>
                     {% endfor %}
                 </div>
+                <small class="help-text">Trang chi tiết luôn hiển thị đủ 6 ô dưới ảnh chính. Slot chưa có ảnh sẽ hiện placeholder cho đến khi bạn upload.</small>
             </div>
-            {% endif %}
+
+            <label class="admin-field admin-field-full">
+                <span>Thêm nhanh nhiều ảnh</span>
+                <input type="file" name="gallery_images" accept="image/*" multiple>
+                <small class="help-text">Có thể thêm nhiều ảnh trong một lần. Hệ thống chỉ giữ tối đa 6 ảnh chi tiết đầu tiên.</small>
+            </label>
 
             <label class="admin-field admin-field-full">
                 <span>Mô tả chi tiết</span>

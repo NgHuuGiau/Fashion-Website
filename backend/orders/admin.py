@@ -4,9 +4,6 @@ from .models import Coupon, Order, OrderItem
 
 
 
-# -------------------------------------
-# | KHỐI LỚP (CLASS): ORDERITEMINLINE |
-# -------------------------------------
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
@@ -15,9 +12,6 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 
-# --------------------------------
-# | KHỐI LỚP (CLASS): ORDERADMIN |
-# --------------------------------
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -42,9 +36,6 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderItem)
 
-# ------------------------------------
-# | KHỐI LỚP (CLASS): ORDERITEMADMIN |
-# ------------------------------------
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("order", "product", "variant", "selected_color", "selected_size", "quantity", "price")
     list_filter = ("order__status",)
@@ -53,9 +44,6 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 
-# ---------------------------------
-# | KHỐI LỚP (CLASS): COUPONADMIN |
-# ---------------------------------
 class CouponAdmin(admin.ModelAdmin):
     list_display = (
         "code",

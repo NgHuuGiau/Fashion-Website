@@ -1,63 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}{{ product.name }}{% endblock %}
+{% load shop_format %}
+
+{% block title %}{{ product.name|repair_text }}{% endblock %}
 
 {% block content %}
 <section class="detail-layout section-space">
-    <div class="detail-media-column">
+    <div class="detail-media-column" aria-hidden="true">
         <div class="detail-media detail-media-shell">
-            {% if gallery_images %}
-            <div class="detail-media-badges">
-                {% if product.featured %}<span class="tag detail-tag">HOT</span>{% endif %}
-                {% if request.user.is_authenticated %}
-                <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="detail-favorite-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.path }}">
-                    <button type="submit" class="detail-favorite-btn{% if is_in_wishlist %} active{% endif %}" aria-label="{% if is_in_wishlist %}Bỏ yêu thích{% else %}Thích sản phẩm{% endif %}">
-                        <span class="detail-favorite-heart" aria-hidden="true">♥</span>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            {% if gallery_images|length > 1 %}
             <button type="button" class="detail-gallery-arrow detail-gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
-                <span class="detail-arrow-glyph" aria-hidden="true">‹</span>
+                <span class="detail-arrow-glyph">‹</span>
             </button>
+            <img
+                id="detail-main-image"
+                src="{{ detail_gallery_slots.0.url }}"
+                alt="{{ detail_gallery_slots.0.alt }}"
+            >
             <button type="button" class="detail-gallery-arrow detail-gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
-                <span class="detail-arrow-glyph" aria-hidden="true">›</span>
+                <span class="detail-arrow-glyph">›</span>
             </button>
-            {% endif %}
-            <img src="{{ gallery_images.0.url }}" alt="{{ product.name }}" id="detail-main-image">
-            {% else %}
-            <div class="fallback detail-fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</div>
-            {% endif %}
         </div>
-
-        {% if gallery_images|length > 1 %}
-        <div class="detail-gallery-strip">
-            {% for image in gallery_images %}
+        <div class="detail-thumbs detail-thumbs-fixed">
+            {% for item in detail_gallery_slots %}
             <button
                 type="button"
-                class="detail-thumb{% if forloop.first %} active{% endif %}"
-                data-detail-image="{{ image.url }}"
-                aria-label="Xem ảnh {{ forloop.counter }} của {{ product.name }}"
+                class="detail-thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}"
+                data-detail-image="{{ item.url }}"
+                aria-label="Xem ảnh {{ forloop.counter }}"
             >
-                <img src="{{ image.url }}" alt="{{ product.name }} ảnh {{ forloop.counter }}">
+                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
+                <span class="detail-thumb-index">{{ forloop.counter }}</span>
             </button>
             {% endfor %}
         </div>
-        {% endif %}
+        <div class="detail-thumb-caption">
+            {% if product.category.slug == "quan" %}
+            6 slot ảnh chi tiết của quần
+            {% elif product.category.slug == "phu-kien" %}
+            6 slot ảnh chi tiết của phụ kiện
+            {% else %}
+            6 slot ảnh chi tiết của áo
+            {% endif %}
+            có thể thay trực tiếp trong admin.
+        </div>
     </div>
 
     <div class="detail-info detail-stack">
         <div class="detail-topline">
-            <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|upper }}{% endif %}</p>
+            <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|repair_text|upper }}{% endif %}</p>
             <p class="detail-code">Mã sản phẩm • {{ product.slug|upper }}</p>
         </div>
 
-        <h1>{{ product.name }}</h1>
+        <h1>{{ product.name|repair_text }}</h1>
         <p class="price big">{{ product.price|vnd }}đ</p>
-        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để dùng hằng ngày mà không bị nhạt." }}</p>
+        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để dùng hằng ngày."|repair_text }}</p>
 
         <div class="detail-highlights">
             <article class="detail-highlight-card">
@@ -65,8 +61,8 @@
                 <span>Hợp đi học, đi chơi, cà phê hoặc xuống phố cuối tuần.</span>
             </article>
             <article class="detail-highlight-card">
-                <strong>Dễ xem</strong>
-                <span>Ảnh lớn, gallery gọn và thông tin mua hàng đặt đúng chỗ.</span>
+                <strong>Dễ chọn</strong>
+                <span>Thông tin mua hàng, màu sắc và size được đặt đúng chỗ để thao tác nhanh.</span>
             </article>
             <article class="detail-highlight-card">
                 <strong>Dễ chốt</strong>
@@ -84,13 +80,13 @@
             {% csrf_token %}
             {% if variants and requires_variant %}
             <div class="variant-block">
-                <p class="variant-title">Chọn màu và size</p>
+                <p class="variant-title">Chọn màu sắc và size</p>
                 <div class="variant-pickers" id="variant-picker" data-default-variant="{{ default_variant_id|default:'' }}">
                     <div class="form-group">
-                        <label for="color-select">Màu</label>
+                        <label for="color-select">Màu sắc</label>
                         <select id="color-select">
                             {% for color in color_options %}
-                            <option value="{{ color }}" {% if color == default_color %}selected{% endif %}>{{ color }}</option>
+                            <option value="{{ color.value }}" {% if color.value == default_color %}selected{% endif %}>{{ color.label|repair_text }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -98,7 +94,7 @@
                         <label for="size-select">Size</label>
                         <select id="size-select">
                             {% for size in size_options %}
-                            <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size }}</option>
+                            <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size|repair_text }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -123,6 +119,112 @@
             <input type="hidden" name="next" value="{% url 'orders:cart_detail' %}">
             <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>Thêm vào giỏ</button>
         </form>
+
+        <section class="detail-size-chart">
+            <div class="section-head">
+                <h2>Bảng kích thước</h2>
+                <p>
+                    {% if product.category.slug == "quan" %}
+                    Tham khảo nhanh số đo quần để chọn size vừa người hơn.
+                    {% elif product.category.slug == "phu-kien" %}
+                    Phụ kiện không chia size áo/quần, bạn có thể xem kích thước tham khảo bên dưới.
+                    {% else %}
+                    Tham khảo nhanh số đo áo để chọn size vừa người hoặc oversize dễ hơn.
+                    {% endif %}
+                </p>
+            </div>
+
+            {% if product.category.slug == "quan" %}
+            <div class="size-chart-card">
+                <div class="size-chart-figure">
+                    <span class="size-figure-label">QUẦN</span>
+                    <div class="size-figure-meta">
+                        <span>Lưng</span>
+                        <span>Ống</span>
+                        <span>Dài quần</span>
+                    </div>
+                </div>
+                <div class="size-chart-table-wrap">
+                    <table class="size-chart-table">
+                        <thead>
+                            <tr>
+                                <th>Size</th>
+                                <th>Lưng</th>
+                                <th>Mông</th>
+                                <th>Dài quần</th>
+                                <th>Gợi ý cân nặng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>M</td><td>74-78 cm</td><td>94 cm</td><td>96 cm</td><td>50-58 kg</td></tr>
+                            <tr><td>L</td><td>78-82 cm</td><td>98 cm</td><td>98 cm</td><td>58-66 kg</td></tr>
+                            <tr><td>XL</td><td>82-86 cm</td><td>102 cm</td><td>100 cm</td><td>66-74 kg</td></tr>
+                            <tr><td>XXL</td><td>86-90 cm</td><td>106 cm</td><td>102 cm</td><td>74-82 kg</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% elif product.category.slug == "phu-kien" %}
+            <div class="size-chart-card">
+                <div class="size-chart-figure">
+                    <span class="size-figure-label">PHỤ KIỆN</span>
+                    <div class="size-figure-meta">
+                        <span>Dài</span>
+                        <span>Rộng</span>
+                        <span>Dây đeo</span>
+                    </div>
+                </div>
+                <div class="size-chart-table-wrap">
+                    <table class="size-chart-table">
+                        <thead>
+                            <tr>
+                                <th>Loại</th>
+                                <th>Dài</th>
+                                <th>Rộng</th>
+                                <th>Cao</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Túi nhỏ</td><td>18 cm</td><td>6 cm</td><td>14 cm</td><td>Đựng điện thoại, ví ngắn</td></tr>
+                            <tr><td>Túi vừa</td><td>22 cm</td><td>8 cm</td><td>16 cm</td><td>Dùng đi học, đi chơi</td></tr>
+                            <tr><td>Nón</td><td>56-60 cm</td><td>-</td><td>-</td><td>Khóa tăng giảm phía sau</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="size-chart-card">
+                <div class="size-chart-figure">
+                    <span class="size-figure-label">ÁO</span>
+                    <div class="size-figure-meta">
+                        <span>Ngang ngực</span>
+                        <span>Dài áo</span>
+                        <span>Dài tay</span>
+                    </div>
+                </div>
+                <div class="size-chart-table-wrap">
+                    <table class="size-chart-table">
+                        <thead>
+                            <tr>
+                                <th>Size</th>
+                                <th>Ngang ngực</th>
+                                <th>Dài áo</th>
+                                <th>Dài tay</th>
+                                <th>Gợi ý cân nặng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>S</td><td>50 cm</td><td>66 cm</td><td>55 cm</td><td>45-52 kg</td></tr>
+                            <tr><td>M</td><td>53 cm</td><td>69 cm</td><td>57 cm</td><td>52-62 kg</td></tr>
+                            <tr><td>L</td><td>56 cm</td><td>72 cm</td><td>59 cm</td><td>62-72 kg</td></tr>
+                            <tr><td>XL</td><td>59 cm</td><td>75 cm</td><td>61 cm</td><td>72-82 kg</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </section>
     </div>
 </section>
 
@@ -134,17 +236,13 @@
     </div>
     <div class="product-grid product-grid-featured">
         {% for item in related_products %}
-        <article class="product-card">
-            <a href="{% url 'products:product_detail' item.id item.slug %}" class="card-media">
-                {% if item.get_image %}
-                <img src="{{ item.get_image }}" alt="{{ item.name }}">
-                {% else %}
+        <article class="product-card product-card-text-only">
+            <a href="{% url 'products:product_detail' item.id item.slug %}" class="card-media card-media-text">
                 <span class="fallback">{% if item.category.slug == 'quan' %}QUẦN{% elif item.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                {% endif %}
             </a>
             <div class="card-body">
-                <p class="card-category">{{ item.category.name }}</p>
-                <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name }}</a></h3>
+                <p class="card-category">{{ item.category.name|repair_text }}</p>
+                <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name|repair_text }}</a></h3>
                 <p class="price">{{ item.price|vnd }}đ</p>
             </div>
         </article>

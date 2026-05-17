@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}HUUGIAU | Streetwear local cho nhịp sống thành phố{% endblock %}
 
 {% block content %}
@@ -10,7 +12,7 @@
             <h1>Đồ gọn, chất rõ, chốt nhanh.</h1>
             <p class="hero-copy">Chọn áo, quần và phụ kiện theo hướng dễ mặc hằng ngày nhưng vẫn đủ cá tính. Vào là thấy ngay món hợp gu, không cần lướt quá lâu.</p>
             <div class="hero-badges">
-                <span>Ảnh rõ, xem nhanh</span>
+                <span>Thông tin rõ, xem nhanh</span>
                 <span>Form dễ phối</span>
                 <span>Lọc gọn theo giá</span>
             </div>
@@ -58,7 +60,7 @@
         </article>
         <article class="stat-card">
             <h3>Dễ chốt</h3>
-            <p>Giá rõ, ảnh sạch, thao tác mượt.</p>
+            <p>Giá rõ, thao tác mượt, không phụ thuộc ảnh sản phẩm.</p>
         </article>
     </div>
 </section>
@@ -73,7 +75,7 @@
 <section class="filter-panel">
     <form method="get" class="filter-form">
         {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
-        {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
+        {% if keyword %}<input type="hidden" name="q" value="{{ keyword|repair_text }}">{% endif %}
 
         <label>
             Giá từ
@@ -110,37 +112,27 @@
     <div class="slider-wrap">
         <div class="slider-track">
             {% for product in slider_products %}
-            <a class="product-card slider-card product-card-link" href="{% url 'products:product_detail' product.id product.slug %}">
-                <div class="card-media">
-                    {% if product.get_image %}
-                    <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                    <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                    {% else %}
+            <a class="product-card slider-card product-card-link product-card-text-only" href="{% url 'products:product_detail' product.id product.slug %}">
+                <div class="card-media card-media-text">
                     <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                    {% endif %}
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
-                    <p class="card-category">{{ product.category.name }}</p>
-                    <h3>{{ product.name }}</h3>
+                    <p class="card-category">{{ product.category.name|repair_text }}</p>
+                    <h3>{{ product.name|repair_text }}</h3>
                     <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
             </a>
             {% endfor %}
             {% for product in slider_products %}
-            <a class="product-card slider-card product-card-link" href="{% url 'products:product_detail' product.id product.slug %}">
-                <div class="card-media">
-                    {% if product.get_image %}
-                    <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                    <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                    {% else %}
+            <a class="product-card slider-card product-card-link product-card-text-only" href="{% url 'products:product_detail' product.id product.slug %}">
+                <div class="card-media card-media-text">
                     <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                    {% endif %}
                     <span class="tag">HOT</span>
                 </div>
                 <div class="card-body">
-                    <p class="card-category">{{ product.category.name }}</p>
-                    <h3>{{ product.name }}</h3>
+                    <p class="card-category">{{ product.category.name|repair_text }}</p>
+                    <h3>{{ product.name|repair_text }}</h3>
                     <p class="price">{{ product.price|vnd }}đ</p>
                 </div>
             </a>
@@ -165,22 +157,17 @@
 
     <div class="product-grid">
         {% for product in products %}
-        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link">
-            <div class="card-media">
-                {% if product.get_image %}
-                <img src="{{ product.get_image }}" alt="{{ product.name }}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-js').style.display='flex';">
-                <span class="fallback fallback-js" style="display:none;">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                {% else %}
+        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-text-only">
+            <div class="card-media card-media-text">
                 <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
-                {% endif %}
                 {% if product.featured %}<span class="tag">HOT</span>{% endif %}
                 {% if request.user.is_authenticated and product.id in wishlist_product_ids %}
                 <span class="fav-badge" aria-label="Đã yêu thích"><i class="fa-solid fa-heart"></i></span>
                 {% endif %}
             </div>
             <div class="card-body">
-                <p class="card-category">{{ product.category.name }}</p>
-                <h3>{{ product.name }}</h3>
+                <p class="card-category">{{ product.category.name|repair_text }}</p>
+                <h3>{{ product.name|repair_text }}</h3>
                 <p class="price">{{ product.price|vnd }}đ</p>
             </div>
         </a>

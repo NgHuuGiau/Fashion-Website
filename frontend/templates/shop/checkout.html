@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Thanh toán{% endblock %}
 
 {% block content %}
@@ -95,7 +97,7 @@
     <aside class="summary-box">
         <h2>Đơn hàng của bạn</h2>
         {% for item in items %}
-        <p>{{ item.product.name }} x {{ item.quantity }} <span>{{ item.subtotal|vnd }}đ</span></p>
+        <p>{{ item.product.name|repair_text }} x {{ item.quantity }} <span>{{ item.subtotal|vnd }}đ</span></p>
         {% endfor %}
         <hr>
         <p>Tạm tính <span>{{ subtotal|vnd }}đ</span></p>

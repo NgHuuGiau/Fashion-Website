@@ -7,25 +7,16 @@ CART_SESSION_ID = "cart"
 
 
 
-# -----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): _GET_CART |
-# -----------------------------------
 def _get_cart(session):
     return session.setdefault(CART_SESSION_ID, {})
 
 
 
-# -----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): _ITEM_KEY |
-# -----------------------------------
 def _item_key(product_id, variant_id=None):
     return f"{product_id}:{variant_id or 0}"
 
 
 
-# -----------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): _PARSE_ITEM_KEY |
-# -----------------------------------------
 def _parse_item_key(item_key):
     try:
         product_str, variant_str = str(item_key).split(":", 1)
@@ -35,9 +26,6 @@ def _parse_item_key(item_key):
 
 
 
-# ----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): SAFE_INT |
-# ----------------------------------
 def safe_int(value, default=1, minimum=1):
     try:
         parsed = int(value)
@@ -47,9 +35,6 @@ def safe_int(value, default=1, minimum=1):
 
 
 
-# ----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): ADD_CART |
-# ----------------------------------
 def add_cart(request, product_id, quantity=1, override_quantity=False, variant_id=None):
     cart = _get_cart(request.session)
     product = Product.objects.filter(id=product_id, available=True).first()
@@ -87,9 +72,6 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
 
 
 
-# -------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): REMOVE_CART |
-# -------------------------------------
 def remove_cart(request, item_key=None):
     cart = _get_cart(request.session)
 
@@ -99,9 +81,6 @@ def remove_cart(request, item_key=None):
 
 
 
-# ------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): CLEAR_CART |
-# ------------------------------------
 def clear_cart(request):
     if CART_SESSION_ID in request.session:
         del request.session[CART_SESSION_ID]
@@ -109,9 +88,6 @@ def clear_cart(request):
 
 
 
-# -----------------------------------
-# | HÀM XỬ LÝ (FUNCTION): ITER_CART |
-# -----------------------------------
 def iter_cart(request):
     cart = _get_cart(request.session)
     product_ids = set()
@@ -164,9 +140,6 @@ def iter_cart(request):
 
 
 
-# ------------------------------------
-# | HÀM XỬ LÝ (FUNCTION): CART_COUNT |
-# ------------------------------------
 def cart_count(request):
     cart = _get_cart(request.session)
     return sum(safe_int(item.get("quantity", 0), default=0, minimum=0) for item in cart.values())

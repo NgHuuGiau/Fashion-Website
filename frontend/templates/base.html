@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260515a">
+    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260518a">
 </head>
 <body>
     <div class="topline">FREESHIP TOÀN QUỐC TỪ 499K • HỖ TRỢ ĐỔI SIZE TRONG 7 NGÀY</div>
@@ -87,20 +87,34 @@
 
     <footer class="site-footer">
         <div class="container footer-wrap">
-            <div>
+            <section>
                 <h3>HUUGIAU STUDIO</h3>
-                <p>Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
-            </div>
-            <div>
-                <h3>HỖ TRỢ MUA HÀNG</h3>
-                <p>Tư vấn size, kiểm tra hàng, thanh toán và theo dõi đơn ngay trên web.</p>
-                <p>Hỗ trợ từ 9:00 đến 21:30 mỗi ngày.</p>
-            </div>
-            <div>
-                <h3>CAM KẾT</h3>
-                <p>Ảnh rõ, thao tác gọn, cập nhật đơn minh bạch và trải nghiệm mua tốt trên cả điện thoại lẫn máy tính.</p>
-                <p>Freeship từ 499K • COD hoặc chuyển khoản</p>
-            </div>
+                <p>Local brand theo hướng gọn, rõ và dễ mua nhanh trên cả điện thoại lẫn máy tính.</p>
+                <p>Website tập trung vào trải nghiệm xem sản phẩm, chọn size và chốt đơn ngắn gọn.</p>
+            </section>
+            <section>
+                <h3>THÔNG TIN MUA HÀNG</h3>
+                <ul class="footer-list">
+                    <li>Freeship toàn quốc cho đơn từ 499K</li>
+                    <li>Hỗ trợ đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng</li>
+                    <li>Thanh toán COD hoặc chuyển khoản ngân hàng</li>
+                </ul>
+            </section>
+            <section>
+                <h3>HỖ TRỢ</h3>
+                <ul class="footer-list">
+                    <li>Tư vấn size nhanh ngay trên khung chat</li>
+                    <li>Theo dõi đơn hàng trong tài khoản cá nhân</li>
+                    <li>Thời gian hỗ trợ: 9:00 - 21:30 mỗi ngày</li>
+                </ul>
+            </section>
+            <section>
+                <h3>ĐIỀU CẦN LƯU Ý</h3>
+                <ul class="footer-list">
+                    <li>Giá bán và tồn kho có thể thay đổi theo từng đợt cập nhật</li>
+                    <li>Nếu cần hỗ trợ đơn gấp, hãy chuẩn bị sẵn mã đơn khi liên hệ</li>
+                </ul>
+            </section>
         </div>
     </footer>
 
@@ -134,34 +148,6 @@
             <button type="submit" class="btn small">Gửi</button>
         </form>
     </section>
-    <script src="/static/js/site_interactions.js?v=20260515a"></script>
-    <script>
-        (function () {
-            var launcher = document.getElementById("chat-launcher");
-            var chatbox = document.getElementById("support-chatbox");
-            var backdrop = document.getElementById("chatbox-backdrop");
-            var closeBtn = document.getElementById("chatbox-close");
-
-            if (!launcher || !chatbox || !backdrop || !closeBtn) {
-                return;
-            }
-
-            function openChatbox() {
-                chatbox.classList.remove("hidden");
-                backdrop.classList.remove("hidden");
-                launcher.classList.add("hidden");
-            }
-
-            function closeChatbox() {
-                chatbox.classList.add("hidden");
-                backdrop.classList.add("hidden");
-                launcher.classList.remove("hidden");
-            }
-
-            launcher.addEventListener("click", openChatbox);
-            closeBtn.addEventListener("click", closeChatbox);
-            backdrop.addEventListener("click", closeChatbox);
-        })();
-    </script>
+    <script src="/static/js/site_interactions.js?v=20260518a"></script>
 </body>
 </html>

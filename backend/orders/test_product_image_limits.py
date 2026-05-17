@@ -1,6 +1,8 @@
+﻿from tempfile import TemporaryDirectory
+
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from products.models import Category, Product, ProductImage, ProductVariant
@@ -14,13 +16,17 @@ class ProductImageLimitAdminTest(TestCase):
     )
 
     def setUp(self):
+        self.temp_media = TemporaryDirectory()
+        self.media_override = override_settings(MEDIA_ROOT=self.temp_media.name, MEDIA_URL="/media/")
+        self.media_override.enable()
+
         self.staff = User.objects.create_user(username="staff_gallery", password="StrongPass123!", is_staff=True)
-        self.category = Category.objects.create(name="Áo", slug="ao")
+        self.category = Category.objects.create(name="Ao", slug="ao")
         self.product = Product.objects.create(
             category=self.category,
-            name="Áo giới hạn ảnh",
+            name="Ao gioi han anh",
             slug="ao-gioi-han-anh",
-            description="Test giới hạn ảnh",
+            description="Test gioi han anh",
             price=420000,
             stock=5,
             available=True,
@@ -28,12 +34,16 @@ class ProductImageLimitAdminTest(TestCase):
         )
         ProductVariant.objects.create(
             product=self.product,
-            color_name="Đen",
+            color_name="Den",
             color_code="#111111",
             size="M",
             stock=5,
             is_active=True,
         )
+
+    def tearDown(self):
+        self.media_override.disable()
+        self.temp_media.cleanup()
 
     def test_admin_rejects_more_than_six_total_images(self):
         self.client.login(username="staff_gallery", password="StrongPass123!")
@@ -57,7 +67,7 @@ class ProductImageLimitAdminTest(TestCase):
             "available": "on",
             "gallery_count": "5",
             "variant_row_key[]": ["row-1"],
-            "variant_color_name[]": ["Đen"],
+            "variant_color_name[]": ["Den"],
             "variant_color_code[]": ["#111111"],
             "variant_size[]": ["M"],
             "variant_stock[]": ["5"],

@@ -1,4 +1,4 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from decimal import Decimal
 import unicodedata
 from urllib.parse import quote
@@ -115,7 +115,12 @@ def build_vietqr_url(bank_code, amount, transfer_note):
 
 
 def normalize_shipping_address(value):
-    text = (value or "").casefold()
+    text = str(value or "")
+    try:
+        text = text.encode("latin1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    text = text.casefold()
     normalized = unicodedata.normalize("NFD", text)
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
@@ -196,9 +201,7 @@ def restore_order_stock(order):
     with transaction.atomic():
         for item in order.items.select_related("product", "variant"):
             if item.variant:
-                # Sử dụng F() để tránh race condition khi cập nhật tồn kho
                 ProductVariant.objects.filter(id=item.variant.id).update(stock=F("stock") + item.quantity)
-                # Cập nhật lại tổng tồn kho của Product dựa trên database thực tế
                 total_stock = item.product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
                 item.product.stock = total_stock
                 item.product.save(update_fields=["stock", "updated"])
@@ -416,10 +419,8 @@ def checkout(request):
                         if variant:
                             variant.stock = max(0, variant.stock - item["quantity"])
                             variant.save(update_fields=["stock"])
-                            # Tối ưu: Tính tổng tồn kho trực tiếp từ Database thay vì xử lý bằng Python
                             product.stock = product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
                         else:
-                            # Đảm bảo tồn kho không bị âm khi trừ
                             Product.objects.filter(id=product.id).update(stock=F("stock") - item["quantity"])
                             product.refresh_from_db()
                             if product.stock < 0:
@@ -587,7 +588,7 @@ def order_review(request, order_id):
         if phone_input:
             import re
             if not re.fullmatch(r"[0-9]{9,15}", phone_input):
-                messages.error(request, "Số điện thoại không hợp lệ, vui lòng chỉ nhập số (từ 9 đến 15 chữ số).")
+                messages.error(request, "Số điện thoại không hợp lệ, vui lòng chỉ nhập số từ 9 đến 15 chữ số.")
                 return redirect("orders:order_review", order_id=order.id)
             order.phone = phone_input
 
@@ -728,7 +729,6 @@ def admin_dashboard(request):
     now = timezone.now()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # Tối ưu: Đếm tất cả trạng thái trong 1 câu Query duy nhất bằng aggregate
     status_counts = orders.aggregate(
         total=Count("id"),
         pending=Count("id", filter=Q(status="pending")),

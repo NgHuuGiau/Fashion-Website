@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Giỏ hàng{% endblock %}
 
 {% block content %}
@@ -26,9 +28,9 @@
                     {% for item in items %}
                     <tr>
                         <td>
-                            <a href="{% url 'products:product_detail' item.product.id item.product.slug %}">{{ item.product.name }}</a>
+                            <a href="{% url 'products:product_detail' item.product.id item.product.slug %}">{{ item.product.name|repair_text }}</a>
                             {% if item.variant %}
-                            <div><small>Màu: {{ item.variant.color_name }} | Size: {{ item.variant.size }}</small></div>
+                            <div><small>Màu: {{ item.variant.color_name|repair_text }} | Size: {{ item.variant.size|repair_text }}</small></div>
                             {% endif %}
                         </td>
                         <td>{{ item.price|vnd }}đ</td>

@@ -1,27 +1,29 @@
 {% extends "base.html" %}
 
+{% load shop_format %}
+
 {% block title %}Tài khoản của tôi{% endblock %}
 
 {% block content %}
 <section class="section-space account-shell">
     <div class="account-hero">
         <div class="section-head">
-            <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username }}</h1>
+            <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username|repair_text }}</h1>
             <p>Quản lý thông tin, đơn hàng và các sản phẩm bạn quan tâm tại một nơi.</p>
         </div>
 
         <div class="account-grid">
             <article class="hero-card highlight">
                 <strong>Email</strong>
-                <p>{{ request.user.email|default:"Chưa cập nhật" }}</p>
+                <p>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
             </article>
             <article class="hero-card">
                 <strong>Số điện thoại</strong>
-                <p>{{ request.user.profile.phone_number|default:"Chưa cập nhật" }}</p>
+                <p>{{ request.user.profile.phone_number|default:"Chưa cập nhật"|repair_text }}</p>
             </article>
             <article class="hero-card">
                 <strong>Tài khoản</strong>
-                <p>{{ request.user.username }}</p>
+                <p>{{ request.user.username|repair_text }}</p>
             </article>
         </div>
     </div>

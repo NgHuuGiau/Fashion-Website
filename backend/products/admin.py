@@ -5,9 +5,6 @@ from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
 
 @admin.register(Category)
 
-# -----------------------------------
-# | KHỐI LỚP (CLASS): CATEGORYADMIN |
-# -----------------------------------
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
@@ -15,9 +12,6 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 
-# ------------------------------------------
-# | KHỐI LỚP (CLASS): PRODUCTVARIANTINLINE |
-# ------------------------------------------
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 0
@@ -26,9 +20,6 @@ class ProductVariantInline(admin.TabularInline):
 
 @admin.register(Product)
 
-# ----------------------------------
-# | KHỐI LỚP (CLASS): PRODUCTADMIN |
-# ----------------------------------
 class ProductAdmin(admin.ModelAdmin):
     list_display = ("name", "category", "price", "stock", "available", "featured", "updated")
     list_filter = ("available", "featured", "category", "updated")
@@ -40,9 +31,6 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVariant)
 
-# -----------------------------------------
-# | KHỐI LỚP (CLASS): PRODUCTVARIANTADMIN |
-# -----------------------------------------
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("product", "color_name", "size", "stock", "is_active")
     list_filter = ("is_active", "color_name", "size")
@@ -51,9 +39,6 @@ class ProductVariantAdmin(admin.ModelAdmin):
 
 @admin.register(WishlistItem)
 
-# ---------------------------------------
-# | KHỐI LỚP (CLASS): WISHLISTITEMADMIN |
-# ---------------------------------------
 class WishlistItemAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "created")
     list_filter = ("created",)
@@ -62,9 +47,6 @@ class WishlistItemAdmin(admin.ModelAdmin):
 
 @admin.register(SupportFAQ)
 
-# -----------------------------------
-# | KHỐI LỚP (CLASS): SUPPORTFAQADMIN |
-# -----------------------------------
 class SupportFAQAdmin(admin.ModelAdmin):
     list_display = ("question", "priority", "is_active", "updated")
     list_filter = ("is_active",)

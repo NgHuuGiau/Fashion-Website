@@ -3,9 +3,6 @@ from django.db import models
 
 
 
-# ------------------------------------
-# | KHỐI LỚP (CLASS): VISITORSESSION |
-# ------------------------------------
 class VisitorSession(models.Model):
     session_key = models.CharField(max_length=80, unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
@@ -16,9 +13,6 @@ class VisitorSession(models.Model):
     last_seen = models.DateTimeField(auto_now=True)
 
 
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ["-last_seen"]
 
@@ -28,9 +22,6 @@ class VisitorSession(models.Model):
 
 
 
-# ----------------------------------
-# | KHỐI LỚP (CLASS): USERACTIVITY |
-# ----------------------------------
 class UserActivity(models.Model):
     EVENT_CHOICES = [
         ("page_view", "Page View"),
@@ -52,9 +43,6 @@ class UserActivity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -67,17 +55,11 @@ class UserActivity(models.Model):
 
 
 
-# ---------------------------------
-# | KHỐI LỚP (CLASS): USERPROFILE |
-# ---------------------------------
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     phone_number = models.CharField(max_length=20, blank=True)
 
 
-    # --------------------------
-    # | KHỐI LỚP (CLASS): META |
-    # --------------------------
     class Meta:
         verbose_name = "Hồ sơ người dùng"
         verbose_name_plural = "Hồ sơ người dùng"

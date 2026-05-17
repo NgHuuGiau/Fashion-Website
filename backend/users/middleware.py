@@ -3,9 +3,6 @@ from .models import VisitorSession
 
 
 
-# -----------------------------------------------
-# | KHỐI LỚP (CLASS): VISITORTRACKINGMIDDLEWARE |
-# -----------------------------------------------
 class VisitorTrackingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -29,9 +26,6 @@ class VisitorTrackingMiddleware:
         return response
 
 
-    # ---------------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): _BIND_VISITOR |
-    # ---------------------------------------
     def _bind_visitor(self, request):
         session_key = request.session.session_key
         ip = self._get_ip(request)
@@ -75,9 +69,6 @@ class VisitorTrackingMiddleware:
 
     @staticmethod
 
-    # ---------------------------------
-    # | HÀM XỬ LÝ (FUNCTION): _GET_IP |
-    # ---------------------------------
     def _get_ip(request):
         forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
         if forwarded:
