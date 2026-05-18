@@ -11,7 +11,7 @@
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.GET.next }}">
             <div class="form-group">
-                <label for="id_username">Tên đăng nhập</label>
+                <label for="id_username">Tên đăng nhập / Email / Số điện thoại</label>
                 <input type="text" id="id_username" name="username" required>
             </div>
             <div class="form-group">
@@ -26,7 +26,7 @@
     <aside class="auth-benefits">
         <div>
             <h2>Một tài khoản, nhiều tiện hơn</h2>
-            <p>Toàn bộ trải nghiệm được giữ theo giao diện sáng để thao tác nhanh và nhìn rõ nội dung quan trọng.</p>
+            <p>Đăng nhập bằng tên đăng nhập, email hoặc số điện thoại để vào nhanh hơn mà không phải nhớ đúng một kiểu duy nhất.</p>
         </div>
         <ul>
             <li>Lưu sản phẩm yêu thích để xem lại sau.</li>

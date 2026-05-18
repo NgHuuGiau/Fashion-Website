@@ -140,7 +140,24 @@ class UserAuthFlowTest(TestCase):
             {"username": "existing", "password": "wrong"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Sai tên đăng nhập hoặc mật khẩu")
+        self.assertContains(response, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu")
+
+
+    def test_login_with_email(self):
+        response = self.client.post(
+            reverse("users:login"),
+            {"username": "existing@test.com", "password": "StrongPass123!"},
+        )
+        self.assertEqual(response.status_code, 302)
+
+
+    def test_login_with_phone_number(self):
+        UserProfile.objects.update_or_create(user=self.existing, defaults={"phone_number": "0911222333"})
+        response = self.client.post(
+            reverse("users:login"),
+            {"username": "0911222333", "password": "StrongPass123!"},
+        )
+        self.assertEqual(response.status_code, 302)
 
 
     def test_login_respects_next_parameter(self):

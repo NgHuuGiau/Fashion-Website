@@ -110,6 +110,13 @@
         currentIndex = 0;
     }
 
+    function getThumbData(thumb) {
+        return {
+            url: thumb.getAttribute("data-detail-image") || "",
+            alt: thumb.getAttribute("data-detail-alt") || "",
+        };
+    }
+
     function showImageAt(index) {
         if (!thumbs.length) {
             return;
@@ -124,8 +131,8 @@
         }
 
         var activeThumb = thumbs[normalizedIndex];
-        var url = activeThumb.getAttribute("data-detail-image");
-        var thumbPreview = activeThumb.querySelector("img");
+        var thumbData = getThumbData(activeThumb);
+        var url = thumbData.url;
         if (!url) {
             return;
         }
@@ -136,42 +143,46 @@
         });
         activeThumb.classList.add("active");
 
-        if (mainImage.src === url) {
-            if (thumbPreview && thumbPreview.alt) {
-                mainImage.alt = thumbPreview.alt;
-            }
-            return;
-        }
-
         if (switchTimer) {
             window.clearTimeout(switchTimer);
         }
 
         mainImage.classList.add("is-switching");
+        mainImage.alt = thumbData.alt || mainImage.alt;
         switchTimer = window.setTimeout(function () {
             mainImage.src = url;
-            if (thumbPreview && thumbPreview.alt) {
-                mainImage.alt = thumbPreview.alt;
-            }
+            window.setTimeout(function () {
+                mainImage.classList.remove("is-switching");
+            }, 140);
             switchTimer = null;
-        }, 120);
+        }, 60);
     }
 
+    function stepGallery(offset) {
+        showImageAt(currentIndex + offset);
+    }
+
+    window.detailGalleryShowAt = showImageAt;
+    window.detailGalleryStep = stepGallery;
+
     thumbs.forEach(function (thumb, index) {
-        thumb.addEventListener("click", function () {
+        thumb.addEventListener("click", function (event) {
+            event.preventDefault();
             showImageAt(index);
         });
     });
 
     if (prevButton) {
-        prevButton.addEventListener("click", function () {
-            showImageAt(currentIndex - 1);
+        prevButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            stepGallery(-1);
         });
     }
 
     if (nextButton) {
-        nextButton.addEventListener("click", function () {
-            showImageAt(currentIndex + 1);
+        nextButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            stepGallery(1);
         });
     }
 

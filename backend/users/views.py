@@ -1,11 +1,12 @@
-﻿from django.contrib import messages
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 
 from .activity import log_activity
 from .forms import RegisterForm
-
+from .models import UserProfile
 
 
 def _sync_visitor_auth_state(request, user):
@@ -15,7 +16,6 @@ def _sync_visitor_auth_state(request, user):
     visitor.user = user
     visitor.is_authenticated = bool(user)
     visitor.save(update_fields=["user", "is_authenticated", "last_seen"])
-
 
 
 def register_view(request):
@@ -46,15 +46,32 @@ def register_view(request):
     return render(request, "auth/register.html", {"form": form})
 
 
-
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")
 
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
+        identifier = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
-        user = authenticate(request, username=username, password=password)
+        login_candidates = [identifier] if identifier else []
+
+        if identifier:
+            matched_usernames = list(
+                User.objects.filter(email__iexact=identifier).values_list("username", flat=True)[:5]
+            )
+            matched_usernames.extend(
+                UserProfile.objects.filter(phone_number=identifier).values_list("user__username", flat=True)[:5]
+            )
+            for candidate in matched_usernames:
+                if candidate and candidate not in login_candidates:
+                    login_candidates.append(candidate)
+
+        user = None
+        for candidate in login_candidates:
+            user = authenticate(request, username=candidate, password=password)
+            if user is not None:
+                break
+
         if user is not None:
             login(request, user)
             _sync_visitor_auth_state(request, user)
@@ -63,7 +80,7 @@ def login_view(request):
             next_url = request.GET.get("next") or request.POST.get("next") or "products:product_list"
             return redirect(next_url)
 
-        messages.error(request, "Sai tên đăng nhập hoặc mật khẩu.")
+        messages.error(request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu.")
 
     return render(request, "auth/login.html")
 

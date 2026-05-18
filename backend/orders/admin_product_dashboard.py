@@ -175,7 +175,7 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:10],
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),
-        "recent_products": Product.objects.select_related("category").order_by("-created")[:20],
+        "recent_products": Product.objects.select_related("category").order_by("-created"),
         "product_form": effective_form_data,
         "product_form_variant_rows": build_variant_rows(effective_form_data),
         "product_form_errors": form_errors or [],

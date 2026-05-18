@@ -171,58 +171,80 @@
 
 <section class="section-space">
     <div class="section-head">
-        <h2>Sản phẩm gần đây</h2>
-        <p>Sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
+        <h2>Toàn bộ sản phẩm</h2>
+        <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
     </div>
-    <div class="table-wrap">
-        <table class="cart-table">
-            <thead>
-                <tr>
-                    <th>Tên sản phẩm</th>
-                    <th>Danh mục</th>
-                    <th>Giá</th>
-                    <th>Tồn kho</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in recent_products %}
-                <tr>
-                    <td>{{ product.name }}</td>
-                    <td>{{ product.category.name }}</td>
-                    <td>{{ product.price|vnd }}đ</td>
-                    <td>{{ product.stock }}</td>
-                    <td>
-                        {% if product.available %}
-                            {% if product.stock > 0 %}Đang bán{% else %}Hết hàng{% endif %}
-                        {% else %}
-                            Ẩn / Hết hàng
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="admin-row-actions">
-                            <a href="{% url 'orders:admin_dashboard' %}?edit={{ product.id }}" class="btn ghost small">Sửa</a>
-                            <form method="post" class="admin-inline-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="mark_out_of_stock">
-                                <input type="hidden" name="product_id" value="{{ product.id }}">
-                                <button type="submit" class="btn small">Hết hàng</button>
-                            </form>
-                            <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa sản phẩm này?');">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="delete_product">
-                                <input type="hidden" name="product_id" value="{{ product.id }}">
-                                <button type="submit" class="btn danger small">Xóa</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6">Chưa có sản phẩm nào.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="admin-product-table-shell">
+        <div class="admin-product-table-header-wrap">
+            <table class="cart-table admin-product-table admin-product-table-header">
+                <colgroup>
+                    <col class="admin-col-product">
+                    <col class="admin-col-category">
+                    <col class="admin-col-price">
+                    <col class="admin-col-stock">
+                    <col class="admin-col-status">
+                    <col class="admin-col-actions">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Giá</th>
+                        <th>Tồn kho</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <div class="table-wrap admin-product-table-wrap">
+            <table class="cart-table admin-product-table admin-product-table-body">
+                <colgroup>
+                    <col class="admin-col-product">
+                    <col class="admin-col-category">
+                    <col class="admin-col-price">
+                    <col class="admin-col-stock">
+                    <col class="admin-col-status">
+                    <col class="admin-col-actions">
+                </colgroup>
+                <tbody>
+                    {% for product in recent_products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>{{ product.price|vnd }}đ</td>
+                        <td>{{ product.stock }}</td>
+                        <td>
+                            {% if product.available %}
+                                {% if product.stock > 0 %}Đang bán{% else %}Hết hàng{% endif %}
+                            {% else %}
+                                Ẩn / Hết hàng
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="admin-row-actions">
+                                <a href="{% url 'orders:admin_dashboard' %}?edit={{ product.id }}" class="btn ghost small">Sửa</a>
+                                <form method="post" class="admin-inline-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_out_of_stock">
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <button type="submit" class="btn small">Hết hàng</button>
+                                </form>
+                                <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa sản phẩm này?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_product">
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <button type="submit" class="btn danger small">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6">Chưa có sản phẩm nào.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </section>
 {% endblock %}

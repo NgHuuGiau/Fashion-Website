@@ -6,32 +6,35 @@
 
 {% block content %}
 <section class="detail-layout section-space">
-    <div class="detail-media-column" aria-hidden="true">
+    <div class="detail-media-column">
         <div class="detail-media detail-media-shell">
-            <button type="button" class="detail-gallery-arrow detail-gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
-                <span class="detail-arrow-glyph">‹</span>
-            </button>
-            <img
-                id="detail-main-image"
-                src="{{ detail_gallery_slots.0.url }}"
-                alt="{{ detail_gallery_slots.0.alt }}"
-            >
-            <button type="button" class="detail-gallery-arrow detail-gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
-                <span class="detail-arrow-glyph">›</span>
-            </button>
-        </div>
-        <div class="detail-thumbs detail-thumbs-fixed">
-            {% for item in detail_gallery_slots %}
-            <button
-                type="button"
-                class="detail-thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}"
-                data-detail-image="{{ item.url }}"
-                aria-label="Xem ảnh {{ forloop.counter }}"
-            >
-                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
-                <span class="detail-thumb-index">{{ forloop.counter }}</span>
-            </button>
-            {% endfor %}
+            <div class="detail-media-stage">
+                <button type="button" class="detail-gallery-arrow detail-gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
+                    <span class="detail-arrow-glyph">‹</span>
+                </button>
+                <img
+                    id="detail-main-image"
+                    src="{{ detail_gallery_slots.0.url }}"
+                    alt="{{ detail_gallery_slots.0.alt }}"
+                >
+                <button type="button" class="detail-gallery-arrow detail-gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
+                    <span class="detail-arrow-glyph">›</span>
+                </button>
+            </div>
+            <div class="detail-thumbs detail-thumbs-fixed">
+                {% for item in detail_gallery_slots %}
+                <button
+                    type="button"
+                    class="detail-thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}"
+                    data-detail-image="{{ item.url }}"
+                    data-detail-alt="{{ item.alt }}"
+                    aria-label="Xem ảnh {{ forloop.counter }}"
+                >
+                    <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
+                    <span class="detail-thumb-index">{{ forloop.counter }}</span>
+                </button>
+                {% endfor %}
+            </div>
         </div>
         <div class="detail-thumb-caption">
             {% if product.category.slug == "quan" %}
@@ -250,4 +253,78 @@
     </div>
 </section>
 {% endif %}
+
+<script>
+    (function () {
+        var mainImage = document.getElementById("detail-main-image");
+        var thumbs = Array.prototype.slice.call(document.querySelectorAll(".detail-thumb[data-detail-image]"));
+        if (!mainImage || !thumbs.length) {
+            return;
+        }
+
+        var currentIndex = thumbs.findIndex(function (thumb) {
+            return thumb.classList.contains("active");
+        });
+        if (currentIndex < 0) {
+            currentIndex = 0;
+        }
+
+        function activateThumb(nextIndex) {
+            var total = thumbs.length;
+            if (!total) {
+                return;
+            }
+
+            var normalizedIndex = nextIndex;
+            if (normalizedIndex < 0) {
+                normalizedIndex = total - 1;
+            }
+            if (normalizedIndex >= total) {
+                normalizedIndex = 0;
+            }
+
+            var activeThumb = thumbs[normalizedIndex];
+            var nextUrl = activeThumb.getAttribute("data-detail-image");
+            var nextAlt = activeThumb.getAttribute("data-detail-alt") || "";
+            if (!nextUrl) {
+                return;
+            }
+
+            currentIndex = normalizedIndex;
+            thumbs.forEach(function (thumb) {
+                thumb.classList.remove("active");
+            });
+            activeThumb.classList.add("active");
+            mainImage.src = nextUrl;
+            mainImage.alt = nextAlt;
+        }
+
+        window.detailGalleryShowAt = activateThumb;
+        window.detailGalleryStep = function (step) {
+            activateThumb(currentIndex + step);
+        };
+
+        thumbs.forEach(function (thumb, index) {
+            thumb.addEventListener("click", function (event) {
+                event.preventDefault();
+                activateThumb(index);
+            });
+        });
+
+        var prevButton = document.getElementById("detail-prev-image");
+        var nextButton = document.getElementById("detail-next-image");
+        if (prevButton) {
+            prevButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                activateThumb(currentIndex - 1);
+            });
+        }
+        if (nextButton) {
+            nextButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                activateThumb(currentIndex + 1);
+            });
+        }
+    })();
+</script>
 {% endblock %}
