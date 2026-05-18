@@ -37,20 +37,13 @@
             </div>
         </div>
         <div class="detail-thumb-caption">
-            {% if product.category.slug == "quan" %}
-            6 slot ảnh chi tiết của quần
-            {% elif product.category.slug == "phu-kien" %}
-            6 slot ảnh chi tiết của phụ kiện
-            {% else %}
-            6 slot ảnh chi tiết của áo
-            {% endif %}
-            có thể thay trực tiếp trong admin.
+            6 slot ảnh chi tiết của {{ product.category.slug|product_type_label|lower }} có thể thay trực tiếp trong admin.
         </div>
     </div>
 
     <div class="detail-info detail-stack">
         <div class="detail-topline">
-            <p class="category">{% if product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}{{ product.category.name|repair_text|upper }}{% endif %}</p>
+            <p class="category">{{ product.category.slug|product_type_label }}</p>
             <p class="detail-code">Mã sản phẩm • {{ product.slug|upper }}</p>
         </div>
 
@@ -241,7 +234,7 @@
         {% for item in related_products %}
         <article class="product-card product-card-text-only">
             <a href="{% url 'products:product_detail' item.id item.slug %}" class="card-media card-media-text">
-                <span class="fallback">{% if item.category.slug == 'quan' %}QUẦN{% elif item.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                <span class="fallback">{{ item.category.slug|product_type_label }}</span>
             </a>
             <div class="card-body">
                 <p class="card-category">{{ item.category.name|repair_text }}</p>
@@ -253,78 +246,4 @@
     </div>
 </section>
 {% endif %}
-
-<script>
-    (function () {
-        var mainImage = document.getElementById("detail-main-image");
-        var thumbs = Array.prototype.slice.call(document.querySelectorAll(".detail-thumb[data-detail-image]"));
-        if (!mainImage || !thumbs.length) {
-            return;
-        }
-
-        var currentIndex = thumbs.findIndex(function (thumb) {
-            return thumb.classList.contains("active");
-        });
-        if (currentIndex < 0) {
-            currentIndex = 0;
-        }
-
-        function activateThumb(nextIndex) {
-            var total = thumbs.length;
-            if (!total) {
-                return;
-            }
-
-            var normalizedIndex = nextIndex;
-            if (normalizedIndex < 0) {
-                normalizedIndex = total - 1;
-            }
-            if (normalizedIndex >= total) {
-                normalizedIndex = 0;
-            }
-
-            var activeThumb = thumbs[normalizedIndex];
-            var nextUrl = activeThumb.getAttribute("data-detail-image");
-            var nextAlt = activeThumb.getAttribute("data-detail-alt") || "";
-            if (!nextUrl) {
-                return;
-            }
-
-            currentIndex = normalizedIndex;
-            thumbs.forEach(function (thumb) {
-                thumb.classList.remove("active");
-            });
-            activeThumb.classList.add("active");
-            mainImage.src = nextUrl;
-            mainImage.alt = nextAlt;
-        }
-
-        window.detailGalleryShowAt = activateThumb;
-        window.detailGalleryStep = function (step) {
-            activateThumb(currentIndex + step);
-        };
-
-        thumbs.forEach(function (thumb, index) {
-            thumb.addEventListener("click", function (event) {
-                event.preventDefault();
-                activateThumb(index);
-            });
-        });
-
-        var prevButton = document.getElementById("detail-prev-image");
-        var nextButton = document.getElementById("detail-next-image");
-        if (prevButton) {
-            prevButton.addEventListener("click", function (event) {
-                event.preventDefault();
-                activateThumb(currentIndex - 1);
-            });
-        }
-        if (nextButton) {
-            nextButton.addEventListener("click", function (event) {
-                event.preventDefault();
-                activateThumb(currentIndex + 1);
-            });
-        }
-    })();
-</script>
 {% endblock %}

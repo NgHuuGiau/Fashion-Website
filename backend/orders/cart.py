@@ -25,6 +25,20 @@ def _parse_item_key(item_key):
         return None, None
 
 
+def _collect_cart_ids(cart):
+    product_ids = set()
+    variant_ids = set()
+
+    for key in cart.keys():
+        product_id, variant_id = _parse_item_key(key)
+        if product_id:
+            product_ids.add(product_id)
+        if variant_id and variant_id > 0:
+            variant_ids.add(variant_id)
+
+    return product_ids, variant_ids
+
+
 
 def safe_int(value, default=1, minimum=1):
     try:
@@ -90,15 +104,7 @@ def clear_cart(request):
 
 def iter_cart(request):
     cart = _get_cart(request.session)
-    product_ids = set()
-    variant_ids = set()
-
-    for key in cart.keys():
-        product_id, variant_id = _parse_item_key(key)
-        if product_id:
-            product_ids.add(product_id)
-        if variant_id and variant_id > 0:
-            variant_ids.add(variant_id)
+    product_ids, variant_ids = _collect_cart_ids(cart)
 
     products = Product.objects.filter(id__in=product_ids, available=True).select_related("category")
     products_by_id = {product.id: product for product in products}

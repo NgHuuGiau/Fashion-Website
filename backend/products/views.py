@@ -1,6 +1,5 @@
 ﻿import json
 import re
-import unicodedata
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -11,7 +10,17 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
+from core.text_utils import normalize_vn_text, parse_keyword_list, repair_mojibake_text
+
+from .constants import FEATURED_PRODUCT_LIMIT, get_category_type_label
+from .models import (
+    Category,
+    MAX_PRODUCT_GALLERY_IMAGES,
+    Product,
+    ProductVariant,
+    SupportFAQ,
+    WishlistItem,
+)
 
 
 SORT_OPTIONS = {
@@ -22,6 +31,7 @@ SORT_OPTIONS = {
 }
 PRODUCTS_PER_PAGE = 12
 SUPPORT_CHAT_SESSION_KEY = "support_chat_state"
+DETAIL_GALLERY_SLOT_COUNT = MAX_PRODUCT_GALLERY_IMAGES
 
 DEFAULT_SUPPORT_FAQS = [
     {
@@ -74,12 +84,6 @@ COLOR_DISPLAY_MAP = {
 }
 
 
-def normalize_vn_text(value):
-    text = (value or "").casefold()
-    normalized = unicodedata.normalize("NFD", text)
-    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-
-
 def parse_price(value):
     if not value:
         return None
@@ -89,17 +93,6 @@ def parse_price(value):
         return parsed if parsed >= 0 else None
     except (TypeError, ValueError):
         return None
-
-
-def repair_mojibake_text(value):
-    text = str(value or "")
-    try:
-        repaired = text.encode("latin1").decode("utf-8")
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        return text
-    return repaired
-
-
 def format_color_label(color_name):
     repaired = repair_mojibake_text(color_name)
     normalized = normalize_vn_text(repaired).strip()
@@ -111,11 +104,7 @@ def format_color_label(color_name):
 def build_gallery_placeholder(product, slot_index):
     from urllib.parse import quote
 
-    category_label = {
-        "ao": "AO",
-        "quan": "QUAN",
-        "phu-kien": "PHU KIEN",
-    }.get(product.category.slug, "SAN PHAM")
+    category_label = normalize_vn_text(get_category_type_label(product.category.slug)).upper()
     slot_label = f"{slot_index + 1:02d}"
     svg = f"""
     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'>
@@ -136,10 +125,10 @@ def build_gallery_placeholder(product, slot_index):
 
 
 def build_detail_gallery_slots(product, gallery_images):
-    actual_images = list(gallery_images[:6])
+    actual_images = list(gallery_images[:DETAIL_GALLERY_SLOT_COUNT])
     slots = []
 
-    for index in range(6):
+    for index in range(DETAIL_GALLERY_SLOT_COUNT):
         if index < len(actual_images):
             image = actual_images[index]
             slots.append(
@@ -322,26 +311,34 @@ def detect_topic(normalized_message):
     return ""
 
 
+def has_any_keyword(message, keywords):
+    return any(keyword in message for keyword in keywords)
+
+
+def product_matches_keyword(product, normalized_keyword):
+    return normalized_keyword in normalize_vn_text(product.name) or normalized_keyword in normalize_vn_text(product.description)
+
+
 def find_support_reply(message, state=None):
     normalized_message = normalize_vn_text(message)
     state = state or {}
 
-    if any(keyword in normalized_message for keyword in GREETING_KEYWORDS):
+    if has_any_keyword(normalized_message, GREETING_KEYWORDS):
         state["topic"] = ""
         return build_greeting_reply()
 
-    if any(keyword in normalized_message for keyword in THANKS_KEYWORDS):
+    if has_any_keyword(normalized_message, THANKS_KEYWORDS):
         return build_thanks_reply()
 
-    if any(keyword in normalized_message for keyword in HUMAN_SUPPORT_KEYWORDS):
+    if has_any_keyword(normalized_message, HUMAN_SUPPORT_KEYWORDS):
         state["topic"] = "human"
         return build_human_support_reply()
 
-    if any(keyword in normalized_message for keyword in STYLE_RECOMMEND_KEYWORDS):
+    if has_any_keyword(normalized_message, STYLE_RECOMMEND_KEYWORDS):
         state["topic"] = "style"
         return build_style_reply()
 
-    if any(keyword in normalized_message for keyword in STOCK_KEYWORDS):
+    if has_any_keyword(normalized_message, STOCK_KEYWORDS):
         state["topic"] = "stock"
         return build_stock_reply()
 
@@ -356,8 +353,7 @@ def find_support_reply(message, state=None):
 
     if not faqs:
         for item in DEFAULT_SUPPORT_FAQS:
-            keywords = [normalize_vn_text(part) for part in item["keywords"].split(",") if part.strip()]
-            if any(keyword in normalized_message for keyword in keywords):
+            if has_any_keyword(normalized_message, parse_keyword_list(item["keywords"])):
                 return item["answer"]
         if state.get("topic") == "style":
             return build_style_reply()
@@ -368,7 +364,7 @@ def find_support_reply(message, state=None):
     best_answer = None
     best_score = 0
     for faq in faqs:
-        keywords = [normalize_vn_text(part) for part in faq.keywords.split(",") if part.strip()]
+        keywords = parse_keyword_list(faq.keywords)
         score = sum(1 for keyword in keywords if keyword and keyword in normalized_message)
         question_text = normalize_vn_text(faq.question)
         if question_text and question_text in normalized_message:
@@ -424,8 +420,7 @@ def product_list(request):
         accent_insensitive_matched = [
             item
             for item in products_qs
-            if normalized_keyword in normalize_vn_text(item.name)
-            or normalized_keyword in normalize_vn_text(item.description)
+            if product_matches_keyword(item, normalized_keyword)
         ]
 
         db_ids = list(db_matched.values_list("id", flat=True))
@@ -437,9 +432,8 @@ def product_list(request):
     no_filter_mode = not any([category_slug, keyword, min_price_raw, max_price_raw]) and selected_sort == "newest"
     if no_filter_mode:
         is_random_home = True
-        featured_limit = 12
         featured_qs = base_products.filter(featured=True).order_by("id")
-        slider_products = list(featured_qs[:featured_limit])
+        slider_products = list(featured_qs[:FEATURED_PRODUCT_LIMIT])
 
         if slider_products:
             products_qs = featured_qs
@@ -483,7 +477,7 @@ def product_detail(request, pk, slug):
     product = get_object_or_404(Product.objects.prefetch_related("gallery_images"), id=pk, slug=slug, available=True)
     related_products = Product.objects.filter(available=True, category=product.category).exclude(id=product.id)[:4]
     variants = ProductVariant.objects.filter(product=product, is_active=True).order_by("color_name", "size")
-    requires_variant = product.category.slug in {"ao", "quan"}
+    requires_variant = product.requires_variants
 
     default_variant = variants.filter(color_name__iexact="Den", size__iexact="M").first()
     if not default_variant:

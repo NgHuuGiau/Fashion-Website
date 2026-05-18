@@ -4,6 +4,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from products.constants import CATEGORY_SLUG_AO, CATEGORY_SLUG_QUAN
 from products.models import Product, ProductImage
 
 
@@ -94,9 +95,9 @@ def bg_from(palette):
 
 
 def build_art(category_slug, palette, variant):
-    if category_slug == "ao":
+    if category_slug == CATEGORY_SLUG_AO:
         return shirt_art(palette, variant)
-    if category_slug == "quan":
+    if category_slug == CATEGORY_SLUG_QUAN:
         return pants_art(palette, variant)
     return accessory_art(palette, variant)
 

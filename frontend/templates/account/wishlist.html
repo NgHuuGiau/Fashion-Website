@@ -15,7 +15,7 @@
         {% for product in products %}
         <article class="product-card product-card-text-only">
             <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media card-media-text">
-                <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                <span class="fallback">{{ product.category.slug|product_type_label }}</span>
                 <span class="fav-badge"><i class="fa-solid fa-heart"></i></span>
             </a>
             <div class="card-body">

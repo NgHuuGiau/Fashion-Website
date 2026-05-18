@@ -4,9 +4,16 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-
 def load_env_file(env_path):
-    return
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 
@@ -23,6 +30,9 @@ def env_list(name, default=None):
     if not value:
         return default or []
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+load_env_file(BASE_DIR / ".env")
 
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-in-env")

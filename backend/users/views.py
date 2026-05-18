@@ -18,6 +18,21 @@ def _sync_visitor_auth_state(request, user):
     visitor.save(update_fields=["user", "is_authenticated", "last_seen"])
 
 
+def _build_login_candidates(identifier):
+    if not identifier:
+        return []
+
+    login_candidates = [identifier]
+    matched_usernames = list(User.objects.filter(email__iexact=identifier).values_list("username", flat=True)[:5])
+    matched_usernames.extend(
+        UserProfile.objects.filter(phone_number=identifier).values_list("user__username", flat=True)[:5]
+    )
+    for candidate in matched_usernames:
+        if candidate and candidate not in login_candidates:
+            login_candidates.append(candidate)
+    return login_candidates
+
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -53,18 +68,7 @@ def login_view(request):
     if request.method == "POST":
         identifier = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
-        login_candidates = [identifier] if identifier else []
-
-        if identifier:
-            matched_usernames = list(
-                User.objects.filter(email__iexact=identifier).values_list("username", flat=True)[:5]
-            )
-            matched_usernames.extend(
-                UserProfile.objects.filter(phone_number=identifier).values_list("user__username", flat=True)[:5]
-            )
-            for candidate in matched_usernames:
-                if candidate and candidate not in login_candidates:
-                    login_candidates.append(candidate)
+        login_candidates = _build_login_candidates(identifier)
 
         user = None
         for candidate in login_candidates:

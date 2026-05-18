@@ -3,6 +3,12 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 
+from .constants import APPAREL_CATEGORY_SLUGS
+
+
+MAX_PRODUCT_GALLERY_IMAGES = 6
+GENERATED_DETAIL_IMAGE_FILENAMES = ("detail-1.svg", "detail-2.svg")
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên danh mục")
@@ -41,6 +47,10 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def requires_variants(self):
+        return self.category.slug in APPAREL_CATEGORY_SLUGS
+
     def get_image(self):
         if self.image:
             return self.image.url
@@ -70,37 +80,34 @@ class Product(models.Model):
 
     def _generated_detail_images(self):
         images = []
-        for filename in ("detail-1.svg", "detail-2.svg"):
+        for filename in GENERATED_DETAIL_IMAGE_FILENAMES:
             image_url = self._build_generated_asset_url(filename)
             if image_url:
                 images.append({"url": image_url, "is_primary": False})
         return images
+
+    @staticmethod
+    def _append_unique_image(images, seen_urls, image_url, is_primary):
+        if not image_url or image_url in seen_urls:
+            return
+        images.append({"url": image_url, "is_primary": is_primary})
+        seen_urls.add(image_url)
 
     def get_gallery_images(self, include_primary=True):
         images = []
         seen_urls = set()
 
         primary_url = self.get_image() if include_primary else ""
-        if primary_url:
-            images.append({"url": primary_url, "is_primary": True})
-            seen_urls.add(primary_url)
+        self._append_unique_image(images, seen_urls, primary_url, True)
 
         for item in self.gallery_images.order_by("sort_order", "id"):
-            gallery_url = item.image.url
-            if gallery_url in seen_urls:
-                continue
-            images.append({"url": gallery_url, "is_primary": False})
-            seen_urls.add(gallery_url)
+            self._append_unique_image(images, seen_urls, item.image.url, False)
 
         if not images:
             for generated_image in self._generated_detail_images():
-                gallery_url = generated_image["url"]
-                if gallery_url in seen_urls:
-                    continue
-                images.append(generated_image)
-                seen_urls.add(gallery_url)
+                self._append_unique_image(images, seen_urls, generated_image["url"], generated_image["is_primary"])
 
-        return images[:6]
+        return images[:MAX_PRODUCT_GALLERY_IMAGES]
 
     def get_detail_gallery_images(self):
         images = self.get_gallery_images(include_primary=False)
@@ -114,7 +121,7 @@ class Product(models.Model):
 
     def total_image_count(self):
         base_count = 1 if (self.image or self.image_url) else 0
-        return min(6, base_count + self.gallery_images.count())
+        return min(MAX_PRODUCT_GALLERY_IMAGES, base_count + self.gallery_images.count())
 
 
 class ProductVariant(models.Model):

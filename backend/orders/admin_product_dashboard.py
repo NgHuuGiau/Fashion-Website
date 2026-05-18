@@ -7,19 +7,27 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
 
-from products.models import Category, Product, ProductImage, ProductVariant
+from products.constants import APPAREL_CATEGORY_SLUGS
+from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, ProductImage, ProductVariant
 
 from .cart import safe_int
 from .models import Coupon, Order
+
+RECENT_ORDER_LIMIT = 10
+LOW_STOCK_LIMIT = 10
+REVENUE_DAYS_LIMIT = 14
 
 
 def build_gallery_slot_rows(product=None):
     slots = []
     images_by_sort_order = {}
     if product:
-        images_by_sort_order = {item.sort_order: item for item in product.gallery_images.order_by("sort_order", "id")[:6]}
+        images_by_sort_order = {
+            item.sort_order: item
+            for item in product.gallery_images.order_by("sort_order", "id")[:MAX_PRODUCT_GALLERY_IMAGES]
+        }
 
-    for index in range(6):
+    for index in range(MAX_PRODUCT_GALLERY_IMAGES):
         slots.append(
             {
                 "slot_index": index,
@@ -158,7 +166,7 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(total=Sum("total_amount"), orders_count=Count("id"))
-        .order_by("-day")[:14]
+        .order_by("-day")[:REVENUE_DAYS_LIMIT]
     )
 
     return {
@@ -171,8 +179,8 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "total_revenue": total_revenue,
         "month_revenue": month_revenue,
         "daily_revenue": daily_revenue,
-        "recent_orders": orders.order_by("-created_at")[:10],
-        "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:10],
+        "recent_orders": orders.order_by("-created_at")[:RECENT_ORDER_LIMIT],
+        "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:LOW_STOCK_LIMIT],
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),
         "recent_products": Product.objects.select_related("category").order_by("-created"),
@@ -180,7 +188,9 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "product_form_variant_rows": build_variant_rows(effective_form_data),
         "product_form_errors": form_errors or [],
         "editing_product": editing_product,
-        "editing_product_gallery": editing_product.gallery_images.all()[:6] if editing_product else [],
+        "editing_product_gallery": (
+            editing_product.gallery_images.all()[:MAX_PRODUCT_GALLERY_IMAGES] if editing_product else []
+        ),
         "editing_product_gallery_slots": build_gallery_slot_rows(editing_product),
     }
 
@@ -193,7 +203,7 @@ def save_admin_product(request, product=None):
     slot_uploads = []
     slot_remove_indexes = set()
 
-    for index in range(6):
+    for index in range(MAX_PRODUCT_GALLERY_IMAGES):
         uploaded_file = request.FILES.get(f"gallery_slot_{index}")
         remove_requested = request.POST.get(f"remove_gallery_slot_{index}") == "on"
         if uploaded_file:
@@ -225,15 +235,21 @@ def save_admin_product(request, product=None):
         existing_gallery_count = (
             product.gallery_images.exclude(id__in=remove_gallery_image_ids).exclude(sort_order__in=slot_remove_indexes).count()
         )
-        existing_gallery_count = min(existing_gallery_count + len(slot_uploads), 6)
+        existing_gallery_count = min(existing_gallery_count + len(slot_uploads), MAX_PRODUCT_GALLERY_IMAGES)
 
     new_base_count = 1 if (request.FILES.get("image") or form_data["image_url"]) else 0
     if not new_base_count and product:
         new_base_count = existing_base_count
 
-    total_images_after_save = new_base_count + min(6, existing_gallery_count + len(uploaded_gallery_images))
-    if total_images_after_save > 6:
-        errors.append("Mỗi sản phẩm chỉ được tối đa 6 hình ảnh. Bạn có thể để 0 đến 6 hình, nhưng không được vượt quá 6.")
+    total_images_after_save = new_base_count + min(
+        MAX_PRODUCT_GALLERY_IMAGES,
+        existing_gallery_count + len(uploaded_gallery_images),
+    )
+    if total_images_after_save > MAX_PRODUCT_GALLERY_IMAGES:
+        errors.append(
+            f"Mỗi sản phẩm chỉ được tối đa {MAX_PRODUCT_GALLERY_IMAGES} hình ảnh. "
+            f"Bạn có thể để 0 đến {MAX_PRODUCT_GALLERY_IMAGES} hình, nhưng không được vượt quá {MAX_PRODUCT_GALLERY_IMAGES}."
+        )
 
     variant_rows = []
     max_rows = max(
@@ -274,7 +290,7 @@ def save_admin_product(request, product=None):
             }
         )
 
-    requires_variant = bool(category and category.slug in {"ao", "quan"})
+    requires_variant = bool(category and category.slug in APPAREL_CATEGORY_SLUGS)
     if requires_variant and not variant_rows:
         errors.append("Danh mục áo/quần cần ít nhất một biến thể màu và size.")
 
@@ -348,7 +364,10 @@ def save_admin_product(request, product=None):
                 is_active=row["is_active"],
             )
 
-        existing_images_by_sort = {item.sort_order: item for item in product.gallery_images.order_by("sort_order", "id")[:6]}
+        existing_images_by_sort = {
+            item.sort_order: item
+            for item in product.gallery_images.order_by("sort_order", "id")[:MAX_PRODUCT_GALLERY_IMAGES]
+        }
         for slot_index, image_file in slot_uploads:
             existing_image = existing_images_by_sort.get(slot_index)
             if existing_image:
@@ -360,11 +379,11 @@ def save_admin_product(request, product=None):
 
         current_gallery_count = product.gallery_images.count()
         for offset, image_file in enumerate(uploaded_gallery_images, start=current_gallery_count):
-            if offset >= 6:
+            if offset >= MAX_PRODUCT_GALLERY_IMAGES:
                 break
             ProductImage.objects.create(product=product, image=image_file, sort_order=offset)
         for index, item in enumerate(product.gallery_images.order_by("sort_order", "id")):
-            if index >= 6:
+            if index >= MAX_PRODUCT_GALLERY_IMAGES:
                 item.delete()
                 continue
             if item.sort_order != index:

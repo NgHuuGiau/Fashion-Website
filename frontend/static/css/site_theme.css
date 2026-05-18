@@ -799,27 +799,6 @@ button {
     letter-spacing: 0.05em;
 }
 
-.detail-media-badges {
-    position: absolute;
-    top: 0.9rem;
-    left: 0.9rem;
-    right: 0.9rem;
-    z-index: 3;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-    pointer-events: none;
-}
-
-.detail-tag {
-    position: static;
-}
-
-.detail-favorite-form {
-    pointer-events: auto;
-}
-
 .detail-favorite-btn {
     width: 42px;
     height: 42px;
@@ -1060,22 +1039,6 @@ button {
     line-height: 1.55;
 }
 
-.detail-media-empty {
-    display: grid;
-    place-items: center;
-    min-height: 420px;
-}
-
-.detail-media-empty-label {
-    padding: 0.9rem 1.1rem;
-    border-radius: 999px;
-    border: 1px solid rgba(111, 56, 26, 0.14);
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.82);
-    font-size: 0.95rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-}
 
 .detail-media-shell #detail-main-image {
     width: min(100%, 420px);

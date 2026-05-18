@@ -102,6 +102,10 @@
     if (!mainImage || !thumbs.length) {
         return;
     }
+    if (mainImage.dataset.galleryReady === "true") {
+        return;
+    }
+    mainImage.dataset.galleryReady = "true";
 
     var currentIndex = thumbs.findIndex(function (thumb) {
         return thumb.classList.contains("active");
@@ -161,9 +165,6 @@
     function stepGallery(offset) {
         showImageAt(currentIndex + offset);
     }
-
-    window.detailGalleryShowAt = showImageAt;
-    window.detailGalleryStep = stepGallery;
 
     thumbs.forEach(function (thumb, index) {
         thumb.addEventListener("click", function (event) {

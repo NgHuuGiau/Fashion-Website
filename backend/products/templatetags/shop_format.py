@@ -1,18 +1,12 @@
 from decimal import Decimal, InvalidOperation
-import unicodedata
 
 from django import template
 
+from products.constants import get_category_type_label
+from core.text_utils import normalize_vn_text, repair_mojibake_text
+
 
 register = template.Library()
-
-
-def _repair_mojibake_text(value):
-    text = str(value or "")
-    try:
-        return text.encode("latin1").decode("utf-8")
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        return text
 
 
 @register.filter
@@ -30,11 +24,14 @@ def vnd(value):
 
 @register.filter
 def repair_text(value):
-    return _repair_mojibake_text(value)
+    return repair_mojibake_text(value)
 
 
 @register.filter
 def normalize_vn(value):
-    repaired = _repair_mojibake_text(value).casefold()
-    normalized = unicodedata.normalize("NFD", repaired)
-    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return normalize_vn_text(value)
+
+
+@register.filter
+def product_type_label(category_slug):
+    return get_category_type_label(category_slug)

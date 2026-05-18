@@ -11,7 +11,29 @@ from django.core.management.base import BaseCommand
 from django.test import Client
 from django.utils.text import slugify
 
+from products.constants import APPAREL_CATEGORY_SLUGS, FEATURED_PRODUCT_LIMIT
 from products.models import Category, Product, ProductVariant
+
+DEFAULT_CATEGORY_NAME = "Áo"
+PANTS_CATEGORY_NAME = "Quần"
+ACCESSORY_CATEGORY_NAME = "Phụ Kiện"
+CATEGORY_DISPLAY_ORDER = (DEFAULT_CATEGORY_NAME, PANTS_CATEGORY_NAME, ACCESSORY_CATEGORY_NAME)
+CATEGORY_ALIASES = {
+    "Quầ": PANTS_CATEGORY_NAME,
+    "Quầnn": PANTS_CATEGORY_NAME,
+    "Quần": PANTS_CATEGORY_NAME,
+    "Phụ kiện SWE": ACCESSORY_CATEGORY_NAME,
+    "Phụ kiện": ACCESSORY_CATEGORY_NAME,
+    "Phụ Kiện": ACCESSORY_CATEGORY_NAME,
+    "Áo": DEFAULT_CATEGORY_NAME,
+    "Ao": DEFAULT_CATEGORY_NAME,
+}
+DEFAULT_VARIANT_COLORS = [("Đen", "#111111"), ("Trắng", "#F5F5F5")]
+APPAREL_SIZES = ["M", "L", "XL"]
+ACCESSORY_SIZES = ["FREE"]
+FEATURED_PER_CATEGORY = FEATURED_PRODUCT_LIMIT // len(CATEGORY_DISPLAY_ORDER)
+DEFAULT_VARIANT_STOCK = 50
+LOADTEST_REQUESTS_PER_USER = 10
 
 
 class Command(BaseCommand):
@@ -62,14 +84,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Vui lĂ²ng chá»n tham sá»‘. GĂµ --help Ä‘á»ƒ xem chi tiáº¿t."))
 
     def _normalize_category_name(self, category_name):
-        cat_name = (category_name or "Ăo").strip()
-        if cat_name in {"Quáº§", "Quáº§nn", "Quáº§n"}:
-            return "Quáº§n"
-        if cat_name in {"Phá»¥ kiá»‡n SWE", "Phá»¥ kiá»‡n", "Phá»¥ Kiá»‡n"}:
-            return "Phá»¥ Kiá»‡n"
-        if cat_name in {"Ăo", "Ao"}:
-            return "Ăo"
-        return cat_name
+        cat_name = (category_name or DEFAULT_CATEGORY_NAME).strip()
+        return CATEGORY_ALIASES.get(cat_name, cat_name)
 
     def _sync_from_json(self, json_path):
         if not os.path.exists(json_path):
@@ -89,7 +105,7 @@ class Command(BaseCommand):
         for item in data:
             name = item["name"].strip()
             slug = item.get("slug") or slugify(name)
-            cat_name = self._normalize_category_name(item.get("category_name", "Ăo"))
+            cat_name = self._normalize_category_name(item.get("category_name", DEFAULT_CATEGORY_NAME))
 
             category, _ = Category.objects.get_or_create(
                 slug=slugify(cat_name),
@@ -143,16 +159,16 @@ class Command(BaseCommand):
 
         grouped = {}
         for item in data:
-            cat_name = self._normalize_category_name(item.get("category_name", "Ăo"))
+            cat_name = self._normalize_category_name(item.get("category_name", DEFAULT_CATEGORY_NAME))
             item["category_name"] = cat_name
             grouped.setdefault(cat_name, []).append(item)
 
         hot_items = []
-        for cat_name in ["Ăo", "Quáº§n", "Phá»¥ Kiá»‡n"]:
+        for cat_name in CATEGORY_DISPLAY_ORDER:
             if cat_name in grouped:
                 items = grouped[cat_name]
                 random.shuffle(items)
-                hot_items.extend(items[:4])
+                hot_items.extend(items[:FEATURED_PER_CATEGORY])
 
         for item in hot_items:
             item["featured"] = 1
@@ -215,7 +231,7 @@ class Command(BaseCommand):
         def worker():
             client = Client()
             latencies = []
-            for _ in range(10):
+            for _ in range(LOADTEST_REQUESTS_PER_USER):
                 start = time.perf_counter()
                 client.get(path)
                 latencies.append((time.perf_counter() - start) * 1000)
@@ -233,17 +249,16 @@ class Command(BaseCommand):
         if product.variants.exists():
             return
 
-        colors = [("Äen", "#111111"), ("Tráº¯ng", "#F5F5F5")]
-        sizes = ["M", "L", "XL"] if product.category.slug in ("ao", "quan") else ["FREE"]
-        for color_name, color_code in colors:
+        sizes = APPAREL_SIZES if product.category.slug in APPAREL_CATEGORY_SLUGS else ACCESSORY_SIZES
+        for color_name, color_code in DEFAULT_VARIANT_COLORS:
             for size in sizes:
                 ProductVariant.objects.get_or_create(
                     product=product,
                     color_name=color_name,
                     color_code=color_code,
                     size=size,
-                    defaults={"stock": 50, "is_active": True},
+                    defaults={"stock": DEFAULT_VARIANT_STOCK, "is_active": True},
                 )
 
-        product.stock = 50 * len(colors) * len(sizes)
+        product.stock = DEFAULT_VARIANT_STOCK * len(DEFAULT_VARIANT_COLORS) * len(sizes)
         product.save(update_fields=["stock"])
