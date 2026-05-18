@@ -1,10 +1,10 @@
 ﻿import json
-import os
 import random
 import sqlite3
 import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -61,8 +61,8 @@ class Command(BaseCommand):
         parser.add_argument("--users", type=int, default=50, help="Sá»‘ user Ä‘á»“ng thá»i cho load test")
 
     def handle(self, *args, **options):
-        json_path = os.path.join(settings.BASE_DIR, "database", "products_to_sync.json")
-        db_path = settings.DATABASES["default"]["NAME"]
+        json_path = Path(settings.BASE_DIR) / "database" / "products_to_sync.json"
+        db_path = Path(settings.DATABASES["default"]["NAME"])
 
         if options["sync"]:
             self._sync_from_json(json_path)
@@ -73,11 +73,11 @@ class Command(BaseCommand):
         elif options["shuffle_hot"] is not None:
             self._shuffle_hot_db(options["shuffle_hot"])
         elif options["inspect"]:
-            self._inspect_db(db_path)
+            self._inspect_db(str(db_path))
         elif options["shell"]:
-            self._sql_shell(db_path)
+            self._sql_shell(str(db_path))
         elif options["run_sql"]:
-            self._run_sql(db_path, options["run_sql"])
+            self._run_sql(str(db_path), options["run_sql"])
         elif options["loadtest"]:
             self._run_loadtest(options["path"], options["users"])
         else:
@@ -88,12 +88,11 @@ class Command(BaseCommand):
         return CATEGORY_ALIASES.get(cat_name, cat_name)
 
     def _sync_from_json(self, json_path):
-        if not os.path.exists(json_path):
+        if not json_path.exists():
             self.stdout.write(self.style.ERROR(f"KhĂ´ng tháº¥y file: {json_path}"))
             return
 
-        with open(json_path, "r", encoding="utf-8") as file:
-            data = json.load(file)
+        data = json.loads(json_path.read_text(encoding="utf-8"))
 
         db_slugs = {product.slug: product for product in Product.objects.all()}
         json_slugs = {item.get("slug") or slugify(item["name"]) for item in data}
@@ -143,16 +142,14 @@ class Command(BaseCommand):
             }
             for product in products
         ]
-        with open(json_path, "w", encoding="utf-8") as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+        json_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
         self.stdout.write(self.style.SUCCESS(f"ÄĂ£ xuáº¥t {len(data)} sáº£n pháº©m."))
 
     def _randomize_hot_json(self, json_path):
-        if not os.path.exists(json_path):
+        if not json_path.exists():
             return
 
-        with open(json_path, "r", encoding="utf-8") as file:
-            data = json.load(file)
+        data = json.loads(json_path.read_text(encoding="utf-8"))
 
         for item in data:
             item["featured"] = 0
@@ -173,8 +170,7 @@ class Command(BaseCommand):
         for item in hot_items:
             item["featured"] = 1
 
-        with open(json_path, "w", encoding="utf-8") as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+        json_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
         self.stdout.write(self.style.SUCCESS("ÄĂ£ ngáº«u nhiĂªn 12 sáº£n pháº©m HOT trong JSON. HĂ£y cháº¡y --sync Ä‘á»ƒ Ă¡p dá»¥ng."))
 
     def _shuffle_hot_db(self, count):
@@ -198,7 +194,7 @@ class Command(BaseCommand):
                     self.stdout.write(str(row))
 
     def _sql_shell(self, db_path):
-        self.stdout.write(self.style.SUCCESS(f"[*] SQL Shell: {os.path.basename(db_path)}"))
+        self.stdout.write(self.style.SUCCESS(f"[*] SQL Shell: {Path(db_path).name}"))
         with sqlite3.connect(db_path) as connection:
             cursor = connection.cursor()
             while True:
@@ -217,12 +213,11 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(str(exc)))
 
     def _run_sql(self, db_path, sql_file):
-        sql_path = os.path.join(settings.BASE_DIR, "database", sql_file)
-        if not os.path.exists(sql_path):
+        sql_path = Path(settings.BASE_DIR) / "database" / sql_file
+        if not sql_path.exists():
             return
         with sqlite3.connect(db_path) as connection:
-            with open(sql_path, "r", encoding="utf-8") as file:
-                connection.executescript(file.read())
+            connection.executescript(sql_path.read_text(encoding="utf-8"))
         self.stdout.write(self.style.SUCCESS("[+] ThĂ nh cĂ´ng."))
 
     def _run_loadtest(self, path, users):

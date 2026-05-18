@@ -17,23 +17,16 @@ from users.activity import log_activity
 
 from .admin_product_dashboard import admin_dashboard
 from .cart import add_cart, clear_cart, iter_cart, remove_cart, safe_int
+from .constants import (
+    BANKS,
+    FREESHIP_THRESHOLD,
+    PAYMENT_TIMEOUT_MINUTES,
+    SHOP_ACCOUNT_NAME,
+    SHOP_BANK_ACCOUNT,
+    STANDARD_SHIPPING_FEE,
+)
 from .forms import CheckoutForm
 from .models import Coupon, Order, OrderItem
-
-SHOP_BANK_ACCOUNT = "1234567890"
-SHOP_ACCOUNT_NAME = "HUUGIAU LOCAL BRAND"
-PAYMENT_TIMEOUT_MINUTES = 15
-STANDARD_SHIPPING_FEE = Decimal("30000")
-FREESHIP_THRESHOLD = Decimal("499000")
-
-BANKS = {
-    "VCB": {"name": "Vietcombank", "bin": "970436"},
-    "TCB": {"name": "Techcombank", "bin": "970407"},
-    "MB": {"name": "MBBank", "bin": "970422"},
-    "ACB": {"name": "ACB", "bin": "970416"},
-    "BIDV": {"name": "BIDV", "bin": "970418"},
-    "VPB": {"name": "VPBank", "bin": "970432"},
-}
 
 HCMC_KEYWORDS = (
     "ho chi minh",

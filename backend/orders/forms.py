@@ -1,17 +1,11 @@
+import re
+
 from django import forms
+
+from .constants import BANK_CHOICES
 
 
 class CheckoutForm(forms.Form):
-    BANK_CHOICES = [
-        ("", "-- Chọn ngân hàng --"),
-        ("VCB", "Vietcombank"),
-        ("TCB", "Techcombank"),
-        ("MB", "MBBank"),
-        ("ACB", "ACB"),
-        ("BIDV", "BIDV"),
-        ("VPB", "VPBank"),
-    ]
-
     customer_name = forms.CharField(max_length=150, label="Họ và tên")
     customer_email = forms.EmailField(required=False, label="Email")
     phone = forms.CharField(
@@ -54,10 +48,7 @@ class CheckoutForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        payment_method = cleaned_data.get("payment_method")
-        bank_code = cleaned_data.get("bank_code")
-
-        if payment_method == "bank" and not bank_code:
+        if cleaned_data.get("payment_method") == "bank" and not cleaned_data.get("bank_code"):
             self.add_error("bank_code", "Vui lòng chọn ngân hàng để quét mã chuyển khoản.")
 
         if cleaned_data.get("coupon_code"):
@@ -67,11 +58,6 @@ class CheckoutForm(forms.Form):
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "").strip()
-        if phone:
-            import re
-
-            if not re.fullmatch(r"[0-9]{9,15}", phone):
-                raise forms.ValidationError(
-                    "Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số."
-                )
+        if phone and not re.fullmatch(r"[0-9]{9,15}", phone):
+            raise forms.ValidationError("Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số.")
         return phone
