@@ -21,6 +21,15 @@
         return;
     }
 
+    function findFirstVariantById(variantId) {
+        for (var i = 0; i < variants.length; i++) {
+            if (variants[i].id === variantId) {
+                return variants[i];
+            }
+        }
+        return null;
+    }
+
     function uniqueSizesByColor(color) {
         var map = {};
         variants.forEach(function (item) {
@@ -76,9 +85,7 @@
     }
 
     var defaultVariantId = parseInt(picker.getAttribute("data-default-variant") || "0", 10);
-    var defaultVariant = variants.find(function (item) {
-        return item.id === defaultVariantId;
-    }) || variants[0];
+    var defaultVariant = findFirstVariantById(defaultVariantId) || variants[0];
 
     colorSelect.value = defaultVariant.color_name;
     renderSizeOptions(defaultVariant.color_name, defaultVariant.size);
@@ -107,9 +114,13 @@
     }
     mainImage.dataset.galleryReady = "true";
 
-    var currentIndex = thumbs.findIndex(function (thumb) {
-        return thumb.classList.contains("active");
-    });
+    var currentIndex = -1;
+    for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
+        if (thumbs[thumbIndex].classList.contains("active")) {
+            currentIndex = thumbIndex;
+            break;
+        }
+    }
     if (currentIndex < 0) {
         currentIndex = 0;
     }

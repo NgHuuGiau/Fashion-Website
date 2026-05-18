@@ -246,4 +246,82 @@
     </div>
 </section>
 {% endif %}
+<script>
+    (function () {
+        var mainImage = document.getElementById("detail-main-image");
+        var prevButton = document.getElementById("detail-prev-image");
+        var nextButton = document.getElementById("detail-next-image");
+        var thumbs = Array.prototype.slice.call(document.querySelectorAll(".detail-thumb[data-detail-image]"));
+
+        if (!mainImage || !thumbs.length) {
+            return;
+        }
+
+        if (mainImage.dataset.galleryReady === "true") {
+            return;
+        }
+        mainImage.dataset.galleryReady = "true";
+
+        var currentIndex = 0;
+        for (var i = 0; i < thumbs.length; i++) {
+            if (thumbs[i].classList.contains("active")) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        function updateMainImage(index) {
+            if (!thumbs.length) {
+                return;
+            }
+
+            if (index < 0) {
+                index = thumbs.length - 1;
+            } else if (index >= thumbs.length) {
+                index = 0;
+            }
+
+            var activeThumb = thumbs[index];
+            var nextUrl = activeThumb.getAttribute("data-detail-image") || "";
+            var nextAlt = activeThumb.getAttribute("data-detail-alt") || "";
+            if (!nextUrl) {
+                return;
+            }
+
+            currentIndex = index;
+            for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
+                thumbs[thumbIndex].classList.remove("active");
+            }
+            activeThumb.classList.add("active");
+            mainImage.src = nextUrl;
+            mainImage.alt = nextAlt;
+        }
+
+        for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
+            (function (index) {
+                thumbs[index].addEventListener("click", function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    updateMainImage(index);
+                });
+            })(thumbIndex);
+        }
+
+        if (prevButton) {
+            prevButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                updateMainImage(currentIndex - 1);
+            });
+        }
+
+        if (nextButton) {
+            nextButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                updateMainImage(currentIndex + 1);
+            });
+        }
+    })();
+</script>
 {% endblock %}
