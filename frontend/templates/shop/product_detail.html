@@ -1,327 +1,177 @@
 {% extends "base.html" %}
-
 {% load shop_format %}
 
 {% block title %}{{ product.name|repair_text }}{% endblock %}
+{% block body_class %}product-page{% endblock %}
 
 {% block content %}
-<section class="detail-layout section-space">
-    <div class="detail-media-column">
-        <div class="detail-media detail-media-shell">
-            <div class="detail-media-stage">
-                <button type="button" class="detail-gallery-arrow detail-gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
-                    <span class="detail-arrow-glyph">‹</span>
-                </button>
-                <img
-                    id="detail-main-image"
-                    src="{{ detail_gallery_slots.0.url }}"
-                    alt="{{ detail_gallery_slots.0.alt }}"
-                >
-                <button type="button" class="detail-gallery-arrow detail-gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
-                    <span class="detail-arrow-glyph">›</span>
-                </button>
-            </div>
-            <div class="detail-thumbs detail-thumbs-fixed">
-                {% for item in detail_gallery_slots %}
-                <button
-                    type="button"
-                    class="detail-thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}"
-                    data-detail-image="{{ item.url }}"
-                    data-detail-alt="{{ item.alt }}"
-                    aria-label="Xem ảnh {{ forloop.counter }}"
-                >
-                    <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
-                    <span class="detail-thumb-index">{{ forloop.counter }}</span>
-                </button>
-                {% endfor %}
-            </div>
+<section class="detail-layout">
+    <div class="detail-gallery">
+        <div class="gallery-stage panel">
+            <button type="button" class="gallery-arrow gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}">
+            <button type="button" class="gallery-arrow gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
         </div>
-        <div class="detail-thumb-caption">
-            6 slot ảnh chi tiết của {{ product.category.slug|product_type_label|lower }} có thể thay trực tiếp trong admin.
+        <div class="gallery-thumbs">
+            {% for item in detail_gallery_slots %}
+            <button type="button" class="thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}" data-detail-image="{{ item.url }}" data-detail-alt="{{ item.alt }}" aria-label="Xem ảnh {{ forloop.counter }}">
+                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
+                <span>{{ forloop.counter }}</span>
+            </button>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="detail-info detail-stack">
-        <div class="detail-topline">
-            <p class="category">{{ product.category.slug|product_type_label }}</p>
-            <p class="detail-code">Mã sản phẩm • {{ product.slug|upper }}</p>
+    <aside class="detail-panel panel">
+        <div class="detail-top">
+            <div>
+                <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
+                <h1>{{ product.name|repair_text }}</h1>
+                <p class="detail-price">{{ product.price|vnd }}đ</p>
+            </div>
+            {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-inline">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="wishlist-btn {% if is_in_wishlist %}active{% endif %}" aria-label="Lưu vào yêu thích">
+                    <i class="fa-{% if is_in_wishlist %}solid{% else %}regular{% endif %} fa-heart" aria-hidden="true"></i>
+                </button>
+            </form>
+            {% endif %}
         </div>
 
-        <h1>{{ product.name|repair_text }}</h1>
-        <p class="price big">{{ product.price|vnd }}đ</p>
-        <p class="desc">{{ product.description|default:"Thiết kế gọn, dễ phối và đủ nổi bật để dùng hằng ngày."|repair_text }}</p>
+        <p class="detail-copy">{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
 
-        <div class="detail-highlights">
-            <article class="detail-highlight-card">
-                <strong>Dễ mặc</strong>
-                <span>Hợp đi học, đi chơi, cà phê hoặc xuống phố cuối tuần.</span>
-            </article>
-            <article class="detail-highlight-card">
-                <strong>Dễ chọn</strong>
-                <span>Thông tin mua hàng, màu sắc và size được đặt đúng chỗ để thao tác nhanh.</span>
-            </article>
-            <article class="detail-highlight-card">
-                <strong>Dễ chốt</strong>
-                <span>Có hỗ trợ size, kiểm tra hàng và theo dõi đơn ngay trên web.</span>
-            </article>
-        </div>
-
-        {% if request.user.is_authenticated %}
-        <p class="detail-favorite-note">{% if is_in_wishlist %}Sản phẩm này đang có trong danh sách yêu thích của bạn.{% else %}Bấm tim để lưu lại món này và quay lại so sánh sau.{% endif %}</p>
-        {% else %}
-        <a href="{% url 'users:login' %}" class="btn ghost small">Đăng nhập để lưu yêu thích</a>
-        {% endif %}
-
-        <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form">
+        <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form" id="detail-buy-form">
             {% csrf_token %}
+
             {% if variants and requires_variant %}
             <div class="variant-block">
-                <p class="variant-title">Chọn màu sắc và size</p>
-                <div class="variant-pickers" id="variant-picker" data-default-variant="{{ default_variant_id|default:'' }}">
-                    <div class="form-group">
-                        <label for="color-select">Màu sắc</label>
-                        <select id="color-select">
+                <div class="variant-picker" id="variant-picker" data-default-variant="{{ default_variant_id|default:'' }}">
+                    <div class="variant-group">
+                        <label>Màu sắc</label>
+                        <div class="variant-option-list" data-variant-control="color">
                             {% for color in color_options %}
-                            <option value="{{ color.value }}" {% if color.value == default_color %}selected{% endif %}>{{ color.label|repair_text }}</option>
+                            <button type="button" class="variant-swatch {% if color.value == default_color %}is-active{% endif %}" data-variant-color="{{ color.value }}" data-color-code="{{ color.code }}" aria-label="Chọn màu {{ color.label|repair_text }}">
+                                <span class="variant-swatch-dot" style="background: {{ color.code }};"></span>
+                                <span>{{ color.label|repair_text }}</span>
+                            </button>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="size-select">Size</label>
-                        <select id="size-select">
+                    <div class="variant-group">
+                        <label>Size</label>
+                        <div class="variant-option-list" data-variant-control="size">
                             {% for size in size_options %}
-                            <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size|repair_text }}</option>
+                            <button type="button" class="variant-size-btn {% if size == default_size %}is-active{% endif %}" data-variant-size="{{ size }}">{{ size|repair_text }}</button>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
+                    <p class="variant-stock-text" id="variant-stock-text"></p>
+                    <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
+                    {{ variant_data_json|json_script:"variant-data" }}
                 </div>
-                <p class="stock" id="variant-stock-text"></p>
-                <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
-                {{ variant_data_json|json_script:"variant-data" }}
             </div>
-            {% elif requires_variant %}
-            <p class="error">Sản phẩm này chưa có biến thể màu hoặc size. Vui lòng quay lại sau.</p>
             {% endif %}
 
-            <div class="qty-block">
-                <label for="qty">Số lượng</label>
-                <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}">
+            <div class="qty-row">
+                <label>Số lượng</label>
+                <div class="qty-stepper">
+                    <button type="button" class="qty-step" data-qty-step="-1" aria-label="Giảm số lượng">-</button>
+                    <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}" data-qty-input>
+                    <button type="button" class="qty-step" data-qty-step="1" aria-label="Tăng số lượng">+</button>
+                </div>
             </div>
-            <div class="detail-promise">
+
+            <div class="detail-promises">
                 <span>Freeship từ 499K</span>
-                <span>Tư vấn size nhanh</span>
-                <span>Theo dõi đơn dễ</span>
+                <span>Đổi size 7 ngày</span>
+                <span>Kiểm tra hàng trước khi thanh toán</span>
             </div>
-            <input type="hidden" name="next" value="{% url 'orders:cart_detail' %}">
-            <button type="submit" class="btn" {% if requires_variant and not variants %}disabled{% endif %}>Thêm vào giỏ</button>
+
+            <div class="buy-actions">
+                <button type="submit" name="next" value="{% url 'orders:cart_detail' %}" class="btn ghost" data-detail-buy-submit>Thêm vào giỏ</button>
+                <button type="submit" name="next" value="{% url 'orders:checkout' %}" class="btn" data-detail-buy-submit>Mua ngay</button>
+            </div>
         </form>
 
-        <section class="detail-size-chart">
-            <div class="section-head">
-                <h2>Bảng kích thước</h2>
-                <p>
+        <div class="detail-accordions">
+            <details class="detail-accordion" open>
+                <summary>Mô tả và size</summary>
+                <div>
+                    <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
                     {% if product.category.slug == "quan" %}
-                    Tham khảo nhanh số đo quần để chọn size vừa người hơn.
+                    <ul>
+                        <li>M: lưng 74-78 cm, mông 94 cm, dài 96 cm</li>
+                        <li>L: lưng 78-82 cm, mông 98 cm, dài 98 cm</li>
+                        <li>XL: lưng 82-86 cm, mông 102 cm, dài 100 cm</li>
+                        <li>XXL: lưng 86-90 cm, mông 106 cm, dài 102 cm</li>
+                    </ul>
                     {% elif product.category.slug == "phu-kien" %}
-                    Phụ kiện không chia size áo/quần, bạn có thể xem kích thước tham khảo bên dưới.
+                    <ul>
+                        <li>Túi nhỏ: dài 18 cm, rộng 6 cm, cao 14 cm</li>
+                        <li>Túi vừa: dài 22 cm, rộng 8 cm, cao 16 cm</li>
+                        <li>Nón: 56-60 cm, có dây điều chỉnh</li>
+                    </ul>
                     {% else %}
-                    Tham khảo nhanh số đo áo để chọn size vừa người hoặc oversize dễ hơn.
+                    <ul>
+                        <li>S: ngang ngực 50 cm, dài áo 66 cm, dài tay 55 cm</li>
+                        <li>M: ngang ngực 53 cm, dài áo 69 cm, dài tay 57 cm</li>
+                        <li>L: ngang ngực 56 cm, dài áo 72 cm, dài tay 59 cm</li>
+                        <li>XL: ngang ngực 59 cm, dài áo 75 cm, dài tay 61 cm</li>
+                    </ul>
                     {% endif %}
-                </p>
-            </div>
+                </div>
+            </details>
 
-            {% if product.category.slug == "quan" %}
-            <div class="size-chart-card">
-                <div class="size-chart-figure">
-                    <span class="size-figure-label">QUẦN</span>
-                    <div class="size-figure-meta">
-                        <span>Lưng</span>
-                        <span>Ống</span>
-                        <span>Dài quần</span>
-                    </div>
+            <details class="detail-accordion">
+                <summary>Chính sách đổi trả</summary>
+                <div>
+                    <ul>
+                        <li>Đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng.</li>
+                        <li>Lưu lại mã đơn khi cần liên hệ hỗ trợ nhanh.</li>
+                        <li>Chất lượng sản phẩm và tồn kho có thể thay đổi theo từng đợt cập nhật.</li>
+                    </ul>
                 </div>
-                <div class="size-chart-table-wrap">
-                    <table class="size-chart-table">
-                        <thead>
-                            <tr>
-                                <th>Size</th>
-                                <th>Lưng</th>
-                                <th>Mông</th>
-                                <th>Dài quần</th>
-                                <th>Gợi ý cân nặng</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>M</td><td>74-78 cm</td><td>94 cm</td><td>96 cm</td><td>50-58 kg</td></tr>
-                            <tr><td>L</td><td>78-82 cm</td><td>98 cm</td><td>98 cm</td><td>58-66 kg</td></tr>
-                            <tr><td>XL</td><td>82-86 cm</td><td>102 cm</td><td>100 cm</td><td>66-74 kg</td></tr>
-                            <tr><td>XXL</td><td>86-90 cm</td><td>106 cm</td><td>102 cm</td><td>74-82 kg</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% elif product.category.slug == "phu-kien" %}
-            <div class="size-chart-card">
-                <div class="size-chart-figure">
-                    <span class="size-figure-label">PHỤ KIỆN</span>
-                    <div class="size-figure-meta">
-                        <span>Dài</span>
-                        <span>Rộng</span>
-                        <span>Dây đeo</span>
-                    </div>
-                </div>
-                <div class="size-chart-table-wrap">
-                    <table class="size-chart-table">
-                        <thead>
-                            <tr>
-                                <th>Loại</th>
-                                <th>Dài</th>
-                                <th>Rộng</th>
-                                <th>Cao</th>
-                                <th>Ghi chú</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>Túi nhỏ</td><td>18 cm</td><td>6 cm</td><td>14 cm</td><td>Đựng điện thoại, ví ngắn</td></tr>
-                            <tr><td>Túi vừa</td><td>22 cm</td><td>8 cm</td><td>16 cm</td><td>Dùng đi học, đi chơi</td></tr>
-                            <tr><td>Nón</td><td>56-60 cm</td><td>-</td><td>-</td><td>Khóa tăng giảm phía sau</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% else %}
-            <div class="size-chart-card">
-                <div class="size-chart-figure">
-                    <span class="size-figure-label">ÁO</span>
-                    <div class="size-figure-meta">
-                        <span>Ngang ngực</span>
-                        <span>Dài áo</span>
-                        <span>Dài tay</span>
-                    </div>
-                </div>
-                <div class="size-chart-table-wrap">
-                    <table class="size-chart-table">
-                        <thead>
-                            <tr>
-                                <th>Size</th>
-                                <th>Ngang ngực</th>
-                                <th>Dài áo</th>
-                                <th>Dài tay</th>
-                                <th>Gợi ý cân nặng</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>S</td><td>50 cm</td><td>66 cm</td><td>55 cm</td><td>45-52 kg</td></tr>
-                            <tr><td>M</td><td>53 cm</td><td>69 cm</td><td>57 cm</td><td>52-62 kg</td></tr>
-                            <tr><td>L</td><td>56 cm</td><td>72 cm</td><td>59 cm</td><td>62-72 kg</td></tr>
-                            <tr><td>XL</td><td>59 cm</td><td>75 cm</td><td>61 cm</td><td>72-82 kg</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
-        </section>
-    </div>
+            </details>
+        </div>
+    </aside>
 </section>
 
 {% if related_products %}
-<section class="section-space">
+<section class="section-shell">
     <div class="section-head">
-        <h2>GỢI Ý PHÙ HỢP</h2>
-        <p>Những món cùng tinh thần để bạn ghép outfit nhanh hơn.</p>
+        <div>
+            <p class="eyebrow">Gợi ý phù hợp</p>
+            <h2>Mix cùng vibe</h2>
+            <p>Những món cùng tinh thần để ghép outfit nhanh hơn.</p>
+        </div>
     </div>
-    <div class="product-grid product-grid-featured">
+    <div class="product-grid product-grid-editorial">
         {% for item in related_products %}
-        <article class="product-card product-card-text-only">
-            <a href="{% url 'products:product_detail' item.id item.slug %}" class="card-media card-media-text">
-                <span class="fallback">{{ item.category.slug|product_type_label }}</span>
-            </a>
-            <div class="card-body">
-                <p class="card-category">{{ item.category.name|repair_text }}</p>
-                <h3><a href="{% url 'products:product_detail' item.id item.slug %}">{{ item.name|repair_text }}</a></h3>
-                <p class="price">{{ item.price|vnd }}đ</p>
+        <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if item.get_image %}
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}">
+                {% else %}
+                <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
+                {% endif %}
             </div>
-        </article>
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ item.category.name|repair_text }}</p>
+                <h3>{{ item.name|repair_text }}</h3>
+                <div class="card-footer">
+                    <strong class="price">{{ item.price|vnd }}đ</strong>
+                    <span>{% if item.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                </div>
+            </div>
+        </a>
         {% endfor %}
     </div>
 </section>
 {% endif %}
-<script>
-    (function () {
-        var mainImage = document.getElementById("detail-main-image");
-        var prevButton = document.getElementById("detail-prev-image");
-        var nextButton = document.getElementById("detail-next-image");
-        var thumbs = Array.prototype.slice.call(document.querySelectorAll(".detail-thumb[data-detail-image]"));
-
-        if (!mainImage || !thumbs.length) {
-            return;
-        }
-
-        if (mainImage.dataset.galleryReady === "true") {
-            return;
-        }
-        mainImage.dataset.galleryReady = "true";
-
-        var currentIndex = 0;
-        for (var i = 0; i < thumbs.length; i++) {
-            if (thumbs[i].classList.contains("active")) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        function updateMainImage(index) {
-            if (!thumbs.length) {
-                return;
-            }
-
-            if (index < 0) {
-                index = thumbs.length - 1;
-            } else if (index >= thumbs.length) {
-                index = 0;
-            }
-
-            var activeThumb = thumbs[index];
-            var nextUrl = activeThumb.getAttribute("data-detail-image") || "";
-            var nextAlt = activeThumb.getAttribute("data-detail-alt") || "";
-            if (!nextUrl) {
-                return;
-            }
-
-            currentIndex = index;
-            for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
-                thumbs[thumbIndex].classList.remove("active");
-            }
-            activeThumb.classList.add("active");
-            mainImage.src = nextUrl;
-            mainImage.alt = nextAlt;
-        }
-
-        for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
-            (function (index) {
-                thumbs[index].addEventListener("click", function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    updateMainImage(index);
-                });
-            })(thumbIndex);
-        }
-
-        if (prevButton) {
-            prevButton.addEventListener("click", function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                updateMainImage(currentIndex - 1);
-            });
-        }
-
-        if (nextButton) {
-            nextButton.addEventListener("click", function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                updateMainImage(currentIndex + 1);
-            });
-        }
-    })();
-</script>
 {% endblock %}

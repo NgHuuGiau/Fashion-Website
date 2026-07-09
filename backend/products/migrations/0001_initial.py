@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='Category',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, verbose_name='TĂªn danh má»¥c')),
+                ('name', models.CharField(max_length=100, verbose_name='Tên danh mục')),
                 ('slug', models.SlugField(unique=True)),
             ],
             options={
@@ -26,12 +26,12 @@ class Migration(migrations.Migration):
             name='Product',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200, verbose_name='TĂªn sáº£n pháº©m')),
+                ('name', models.CharField(max_length=200, verbose_name='Tên sản phẩm')),
                 ('slug', models.SlugField(max_length=200)),
-                ('image', models.ImageField(blank=True, upload_to='products/%Y/%m/%d', verbose_name='áº¢nh sáº£n pháº©m')),
-                ('description', models.TextField(blank=True, verbose_name='MĂ´ táº£')),
-                ('price', models.DecimalField(decimal_places=0, max_digits=10, verbose_name='GiĂ¡ tiá»n')),
-                ('stock', models.IntegerField(default=0, verbose_name='Sá»‘ lÆ°á»£ng kho')),
+                ('image', models.ImageField(blank=True, upload_to='products/%Y/%m/%d', verbose_name='Ảnh sản phẩm')),
+                ('description', models.TextField(blank=True, verbose_name='Mô tả')),
+                ('price', models.DecimalField(decimal_places=0, max_digits=10, verbose_name='Giá tiền')),
+                ('stock', models.IntegerField(default=0, verbose_name='Số lượng kho')),
                 ('available', models.BooleanField(default=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),

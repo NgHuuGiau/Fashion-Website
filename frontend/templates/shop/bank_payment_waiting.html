@@ -1,64 +1,60 @@
 {% extends "base.html" %}
 
 {% block title %}Chờ thanh toán ngân hàng{% endblock %}
+{% block body_class %}payment-page{% endblock %}
 
 {% block content %}
-<section class="section-space center-box">
-    <h1>Chờ thanh toán ngân hàng</h1>
-    <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
-    <p>Vui lòng quét mã QR và hoàn tất thanh toán trong <strong>{{ payment_timeout_minutes }} phút</strong>.</p>
+<section class="section-shell">
+    <div class="payment-layout">
+        <article class="payment-hero panel">
+            <p class="eyebrow">QR thanh toán</p>
+            <h1>Chờ quét mã thanh toán</h1>
+            <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
+            <p>Quét mã QR và hoàn tất thanh toán trong <strong>{{ payment_timeout_minutes }} phút</strong>.</p>
+            <div class="countdown" id="countdown-text">--:--</div>
+            <div class="stack row">
+                <form method="post" action="{% url 'orders:bank_payment_confirm' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Đã chuyển khoản</button>
+                </form>
+                <form method="post" action="{% url 'orders:bank_payment_cancel' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn ghost">Hủy thanh toán</button>
+                </form>
+            </div>
+        </article>
 
-    <div class="bank-transfer-box order-bank-box bank-box-visible">
-        <p>Ngân hàng: <strong>{{ selected_bank_name }}</strong></p>
-        <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
-        <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
-        <p>Nội dung: <strong>DH{{ order.id }}</strong></p>
-        <img src="{{ qr_url }}" alt="QR chuyển khoản đơn hàng {{ order.id }}">
-        <p>Thời gian còn lại: <strong id="countdown-text">--:--</strong></p>
-        <p><small>Hệ thống sẽ tự kiểm tra trạng thái. Quá hạn {{ payment_timeout_minutes }} phút, đơn hàng sẽ bị hủy.</small></p>
+        <aside class="payment-side panel">
+            <div class="payment-qr panel-soft">
+                <img src="{{ qr_url }}" alt="QR chuyển khoản đơn hàng {{ order.id }}">
+            </div>
+            <div class="summary-list">
+                <div class="summary-line"><span>Ngân hàng</span><strong>{{ selected_bank_name }}</strong></div>
+                <div class="summary-line"><span>Số tài khoản</span><strong>{{ shop_bank_account }}</strong></div>
+                <div class="summary-line"><span>Chủ tài khoản</span><strong>{{ shop_account_name }}</strong></div>
+                <div class="summary-line"><span>Nội dung</span><strong>DH{{ order.id }}</strong></div>
+            </div>
+        </aside>
     </div>
 </section>
 
 <script>
-    (function () {
-        var countdownText = document.getElementById("countdown-text");
-        if (!countdownText) return;
+(function () {
+    var countdownText = document.getElementById("countdown-text");
+    var expiresAtIso = "{{ expires_at_iso }}";
+    var expiresAt = new Date(expiresAtIso);
+    if (!countdownText || Number.isNaN(expiresAt.getTime())) return;
 
-        var expiresAt = new Date("{{ expires_at_iso }}");
-        var statusUrl = "{% url 'orders:bank_payment_status' order.id %}";
-        var successUrl = "{% url 'orders:order_success' order.id %}";
-        var failedUrl = "{% url 'orders:order_failed' order.id %}";
+    function updateCountdown() {
+        var diff = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+        var minutes = String(Math.floor(diff / 60)).padStart(2, "0");
+        var seconds = String(diff % 60).padStart(2, "0");
+        countdownText.textContent = minutes + ":" + seconds;
+        if (diff <= 0) clearInterval(timer);
+    }
 
-        function updateCountdown() {
-            var now = new Date();
-            var diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
-            var mm = String(Math.floor(diff / 60)).padStart(2, "0");
-            var ss = String(diff % 60).padStart(2, "0");
-            countdownText.textContent = mm + ":" + ss;
-            if (diff <= 0) {
-                window.location.href = failedUrl;
-            }
-        }
-
-        function checkStatus() {
-            fetch(statusUrl, { credentials: "same-origin" })
-                .then(function (res) { return res.json(); })
-                .then(function (data) {
-                    if (data.state === "success") {
-                        window.location.href = successUrl;
-                        return;
-                    }
-                    if (data.state === "failed") {
-                        window.location.href = failedUrl;
-                    }
-                })
-                .catch(function () {});
-        }
-
-        updateCountdown();
-        checkStatus();
-        setInterval(updateCountdown, 1000);
-        setInterval(checkStatus, 5000);
-    })();
+    updateCountdown();
+    var timer = setInterval(updateCountdown, 1000);
+})();
 </script>
 {% endblock %}

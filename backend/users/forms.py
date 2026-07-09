@@ -105,3 +105,64 @@ class RegisterForm(forms.ModelForm):
                 defaults={"phone_number": self.cleaned_data.get("phone_number", "").strip()},
             )
         return user
+
+
+class ProfileForm(forms.Form):
+    first_name = forms.CharField(label="Họ", max_length=150, required=False)
+    last_name = forms.CharField(label="Tên", max_length=150, required=False)
+    email = forms.EmailField(label="Email", required=False)
+    phone_number = forms.CharField(
+        label="Số điện thoại",
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(
+            attrs={
+                "oninput": "this.value = this.value.replace(/[^0-9]/g, '')",
+                "inputmode": "numeric",
+            }
+        ),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        kwargs.setdefault("initial", {})
+        if user is not None:
+            kwargs["initial"].setdefault("first_name", user.first_name)
+            kwargs["initial"].setdefault("last_name", user.last_name)
+            kwargs["initial"].setdefault("email", user.email)
+            kwargs["initial"].setdefault("phone_number", getattr(getattr(user, "profile", None), "phone_number", ""))
+        super().__init__(*args, **kwargs)
+
+    def clean_phone_number(self):
+        phone = (self.cleaned_data.get("phone_number") or "").strip()
+        if not phone:
+            return ""
+        if not re.fullmatch(r"[0-9]{9,15}", phone):
+            raise forms.ValidationError("Số điện thoại không hợp lệ. Chỉ gồm 9 đến 15 chữ số.")
+        return phone
+
+    def clean(self):
+        cleaned_data = super().clean()
+        email = (cleaned_data.get("email") or "").strip()
+        phone_number = (cleaned_data.get("phone_number") or "").strip()
+        if not email and not phone_number:
+            msg = "Cần nhập ít nhất Email hoặc Số điện thoại."
+            self.add_error("email", msg)
+            self.add_error("phone_number", msg)
+        return cleaned_data
+
+    def save(self):
+        if self.user is None:
+            raise ValueError("ProfileForm requires a user instance.")
+
+        user = self.user
+        user.first_name = (self.cleaned_data.get("first_name") or "").strip()
+        user.last_name = (self.cleaned_data.get("last_name") or "").strip()
+        user.email = (self.cleaned_data.get("email") or "").strip()
+        user.save(update_fields=["first_name", "last_name", "email"])
+
+        UserProfile.objects.update_or_create(
+            user=user,
+            defaults={"phone_number": (self.cleaned_data.get("phone_number") or "").strip()},
+        )
+        return user

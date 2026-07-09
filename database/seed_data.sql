@@ -104,7 +104,7 @@ SET stock = COALESCE((
 updated = CURRENT_TIMESTAMP;
 
 
------ | MÃ GIẢM GIÁ | -----
+----- | Mã giảm giá | -----
 INSERT INTO orders_coupon (code, discount_type, value, min_order_amount, max_discount_amount, is_active, usage_limit, used_count, created_at, updated_at)
 SELECT 'WELCOME10', 'percent', 10, 200000, 50000, 1, 1000, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM orders_coupon WHERE code='WELCOME10');

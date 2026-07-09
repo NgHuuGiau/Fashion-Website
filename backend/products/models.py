@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import quote
 
 from django.conf import settings
 from django.db import models
@@ -47,12 +48,39 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def _media_file_exists(self, relative_name):
+        if not relative_name:
+            return False
+        return (Path(settings.MEDIA_ROOT) / relative_name).exists()
+
+    def _build_placeholder_image(self):
+        category_label = (self.category.name or self.category.slug or "HUUGIAU").upper().replace("-", " ")
+        product_label = (self.name or "HUUGIAU").upper()
+        svg = f"""
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
+            <defs>
+                <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+                    <stop offset='0%' stop-color='#fffdf8' />
+                    <stop offset='100%' stop-color='#f1e1d0' />
+                </linearGradient>
+            </defs>
+            <rect width='900' height='1125' rx='42' fill='url(#bg)' />
+            <circle cx='720' cy='140' r='150' fill='#8a4a2a' fill-opacity='0.1' />
+            <circle cx='170' cy='920' r='180' fill='#ffffff' fill-opacity='0.7' />
+            <rect x='84' y='86' width='732' height='953' rx='34' fill='none' stroke='#d9c2b0' stroke-dasharray='18 12' />
+            <text x='450' y='420' text-anchor='middle' fill='#8a4a2a' font-family='Arial, sans-serif' font-size='56' font-weight='800' letter-spacing='8'>{category_label}</text>
+            <text x='450' y='530' text-anchor='middle' fill='#16110f' font-family='Arial, sans-serif' font-size='78' font-weight='900'>{product_label[:24]}</text>
+            <text x='450' y='620' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='30' font-weight='700'>HUUGIAU LOOKBOOK</text>
+        </svg>
+        """.strip()
+        return f"data:image/svg+xml;utf8,{quote(svg)}"
+
     @property
     def requires_variants(self):
         return self.category.slug in APPAREL_CATEGORY_SLUGS
 
     def get_image(self):
-        if self.image:
+        if self.image and self._media_file_exists(self.image.name):
             return self.image.url
         if self.image_url:
             return self.image_url
@@ -62,9 +90,9 @@ class Product(models.Model):
             return generated_cover
 
         first_gallery_image = self.gallery_images.order_by("sort_order", "id").first()
-        if first_gallery_image:
+        if first_gallery_image and self._media_file_exists(first_gallery_image.image.name):
             return first_gallery_image.image.url
-        return ""
+        return self._build_placeholder_image()
 
     def _build_generated_asset_url(self, filename):
         if not self.slug:
@@ -101,11 +129,16 @@ class Product(models.Model):
         self._append_unique_image(images, seen_urls, primary_url, True)
 
         for item in self.gallery_images.order_by("sort_order", "id"):
-            self._append_unique_image(images, seen_urls, item.image.url, False)
+            if self._media_file_exists(item.image.name):
+                self._append_unique_image(images, seen_urls, item.image.url, False)
 
         if not images:
             for generated_image in self._generated_detail_images():
                 self._append_unique_image(images, seen_urls, generated_image["url"], generated_image["is_primary"])
+
+        if not images:
+            if include_primary:
+                self._append_unique_image(images, seen_urls, self._build_placeholder_image(), True)
 
         return images[:MAX_PRODUCT_GALLERY_IMAGES]
 
@@ -120,7 +153,7 @@ class Product(models.Model):
         return []
 
     def total_image_count(self):
-        base_count = 1 if (self.image or self.image_url) else 0
+        base_count = 1 if (self.image_url or (self.image and self._media_file_exists(self.image.name))) else 0
         return min(MAX_PRODUCT_GALLERY_IMAGES, base_count + self.gallery_images.count())
 
 

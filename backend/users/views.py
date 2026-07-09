@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -5,7 +7,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 
 from .activity import log_activity
-from .forms import RegisterForm
+from .forms import ProfileForm, RegisterForm
 from .models import UserProfile
 
 
@@ -89,6 +91,26 @@ def login_view(request):
     return render(request, "auth/login.html")
 
 
+def social_login_view(request, provider):
+    provider_key = (provider or "").strip().lower()
+    provider_urls = {
+        "google": os.getenv("GOOGLE_OAUTH_URL", "").strip(),
+        "facebook": os.getenv("FACEBOOK_OAUTH_URL", "").strip(),
+        "apple": os.getenv("APPLE_OAUTH_URL", "").strip(),
+    }
+    login_url = provider_urls.get(provider_key, "")
+
+    if login_url:
+        next_url = request.GET.get("next") or request.POST.get("next") or ""
+        if next_url:
+            joiner = "&" if "?" in login_url else "?"
+            login_url = f"{login_url}{joiner}next={next_url}"
+        return redirect(login_url)
+
+    messages.info(request, f"Đăng nhập {provider_key or 'mạng xã hội'} chưa được bật trong cấu hình.")
+    return redirect(request.GET.get("next") or "users:login")
+
+
 @login_required
 def logout_view(request):
     log_activity(request, event_type="logout", metadata={"username": request.user.username})
@@ -100,4 +122,27 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    return render(request, "account/profile.html")
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    display_name = (request.user.get_full_name() or request.user.username).strip() or request.user.username
+    name_parts = [part for part in display_name.split() if part]
+    display_initials = "".join(part[0] for part in name_parts[:2]).upper() if name_parts else request.user.username[:2].upper()
+
+    if request.method == "POST":
+        form = ProfileForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Đã lưu thông tin tài khoản.")
+            return redirect("users:profile")
+    else:
+        form = ProfileForm(user=request.user)
+
+    return render(
+        request,
+        "account/profile.html",
+        {
+            "form": form,
+            "profile": profile,
+            "display_name": display_name,
+            "display_initials": display_initials,
+        },
+    )

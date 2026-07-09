@@ -11,27 +11,27 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='category',
-            options={'ordering': ['name'], 'verbose_name': 'Danh má»¥c', 'verbose_name_plural': 'Danh má»¥c'},
+            options={'ordering': ['name'], 'verbose_name': 'Danh mục', 'verbose_name_plural': 'Danh mục'},
         ),
         migrations.AddField(
             model_name='product',
             name='featured',
-            field=models.BooleanField(default=False, verbose_name='Ná»•i báº­t'),
+            field=models.BooleanField(default=False, verbose_name='Nổi bật'),
         ),
         migrations.AddField(
             model_name='product',
             name='image_url',
-            field=models.URLField(blank=True, verbose_name='URL áº£nh'),
+            field=models.URLField(blank=True, verbose_name='URL ảnh'),
         ),
         migrations.AlterField(
             model_name='product',
             name='available',
-            field=models.BooleanField(default=True, verbose_name='Äang bĂ¡n'),
+            field=models.BooleanField(default=True, verbose_name='Đang bán'),
         ),
         migrations.AlterField(
             model_name='product',
             name='stock',
-            field=models.PositiveIntegerField(default=0, verbose_name='Sá»‘ lÆ°á»£ng kho'),
+            field=models.PositiveIntegerField(default=0, verbose_name='Số lượng kho'),
         ),
         migrations.AddIndex(
             model_name='product',

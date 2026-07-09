@@ -1,116 +1,153 @@
 {% extends "base.html" %}
-
 {% load shop_format %}
 
 {% block title %}Xem lại đơn hàng{% endblock %}
+{% block body_class %}account-page{% endblock %}
 
 {% block content %}
-<section class="section-space">
+<section class="section-shell">
     <div class="section-head">
         <div>
-            <h1>Đơn hàng #{{ order.id }}</h1>
+            <p class="eyebrow">Đơn hàng #{{ order.id }}</p>
+            <h1>Chi tiết đơn hàng</h1>
             <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
         </div>
-        <span class="chip active">{{ tracking_order.eta_label }}</span>
+        <span class="status-badge status-{{ order.status }}">{{ tracking_order.eta_label }}</span>
     </div>
 
-    <div class="detail-layout">
-        <div class="form-box">
-            <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
-            <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
-            <p>Tổng tiền: <strong>{{ order.total_amount|vnd }}đ</strong></p>
-            <p>Giao dự kiến: <strong>{{ tracking_order.eta_date|date:"d/m/Y" }}</strong></p>
-            <p>Khu vực xử lý: <strong>{% if tracking_order.eta_days <= 3 %}Gần TP.HCM{% elif tracking_order.eta_days >= 7 %}Khu vực xa / miền Bắc{% else %}Liên tỉnh{% endif %}</strong></p>
-            {% if order.coupon_code %}
-            <p>Mã giảm giá: <strong>{{ order.coupon_code }}</strong></p>
-            {% endif %}
+    <div class="review-layout">
+        <article class="review-main panel">
+            <div class="review-summary">
+                <p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
+                <p>Thanh toán: <strong>{{ order.get_payment_method_display }}</strong> - {% if order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</p>
+                <p>Tổng tiền: <strong>{{ order.total_amount|vnd }}đ</strong></p>
+                <p>Giao dự kiến: <strong>{{ tracking_order.eta_date|date:"d/m/Y" }}</strong></p>
+            </div>
 
             <hr class="separator">
-            <h3>Thông tin giao hàng</h3>
+            <h2>Thông tin giao hàng</h2>
+
             {% if can_edit %}
-            <form method="post">
+            <form method="post" class="review-form">
                 {% csrf_token %}
-                <div class="form-group">
-                    <label>Họ và tên</label>
-                    <input type="text" name="customer_name" value="{{ order.customer_name|repair_text }}" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="customer_email" value="{{ order.customer_email|repair_text }}">
-                </div>
-                <div class="form-group">
-                    <label>Số điện thoại</label>
-                    <input type="text" name="phone" value="{{ order.phone|repair_text }}" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric">
-                </div>
-                <div class="form-group">
-                    <label>Địa chỉ nhận hàng</label>
-                    <textarea name="shipping_address" rows="3" required>{{ order.shipping_address|repair_text }}</textarea>
-                    <small class="help-text">Shop đang tính thời gian giao theo khu vực địa lý trong địa chỉ này.</small>
-                </div>
-                {% if order.payment_method == "bank" and not order.is_paid %}
-                <div class="form-group">
-                    <label>Chọn ngân hàng</label>
-                    <select name="bank_code">
-                        {% for code, item in bank_choices %}
-                        <option value="{{ code }}" {% if order.bank_code == code %}selected{% endif %}>{{ item.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                <div class="form-group">
-                    <label>Ghi chú</label>
-                    <textarea name="note" rows="3">{{ order.note|repair_text }}</textarea>
-                </div>
-                <div class="profile-actions">
-                    <button type="submit" class="btn ghost inline-auto">Lưu chỉnh sửa</button>
+                <div class="form-grid">
+                    <label class="field span-2">
+                        <span>Họ và tên</span>
+                        <input type="text" name="customer_name" value="{{ order.customer_name|repair_text }}" required>
+                    </label>
+                    <label class="field span-2">
+                        <span>Email</span>
+                        <input type="email" name="customer_email" value="{{ order.customer_email|repair_text }}">
+                    </label>
+                    <label class="field span-2">
+                        <span>Số điện thoại</span>
+                        <input type="text" name="phone" value="{{ order.phone|repair_text }}" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric">
+                    </label>
+                    <label class="field span-2">
+                        <span>Địa chỉ nhận hàng</span>
+                        <textarea name="shipping_address" rows="3" required>{{ order.shipping_address|repair_text }}</textarea>
+                    </label>
                     {% if order.payment_method == "bank" and not order.is_paid %}
-                    <button type="submit" name="action" value="pay_now" class="btn inline-auto">Lưu và đi tới quét mã</button>
+                    <label class="field span-2">
+                        <span>Chọn ngân hàng</span>
+                        <select name="bank_code" id="review-bank-code">
+                            {% for code, item in bank_choices %}
+                            <option value="{{ code }}" {% if order.bank_code == code %}selected{% endif %}>{{ item.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    {% endif %}
+                    <label class="field span-2">
+                        <span>Ghi chú</span>
+                        <textarea name="note" rows="3">{{ order.note|repair_text }}</textarea>
+                    </label>
+                </div>
+                <div class="stack row">
+                    <button type="submit" class="btn ghost">Lưu chỉnh sửa</button>
+                    {% if order.payment_method == "bank" and not order.is_paid %}
+                    <button type="submit" name="action" value="pay_now" class="btn">Lưu và đi tới quét mã</button>
                     {% endif %}
                 </div>
             </form>
             {% else %}
-            <p><strong>{{ order.customer_name|repair_text }}</strong></p>
-            <p>{{ order.phone|repair_text }}</p>
-            <p>{{ order.customer_email|repair_text }}</p>
-            <p>{{ order.shipping_address|repair_text }}</p>
-            <p>{{ order.note|repair_text }}</p>
+            <div class="review-readonly">
+                <p><strong>{{ order.customer_name|repair_text }}</strong></p>
+                <p>{{ order.phone|repair_text }}</p>
+                <p>{{ order.customer_email|repair_text }}</p>
+                <p>{{ order.shipping_address|repair_text }}</p>
+                <p>{{ order.note|repair_text }}</p>
+            </div>
             {% endif %}
-        </div>
+        </article>
 
-        <aside class="summary-box">
-            <h2>Sản phẩm trong đơn</h2>
-            {% for item in order.items.all %}
-            <p>
-                {{ item.product.name|repair_text }} x {{ item.quantity }}
-                <span>{{ item.subtotal|vnd }}đ</span>
-            </p>
-            {% if item.selected_color or item.selected_size %}
-            <p><small>Màu: {{ item.selected_color|default:"-"|repair_text }} | Size: {{ item.selected_size|default:"-"|repair_text }}</small></p>
-            {% endif %}
-            {% endfor %}
-            <hr>
-            <p>Tạm tính <span>{{ order.subtotal_amount|vnd }}đ</span></p>
-            <p>Phí ship <span>{{ order.shipping_fee|vnd }}đ</span></p>
-            <p>Giảm giá <span>-{{ order.discount_amount|vnd }}đ</span></p>
-            <p class="total-row">Tổng cộng <span>{{ order.total_amount|vnd }}đ</span></p>
+        <aside class="review-side panel">
+            <p class="eyebrow">Sản phẩm trong đơn</p>
+            <div class="summary-list">
+                {% for item in order.items.all %}
+                <div class="summary-line">
+                    <span>{{ item.product.name|repair_text }} x {{ item.quantity }}</span>
+                    <strong>{{ item.subtotal|vnd }}đ</strong>
+                </div>
+                {% if item.selected_color or item.selected_size %}
+                <p class="muted">Màu: {{ item.selected_color|default:"-"|repair_text }} · Size: {{ item.selected_size|default:"-"|repair_text }}</p>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="summary-list totals">
+                <div class="summary-line"><span>Tạm tính</span><strong>{{ order.subtotal_amount|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Phí ship</span><strong>{{ order.shipping_fee|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Giảm giá</span><strong>-{{ order.discount_amount|vnd }}đ</strong></div>
+                <div class="summary-line total"><span>Tổng cộng</span><strong>{{ order.total_amount|vnd }}đ</strong></div>
+            </div>
 
             {% if order.payment_method == "bank" and not order.is_paid and order.status != "cancelled" %}
-            <div class="bank-transfer-box bank-box-visible">
+            <div class="payment-box panel-soft payment-qr-layout">
                 <h3>Thông tin quét mã</h3>
                 <p>Ngân hàng: <strong>{{ selected_bank_name }}</strong></p>
                 <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
                 <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
                 <p>Nội dung: <strong>DH{{ order.id }}</strong></p>
-                <img src="{{ qr_url }}" alt="QR thanh toán {{ order.id }}">
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Đi tới trang chờ thanh toán</a>
+                <img src="{{ qr_url }}" alt="QR thanh toán {{ order.id }}" id="review-bank-qr">
             </div>
             {% elif order.payment_method == "cod" %}
-            <div class="payment-note-box bank-box-visible">
-                <h3>Thanh toán tiền mặt khi nhận hàng</h3>
-                <p>Bạn không cần quét mã. Cửa hàng sẽ xác nhận đơn và bạn thanh toán bằng tiền mặt khi nhận hàng.</p>
+            <div class="payment-box panel-soft">
+                <h3>Thanh toán khi nhận hàng</h3>
+                <p>Bạn không cần quét mã. Shop sẽ xác nhận đơn và giao tới địa chỉ đã nhập.</p>
             </div>
             {% endif %}
         </aside>
     </div>
 </section>
+<script>
+(function () {
+    var bankSelect = document.getElementById("review-bank-code");
+    var qrImage = document.getElementById("review-bank-qr");
+    if (!bankSelect || !qrImage) return;
+
+    var bankMap = {
+        VCB: { bin: "970436", name: "Vietcombank" },
+        TCB: { bin: "970407", name: "Techcombank" },
+        MB: { bin: "970422", name: "MBBank" },
+        ACB: { bin: "970416", name: "ACB" },
+        BIDV: { bin: "970418", name: "BIDV" },
+        VPB: { bin: "970432", name: "VPBank" }
+    };
+    var accountNo = "{{ shop_bank_account }}";
+    var accountName = "{{ shop_account_name|urlencode }}";
+    var amount = "{{ order.total_amount|floatformat:0 }}";
+    var note = "DH{{ order.id }}";
+
+    function refreshQr() {
+        var bankCode = bankSelect.value || "VCB";
+        var bank = bankMap[bankCode] || bankMap.VCB;
+        qrImage.src = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
+        qrImage.alt = "QR thanh toán " + bank.name + " " + note;
+    }
+
+    bankSelect.addEventListener("change", refreshQr);
+    refreshQr();
+})();
+</script>
 {% endblock %}

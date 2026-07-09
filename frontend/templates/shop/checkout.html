@@ -1,166 +1,161 @@
 {% extends "base.html" %}
-
 {% load shop_format %}
 
 {% block title %}Thanh toán{% endblock %}
+{% block body_class %}checkout-page{% endblock %}
 
 {% block content %}
-<section class="checkout-layout section-space">
-    <div>
-        <div class="section-head">
-            <h1>Thông tin thanh toán</h1>
-            <p>Điền địa chỉ nhận hàng và chọn phương thức phù hợp để hoàn tất đơn thật gọn.</p>
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Thanh toán</p>
+            <h1>Thanh toán nhanh trong một trang</h1>
+            <p>Nhập thông tin, chọn phương thức và hoàn tất đơn hàng ngay.</p>
         </div>
-
-        <form method="post" class="form-box">
-            {% csrf_token %}
-
-            <div class="form-group">
-                <label for="{{ form.customer_name.id_for_label }}">{{ form.customer_name.label }}</label>
-                {{ form.customer_name }}
-                {% if form.customer_name.errors %}<small class="error">{{ form.customer_name.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.customer_email.id_for_label }}">{{ form.customer_email.label }}</label>
-                {{ form.customer_email }}
-                {% if form.customer_email.errors %}<small class="error">{{ form.customer_email.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
-                {{ form.phone }}
-                {% if form.phone.errors %}<small class="error">{{ form.phone.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.shipping_address.id_for_label }}">{{ form.shipping_address.label }}</label>
-                {{ form.shipping_address }}
-                {% if form.shipping_address.errors %}<small class="error">{{ form.shipping_address.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.payment_method.id_for_label }}">{{ form.payment_method.label }}</label>
-                {{ form.payment_method }}
-                {% if form.payment_method.errors %}<small class="error">{{ form.payment_method.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="payment-method-grid" id="payment-method-grid">
-                <article class="payment-method-card" data-method-card="cod">
-                    <strong>Thanh toán tiền mặt</strong>
-                    <p>Nhận hàng rồi thanh toán. Phù hợp nếu bạn muốn chốt đơn nhanh mà chưa cần chuyển khoản trước.</p>
-                </article>
-                <article class="payment-method-card" data-method-card="bank">
-                    <strong>Chuyển khoản ngân hàng</strong>
-                    <p>Chọn ngân hàng, quét QR và xác nhận thanh toán để hệ thống xử lý đơn thuận tiện hơn.</p>
-                </article>
-            </div>
-
-            <div class="form-group bank-field" id="bank-code-wrap">
-                <label for="{{ form.bank_code.id_for_label }}">{{ form.bank_code.label }}</label>
-                {{ form.bank_code }}
-                {% if form.bank_code.errors %}<small class="error">{{ form.bank_code.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="bank-transfer-box" id="bank-transfer-box">
-                <h3>Thông tin chuyển khoản</h3>
-                <p>Ngân hàng nhận: <strong id="bank-name-label">Vietcombank</strong></p>
-                <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
-                <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
-                <p>Nội dung chuyển khoản: <strong id="transfer-note-label">DH-TAM</strong></p>
-                <img src="{{ demo_qr_url }}" alt="QR chuyển khoản" id="bank-qr-image">
-                <small class="muted">Quét mã để mở app ngân hàng nhanh hơn. Sau khi chuyển khoản, bấm xác nhận để tiếp tục.</small>
-            </div>
-
-            <div class="payment-note-box" id="cod-note-box">
-                <h3>Thanh toán khi nhận hàng</h3>
-                <p>Bạn chỉ cần xác nhận đơn. Cửa hàng sẽ liên hệ và bạn thanh toán bằng tiền mặt khi đơn được giao tới.</p>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.coupon_code.id_for_label }}">{{ form.coupon_code.label }}</label>
-                {{ form.coupon_code }}
-                {% if form.coupon_code.help_text %}<small>{{ form.coupon_code.help_text }}</small>{% endif %}
-                {% if form.coupon_code.errors %}<small class="error">{{ form.coupon_code.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
-                {{ form.note }}
-                {% if form.note.errors %}<small class="error">{{ form.note.errors|striptags }}</small>{% endif %}
-            </div>
-
-            <button type="submit" class="btn">Xác nhận đặt hàng</button>
-        </form>
     </div>
 
-    <aside class="summary-box">
-        <h2>Đơn hàng của bạn</h2>
-        {% for item in items %}
-        <p>{{ item.product.name|repair_text }} x {{ item.quantity }} <span>{{ item.subtotal|vnd }}đ</span></p>
-        {% endfor %}
-        <hr>
-        <p>Tạm tính <span>{{ subtotal|vnd }}đ</span></p>
-        <p>Phí vận chuyển <span>{{ shipping_fee|vnd }}đ</span></p>
-        <p>Giảm giá <span>-{{ discount_amount|vnd }}đ</span></p>
-        {% if shipping_fee == 0 %}
-        <p><small>Đơn hàng đã được miễn phí vận chuyển từ {{ freeship_threshold|vnd }}đ.</small></p>
-        {% endif %}
-        <p class="total-row">Tổng cộng <span>{{ total|vnd }}đ</span></p>
-    </aside>
+    <div class="checkout-layout">
+        <div class="checkout-main panel">
+            <form method="post" class="checkout-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="message error">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+
+                <div class="form-grid">
+                    <label class="field">
+                        <span>{{ form.customer_name.label }}</span>
+                        {{ form.customer_name }}
+                        {{ form.customer_name.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.customer_email.label }}</span>
+                        {{ form.customer_email }}
+                        {{ form.customer_email.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.phone.label }}</span>
+                        {{ form.phone }}
+                        {{ form.phone.errors }}
+                    </label>
+                    <label class="field span-2">
+                        <span>{{ form.shipping_address.label }}</span>
+                        {{ form.shipping_address }}
+                        {{ form.shipping_address.errors }}
+                    </label>
+                    <label class="field span-2">
+                        <span>{{ form.payment_method.label }}</span>
+                        {{ form.payment_method }}
+                        {{ form.payment_method.errors }}
+                    </label>
+                </div>
+
+                <div class="payment-box panel-soft" id="bank-code-wrap">
+                    <label class="field">
+                        <span>{{ form.bank_code.label }}</span>
+                        {{ form.bank_code }}
+                        {{ form.bank_code.errors }}
+                    </label>
+                </div>
+
+                <div class="payment-box panel-soft payment-qr-layout" id="bank-transfer-box">
+                    <div class="payment-qr-copy">
+                        <p class="eyebrow">Chuyển khoản</p>
+                        <h3>Quét QR trong 15 phút</h3>
+                        <p>Ngân hàng: <strong id="bank-name-label">Vietcombank</strong></p>
+                        <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+                        <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+                        <p>Nội dung: <strong id="transfer-note-label">DH-TAM</strong></p>
+                    </div>
+                    <img src="{{ demo_qr_url }}" alt="QR chuyển khoản" id="bank-qr-image">
+                </div>
+
+                <div class="payment-box panel-soft" id="cod-note-box">
+                    <h3>Thanh toán khi nhận hàng</h3>
+                    <p>Bạn chỉ cần xác nhận đơn, shop sẽ liên hệ và giao đến địa chỉ đã nhập.</p>
+                </div>
+
+                <div class="form-grid">
+                    <label class="field span-2">
+                        <span>{{ form.coupon_code.label }}</span>
+                        {{ form.coupon_code }}
+                        {{ form.coupon_code.errors }}
+                        {% if form.coupon_code.help_text %}<small class="help-text">{{ form.coupon_code.help_text }}</small>{% endif %}
+                    </label>
+                    <label class="field span-2">
+                        <span>{{ form.note.label }}</span>
+                        {{ form.note }}
+                        {{ form.note.errors }}
+                    </label>
+                </div>
+
+                <button type="submit" class="btn">Xác nhận đặt hàng</button>
+            </form>
+        </div>
+
+        <aside class="checkout-side panel">
+            <p class="eyebrow">Đơn hàng</p>
+            <h2>Tóm tắt</h2>
+            <div class="summary-list">
+                {% for item in items %}
+                <div class="summary-line">
+                    <span>{{ item.product.name|repair_text }} x {{ item.quantity }}</span>
+                    <strong>{{ item.subtotal|vnd }}đ</strong>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="summary-list totals">
+                <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Giảm giá</span><strong>-{{ discount_amount|vnd }}đ</strong></div>
+                <div class="summary-line total"><span>Tổng cộng</span><strong>{{ total|vnd }}đ</strong></div>
+            </div>
+        </aside>
+    </div>
 </section>
 
 <script>
-    (function () {
-        var paymentSelect = document.getElementById("id_payment_method");
-        var bankSelect = document.getElementById("id_bank_code");
-        var bankCodeWrap = document.getElementById("bank-code-wrap");
-        var bankBox = document.getElementById("bank-transfer-box");
-        var bankNameLabel = document.getElementById("bank-name-label");
-        var transferNoteLabel = document.getElementById("transfer-note-label");
-        var bankQrImage = document.getElementById("bank-qr-image");
-        var codNoteBox = document.getElementById("cod-note-box");
-        var methodCards = document.querySelectorAll("[data-method-card]");
-        if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox) {
-            return;
-        }
+(function () {
+    var paymentSelect = document.getElementById("id_payment_method");
+    var bankSelect = document.getElementById("id_bank_code");
+    var bankCodeWrap = document.getElementById("bank-code-wrap");
+    var bankBox = document.getElementById("bank-transfer-box");
+    var bankNameLabel = document.getElementById("bank-name-label");
+    var transferNoteLabel = document.getElementById("transfer-note-label");
+    var bankQrImage = document.getElementById("bank-qr-image");
+    var codNoteBox = document.getElementById("cod-note-box");
+    if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox) return;
 
-        var accountNo = "{{ shop_bank_account }}";
-        var accountName = "{{ shop_account_name|urlencode }}";
-        var amount = "{{ total|floatformat:0 }}";
-        var bankBins = {
-            VCB: { name: "Vietcombank", bin: "970436" },
-            TCB: { name: "Techcombank", bin: "970407" },
-            MB: { name: "MBBank", bin: "970422" },
-            ACB: { name: "ACB", bin: "970416" },
-            BIDV: { name: "BIDV", bin: "970418" },
-            VPB: { name: "VPBank", bin: "970432" }
-        };
+    var accountNo = "{{ shop_bank_account }}";
+    var accountName = "{{ shop_account_name|urlencode }}";
+    var amount = "{{ total|floatformat:0 }}";
+    var bankBins = {
+        VCB: { name: "Vietcombank", bin: "970436" },
+        TCB: { name: "Techcombank", bin: "970407" },
+        MB: { name: "MBBank", bin: "970422" },
+        ACB: { name: "ACB", bin: "970416" },
+        BIDV: { name: "BIDV", bin: "970418" },
+        VPB: { name: "VPBank", bin: "970432" }
+    };
 
-        function updateDisplay() {
-            var isBank = paymentSelect.value === "bank";
-            bankCodeWrap.style.display = isBank ? "block" : "none";
-            bankBox.style.display = isBank ? "block" : "none";
-            codNoteBox.style.display = isBank ? "none" : "block";
+    function updateDisplay() {
+        var isBank = paymentSelect.value === "bank";
+        bankCodeWrap.style.display = isBank ? "block" : "none";
+        bankBox.style.display = isBank ? "grid" : "none";
+        codNoteBox.style.display = isBank ? "none" : "block";
+        if (!isBank) return;
 
-            methodCards.forEach(function (card) {
-                card.classList.toggle("active", card.getAttribute("data-method-card") === paymentSelect.value);
-            });
+        var bankCode = bankSelect.value || "VCB";
+        var bank = bankBins[bankCode] || bankBins.VCB;
+        var note = "DH-TAM";
+        bankNameLabel.textContent = bank.name;
+        transferNoteLabel.textContent = note;
+        bankQrImage.src = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
+    }
 
-            if (!isBank) return;
-
-            var bankCode = bankSelect.value || "VCB";
-            var bank = bankBins[bankCode] || bankBins.VCB;
-            var note = "DH-TAM";
-            var qr = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
-            bankNameLabel.textContent = bank.name;
-            transferNoteLabel.textContent = note;
-            bankQrImage.src = qr;
-        }
-
-        paymentSelect.addEventListener("change", updateDisplay);
-        bankSelect.addEventListener("change", updateDisplay);
-        updateDisplay();
-    })();
+    paymentSelect.addEventListener("change", updateDisplay);
+    bankSelect.addEventListener("change", updateDisplay);
+    updateDisplay();
+})();
 </script>
 {% endblock %}

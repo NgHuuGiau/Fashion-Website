@@ -8,6 +8,9 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $env:PYTHONIOENCODING = "utf-8"
+$env:DEBUG = "True"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"

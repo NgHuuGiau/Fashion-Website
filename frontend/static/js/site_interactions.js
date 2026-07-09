@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     var dataNode = document.getElementById("variant-data");
     var picker = document.getElementById("variant-picker");
     var colorSelect = document.getElementById("color-select");
@@ -19,15 +19,6 @@
 
     if (!variants.length) {
         return;
-    }
-
-    function findFirstVariantById(variantId) {
-        for (var i = 0; i < variants.length; i++) {
-            if (variants[i].id === variantId) {
-                return variants[i];
-            }
-        }
-        return null;
     }
 
     function uniqueSizesByColor(color) {
@@ -85,7 +76,9 @@
     }
 
     var defaultVariantId = parseInt(picker.getAttribute("data-default-variant") || "0", 10);
-    var defaultVariant = findFirstVariantById(defaultVariantId) || variants[0];
+    var defaultVariant = variants.find(function (item) {
+        return item.id === defaultVariantId;
+    }) || variants[0];
 
     colorSelect.value = defaultVariant.color_name;
     renderSizeOptions(defaultVariant.color_name, defaultVariant.size);
@@ -101,133 +94,125 @@
 
 (function () {
     var mainImage = document.getElementById("detail-main-image");
-    var thumbs = Array.prototype.slice.call(document.querySelectorAll("[data-detail-image]"));
-    var prevButton = document.getElementById("detail-prev-image");
-    var nextButton = document.getElementById("detail-next-image");
-    var switchTimer = null;
+    var thumbs = document.querySelectorAll("[data-detail-image]");
+    var prevBtn = document.getElementById("detail-prev-image");
+    var nextBtn = document.getElementById("detail-next-image");
 
     if (!mainImage || !thumbs.length) {
         return;
     }
-    if (mainImage.dataset.galleryReady === "true") {
-        return;
-    }
-    mainImage.dataset.galleryReady = "true";
 
-    var currentIndex = -1;
-    for (var thumbIndex = 0; thumbIndex < thumbs.length; thumbIndex++) {
-        if (thumbs[thumbIndex].classList.contains("active")) {
-            currentIndex = thumbIndex;
-            break;
-        }
-    }
-    if (currentIndex < 0) {
-        currentIndex = 0;
-    }
+    var thumbList = Array.prototype.slice.call(thumbs);
 
-    function getThumbData(thumb) {
-        return {
-            url: thumb.getAttribute("data-detail-image") || "",
-            alt: thumb.getAttribute("data-detail-alt") || "",
-        };
-    }
-
-    function showImageAt(index) {
-        if (!thumbs.length) {
+    function setActiveByIndex(index) {
+        if (!thumbList.length) {
             return;
         }
-
-        var normalizedIndex = index;
-        if (normalizedIndex < 0) {
-            normalizedIndex = thumbs.length - 1;
-        }
-        if (normalizedIndex >= thumbs.length) {
-            normalizedIndex = 0;
-        }
-
-        var activeThumb = thumbs[normalizedIndex];
-        var thumbData = getThumbData(activeThumb);
-        var url = thumbData.url;
+        var targetIndex = (index + thumbList.length) % thumbList.length;
+        var target = thumbList[targetIndex];
+        var url = target.getAttribute("data-detail-image");
+        var alt = target.getAttribute("data-detail-alt") || mainImage.alt;
         if (!url) {
             return;
         }
-
-        currentIndex = normalizedIndex;
-        thumbs.forEach(function (item) {
+        mainImage.src = url;
+        mainImage.alt = alt;
+        thumbList.forEach(function (item) {
             item.classList.remove("active");
         });
-        activeThumb.classList.add("active");
+        target.classList.add("active");
+    }
 
-        if (switchTimer) {
-            window.clearTimeout(switchTimer);
-        }
+    thumbs.forEach(function (thumb) {
+        thumb.addEventListener("click", function () {
+            var url = thumb.getAttribute("data-detail-image");
+            if (!url) {
+                return;
+            }
 
-        mainImage.classList.add("is-switching");
-        mainImage.alt = thumbData.alt || mainImage.alt;
-        switchTimer = window.setTimeout(function () {
             mainImage.src = url;
-            window.setTimeout(function () {
-                mainImage.classList.remove("is-switching");
-            }, 140);
-            switchTimer = null;
-        }, 60);
-    }
-
-    function stepGallery(offset) {
-        showImageAt(currentIndex + offset);
-    }
-
-    thumbs.forEach(function (thumb, index) {
-        thumb.addEventListener("click", function (event) {
-            event.preventDefault();
-            showImageAt(index);
+            thumbList.forEach(function (item) {
+                item.classList.remove("active");
+            });
+            thumb.classList.add("active");
         });
     });
 
-    if (prevButton) {
-        prevButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            stepGallery(-1);
+    if (prevBtn) {
+        prevBtn.addEventListener("click", function () {
+            var activeIndex = -1;
+            for (var i = 0; i < thumbList.length; i++) {
+                if (thumbList[i].classList.contains("active")) {
+                    activeIndex = i;
+                    break;
+                }
+            }
+            setActiveByIndex(activeIndex <= 0 ? thumbList.length - 1 : activeIndex - 1);
         });
     }
 
-    if (nextButton) {
-        nextButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            stepGallery(1);
+    if (nextBtn) {
+        nextBtn.addEventListener("click", function () {
+            var activeIndex = -1;
+            for (var i = 0; i < thumbList.length; i++) {
+                if (thumbList[i].classList.contains("active")) {
+                    activeIndex = i;
+                    break;
+                }
+            }
+            setActiveByIndex(activeIndex < 0 ? 0 : activeIndex + 1);
         });
     }
-
-    mainImage.addEventListener("load", function () {
-        mainImage.classList.remove("is-switching");
-    });
 })();
 
 (function () {
-    var toggle = document.getElementById("menu-toggle");
-    var closeBtn = document.getElementById("menu-close");
-    var menu = document.getElementById("side-menu");
-    var overlay = document.getElementById("menu-overlay");
+    var steppers = document.querySelectorAll("[data-qty-step]");
 
-    if (!toggle || !closeBtn || !menu || !overlay) {
+    if (!steppers.length) {
         return;
     }
 
-    function openMenu() {
-        menu.classList.add("open");
-        overlay.classList.add("show");
-        document.body.style.overflow = "hidden";
-    }
+    steppers.forEach(function (button) {
+        button.addEventListener("click", function () {
+            var step = parseInt(button.getAttribute("data-qty-step") || "0", 10);
+            var wrap = button.closest(".qty-stepper");
+            var input = wrap ? wrap.querySelector("[data-qty-input]") : null;
 
-    function closeMenu() {
-        menu.classList.remove("open");
-        overlay.classList.remove("show");
-        document.body.style.overflow = "";
-    }
+            if (!input) {
+                return;
+            }
 
-    toggle.addEventListener("click", openMenu);
-    closeBtn.addEventListener("click", closeMenu);
-    overlay.addEventListener("click", closeMenu);
+            var min = parseInt(input.getAttribute("min") || "1", 10);
+            var max = parseInt(input.getAttribute("max") || "9999", 10);
+            var current = parseInt(input.value || String(min), 10);
+            var next = current + step;
+
+            if (isNaN(next)) {
+                next = min;
+            }
+
+            if (next < min) {
+                next = min;
+            }
+
+            if (next > max) {
+                next = max;
+            }
+
+            input.value = String(next);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+
+            var form = wrap.closest("form");
+            if (form && form.action && form.action.indexOf("cart_update") !== -1) {
+                if (typeof form.requestSubmit === "function") {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            }
+        });
+    });
 })();
 
 (function () {
@@ -437,34 +422,5 @@
         if (row) {
             row.remove();
         }
-    });
-})();
-
-(function () {
-    var priceInputs = Array.prototype.slice.call(document.querySelectorAll("[data-price-input]"));
-
-    if (!priceInputs.length) {
-        return;
-    }
-
-    function formatPriceInputValue(value) {
-        var digits = String(value || "").replace(/\D/g, "");
-        if (!digits) {
-            return "";
-        }
-
-        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-
-    priceInputs.forEach(function (input) {
-        input.value = formatPriceInputValue(input.value);
-
-        input.addEventListener("input", function () {
-            input.value = formatPriceInputValue(input.value);
-        });
-
-        input.addEventListener("blur", function () {
-            input.value = formatPriceInputValue(input.value);
-        });
     });
 })();

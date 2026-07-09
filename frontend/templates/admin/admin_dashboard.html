@@ -5,26 +5,167 @@
 {% block title %}Bảng điều khiển quản trị{% endblock %}
 
 {% block content %}
-<section class="section-space">
-    <div class="section-head">
-        <h1>Bảng điều khiển quản trị</h1>
-        <p>Theo dõi đơn hàng, doanh thu và cập nhật sản phẩm trong cùng một màn hình.</p>
+<section class="section-space admin-hero-shell">
+    <div class="admin-hero-head panel">
+        <div class="admin-hero-copy">
+            <p class="eyebrow">STUDIO CONTROL PANEL</p>
+            <h1>Bảng điều khiển studio cho shop thời trang.</h1>
+            <p>Đơn hàng, doanh thu, tồn kho và sản phẩm được gom thành một bảng điều khiển sạch, rõ và dễ thao tác hơn.</p>
+            <div class="hero-actions">
+                <a href="#admin-chart" class="btn">Xem biểu đồ</a>
+                <a href="#admin-product-form" class="btn ghost">Thêm sản phẩm</a>
+                <a href="#admin-product-table" class="btn ghost">Bảng sản phẩm</a>
+            </div>
+        </div>
+        <div class="admin-hero-controls">
+            <article class="admin-control-card">
+                <span>Doanh thu tháng</span>
+                <strong>{{ month_revenue|vnd }}đ</strong>
+                <small>Hiện tại tổng cộng.</small>
+            </article>
+            <article class="admin-control-card">
+                <span>Đơn chờ xử lý</span>
+                <strong>{{ pending_orders }}</strong>
+                <small>Những đơn cần chú ý trước.</small>
+            </article>
+            <article class="admin-control-card">
+                <span>Tồn kho thấp</span>
+                <strong>{{ low_stock_products|length }}</strong>
+                <small>Những sản phẩm nên bổ sung sớm.</small>
+            </article>
+        </div>
     </div>
 
-    <div class="stats-grid">
-        <article class="stat-card"><h3>Tổng đơn</h3><p>{{ total_orders }}</p></article>
-        <article class="stat-card"><h3>Chờ xử lý</h3><p>{{ pending_orders }}</p></article>
-        <article class="stat-card"><h3>Đang xử lý</h3><p>{{ processing_orders }}</p></article>
-        <article class="stat-card"><h3>Đang giao</h3><p>{{ shipping_orders }}</p></article>
-        <article class="stat-card"><h3>Hoàn thành</h3><p>{{ delivered_orders }}</p></article>
-        <article class="stat-card"><h3>Đã hủy</h3><p>{{ cancelled_orders }}</p></article>
-        <article class="stat-card"><h3>Doanh thu</h3><p>{{ total_revenue|vnd }}đ</p></article>
-        <article class="stat-card"><h3>Doanh thu tháng</h3><p>{{ month_revenue|vnd }}đ</p></article>
-        <article class="stat-card"><h3>Coupon đang bật</h3><p>{{ active_coupons }}</p></article>
+    <div class="stats-grid admin-stats-grid">
+        <article class="stat-card">
+            <h3>Tổng đơn</h3>
+            <p>{{ total_orders }}</p>
+        </article>
+        <article class="stat-card">
+            <h3>Chờ xử lý</h3>
+            <p>{{ pending_orders }}</p>
+        </article>
+        <article class="stat-card">
+            <h3>Đang xử lý</h3>
+            <p>{{ processing_orders }}</p>
+        </article>
+        <article class="stat-card">
+            <h3>Đang giao</h3>
+            <p>{{ shipping_orders }}</p>
+        </article>
+        <article class="stat-card">
+            <h3>Hoàn thành</h3>
+            <p>{{ delivered_orders }}</p>
+        </article>
+        <article class="stat-card">
+            <h3>Đã hủy</h3>
+            <p>{{ cancelled_orders }}</p>
+        </article>
     </div>
 </section>
 
-<section class="section-space admin-product-shell">
+<section class="section-space admin-dashboard-grid" id="admin-chart">
+    <article class="admin-board-panel">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Biểu đồ 7 ngày</p>
+                <h2>Doanh thu tăng giảm</h2>
+                <p>So sánh 7 ngày gần nhất với 7 ngày trước đó để nhìn ngay xu hướng.</p>
+            </div>
+            <div class="admin-chart-meta">
+                <span class="chip">Chưa có doanh thu 7 ngày</span>
+                <strong>{{ revenue_current_total|vnd }}đ</strong>
+                <small>7 ngày gần nhất</small>
+            </div>
+        </div>
+
+        <div class="week-chart">
+            {% for item in revenue_chart %}
+            <div class="week-chart-item">
+                <div class="week-chart-bar-wrap">
+                    <div class="week-chart-bar" style="height: {{ item.height }}%;"></div>
+                </div>
+                <strong>{{ item.total|vnd }}đ</strong>
+                <span>{{ item.label }} {{ item.date_label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <div class="admin-side-stack">
+        <article class="admin-board-panel">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Đơn hàng gần đây</p>
+                    <h2>Theo dõi ngay</h2>
+                </div>
+                <span class="chip">Live</span>
+            </div>
+
+            <div class="orders-list admin-orders-list">
+                {% for order in recent_orders|slice:":6" %}
+                <article class="order-card order-card-rich admin-order-card">
+                    <div class="order-header">
+                        <strong>Đơn #{{ order.id }}</strong>
+                        <span class="chip">{{ order.get_status_display }}</span>
+                    </div>
+                    <p class="muted">{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                    <div class="order-meta-grid">
+                        <p><span>Thanh toán</span><strong>{% if order.payment_method == "bank" %}Chuyển khoản ngân hàng{% else %}COD{% endif %}</strong></p>
+                        <p><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></p>
+                        <p><span>Dự kiến giao</span><strong>{{ order.eta_label }}</strong></p>
+                        <p><span>Đơn hàng</span><strong>{{ order.items.all|length }} món</strong></p>
+                    </div>
+                    <p class="muted">
+                        {% if order.items.all %}
+                            {{ order.items.all.0.product.name }} x {{ order.items.all.0.quantity }}
+                        {% else %}
+                            Chưa có sản phẩm.
+                        {% endif %}
+                    </p>
+                    <div class="hero-actions">
+                        <a href="{% url 'orders:order_review' order.id %}" class="btn ghost small">Xem chi tiết</a>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="empty-state">
+                    <h2>Chưa có đơn hàng</h2>
+                    <p>Khi có đơn mới, chúng sẽ hiện ở đây để theo dõi nhanh hơn.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="admin-board-panel">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Cảnh báo</p>
+                    <h2>Tồn kho thấp</h2>
+                </div>
+                <span class="chip">Cần bổ sung</span>
+            </div>
+
+            <div class="admin-alert-list">
+                {% for product in low_stock_products|slice:":6" %}
+                <div class="admin-alert-item">
+                    <div>
+                        <strong>{{ product.name }}</strong>
+                        <p class="muted">{{ product.category.name }}</p>
+                    </div>
+                    <span class="chip">{{ product.stock }} còn lại</span>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <h2>Tồn kho ổn định</h2>
+                    <p>Không có sản phẩm nào cần nhập thêm lúc này.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+</section>
+
+<section class="section-space admin-product-shell" id="admin-product-form">
     <div class="section-head">
         <div>
             <h2>{% if editing_product %}Chỉnh sửa sản phẩm{% else %}Thêm sản phẩm mới{% endif %}</h2>
@@ -169,10 +310,12 @@
     </form>
 </section>
 
-<section class="section-space">
+<section class="section-space" id="admin-product-table">
     <div class="section-head">
-        <h2>Toàn bộ sản phẩm</h2>
-        <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
+        <div>
+            <h2>Toàn bộ sản phẩm</h2>
+            <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
+        </div>
     </div>
     <div class="admin-product-table-shell">
         <div class="admin-product-table-header-wrap">

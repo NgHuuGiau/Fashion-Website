@@ -1,27 +1,38 @@
 {% extends "base.html" %}
-
 {% load shop_format %}
 
-{% block title %}Danh sách yêu thích{% endblock %}
+{% block title %}Yêu thích{% endblock %}
+{% block body_class %}account-page{% endblock %}
 
 {% block content %}
-<section class="section-space">
+<section class="section-shell">
     <div class="section-head">
-        <h2>SẢN PHẨM YÊU THÍCH</h2>
-        <p>{{ products|length }} item đang được bạn lưu lại để xem nhanh hơn.</p>
+        <div>
+            <p class="eyebrow">Yêu thích</p>
+            <h1>Sản phẩm đã lưu</h1>
+            <p>{{ products|length }} sản phẩm đang nằm trong wishlist của bạn.</p>
+        </div>
+        <a href="{% url 'products:product_list' %}" class="btn ghost small">Khám phá thêm</a>
     </div>
 
-    <div class="product-grid">
+    <div class="product-grid product-grid-editorial">
         {% for product in products %}
-        <article class="product-card product-card-text-only">
-            <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media card-media-text">
-                <span class="fallback">{{ product.category.slug|product_type_label }}</span>
-                <span class="fav-badge"><i class="fa-solid fa-heart"></i></span>
+        <article class="product-card product-card-editorial">
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media card-media-editorial">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}">
+                {% else %}
+                <div class="product-fallback">{{ product.category.slug|product_type_label }}</div>
+                {% endif %}
             </a>
-            <div class="card-body">
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ product.category.name|repair_text }}</p>
                 <h3><a href="{% url 'products:product_detail' product.id product.slug %}">{{ product.name|repair_text }}</a></h3>
-                <p class="price">{{ product.price|vnd }}đ</p>
-                <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-inline-remove">
+                <div class="card-footer">
+                    <strong class="price">{{ product.price|vnd }}đ</strong>
+                    <span>{% if product.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                </div>
+                <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-form-inline">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'products:wishlist_list' %}">
                     <button type="submit" class="btn ghost small">Bỏ yêu thích</button>
@@ -29,10 +40,10 @@
             </div>
         </article>
         {% empty %}
-        <div class="empty-state">
+        <div class="empty-state panel">
             <h2>Danh sách yêu thích đang trống</h2>
-            <p>Lưu lại những item bạn thích để quay lại nhanh hơn khi cần chốt đơn.</p>
-            <a href="{% url 'products:product_list' %}" class="btn small">Khám phá sản phẩm</a>
+            <p>Lưu lại những món bạn thích để quay lại xem nhanh hơn.</p>
+            <a href="{% url 'products:product_list' %}" class="btn">Khám phá sản phẩm</a>
         </div>
         {% endfor %}
     </div>

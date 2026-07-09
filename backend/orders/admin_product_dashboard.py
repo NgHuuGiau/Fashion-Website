@@ -1,4 +1,6 @@
 ﻿from django.contrib import messages
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, Q, Sum
@@ -147,7 +149,10 @@ def build_variant_rows(form_data):
 def build_admin_dashboard_context(form_data=None, form_errors=None, editing_product=None):
     effective_form_data = form_data or build_admin_product_form_data()
     orders = Order.objects.all().prefetch_related("items__product")
+    from .views import decorate_order_tracking
+
     now = timezone.now()
+    today = timezone.localdate()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     status_counts = orders.aggregate(
         total=Count("id"),
@@ -169,6 +174,44 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         .order_by("-day")[:REVENUE_DAYS_LIMIT]
     )
 
+    revenue_by_day = {item["day"]: int(item["total"] or 0) for item in daily_revenue}
+    chart_days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    previous_days = [today - timedelta(days=offset) for offset in range(13, 6, -1)]
+    current_total = sum(revenue_by_day.get(day, 0) for day in chart_days)
+    previous_total = sum(revenue_by_day.get(day, 0) for day in previous_days)
+    growth_pct = ((current_total - previous_total) / previous_total * 100) if previous_total else 0
+    chart_max = max([revenue_by_day.get(day, 0) for day in chart_days] or [0]) or 1
+    weekday_labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+    revenue_chart = [
+        {
+            "day": day,
+            "label": weekday_labels[day.weekday()],
+            "date_label": day.strftime("%d/%m"),
+            "total": revenue_by_day.get(day, 0),
+            "orders_count": next(
+                (int(item["orders_count"] or 0) for item in daily_revenue if item["day"] == day),
+                0,
+            ),
+            "height": max(8, int((revenue_by_day.get(day, 0) / chart_max) * 100)) if revenue_by_day.get(day, 0) else 8,
+        }
+        for day in chart_days
+    ]
+    if previous_total == 0 and current_total == 0:
+        growth_label = "Chưa có doanh thu 7 ngày"
+        growth_class = "is-flat"
+    elif previous_total == 0:
+        growth_label = "Tăng từ nền 0đ"
+        growth_class = "is-up"
+    elif current_total > previous_total:
+        growth_label = f"Tăng {abs(growth_pct):.0f}% so với 7 ngày trước"
+        growth_class = "is-up"
+    elif current_total < previous_total:
+        growth_label = f"Giảm {abs(growth_pct):.0f}% so với 7 ngày trước"
+        growth_class = "is-down"
+    else:
+        growth_label = "Ổn định so với 7 ngày trước"
+        growth_class = "is-flat"
+
     return {
         "total_orders": status_counts["total"],
         "pending_orders": status_counts["pending"],
@@ -179,7 +222,13 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "total_revenue": total_revenue,
         "month_revenue": month_revenue,
         "daily_revenue": daily_revenue,
-        "recent_orders": orders.order_by("-created_at")[:RECENT_ORDER_LIMIT],
+        "revenue_chart": revenue_chart,
+        "revenue_current_total": current_total,
+        "revenue_previous_total": previous_total,
+        "revenue_growth_pct": growth_pct,
+        "revenue_growth_label": growth_label,
+        "revenue_growth_class": growth_class,
+        "recent_orders": [decorate_order_tracking(order) for order in orders.order_by("-created_at")[:RECENT_ORDER_LIMIT]],
         "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:LOW_STOCK_LIMIT],
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),

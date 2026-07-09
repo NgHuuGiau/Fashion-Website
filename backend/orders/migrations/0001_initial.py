@@ -1,4 +1,4 @@
-﻿
+
 import django.db.models.deletion
 from decimal import Decimal
 from django.conf import settings
@@ -24,9 +24,9 @@ class Migration(migrations.Migration):
                 ('phone', models.CharField(max_length=20)),
                 ('shipping_address', models.TextField()),
                 ('note', models.TextField(blank=True)),
-                ('payment_method', models.CharField(choices=[('cod', 'Thanh toĂ¡n khi nháº­n hĂ ng'), ('bank', 'Chuyá»ƒn khoáº£n ngĂ¢n hĂ ng')], default='cod', max_length=20)),
+                ('payment_method', models.CharField(choices=[('cod', 'Thanh toán khi nhận hàng'), ('bank', 'Chuyển khoản ngân hàng')], default='cod', max_length=20)),
                 ('is_paid', models.BooleanField(default=False)),
-                ('status', models.CharField(choices=[('pending', 'Chá» xá»­ lĂ½'), ('processing', 'Äang xá»­ lĂ½'), ('shipping', 'Äang giao'), ('delivered', 'HoĂ n thĂ nh'), ('cancelled', 'ÄĂ£ há»§y')], default='pending', max_length=20)),
+                ('status', models.CharField(choices=[('pending', 'Chờ xử lý'), ('processing', 'Đang xử lý'), ('shipping', 'Đang giao'), ('delivered', 'Hoàn thành'), ('cancelled', 'Đã hủy')], default='pending', max_length=20)),
                 ('total_amount', models.DecimalField(decimal_places=0, default=Decimal('0'), max_digits=12)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),

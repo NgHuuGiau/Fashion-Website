@@ -1,4 +1,5 @@
 ﻿import json
+import json
 import re
 
 from django.contrib import messages
@@ -385,14 +386,17 @@ def find_support_reply(message, state=None):
 
 
 def product_list(request):
-    base_products = Product.objects.filter(available=True).select_related("category")
+    base_products = Product.objects.filter(available=True).select_related("category").prefetch_related("variants")
     products_qs = base_products
-    categories = Category.objects.all()
+    categories = list(Category.objects.all())
 
     category_slug = request.GET.get("category", "").strip()
     keyword = request.GET.get("q", "").strip()
     min_price_raw = request.GET.get("min_price", "").strip()
     max_price_raw = request.GET.get("max_price", "").strip()
+    selected_sizes = list(dict.fromkeys(item.upper() for item in request.GET.getlist("size") if item.strip()))
+    selected_color_keys = list(dict.fromkeys(normalize_vn_text(item) for item in request.GET.getlist("color") if item.strip()))
+    selected_colors = [COLOR_DISPLAY_MAP.get(item, item.title()) for item in selected_color_keys]
     selected_sort = request.GET.get("sort", "newest").strip()
 
     min_price = parse_price(min_price_raw)
@@ -429,6 +433,12 @@ def product_list(request):
         merged_ids.extend([item.id for item in accent_insensitive_matched if item.id not in db_id_set])
         products_qs = products_qs.filter(id__in=merged_ids)
 
+    if selected_sizes:
+        products_qs = products_qs.filter(variants__size__in=selected_sizes).distinct()
+
+    if selected_colors:
+        products_qs = products_qs.filter(variants__color_name__in=selected_colors).distinct()
+
     no_filter_mode = not any([category_slug, keyword, min_price_raw, max_price_raw]) and selected_sort == "newest"
     if no_filter_mode:
         is_random_home = True
@@ -445,6 +455,56 @@ def product_list(request):
     paginator = Paginator(products_qs, PRODUCTS_PER_PAGE)
     products = paginator.get_page(request.GET.get("page"))
 
+    def build_catalog_query(**overrides):
+        params = request.GET.copy()
+        params.pop("page", None)
+        for key, value in overrides.items():
+            params.pop(key, None)
+            if value in (None, ""):
+                continue
+            params[key] = str(value)
+        return params.urlencode()
+
+    for category in categories:
+        category.catalog_query = build_catalog_query(category=category.slug)
+
+    sidebar_sort_links = {key: build_catalog_query(sort=key) for key in SORT_OPTIONS}
+
+    available_variant_rows = ProductVariant.objects.filter(product__available=True, is_active=True).values_list(
+        "size",
+        "color_name",
+        "color_code",
+    )
+    size_order = {
+        "XXS": 0,
+        "XS": 1,
+        "S": 2,
+        "M": 3,
+        "L": 4,
+        "XL": 5,
+        "XXL": 6,
+        "3XL": 7,
+        "4XL": 8,
+    }
+    sidebar_size_map = {}
+    sidebar_color_map = {}
+    for size_name, color_name, color_code in available_variant_rows:
+        if size_name:
+            normalized_size = str(size_name).strip().upper()
+            if normalized_size and normalized_size not in sidebar_size_map:
+                sidebar_size_map[normalized_size] = True
+        if color_name:
+            color_key = normalize_vn_text(color_name)
+            if color_key and color_key not in sidebar_color_map:
+                sidebar_color_map[color_key] = {
+                    "value": color_key,
+                    "label": format_color_label(color_name),
+                    "code": color_code or "#4d8fe6",
+                }
+
+    sidebar_size_options = sorted(sidebar_size_map.keys(), key=lambda item: (size_order.get(item, 99), item))
+    sidebar_color_options = sorted(sidebar_color_map.values(), key=lambda item: item["label"])
+
     query_params = request.GET.copy()
     query_params.pop("page", None)
     query_without_page = query_params.urlencode()
@@ -459,6 +519,7 @@ def product_list(request):
     context = {
         "products": products,
         "total_products": paginator.count,
+        "site_total_products": base_products.count(),
         "categories": categories,
         "selected_category": selected_category,
         "keyword": keyword,
@@ -467,6 +528,13 @@ def product_list(request):
         "selected_sort": selected_sort,
         "min_price": min_price_raw,
         "max_price": max_price_raw,
+        "selected_sizes": selected_sizes,
+        "selected_colors": selected_color_keys,
+        "selected_color_labels": selected_colors,
+        "selected_color_values": selected_color_keys,
+        "sidebar_size_options": sidebar_size_options,
+        "sidebar_color_options": sidebar_color_options,
+        "sidebar_sort_links": sidebar_sort_links,
         "wishlist_product_ids": wishlist_product_ids,
         "query_without_page": query_without_page,
     }
@@ -479,15 +547,21 @@ def product_detail(request, pk, slug):
     variants = ProductVariant.objects.filter(product=product, is_active=True).order_by("color_name", "size")
     requires_variant = product.requires_variants
 
-    default_variant = variants.filter(color_name__iexact="Den", size__iexact="M").first()
+    default_variant = variants.filter(size__iexact="M").filter(Q(color_name__iexact="Den") | Q(color_name__iexact="Đen")).first()
     if not default_variant:
         default_variant = variants.first()
 
-    variant_data = list(variants.values("id", "color_name", "size", "stock"))
-    color_options = [
-        {"value": color_name, "label": format_color_label(color_name)}
-        for color_name in sorted({item["color_name"] for item in variant_data})
-    ]
+    variant_data = list(variants.values("id", "color_name", "color_code", "size", "stock"))
+    color_options_map = {}
+    for item in variant_data:
+        color_name = item["color_name"]
+        if color_name not in color_options_map:
+            color_options_map[color_name] = {
+                "value": color_name,
+                "label": format_color_label(color_name),
+                "code": item.get("color_code") or "#111111",
+            }
+    color_options = list(color_options_map.values())
     size_options = sorted({item["size"] for item in variant_data})
     gallery_images = product.get_detail_gallery_images()
     detail_gallery_slots = build_detail_gallery_slots(product, gallery_images)
@@ -510,7 +584,7 @@ def product_detail(request, pk, slug):
             "detail_gallery_slots": detail_gallery_slots,
             "color_options": color_options,
             "size_options": size_options,
-            "variant_data_json": json.dumps(variant_data),
+            "variant_data_json": json.dumps(variant_data, ensure_ascii=False),
             "is_in_wishlist": is_in_wishlist,
         },
     )

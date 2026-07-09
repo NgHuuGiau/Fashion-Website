@@ -1,201 +1,67 @@
 {% extends "base.html" %}
+{% load static shop_format %}
 
-{% load shop_format %}
-
-{% block title %}HUUGIAU | Streetwear local cho nhịp sống thành phố{% endblock %}
+{% block title %}HUUGIAU Atelier{% if not is_random_home %} | Catalog{% endif %}{% endblock %}
+{% block body_class %}{% if is_random_home %}home-page{% else %}catalog-page{% endif %}{% endblock %}
 
 {% block content %}
-<section class="hero">
-    <div class="hero-grid">
-        <div class="hero-main">
-            <p class="eyebrow">NEW DROP • MẶC NHANH • PHỐI DỄ</p>
-            <h1>Đồ gọn, chất rõ, chốt nhanh.</h1>
-            <p class="hero-copy">Chọn áo, quần và phụ kiện theo hướng dễ mặc hằng ngày nhưng vẫn đủ cá tính. Vào là thấy ngay món hợp gu, không cần lướt quá lâu.</p>
-            <div class="hero-badges">
-                <span>Thông tin rõ, xem nhanh</span>
-                <span>Form dễ phối</span>
-                <span>Lọc gọn theo giá</span>
-            </div>
-            <div class="hero-actions">
-                <a href="{% url 'products:product_list' %}" class="btn small">Xem toàn bộ</a>
-                <a href="{% url 'products:product_list' %}?category=ao" class="btn ghost small">Xem áo mới</a>
-            </div>
-        </div>
-        <div class="hero-aside">
-            <div class="hero-card highlight">
-                <strong>Mua nhanh, đỡ phân vân</strong>
-                <p>Danh mục rõ, giá dễ lọc và trang chi tiết tập trung đúng thông tin cần để chốt đơn.</p>
-            </div>
-            <div class="feature-stat-grid">
-                <div class="hero-card">
-                    <strong>48h</strong>
-                    <p>Xử lý đơn nhanh, theo dõi rõ</p>
-                </div>
-                <div class="hero-card">
-                    <strong>499K</strong>
-                    <p>Freeship toàn quốc từ mức này</p>
-                </div>
-                <div class="hero-card">
-                    <strong>New</strong>
-                    <p>Drop đều, outfit không bị lặp</p>
+{% if is_random_home %}
+<section class="hero-shell" data-home-hero>
+    <div class="hero-grid hero-grid-split">
+        <article class="hero-cover panel">
+            <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
+            <div class="hero-cover-copy">
+                <p class="eyebrow">HUUGIAU Atelier</p>
+                <h1>Gọn mà có gu, mặc mỗi ngày.</h1>
+                <p class="hero-text">Nơi gói gọn mọi câu trả lời cho outfit mỗi ngày của bạn. Streetwear tối giản, sắc nét và cực dễ match. Lướt nhanh, chọn chất, chốt đơn trong một nốt nhạc.</p>
+                <div class="hero-actions">
+                    <a href="#featured-products" class="btn">Mua ngay</a>
+                    <a href="{% url 'products:product_list' %}?sort=newest" class="btn ghost">Xem catalog</a>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<section class="intro-grid">
-    <div class="intro-panel">
-        <h3>Ít chữ hơn, dễ chọn hơn</h3>
-        <p>Mọi phần nội dung đều được rút gọn để người xem nhìn nhanh, so sánh dễ và chốt món phù hợp ngay trên điện thoại hoặc máy tính.</p>
-    </div>
-    <div class="stats-grid">
-        <article class="stat-card">
-            <h3>Dễ mặc</h3>
-            <p>Đi học, đi chơi hay đi cà phê đều dùng được.</p>
         </article>
-        <article class="stat-card">
-            <h3>Dễ phối</h3>
-            <p>Ưu tiên form gọn và màu dễ ghép outfit.</p>
-        </article>
-        <article class="stat-card">
-            <h3>Dễ chốt</h3>
-            <p>Giá rõ, thao tác mượt, không phụ thuộc ảnh sản phẩm.</p>
-        </article>
-    </div>
-</section>
-
-<section class="category-strip">
-    <a href="{% url 'products:product_list' %}" class="chip {% if not selected_category %}active{% endif %}">Tất cả</a>
-    <a href="{% url 'products:product_list' %}?category=ao" class="chip {% if selected_category and selected_category.slug == 'ao' %}active{% endif %}">Áo</a>
-    <a href="{% url 'products:product_list' %}?category=quan" class="chip {% if selected_category and selected_category.slug == 'quan' %}active{% endif %}">Quần</a>
-    <a href="{% url 'products:product_list' %}?category=phu-kien" class="chip {% if selected_category and selected_category.slug == 'phu-kien' %}active{% endif %}">Phụ kiện</a>
-</section>
-
-<section class="filter-panel">
-    <form method="get" class="filter-form">
-        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
-        {% if keyword %}<input type="hidden" name="q" value="{{ keyword|repair_text }}">{% endif %}
-
-        <label>
-            Giá từ
-            <input type="text" name="min_price" value="{{ min_price }}" inputmode="numeric" autocomplete="off" data-price-input placeholder="0">
-        </label>
-        <label>
-            Đến
-            <input type="text" name="max_price" value="{{ max_price }}" inputmode="numeric" autocomplete="off" data-price-input placeholder="999.000">
-        </label>
-        <label>
-            Sắp xếp
-            <select name="sort">
-                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Mới nhất</option>
-                <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
-                <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
-                <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Tên A-Z</option>
-            </select>
-        </label>
-        <div class="filter-summary">
-            <strong>{{ total_products }}</strong>
-            <span>sản phẩm phù hợp</span>
-        </div>
-        <button type="submit" class="btn small">Áp dụng</button>
-        <a href="{% url 'products:product_list' %}" class="btn ghost small">Xóa lọc</a>
-    </form>
-</section>
-
-{% if is_random_home and slider_products %}
-<section class="section-space">
-    <div class="section-head">
-        <h2>HOT TRENDING NOW</h2>
-        <p>Những item đang được chọn nhiều vì dễ mặc, dễ phối và lên đồ nhanh.</p>
-    </div>
-    <div class="slider-wrap">
-        <div class="slider-track">
-            {% for product in slider_products %}
-            <a class="product-card slider-card product-card-link product-card-text-only" href="{% url 'products:product_detail' product.id product.slug %}">
-                <div class="card-media card-media-text">
-                    <span class="fallback">{{ product.category.slug|product_type_label }}</span>
-                    <span class="tag">HOT</span>
-                </div>
-                <div class="card-body">
-                    <p class="card-category">{{ product.category.name|repair_text }}</p>
-                    <h3>{{ product.name|repair_text }}</h3>
-                    <p class="price">{{ product.price|vnd }}đ</p>
-                </div>
-            </a>
-            {% endfor %}
-            {% for product in slider_products %}
-            <a class="product-card slider-card product-card-link product-card-text-only" href="{% url 'products:product_detail' product.id product.slug %}">
-                <div class="card-media card-media-text">
-                    <span class="fallback">{{ product.category.slug|product_type_label }}</span>
-                    <span class="tag">HOT</span>
-                </div>
-                <div class="card-body">
-                    <p class="card-category">{{ product.category.name|repair_text }}</p>
-                    <h3>{{ product.name|repair_text }}</h3>
-                    <p class="price">{{ product.price|vnd }}đ</p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% elif is_random_home %}
-<section class="section-space">
-    <div class="section-head">
-        <h2>HOT TRENDING NOW</h2>
-        <p>Hiện chưa có sản phẩm gắn HOT. Shop đang ưu tiên hiển thị các mẫu mới để bạn xem trước.</p>
     </div>
 </section>
 {% endif %}
 
-<section class="section-space">
-    <div class="section-head">
-        <h2>{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}KẾT QUẢ SẢN PHẨM{% endif %}</h2>
-        <p>{% if is_random_home %}Các lựa chọn dễ mặc mỗi ngày nhưng vẫn giữ được chất riêng.{% else %}Danh sách đã được lọc theo nhu cầu của bạn.{% endif %}</p>
+<section class="lookbook-shell" id="featured-products">
+    <div class="section-head lookbook-head">
+        <div>
+            <p class="eyebrow">SẢN PHẨM NỔI BẬT</p>
+            <h2>Lookbook hôm nay</h2>
+            <p>Những món dễ mặc nhưng vẫn giữ được cá tính riêng.</p>
+        </div>
     </div>
 
-    <div class="product-grid">
+    <div class="product-grid product-grid-editorial">
         {% for product in products %}
-        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-text-only">
-            <div class="card-media card-media-text">
-                <span class="fallback">{{ product.category.slug|product_type_label }}</span>
-                {% if product.featured %}<span class="tag">HOT</span>{% endif %}
-                {% if request.user.is_authenticated and product.id in wishlist_product_ids %}
-                <span class="fav-badge" aria-label="Đã yêu thích"><i class="fa-solid fa-heart"></i></span>
+        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}">
+                {% else %}
+                <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                {% endif %}
+                {% if product.featured %}
+                <span class="tag">FEATURED</span>
                 {% endif %}
             </div>
-            <div class="card-body">
+            <div class="card-body card-body-editorial">
                 <p class="card-category">{{ product.category.name|repair_text }}</p>
                 <h3>{{ product.name|repair_text }}</h3>
-                <p class="price">{{ product.price|vnd }}đ</p>
+                <div class="card-footer">
+                    <strong class="price">{{ product.price|vnd }}đ</strong>
+                    <span>Xem chi tiết</span>
+                </div>
             </div>
         </a>
         {% empty %}
-        <div class="empty-state">
+        <div class="empty-state panel">
             <h2>Chưa có sản phẩm phù hợp</h2>
-            <p>Thử nới khoảng giá hoặc quay lại toàn bộ catalog để xem thêm mẫu khác.</p>
-            <a href="{% url 'products:product_list' %}" class="btn small">Xem tất cả</a>
+            <p>Thử quay lại danh mục chính để xem thêm những mẫu đang lên kệ.</p>
+            <a href="{% url 'products:product_list' %}" class="btn">Xem toàn bộ sản phẩm</a>
         </div>
         {% endfor %}
     </div>
-
-    {% if products.paginator.num_pages > 1 %}
-    <nav class="pagination" aria-label="Phân trang sản phẩm">
-        {% if products.has_previous %}
-        <a class="page-link" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ products.previous_page_number }}">← Trước</a>
-        {% else %}
-        <span class="page-link disabled">← Trước</span>
-        {% endif %}
-
-        <span class="page-current">Trang {{ products.number }}/{{ products.paginator.num_pages }}</span>
-
-        {% if products.has_next %}
-        <a class="page-link" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ products.next_page_number }}">Sau →</a>
-        {% else %}
-        <span class="page-link disabled">Sau →</span>
-        {% endif %}
-    </nav>
-    {% endif %}
 </section>
 {% endblock %}

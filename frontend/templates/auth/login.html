@@ -3,35 +3,58 @@
 {% block title %}Đăng nhập{% endblock %}
 
 {% block content %}
-<section class="auth-layout section-space">
+<section class="auth-layout auth-editorial section-space">
     <div class="auth-panel">
-        <h1>Đăng nhập</h1>
-        <p>Truy cập tài khoản để theo dõi đơn hàng, lưu wishlist và thanh toán nhanh hơn.</p>
+        <p class="eyebrow">Đăng nhập</p>
+        <h1>Chào mừng quay lại</h1>
+        <p>Dùng email hoặc số điện thoại đã đăng ký để vào tài khoản nhanh hơn.</p>
+
         <form method="post" class="auth-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.GET.next }}">
             <div class="form-group">
-                <label for="id_username">Tên đăng nhập / Email / Số điện thoại</label>
-                <input type="text" id="id_username" name="username" required>
+                <label for="id_username">Email hoặc số điện thoại</label>
+                <input type="text" id="id_username" name="username" required placeholder="Nhập email hoặc số điện thoại">
             </div>
             <div class="form-group">
                 <label for="id_password">Mật khẩu</label>
-                <input type="password" id="id_password" name="password" required>
+                <input type="password" id="id_password" name="password" required placeholder="Nhập mật khẩu">
             </div>
             <button type="submit" class="btn">Đăng nhập</button>
         </form>
+
+        <div class="social-auth">
+            <p class="social-auth-label">Hoặc tiếp tục bằng</p>
+            <div class="social-auth-list">
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'google' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-google" aria-hidden="true"></i>
+                    <span>Google</span>
+                </a>
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'facebook' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
+                    <span>Facebook</span>
+                </a>
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'apple' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-apple" aria-hidden="true"></i>
+                    <span>Apple</span>
+                </a>
+            </div>
+        </div>
+
         <p class="auth-footnote">Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
     </div>
 
     <aside class="auth-benefits">
         <div>
-            <h2>Một tài khoản, nhiều tiện hơn</h2>
-            <p>Đăng nhập bằng tên đăng nhập, email hoặc số điện thoại để vào nhanh hơn mà không phải nhớ đúng một kiểu duy nhất.</p>
+            <p class="eyebrow">HUUGIAU Atelier</p>
+            <h2>Đăng nhập để tiếp tục mua sắm nhanh hơn</h2>
+            <p>Mở tài khoản để xem đơn hàng, lưu wishlist và thanh toán thuận tiện trên mọi thiết bị.</p>
         </div>
         <ul>
-            <li>Lưu sản phẩm yêu thích để xem lại sau.</li>
-            <li>Theo dõi trạng thái đơn hàng trong một nơi.</li>
-            <li>Rút ngắn thời gian nhập thông tin khi mua lần tiếp theo.</li>
+            <li>Đơn hàng của tôi</li>
+            <li>Danh sách yêu thích</li>
+            <li>Theo dõi thanh toán</li>
+            <li>Tư vấn size ngay trên web</li>
         </ul>
     </aside>
 </section>

@@ -1,37 +1,85 @@
 {% extends "base.html" %}
-
 {% load shop_format %}
 
 {% block title %}Tài khoản của tôi{% endblock %}
+{% block body_class %}account-page{% endblock %}
 
 {% block content %}
-<section class="section-space account-shell">
-    <div class="account-hero">
-        <div class="section-head">
-            <h1>Xin chào, {{ request.user.get_full_name|default:request.user.username|repair_text }}</h1>
-            <p>Quản lý thông tin, đơn hàng và các sản phẩm bạn quan tâm tại một nơi.</p>
-        </div>
-
-        <div class="account-grid">
-            <article class="hero-card highlight">
-                <strong>Email</strong>
-                <p>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
-            </article>
-            <article class="hero-card">
-                <strong>Số điện thoại</strong>
-                <p>{{ request.user.profile.phone_number|default:"Chưa cập nhật"|repair_text }}</p>
-            </article>
-            <article class="hero-card">
-                <strong>Tài khoản</strong>
-                <p>{{ request.user.username|repair_text }}</p>
-            </article>
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Tài khoản</p>
+            <h1>Thông tin cá nhân</h1>
+            <p>Cập nhật tên, email và số điện thoại của bạn.</p>
         </div>
     </div>
 
-    <div class="profile-actions">
-        <a href="{% url 'orders:my_orders' %}" class="btn">Đơn hàng của tôi</a>
-        <a href="{% url 'products:wishlist_list' %}" class="btn ghost">Yêu thích</a>
-        <a href="{% url 'products:product_list' %}" class="btn ghost">Tiếp tục mua sắm</a>
+    <div class="account-layout account-layout-single">
+        <article class="account-card panel profile-overview">
+            <div class="account-head">
+                <div class="account-avatar" aria-hidden="true">{{ display_initials }}</div>
+                <div>
+                    <h2>{{ display_name }}</h2>
+                    <p>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
+                </div>
+            </div>
+
+            <div class="account-stats profile-stats">
+                <article>
+                    <strong>{{ profile.phone_number|default:"Chưa cập nhật"|repair_text }}</strong>
+                    <span>Số điện thoại</span>
+                </article>
+                <article>
+                    <strong>{{ request.user.username }}</strong>
+                    <span>Tên đăng nhập</span>
+                </article>
+                <article>
+                    <strong>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</strong>
+                    <span>Email</span>
+                </article>
+            </div>
+
+            <div class="stack row profile-actions">
+                <a href="{% url 'orders:my_orders' %}" class="btn">Xem đơn hàng</a>
+                <a href="{% url 'products:wishlist_list' %}" class="btn ghost">Danh sách yêu thích</a>
+            </div>
+        </article>
+
+        <article class="account-card panel profile-edit">
+            <p class="eyebrow">Cập nhật hồ sơ</p>
+            <form method="post" class="account-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="message error">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+                <div class="form-grid">
+                    <label class="field">
+                        <span>{{ form.first_name.label }}</span>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}<small class="error-text">{{ form.first_name.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.last_name.label }}</span>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}<small class="error-text">{{ form.last_name.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.email.label }}</span>
+                        {{ form.email }}
+                        {% if form.email.errors %}<small class="error-text">{{ form.email.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.phone_number.label }}</span>
+                        {{ form.phone_number }}
+                        {% if form.phone_number.errors %}<small class="error-text">{{ form.phone_number.errors|striptags }}</small>{% endif %}
+                    </label>
+                </div>
+                <div class="stack row">
+                    <button type="submit" class="btn">Lưu thay đổi</button>
+                    <a href="{% url 'orders:my_orders' %}" class="btn ghost">Đơn hàng</a>
+                </div>
+            </form>
+        </article>
     </div>
 </section>
 {% endblock %}

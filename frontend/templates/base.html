@@ -8,70 +8,64 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260518w">
+    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260709a">
 </head>
 <body>
-    <div class="topline">FREESHIP TOÀN QUỐC TỪ 499K • HỖ TRỢ ĐỔI SIZE TRONG 7 NGÀY</div>
+    <div class="topline">Black / white editorial lookbook · ảnh lớn, chữ gọn, chốt đơn nhanh</div>
 
     <header class="site-header">
         <div class="container nav-wrap">
             <div class="header-left">
-                <button type="button" class="hamburger-btn" id="menu-toggle" aria-label="Mở menu">
-                    <span class="hamburger-icon" aria-hidden="true">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </span>
-                </button>
                 <div class="brand-block">
                     <a href="{% url 'products:product_list' %}" class="logo" aria-label="Trang chủ">HUUGIAU</a>
-                    <span class="brand-note">Streetwear gọn, dễ mặc, dễ phối</span>
+                    <span class="brand-note">ATELIER / FASHION STUDIO</span>
                 </div>
             </div>
+
+            <nav class="site-nav" aria-label="Điều hướng chính">
+                <a href="{% url 'products:product_list' %}?sort=newest">New in</a>
+                <a href="{% url 'products:product_list' %}?category=ao">Áo</a>
+                <a href="{% url 'products:product_list' %}?category=quan">Quần</a>
+                <a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a>
+                <a href="{% url 'products:product_list' %}">Lookbook</a>
+            </nav>
+
             <div class="header-right">
                 <form class="header-search" method="get" action="{% url 'products:product_list' %}">
                     <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}">
                 </form>
-                <div class="nav-pill">Drop mới mỗi tuần</div>
                 <a href="{% url 'orders:cart_detail' %}" class="icon-btn cart-btn" aria-label="Giỏ hàng">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h-2l-1 2v1h2l2.6 8.4h8.8l2.2-7H8.1"/><circle cx="10" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg>
+                    <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
                     <span class="icon-count">{{ cart_item_count }}</span>
                 </a>
-                {% if request.user.is_authenticated %}
-                <a href="{% url 'users:profile' %}" class="icon-btn" aria-label="Tài khoản">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+                <a href="{% url 'products:wishlist_list' %}" class="icon-btn" aria-label="Yêu thích">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
                 </a>
-                {% else %}
-                <a href="{% url 'users:login' %}" class="icon-btn" aria-label="Đăng nhập">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
-                </a>
-                {% endif %}
+                <details class="account-menu">
+                    <summary class="account-trigger">
+                        <i class="fa-regular fa-user" aria-hidden="true"></i>
+                        <span>Tài khoản</span>
+                        <i class="fa-solid fa-chevron-down account-caret" aria-hidden="true"></i>
+                    </summary>
+                    <div class="account-dropdown">
+                        {% if request.user.is_authenticated %}
+                        <a href="{% url 'users:profile' %}">Hồ sơ</a>
+                        <a href="{% url 'orders:my_orders' %}">Đơn hàng</a>
+                        <a href="{% url 'products:wishlist_list' %}">Yêu thích</a>
+                        <a href="{% url 'users:logout' %}" class="danger">Đăng xuất</a>
+                        {% else %}
+                        <a href="{% url 'users:login' %}">Đăng nhập</a>
+                        <a href="{% url 'users:register' %}">Đăng ký</a>
+                        {% endif %}
+                        {% if request.user.is_staff %}
+                        <a href="{% url 'orders:admin_dashboard' %}" class="highlight">Bảng điều khiển</a>
+                        <a href="/admin/">Quản trị</a>
+                        {% endif %}
+                    </div>
+                </details>
             </div>
         </div>
     </header>
-
-    <div class="menu-overlay" id="menu-overlay"></div>
-    <aside class="side-menu" id="side-menu">
-        <button type="button" class="close-menu" id="menu-close" aria-label="Đóng menu">×</button>
-        <p class="menu-kicker">Danh mục nhanh</p>
-        <a href="{% url 'products:product_list' %}">Tất cả sản phẩm</a>
-        <a href="{% url 'products:product_list' %}?category=ao">Áo</a>
-        <a href="{% url 'products:product_list' %}?category=quan">Quần</a>
-        <a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a>
-        {% if request.user.is_authenticated %}
-        <a href="{% url 'orders:my_orders' %}">Đơn hàng</a>
-        <a href="{% url 'products:wishlist_list' %}">Yêu thích</a>
-        <a href="{% url 'users:profile' %}">Tài khoản của tôi</a>
-        <a href="{% url 'users:logout' %}">Đăng xuất</a>
-        {% else %}
-        <a href="{% url 'users:login' %}">Đăng nhập</a>
-        <a href="{% url 'users:register' %}">Đăng ký</a>
-        {% endif %}
-        {% if request.user.is_staff %}
-        <a href="{% url 'orders:admin_dashboard' %}">Bảng điều khiển</a>
-        <a href="/admin/">Quản trị</a>
-        {% endif %}
-    </aside>
 
     <main class="container page-wrap">
         {% if messages %}
@@ -87,34 +81,20 @@
 
     <footer class="site-footer">
         <div class="container footer-wrap">
-            <section>
+            <div>
                 <h3>HUUGIAU STUDIO</h3>
-                <p>Local brand theo hướng gọn, rõ và dễ mua nhanh trên cả điện thoại lẫn máy tính.</p>
-                <p>Website tập trung vào trải nghiệm xem sản phẩm, chọn size và chốt đơn ngắn gọn.</p>
-            </section>
-            <section>
-                <h3>THÔNG TIN MUA HÀNG</h3>
-                <ul class="footer-list">
-                    <li>Freeship toàn quốc cho đơn từ 499K</li>
-                    <li>Hỗ trợ đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng</li>
-                    <li>Thanh toán COD hoặc chuyển khoản ngân hàng</li>
-                </ul>
-            </section>
-            <section>
-                <h3>HỖ TRỢ</h3>
-                <ul class="footer-list">
-                    <li>Tư vấn size nhanh ngay trên khung chat</li>
-                    <li>Theo dõi đơn hàng trong tài khoản cá nhân</li>
-                    <li>Thời gian hỗ trợ: 9:00 - 21:30 mỗi ngày</li>
-                </ul>
-            </section>
-            <section>
-                <h3>ĐIỀU CẦN LƯU Ý</h3>
-                <ul class="footer-list">
-                    <li>Giá bán và tồn kho có thể thay đổi theo từng đợt cập nhật</li>
-                    <li>Nếu cần hỗ trợ đơn gấp, hãy chuẩn bị sẵn mã đơn khi liên hệ</li>
-                </ul>
-            </section>
+                <p>Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
+            </div>
+            <div>
+                <h3>HỖ TRỢ MUA HÀNG</h3>
+                <p>Tư vấn size, kiểm tra hàng, thanh toán và theo dõi đơn ngay trên web.</p>
+                <p>Hỗ trợ từ 9:00 đến 21:30 mỗi ngày.</p>
+            </div>
+            <div>
+                <h3>CAM KẾT</h3>
+                <p>Ảnh rõ, thao tác gọn, cập nhật đơn minh bạch và trải nghiệm mua tốt trên cả điện thoại lẫn máy tính.</p>
+                <p>Freeship từ 499K • COD hoặc chuyển khoản</p>
+            </div>
         </div>
     </footer>
 
@@ -128,7 +108,7 @@
         <div class="chatbox-header">
             <div>
                 <p class="chatbox-kicker">Tư vấn nhanh</p>
-                <h3>Hỗ trợ chọn đồ</h3>
+                <h3>Hỗ trợ mua hàng</h3>
             </div>
             <button type="button" class="chatbox-close" id="chatbox-close" aria-label="Đóng chat">×</button>
         </div>
@@ -148,6 +128,6 @@
             <button type="submit" class="btn small">Gửi</button>
         </form>
     </section>
-    <script src="/static/js/site_interactions.js?v=20260518w"></script>
+    <script src="/static/js/site_interactions.js?v=20260709a"></script>
 </body>
 </html>

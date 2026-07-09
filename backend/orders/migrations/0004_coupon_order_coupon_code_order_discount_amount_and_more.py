@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('code', models.CharField(max_length=30, unique=True)),
-                ('discount_type', models.CharField(choices=[('percent', 'Giáº£m theo pháº§n trÄƒm'), ('fixed', 'Giáº£m sá»‘ tiá»n cá»‘ Ä‘á»‹nh'), ('freeship', 'Miá»…n phĂ­ váº­n chuyá»ƒn')], default='percent', max_length=20)),
+                ('discount_type', models.CharField(choices=[('percent', 'Giảm theo phần trăm'), ('fixed', 'Giảm số tiền cố định'), ('freeship', 'Miễn phí vận chuyển')], default='percent', max_length=20)),
                 ('value', models.DecimalField(decimal_places=0, default=Decimal('0'), max_digits=10)),
                 ('min_order_amount', models.DecimalField(decimal_places=0, default=Decimal('0'), max_digits=12)),
                 ('max_discount_amount', models.DecimalField(blank=True, decimal_places=0, max_digits=10, null=True)),

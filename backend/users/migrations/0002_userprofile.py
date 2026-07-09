@@ -20,8 +20,8 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'verbose_name': 'Há»“ sÆ¡ ngÆ°á»i dĂ¹ng',
-                'verbose_name_plural': 'Há»“ sÆ¡ ngÆ°á»i dĂ¹ng',
+                'verbose_name': 'Hồ sơ người dùng',
+                'verbose_name_plural': 'Hồ sơ người dùng',
             },
         ),
     ]
