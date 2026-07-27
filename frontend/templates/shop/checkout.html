@@ -5,6 +5,13 @@
 {% block body_class %}checkout-page{% endblock %}
 
 {% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'orders:cart_detail' %}">Giỏ hàng</a>
+    <span>/</span>
+    <span>Thanh toán</span>
+</nav>
 <section class="section-shell">
     <div class="section-head">
         <div>

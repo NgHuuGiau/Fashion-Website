@@ -5,6 +5,11 @@
 {% block body_class %}cart-page{% endblock %}
 
 {% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <span>Giỏ hàng</span>
+</nav>
 <section class="section-shell">
     <div class="section-head">
         <div>

@@ -15,7 +15,7 @@
     </div>
 
     {% if active_tracking_order %}
-    <article class="order-card panel highlight">
+    <article class="order-card panel highlight" onclick="if(!event.target.closest('a,button,input,textarea,select'))location.href='{% url 'orders:order_review' active_tracking_order.id %}'">
         <div class="order-head">
             <div>
                 <p class="eyebrow">Cần theo dõi ngay</p>
@@ -39,7 +39,7 @@
     {% if orders %}
     <div class="order-list">
         {% for order in orders %}
-        <article class="order-card panel">
+        <article class="order-card panel" onclick="if(!event.target.closest('a,button,input,textarea,select'))location.href='{% url 'orders:order_review' order.id %}'">
             <div class="order-head">
                 <div>
                     <p class="eyebrow">#{{ order.id }}</p>
@@ -79,4 +79,129 @@
     </div>
     {% endif %}
 </section>
+
+<style>
+.order-list {
+    display: grid;
+    gap: 1rem;
+}
+.order-card.panel {
+    padding: 1.25rem;
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+    cursor: pointer;
+}
+.order-card.panel:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.order-head .eyebrow {
+    font-size: 0.7rem;
+    margin-bottom: 0.15rem;
+}
+.order-head h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    line-height: 1.2;
+}
+.order-head .muted {
+    font-size: 0.8rem;
+}
+.order-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+    margin: 0.75rem 0;
+}
+.order-meta-grid article {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.order-meta-grid article span {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.order-meta-grid article strong {
+    font-size: 0.88rem;
+    color: var(--text);
+}
+.order-lines {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+    margin-top: 0.25rem;
+}
+.order-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.84rem;
+    color: var(--text-soft);
+}
+.order-line strong {
+    color: var(--text);
+    white-space: nowrap;
+}
+.order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+}
+.order-actions .btn { width: auto; }
+.order-card.highlight {
+    border-color: var(--accent);
+    border-width: 2px;
+    background: linear-gradient(180deg, var(--surface-strong), rgba(240, 223, 209, 0.35));
+}
+.status-badge {
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.status-processing {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+.status-shipping {
+    background: rgba(91, 122, 154, 0.12);
+    color: var(--info);
+}
+.status-delivered {
+    background: var(--success-soft);
+    color: var(--success);
+}
+.status-cancelled {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.status-pending {
+    background: rgba(217, 119, 6, 0.1);
+    color: var(--warning);
+}
+@media (max-width: 560px) {
+    .order-meta-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .order-card.panel {
+        padding: 1rem;
+    }
+}
+</style>
 {% endblock %}

@@ -82,13 +82,6 @@ class RegisterForm(forms.ModelForm):
         cleaned_data = super().clean()
         password1 = cleaned_data.get("password1")
         password2 = cleaned_data.get("password2")
-        email = (cleaned_data.get("email") or "").strip()
-        phone_number = (cleaned_data.get("phone_number") or "").strip()
-
-        if not email and not phone_number:
-            msg = "Cần nhập ít nhất Email hoặc Số điện thoại."
-            self.add_error("email", msg)
-            self.add_error("phone_number", msg)
 
         if password1 and password2 and password1 != password2:
             self.add_error("password2", "Mật khẩu nhập lại không khớp.")
@@ -143,12 +136,6 @@ class ProfileForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        email = (cleaned_data.get("email") or "").strip()
-        phone_number = (cleaned_data.get("phone_number") or "").strip()
-        if not email and not phone_number:
-            msg = "Cần nhập ít nhất Email hoặc Số điện thoại."
-            self.add_error("email", msg)
-            self.add_error("phone_number", msg)
         return cleaned_data
 
     def save(self):

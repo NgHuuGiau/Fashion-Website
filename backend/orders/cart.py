@@ -80,7 +80,7 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
     if max_stock > 0:
         cart[key]["quantity"] = min(cart[key]["quantity"], max_stock)
     else:
-        cart[key]["quantity"] = 1
+        cart[key]["quantity"] = 0
 
     request.session.modified = True
 

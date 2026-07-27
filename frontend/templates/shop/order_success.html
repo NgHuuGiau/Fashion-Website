@@ -2,24 +2,178 @@
 {% load shop_format %}
 
 {% block title %}Đặt hàng thành công{% endblock %}
+{% block body_class %}success-page{% endblock %}
 
 {% block content %}
 <section class="section-shell">
-    <div class="status-card panel success-card">
-        <p class="eyebrow">Đặt hàng thành công</p>
-        <h1>Đơn hàng #{{ order.id }} đã được tạo</h1>
-        <p>Mã đơn hàng của bạn đã sẵn sàng để theo dõi trong tài khoản.</p>
+    <div class="success-layout">
+        <div class="success-card panel">
+            <div class="success-icon">
+                <i class="fa-regular fa-circle-check"></i>
+            </div>
+            <p class="eyebrow">Đặt hàng thành công</p>
+            <h1>Cảm ơn bạn!</h1>
+            <p class="success-sub">Đơn hàng <strong>#{{ order.id }}</strong> đã được tạo.</p>
 
-        <div class="status-meta">
-            <article><span>Phương thức</span><strong>{{ order.get_payment_method_display }}</strong></article>
-            <article><span>Trạng thái</span><strong>{{ order.get_status_display }}</strong></article>
-            <article><span>Tổng thanh toán</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
+            <div class="success-meta">
+                <div class="success-meta-item">
+                    <span>Phương thức</span>
+                    <strong>{{ order.get_payment_method_display }}</strong>
+                </div>
+                <div class="success-meta-item">
+                    <span>Trạng thái</span>
+                    <strong class="status-{{ order.status }}">{{ order.get_status_display }}</strong>
+                </div>
+                <div class="success-meta-item">
+                    <span>Tổng thanh toán</span>
+                    <strong class="price">{{ order.total_amount|vnd }}đ</strong>
+                </div>
+                <div class="success-meta-item">
+                    <span>Người nhận</span>
+                    <strong>{{ order.customer_name|repair_text }}</strong>
+                </div>
+            </div>
+
+            {% if not order.is_paid and order.payment_method == "bank" and order.status != "cancelled" %}
+            <div class="success-reminder">
+                <i class="fa-regular fa-clock"></i>
+                Bạn cần thanh toán trong vòng 15 phút để giữ đơn hàng.
+            </div>
+            {% endif %}
+
+            <div class="success-actions">
+                <a href="{% url 'orders:my_orders' %}" class="btn">
+                    <i class="fa-regular fa-box"></i>
+                    Xem đơn hàng
+                </a>
+                <a href="{% url 'products:product_list' %}" class="btn ghost">
+                    <i class="fa-regular fa-bag-shopping"></i>
+                    Mua thêm
+                </a>
+                {% if not order.is_paid and order.payment_method == "bank" and order.status != "cancelled" %}
+                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn outline">
+                    <i class="fa-regular fa-qrcode"></i>
+                    Thanh toán ngay
+                </a>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="stack row">
-            <a href="{% url 'orders:my_orders' %}" class="btn">Xem đơn hàng của tôi</a>
-            <a href="{% url 'products:product_list' %}" class="btn ghost">Tiếp tục mua sắm</a>
+        <div class="success-tips panel">
+            <h3><i class="fa-regular fa-lightbulb"></i> Những điều cần biết</h3>
+            <ul>
+                <li>Đơn hàng sẽ được xử lý sau khi shop xác nhận thanh toán.</li>
+                <li>Thời gian giao hàng dự kiến từ 2-5 ngày tùy khu vực.</li>
+                <li>Bạn có thể theo dõi trạng thái đơn hàng trong mục <a href="{% url 'orders:my_orders' %}">Đơn hàng của tôi</a>.</li>
+                <li>Nếu cần hỗ trợ, hãy dùng chat hoặc liên hệ shop.</li>
+            </ul>
         </div>
     </div>
 </section>
+
+<style>
+.success-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.25rem;
+    align-items: start;
+}
+.success-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+.success-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--success-soft); display: grid; place-items: center;
+    margin: 0 auto 0.75rem; font-size: 1.8rem; color: var(--success);
+}
+.success-sub {
+    font-size: 0.92rem;
+    color: var(--text-soft);
+    margin-bottom: 1rem;
+}
+.success-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    margin: 1rem 0;
+    text-align: left;
+}
+.success-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.success-meta-item span {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.success-meta-item strong {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+.success-meta-item .price {
+    color: var(--accent-strong);
+    font-weight: 800;
+}
+.success-reminder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    border-radius: var(--radius-xs);
+    background: var(--warning);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+.success-reminder i { font-size: 0.9rem; }
+.success-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+}
+.success-actions .btn { width: auto; }
+.success-actions .btn i { margin-right: 0.3rem; }
+.success-tips {
+    padding: 1.25rem;
+}
+.success-tips h3 {
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.6rem;
+}
+.success-tips h3 i { color: var(--accent); }
+.success-tips ul {
+    display: grid;
+    gap: 0.35rem;
+    padding-left: 0;
+    list-style: none;
+}
+.success-tips li {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--line-strong);
+}
+.success-tips a {
+    color: var(--accent-strong);
+    text-decoration: underline;
+}
+@media (max-width: 640px) {
+    .success-layout { grid-template-columns: 1fr; }
+    .success-meta { grid-template-columns: 1fr 1fr; }
+}
+</style>
 {% endblock %}

@@ -5,9 +5,13 @@
 {% block content %}
 <section class="auth-layout auth-editorial section-space">
     <div class="auth-panel">
-        <p class="eyebrow">Đăng ký</p>
-        <h1>Bắt đầu với HUUGIAU</h1>
-        <p>Tạo tài khoản để lưu thông tin, theo dõi đơn hàng và chốt mua nhanh hơn.</p>
+        <div class="auth-brand">
+            <div class="auth-brand-icon">
+                <i class="fa-regular fa-user-plus"></i>
+            </div>
+            <h1>Bắt đầu với HUUGIAU</h1>
+            <p>Tạo tài khoản để lưu thông tin, theo dõi đơn hàng và chốt mua nhanh hơn.</p>
+        </div>
 
         <form method="post" class="auth-form">
             {% csrf_token %}
@@ -15,8 +19,15 @@
             <div class="message error">{{ form.non_field_errors|striptags }}</div>
             {% endif %}
             {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <div class="form-group{% if field.errors %} has-error{% endif %}">
+                <label for="{{ field.id_for_label }}">
+                    {% if "email" in field.name %}<i class="fa-regular fa-envelope"></i>
+                    {% elif "password" in field.name %}<i class="fa-regular fa-lock"></i>
+                    {% elif "phone" in field.name or "số" in field.label %}<i class="fa-regular fa-phone"></i>
+                    {% elif "name" in field.name or "tên" in field.label %}<i class="fa-regular fa-user"></i>
+                    {% else %}<i class="fa-regular fa-circle"></i>{% endif %}
+                    {{ field.label }}
+                </label>
                 {{ field }}
                 {% if field.help_text %}
                 <small class="help-text">{{ field.help_text|safe }}</small>
@@ -26,7 +37,10 @@
                 {% endif %}
             </div>
             {% endfor %}
-            <button type="submit" class="btn">Đăng ký</button>
+            <button type="submit" class="btn">
+                <i class="fa-regular fa-user-plus"></i>
+                Đăng ký
+            </button>
         </form>
 
         <div class="social-auth">
@@ -52,14 +66,17 @@
 
     <aside class="auth-benefits">
         <div>
-            <p class="eyebrow">HUUGIAU Atelier</p>
+            <div class="auth-benefits-brand">
+                <i class="fa-regular fa-gem"></i>
+                <span>HUUGIAU Atelier</span>
+            </div>
             <h2>Lưu wishlist, theo dõi đơn và mua lại nhanh hơn</h2>
             <p>Một tài khoản giúp bạn quản lý lịch sử mua hàng, thông tin cá nhân và tư vấn size gọn hơn.</p>
         </div>
-        <ul class="password-requirements">
-            <li>Mật khẩu đủ mạnh để bảo vệ tài khoản.</li>
-            <li>Thông tin giao hàng có thể cập nhật sau.</li>
-            <li>Sau khi đăng ký, bạn có thể mua hàng ngay.</li>
+        <ul class="auth-benefits-list">
+            <li><i class="fa-regular fa-shield"></i> Mật khẩu đủ mạnh để bảo vệ tài khoản</li>
+            <li><i class="fa-regular fa-pen-to-square"></i> Thông tin giao hàng có thể cập nhật sau</li>
+            <li><i class="fa-regular fa-cart-shopping"></i> Sau khi đăng ký, bạn có thể mua hàng ngay</li>
         </ul>
     </aside>
 </section>

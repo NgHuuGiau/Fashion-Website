@@ -66,7 +66,7 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(user.profile.phone_number, "0912345678")
 
 
-    def test_register_requires_email_or_phone(self):
+    def test_register_without_email_or_phone_is_valid(self):
         response = self.client.post(
             reverse("users:register"),
             {
@@ -79,8 +79,8 @@ class UserAuthFlowTest(TestCase):
                 "password2": "StrongPass123!",
             },
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Cần nhập ít nhất Email hoặc Số điện thoại")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(username="nopoint").exists())
 
 
     def test_register_password_policy_enforced(self):

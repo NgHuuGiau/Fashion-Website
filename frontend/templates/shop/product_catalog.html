@@ -22,14 +22,25 @@
         </article>
     </div>
 </section>
+{% else %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <span>Danh mục</span>
+</nav>
 {% endif %}
 
 <section class="lookbook-shell" id="featured-products">
     <div class="section-head lookbook-head">
         <div>
-            <p class="eyebrow">SẢN PHẨM NỔI BẬT</p>
-            <h2>Lookbook hôm nay</h2>
-            <p>Những món dễ mặc nhưng vẫn giữ được cá tính riêng.</p>
+            <p class="eyebrow">{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}TẤT CẢ SẢN PHẨM{% endif %}</p>
+            <h2>{% if is_random_home %}Lookbook hôm nay{% else %}Catalog{% endif %}</h2>
+            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ products|length }} sản phẩm đang có sẵn.{% endif %}</p>
+        </div>
+        <div class="catalog-controls">
+            <a href="{% url 'products:product_list' %}?sort=newest" class="chip {% if request.GET.sort == 'newest' or not request.GET.sort %}active{% endif %}">Mới nhất</a>
+            <a href="{% url 'products:product_list' %}?sort=price_asc" class="chip {% if request.GET.sort == 'price_asc' %}active{% endif %}">Giá thấp</a>
+            <a href="{% url 'products:product_list' %}?sort=price_desc" class="chip {% if request.GET.sort == 'price_desc' %}active{% endif %}">Giá cao</a>
         </div>
     </div>
 
@@ -38,12 +49,18 @@
         <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
             <div class="card-media card-media-editorial">
                 {% if product.get_image %}
-                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}">
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
                 {% else %}
                 <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% endif %}
                 {% if product.featured %}
-                <span class="tag">FEATURED</span>
+                <span class="tag">NỔI BẬT</span>
+                {% endif %}
+                {% if not product.available %}
+                <span class="tag tag-soldout">HẾT HÀNG</span>
+                {% endif %}
+                {% if product.stock <= 0 and product.available %}
+                <span class="tag tag-soldout">HẾT HÀNG</span>
                 {% endif %}
             </div>
             <div class="card-body card-body-editorial">
@@ -63,5 +80,103 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if products.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="pagination-prev">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Trước
+        </a>
+        {% endif %}
+
+        <div class="pagination-pages">
+            {% for num in products.paginator.page_range %}
+                {% if num == products.number %}
+                <span class="pagination-current">{{ num }}</span>
+                {% elif num > products.number|add:"-3" and num < products.number|add:"3" %}
+                <a href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="pagination-next">
+            Sau
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </section>
+
+<style>
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+.pagination-prev,
+.pagination-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    border: 1px solid var(--line);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.pagination-prev:hover,
+.pagination-next:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.pagination-pages {
+    display: flex;
+    gap: 0.25rem;
+}
+.pagination-pages a,
+.pagination-current {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.pagination-pages a {
+    color: var(--text-soft);
+    border: 1px solid var(--line);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.pagination-pages a:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.pagination-current {
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid var(--accent);
+}
+@media (max-width: 560px) {
+    .pagination { gap: 0.25rem; flex-wrap: wrap; }
+    .pagination-prev,
+    .pagination-next { font-size: 0.7rem; padding: 0.35rem 0.5rem; }
+    .pagination-pages a,
+    .pagination-current { width: 28px; height: 28px; font-size: 0.72rem; }
+}
+</style>
 {% endblock %}

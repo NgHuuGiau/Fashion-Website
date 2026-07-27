@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .activity import log_activity
 from .forms import ProfileForm, RegisterForm
@@ -84,6 +86,8 @@ def login_view(request):
             log_activity(request, event_type="login", metadata={"username": user.username})
             messages.success(request, "Đăng nhập thành công.")
             next_url = request.GET.get("next") or request.POST.get("next") or "products:product_list"
+            if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                next_url = reverse("products:product_list")
             return redirect(next_url)
 
         messages.error(request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu.")
@@ -102,13 +106,16 @@ def social_login_view(request, provider):
 
     if login_url:
         next_url = request.GET.get("next") or request.POST.get("next") or ""
-        if next_url:
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             joiner = "&" if "?" in login_url else "?"
             login_url = f"{login_url}{joiner}next={next_url}"
         return redirect(login_url)
 
     messages.info(request, f"Đăng nhập {provider_key or 'mạng xã hội'} chưa được bật trong cấu hình.")
-    return redirect(request.GET.get("next") or "users:login")
+    fallback = request.GET.get("next") or ""
+    if not url_has_allowed_host_and_scheme(fallback, allowed_hosts={request.get_host()}):
+        fallback = reverse("users:login")
+    return redirect(fallback)
 
 
 @login_required

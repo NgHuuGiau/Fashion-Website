@@ -1,13 +1,18 @@
-﻿from datetime import timedelta
+﻿import hashlib
+import re
+from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import quote
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Case, F, IntegerField, Sum, When
-from django.http import JsonResponse
+from django.db.models.functions import Greatest
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -218,6 +223,11 @@ def expire_bank_order_if_needed(order):
     return True
 
 
+def _payment_token(order_id):
+    raw = f"bank:{order_id}:qr:{settings.SECRET_KEY}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
 @require_POST
 def cart_add(request, product_id):
     product = get_object_or_404(Product, id=product_id, available=True)
@@ -351,6 +361,7 @@ def checkout(request):
                         selected_coupon = Coupon.objects.select_for_update().get(id=selected_coupon.id)
                         if not selected_coupon.is_usable_now():
                             form.add_error("coupon_code", "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.")
+                            transaction.set_rollback(True)
                             return render(
                                 request,
                                 "shop/checkout.html",
@@ -402,14 +413,13 @@ def checkout(request):
 
                         product = item["product"]
                         if variant:
-                            variant.stock = max(0, variant.stock - item["quantity"])
-                            variant.save(update_fields=["stock"])
+                            ProductVariant.objects.filter(id=variant.id).update(
+                                stock=Greatest(F("stock") - item["quantity"], 0)
+                            )
                             product.stock = product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
                         else:
-                            Product.objects.filter(id=product.id).update(stock=F("stock") - item["quantity"])
+                            Product.objects.filter(id=product.id).update(stock=Greatest(F("stock") - item["quantity"], 0))
                             product.refresh_from_db()
-                            if product.stock < 0:
-                                product.stock = 0
                         product.save(update_fields=["stock", "updated"])
 
                 clear_cart(request)
@@ -462,7 +472,10 @@ def checkout(request):
 
 @login_required
 def order_success(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
+    order = get_object_or_404(Order, **lookup)
     decorate_order_tracking(order)
     if expire_bank_order_if_needed(order):
         messages.warning(request, "Đơn hàng quá 15 phút chưa thanh toán, hệ thống đã tự hủy.")
@@ -494,7 +507,10 @@ def order_success(request, order_id):
 
 @login_required
 def bank_payment_waiting(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
+    order = get_object_or_404(Order, **lookup)
     if order.payment_method != "bank":
         return redirect("orders:order_success", order_id=order.id)
     if expire_bank_order_if_needed(order):
@@ -508,6 +524,8 @@ def bank_payment_waiting(request, order_id):
     selected_bank = BANKS.get(order.bank_code) or BANKS["VCB"]
     expires_at = order.created_at + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
     qr_url = build_vietqr_url(order.bank_code, order.total_amount, f"DH{order.id}")
+    token = _payment_token(order.id)
+    mobile_url = request.build_absolute_uri(reverse("orders:bank_payment_mobile", kwargs={"token": token, "order_id": order.id}))
     return render(
         request,
         "shop/bank_payment_waiting.html",
@@ -517,10 +535,74 @@ def bank_payment_waiting(request, order_id):
             "shop_bank_account": SHOP_BANK_ACCOUNT,
             "shop_account_name": SHOP_ACCOUNT_NAME,
             "qr_url": qr_url,
+            "mobile_url": mobile_url,
             "expires_at_iso": expires_at.isoformat(),
             "payment_timeout_minutes": PAYMENT_TIMEOUT_MINUTES,
         },
     )
+
+
+def bank_payment_mobile(request, token, order_id):
+    expected = _payment_token(order_id)
+    if token != expected:
+        raise Http404
+    order = get_object_or_404(Order, id=order_id, payment_method="bank")
+
+    success_url = request.build_absolute_uri(reverse("orders:order_success", kwargs={"order_id": order.id}))
+    failed_url = request.build_absolute_uri(reverse("orders:order_failed", kwargs={"order_id": order.id}))
+    ctx = {"order": order, "token": token, "success_url": success_url, "failed_url": failed_url}
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "confirm":
+            if expire_bank_order_if_needed(order):
+                ctx.update({"expired": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
+            if order.status == "cancelled":
+                ctx.update({"cancelled": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
+            if order.is_paid:
+                ctx.update({"paid": True, "just_paid": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
+            order.is_paid = True
+            order.status = "processing"
+            order.save(update_fields=["is_paid", "status", "updated_at"])
+            ctx.update({"paid": True, "just_paid": True})
+            return render(request, "shop/bank_payment_mobile.html", ctx)
+        elif action == "cancel":
+            if order.is_paid:
+                ctx.update({"paid": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
+            if expire_bank_order_if_needed(order):
+                ctx.update({"expired": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
+            restore_order_stock(order)
+            order.status = "cancelled"
+            order.save(update_fields=["status", "updated_at"])
+            ctx.update({"cancelled": True, "just_cancelled": True})
+            return render(request, "shop/bank_payment_mobile.html", ctx)
+
+    if expire_bank_order_if_needed(order):
+        ctx.update({"expired": True})
+        return render(request, "shop/bank_payment_mobile.html", ctx)
+    if order.is_paid:
+        ctx.update({"paid": True})
+        return render(request, "shop/bank_payment_mobile.html", ctx)
+    if order.status == "cancelled":
+        ctx.update({"cancelled": True})
+        return render(request, "shop/bank_payment_mobile.html", ctx)
+
+    selected_bank = BANKS.get(order.bank_code) or BANKS["VCB"]
+    ctx.update(
+        {
+            "selected_bank_name": selected_bank["name"],
+            "shop_bank_account": SHOP_BANK_ACCOUNT,
+            "shop_account_name": SHOP_ACCOUNT_NAME,
+            "expired": False,
+            "paid": False,
+        }
+    )
+    return render(request, "shop/bank_payment_mobile.html", ctx)
 
 
 @login_required
@@ -538,7 +620,10 @@ def bank_payment_status(request, order_id):
 
 @login_required
 def order_failed(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
+    order = get_object_or_404(Order, **lookup)
     expired_by_timeout = "[AUTO_TIMEOUT_15_MIN]" in (order.note or "")
     reason = "expired" if expired_by_timeout else "cancelled"
     if request.GET.get("reason"):
@@ -549,10 +634,12 @@ def order_failed(request, order_id):
 
 @login_required
 def order_review(request, order_id):
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
     order = get_object_or_404(
         Order.objects.prefetch_related("items__product", "items__variant"),
-        id=order_id,
-        user=request.user,
+        **lookup,
     )
     decorate_order_tracking(order)
     if expire_bank_order_if_needed(order):
@@ -571,7 +658,6 @@ def order_review(request, order_id):
         order.customer_email = request.POST.get("customer_email", "").strip()
         phone_input = request.POST.get("phone", "").strip()
         if phone_input:
-            import re
             if not re.fullmatch(r"[0-9]{9,15}", phone_input):
                 messages.error(request, "Số điện thoại không hợp lệ, vui lòng chỉ nhập số từ 9 đến 15 chữ số.")
                 return redirect("orders:order_review", order_id=order.id)
@@ -673,9 +759,9 @@ def bank_payment_cancel(request, order_id):
 
 @login_required
 def my_orders(request):
+    qs = Order.objects.all() if request.user.is_staff else Order.objects.filter(user=request.user)
     orders = list(
-        Order.objects.filter(user=request.user)
-        .prefetch_related("items__product", "items__variant")
+        qs.prefetch_related("items__product", "items__variant")
         .order_by(
             Case(
                 When(status="shipping", then=0),

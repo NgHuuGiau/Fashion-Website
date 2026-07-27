@@ -6,55 +6,684 @@
 {% block content %}
 <section class="section-shell">
     <div class="payment-layout">
-        <article class="payment-hero panel">
-            <p class="eyebrow">QR thanh toán</p>
-            <h1>Chờ quét mã thanh toán</h1>
-            <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
-            <p>Quét mã QR và hoàn tất thanh toán trong <strong>{{ payment_timeout_minutes }} phút</strong>.</p>
-            <div class="countdown" id="countdown-text">--:--</div>
-            <div class="stack row">
-                <form method="post" action="{% url 'orders:bank_payment_confirm' order.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn">Đã chuyển khoản</button>
-                </form>
-                <form method="post" action="{% url 'orders:bank_payment_cancel' order.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn ghost">Hủy thanh toán</button>
-                </form>
-            </div>
-        </article>
+        <div class="payment-main">
+            <div class="payment-card">
+                <div class="payment-card-icon-wrap">
+                    <div class="payment-card-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="8" width="20" height="14" rx="2"/>
+                            <path d="M12 2L22 8H2L12 2z"/>
+                            <path d="M8 15h8"/>
+                        </svg>
+                    </div>
+                    <div class="payment-card-icon-shimmer"></div>
+                </div>
 
-        <aside class="payment-side panel">
-            <div class="payment-qr panel-soft">
-                <img src="{{ qr_url }}" alt="QR chuyển khoản đơn hàng {{ order.id }}">
+                <div class="payment-card-body">
+                    <span class="payment-badge">Chuyển khoản ngân hàng</span>
+                    <h1 class="payment-title">Chờ xác nhận thanh toán</h1>
+
+                    <div class="payment-meta">
+                        <span class="payment-meta-label">Đơn hàng</span>
+                        <strong class="payment-meta-value">#{{ order.id }}</strong>
+                    </div>
+
+                    <div class="payment-countdown-wrap">
+                        <div class="payment-countdown-ring">
+                            <svg class="payment-countdown-svg" viewBox="0 0 100 100">
+                                <circle class="payment-countdown-bg" cx="50" cy="50" r="44"/>
+                                <circle class="payment-countdown-progress" id="countdown-ring" cx="50" cy="50" r="44"/>
+                            </svg>
+                            <div class="payment-countdown-inner">
+                                <span class="payment-countdown-number" id="countdown-text">--:--</span>
+                            </div>
+                        </div>
+                        <p class="payment-countdown-label">Thời gian còn lại</p>
+                    </div>
+
+                    <div class="payment-info-grid">
+                        <div class="payment-info-item">
+                            <span class="payment-info-label">Ngân hàng</span>
+                            <strong class="payment-info-value">{{ selected_bank_name }}</strong>
+                        </div>
+                        <div class="payment-info-item">
+                            <span class="payment-info-label">Số tài khoản</span>
+                            <strong class="payment-info-value">{{ shop_bank_account }}</strong>
+                        </div>
+                        <div class="payment-info-item">
+                            <span class="payment-info-label">Chủ tài khoản</span>
+                            <strong class="payment-info-value">{{ shop_account_name }}</strong>
+                        </div>
+                        <div class="payment-info-item payment-info-item-highlight">
+                            <span class="payment-info-label">Số tiền</span>
+                            <strong class="payment-info-value payment-info-price">{{ order.total_amount|floatformat:"0" }}<span class="payment-currency">đ</span></strong>
+                        </div>
+                        <div class="payment-info-item">
+                            <span class="payment-info-label">Nội dung</span>
+                            <strong class="payment-info-value payment-info-ref">DH{{ order.id }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="payment-back-action">
+                        <a href="{% url 'orders:order_review' order.id %}" class="payment-btn payment-btn-outline">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                            Quay lại đơn hàng
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="summary-list">
-                <div class="summary-line"><span>Ngân hàng</span><strong>{{ selected_bank_name }}</strong></div>
-                <div class="summary-line"><span>Số tài khoản</span><strong>{{ shop_bank_account }}</strong></div>
-                <div class="summary-line"><span>Chủ tài khoản</span><strong>{{ shop_account_name }}</strong></div>
-                <div class="summary-line"><span>Nội dung</span><strong>DH{{ order.id }}</strong></div>
+        </div>
+
+        <div class="payment-sidebar">
+            <div class="payment-sidebar-sticky">
+                <div class="payment-qr-section">
+                    <div class="payment-qr-tabs">
+                        <button class="payment-qr-tab active" data-tab="confirm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 12h8"/></svg>
+                            Xác nhận
+                        </button>
+                        <button class="payment-qr-tab" data-tab="transfer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="14" rx="2"/><path d="M12 2L22 8H2L12 2z"/></svg>
+                            Chuyển khoản
+                        </button>
+                    </div>
+
+                    <div class="payment-qr-panel active" id="panel-confirm">
+                        <p class="payment-qr-panel-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Quét mã để xác nhận thanh toán
+                        </p>
+                        <a href="{{ mobile_url }}" target="_blank" rel="noopener" class="payment-qr-link-wrap">
+                            <div class="payment-qr-box">
+                                <img src="{{ qr_url }}" alt="QR xác nhận" class="payment-qr-img" id="qr-confirm-img" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\'display:block;padding:1rem;font-size:0.75rem;color:#9a8a7a\'>Không tải được QR.<br><a href=\''+this.closest(\'a\').href+'\' style=\'color:#d4803f;font-weight:600\'>Bấm để mở</a></span>'">
+                                <div class="payment-qr-box-overlay">
+                                    <span>Bấm để mở</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="payment-qr-hint">
+                            <span class="payment-qr-hint-dot"></span>
+                            Mở trên điện thoại để xác nhận
+                        </div>
+                    </div>
+
+                    <div class="payment-qr-panel" id="panel-transfer">
+                        <p class="payment-qr-panel-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="2" x2="12" y2="16"/></svg>
+                            Quét mã để chuyển khoản
+                        </p>
+                        <div class="payment-qr-box">
+                            <img src="{{ qr_url }}" alt="QR chuyển khoản" class="payment-qr-img" onerror="this.onerror=null;this.alt='QR chuyển khoản';this.style.display='none';this.parentElement.innerHTML+='<div style=\'padding:0.75rem;font-size:0.75rem;color:#9a8a7a\'>QR không tải được. Vui lòng chuyển khoản thủ công.</div>'">
+                        </div>
+                        <div class="payment-qr-hint">
+                            <span class="payment-qr-hint-dot"></span>
+                            Dùng app ngân hàng quét mã
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-summary-card">
+                    <div class="payment-summary-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 2L22 8H2z"/></svg>
+                        Thông tin chuyển khoản
+                    </div>
+                    <div class="payment-summary-body">
+                        <div class="payment-summary-row">
+                            <span>Ngân hàng</span>
+                            <strong>{{ selected_bank_name }}</strong>
+                        </div>
+                        <div class="payment-summary-row">
+                            <span>Số tài khoản</span>
+                            <strong>{{ shop_bank_account }}</strong>
+                        </div>
+                        <div class="payment-summary-row">
+                            <span>Chủ tài khoản</span>
+                            <strong>{{ shop_account_name }}</strong>
+                        </div>
+                        <div class="payment-summary-row payment-summary-row-price">
+                            <span>Thành tiền</span>
+                            <strong>{{ order.total_amount|floatformat:"0" }}đ</strong>
+                        </div>
+                        <div class="payment-summary-row">
+                            <span>Nội dung</span>
+                            <strong class="payment-ref-code">DH{{ order.id }}</strong>
+                        </div>
+                    </div>
+                    <div class="payment-summary-copy" id="copy-ref-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Sao chép nội dung DH{{ order.id }}
+                    </div>
+                </div>
+
+                <div class="payment-guide">
+                    <div class="payment-guide-step">
+                        <div class="payment-guide-number">1</div>
+                        <div class="payment-guide-text">
+                            <strong>Chuyển khoản</strong>
+                            <span>Quét mã QR chuyển khoản bên trên</span>
+                        </div>
+                    </div>
+                    <div class="payment-guide-arrow">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                    </div>
+                    <div class="payment-guide-step">
+                        <div class="payment-guide-number">2</div>
+                        <div class="payment-guide-text">
+                            <strong>Xác nhận</strong>
+                            <span>Quét mã QR xác nhận để hoàn tất</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </aside>
+        </div>
     </div>
 </section>
 
 <script>
 (function () {
-    var countdownText = document.getElementById("countdown-text");
-    var expiresAtIso = "{{ expires_at_iso }}";
-    var expiresAt = new Date(expiresAtIso);
-    if (!countdownText || Number.isNaN(expiresAt.getTime())) return;
+    var expiresAt = new Date("{{ expires_at_iso }}");
+    var statusUrl = "{% url 'orders:bank_payment_status' order.id %}";
+    var successUrl = "{% url 'orders:order_success' order.id %}";
 
-    function updateCountdown() {
+    var el = document.getElementById("countdown-text");
+    var ring = document.getElementById("countdown-ring");
+    var totalSecs = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+    var initialTotal = totalSecs || 900;
+
+    function tick() {
         var diff = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-        var minutes = String(Math.floor(diff / 60)).padStart(2, "0");
-        var seconds = String(diff % 60).padStart(2, "0");
-        countdownText.textContent = minutes + ":" + seconds;
-        if (diff <= 0) clearInterval(timer);
+        if (el) el.textContent = String(Math.floor(diff / 60)).padStart(2, "0") + ":" + String(diff % 60).padStart(2, "0");
+        if (ring) {
+            var pct = initialTotal > 0 ? (diff / initialTotal) : 0;
+            var circ = 2 * Math.PI * 44;
+            ring.style.strokeDasharray = circ;
+            ring.style.strokeDashoffset = circ * (1 - pct);
+        }
+        if (diff <= 0) { clearInterval(timer); }
     }
+    if (el || ring) { tick(); var timer = setInterval(tick, 1000); }
 
-    updateCountdown();
-    var timer = setInterval(updateCountdown, 1000);
+    var failedUrl = "{% url 'orders:order_failed' order.id %}";
+
+    var pollTimer = setInterval(function () {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", statusUrl, true);
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                if (data.is_paid === true) {
+                    clearInterval(pollTimer);
+                    document.body.classList.add("payment-success-flash");
+                    setTimeout(function () { window.location.href = successUrl; }, 600);
+                } else if (data.status === "cancelled") {
+                    clearInterval(pollTimer);
+                    window.location.href = failedUrl;
+                }
+            }
+        };
+        xhr.send();
+    }, 2000);
+
+    var tabs = document.querySelectorAll(".payment-qr-tab");
+    var panels = {
+        confirm: document.getElementById("panel-confirm"),
+        transfer: document.getElementById("panel-transfer"),
+    };
+    tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+            var target = tab.dataset.tab;
+            tabs.forEach(function (t) { t.classList.remove("active"); });
+            tab.classList.add("active");
+            Object.keys(panels).forEach(function (k) {
+                panels[k].classList.toggle("active", k === target);
+            });
+        });
+    });
+
+    var copyBtn = document.getElementById("copy-ref-btn");
+    if (copyBtn) {
+        copyBtn.addEventListener("click", function () {
+            var text = "DH{{ order.id }}";
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(function () {
+                    copyBtn.classList.add("copied");
+                    copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Đã sao chép!';
+                    setTimeout(function () {
+                        copyBtn.classList.remove("copied");
+                        copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Sao chép nội dung DH{{ order.id }}';
+                    }, 2000);
+                });
+            } else {
+                var ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                copyBtn.classList.add("copied");
+                copyBtn.textContent = "Đã sao chép!";
+                setTimeout(function () {
+                    copyBtn.classList.remove("copied");
+                    copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Sao chép nội dung DH{{ order.id }}';
+                }, 2000);
+            }
+        });
+    }
 })();
 </script>
+
+<style>
+.payment-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    align-items: start;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+.payment-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+    overflow: hidden;
+    position: relative;
+    animation: paymentFadeIn 0.5s ease;
+}
+@keyframes paymentFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.payment-card-icon-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1.5rem 0;
+}
+.payment-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f5f0eb 0%, #ede6dc 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9a8a7a;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.payment-card-icon svg { width: 24px; height: 24px; }
+.payment-card-icon-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2.5s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.payment-card-body { padding: 1rem 1.75rem 1.75rem; text-align: center; }
+.payment-badge {
+    display: inline-flex;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    background: #f5f0eb;
+    color: #7b6758;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.65rem;
+}
+.payment-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1a1410;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.01em;
+}
+.payment-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+}
+.payment-meta-label { font-size: 0.75rem; color: #9a8a7a; }
+.payment-meta-value { font-size: 0.9rem; color: #1a1410; font-weight: 700; }
+
+.payment-countdown-wrap { margin: 0.75rem 0 1.25rem; }
+.payment-countdown-ring {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto;
+}
+.payment-countdown-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.payment-countdown-bg { fill: none; stroke: #f0ece8; stroke-width: 4; }
+.payment-countdown-progress {
+    fill: none;
+    stroke: #d4803f;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+    filter: drop-shadow(0 0 4px rgba(212,128,63,0.2));
+}
+.payment-countdown-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.payment-countdown-number {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #d4803f;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+.payment-countdown-label {
+    font-size: 0.68rem;
+    color: #9a8a7a;
+    margin-top: 0.35rem;
+}
+
+.payment-info-grid {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 340px;
+    margin: 0 auto 1rem;
+    background: #faf8f6;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    border: 1px solid #f0ece8;
+}
+.payment-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.15rem 0;
+}
+.payment-info-label { font-size: 0.78rem; color: #9a8a7a; }
+.payment-info-value { font-size: 0.82rem; color: #1a1410; font-weight: 600; }
+.payment-info-item-highlight .payment-info-value { color: #d4803f; }
+.payment-info-price { font-size: 1rem; font-weight: 800; }
+.payment-currency { font-size: 0.72rem; font-weight: 600; margin-left: 0.05rem; }
+.payment-info-ref {
+    font-family: monospace;
+    background: #f0ece8;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+}
+
+.payment-back-action { margin-top: 0.5rem; }
+.payment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+}
+.payment-btn svg { transition: transform 0.2s ease; }
+.payment-btn-outline {
+    background: transparent;
+    color: #7b6758;
+    border: 1.5px solid #e0d6cc;
+}
+.payment-btn-outline:hover {
+    background: #f5f0eb;
+    border-color: #c4b5a5;
+}
+.payment-btn-outline:hover svg { transform: translateX(-2px); }
+
+/* sidebar */
+.payment-sidebar { position: relative; }
+.payment-sidebar-sticky { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.payment-qr-section {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    overflow: hidden;
+    animation: paymentFadeIn 0.5s ease 0.1s both;
+}
+.payment-qr-tabs {
+    display: flex;
+    background: #faf8f6;
+    border-bottom: 1px solid #f0ece8;
+}
+.payment-qr-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 0.5rem;
+    border: none;
+    background: transparent;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #9a8a7a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.payment-qr-tab svg { width: 14px; height: 14px; flex-shrink: 0; }
+.payment-qr-tab.active {
+    color: #d4803f;
+    background: #fff;
+}
+.payment-qr-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: #d4803f;
+    border-radius: 2px;
+}
+.payment-qr-tab:not(.active):hover { color: #7b6758; }
+.payment-qr-panel {
+    display: none;
+    padding: 1rem 1.25rem 1.1rem;
+    text-align: center;
+}
+.payment-qr-panel.active { display: block; animation: panelIn 0.25s ease; }
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.payment-qr-panel-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: #7b6758;
+    margin-bottom: 0.65rem;
+}
+.payment-qr-panel-label svg { width: 12px; height: 12px; flex-shrink: 0; color: #d4803f; }
+.payment-qr-box {
+    position: relative;
+    display: inline-block;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease;
+}
+.payment-qr-link-wrap { text-decoration: none; display: inline-block; }
+.payment-qr-link-wrap:hover .payment-qr-box { box-shadow: 0 4px 16px rgba(212,128,63,0.12); }
+.payment-qr-link-wrap:hover .payment-qr-box-overlay { opacity: 1; }
+.payment-qr-img {
+    width: 100%;
+    max-width: 145px;
+    display: block;
+    margin: 0 auto;
+}
+.payment-qr-box-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(26,20,16,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(2px);
+}
+.payment-qr-box-overlay span {
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+}
+.payment-qr-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    font-size: 0.65rem;
+    color: #9a8a7a;
+}
+.payment-qr-hint-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #b8aa9a;
+    animation: pulseDot 1.8s ease-in-out infinite;
+}
+@keyframes pulseDot {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+.payment-summary-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    overflow: hidden;
+    animation: paymentFadeIn 0.5s ease 0.2s both;
+}
+.payment-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #7b6758;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #f5f0eb;
+}
+.payment-summary-header svg { width: 14px; height: 14px; color: #d4803f; }
+.payment-summary-body { padding: 0.65rem 1rem; display: grid; gap: 0.3rem; }
+.payment-summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.74rem;
+    padding: 0.2rem 0;
+}
+.payment-summary-row span { color: #9a8a7a; }
+.payment-summary-row strong { color: #1a1410; font-weight: 600; }
+.payment-summary-row-price strong { color: #d4803f; font-weight: 800; font-size: 0.85rem; }
+.payment-ref-code {
+    font-family: monospace;
+    background: #f5f0eb;
+    padding: 0.05rem 0.4rem;
+    border-radius: 3px;
+}
+.payment-summary-copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #d4803f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-top: 1px solid #f5f0eb;
+}
+.payment-summary-copy:hover { background: #fdf8f3; }
+.payment-summary-copy.copied { color: #2a8a4a; background: #eaf5ee; }
+
+.payment-guide {
+    background: #fff;
+    border-radius: 16px;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    animation: paymentFadeIn 0.5s ease 0.3s both;
+}
+.payment-guide-step {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.payment-guide-number {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f5f0eb;
+    color: #7b6758;
+    font-size: 0.68rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.payment-guide-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+.payment-guide-text strong { font-size: 0.75rem; color: #1a1410; }
+.payment-guide-text span { font-size: 0.65rem; color: #9a8a7a; }
+.payment-guide-arrow {
+    display: flex;
+    justify-content: center;
+    padding: 0.1rem 0;
+    color: #c4b5a5;
+}
+
+/* success flash */
+.payment-success-flash .payment-card {
+    animation: flashGreen 0.6s ease;
+}
+@keyframes flashGreen {
+    0%, 100% { box-shadow: 0 2px 20px rgba(0,0,0,0.04); }
+    50% { box-shadow: 0 0 0 4px rgba(42,138,74,0.15), 0 2px 20px rgba(0,0,0,0.04); }
+}
+
+@media (max-width: 780px) {
+    .payment-layout { grid-template-columns: 1fr; gap: 1rem; padding: 0.5rem 0; }
+    .payment-sidebar-sticky { position: static; }
+    .payment-card-icon-wrap { padding: 1.25rem 1.25rem 0; }
+    .payment-card-body { padding: 0.75rem 1.25rem 1.5rem; }
+    .payment-info-grid { max-width: 100%; }
+    .payment-qr-img { max-width: 130px; }
+}
+</style>
 {% endblock %}

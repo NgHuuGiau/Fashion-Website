@@ -1,5 +1,4 @@
 ﻿import json
-import json
 import re
 
 from django.contrib import messages
@@ -9,6 +8,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from core.text_utils import normalize_vn_text, parse_keyword_list, repair_mojibake_text
@@ -619,6 +619,6 @@ def wishlist_toggle(request, product_id):
         messages.info(request, f"Đã bỏ {product.name} khỏi mục yêu thích.")
 
     next_url = request.POST.get("next") or request.GET.get("next")
-    if not next_url:
+    if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = reverse("products:product_detail", kwargs={"pk": product.id, "slug": product.slug})
     return redirect(next_url)

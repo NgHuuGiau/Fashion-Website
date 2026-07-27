@@ -5,14 +5,21 @@
 {% block body_class %}product-page{% endblock %}
 
 {% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'products:product_list' %}?category={{ product.category.slug }}">{{ product.category.name|repair_text }}</a>
+    <span>/</span>
+    <span>{{ product.name|repair_text|truncatechars:30 }}</span>
+</nav>
 <section class="detail-layout">
     <div class="detail-gallery">
         <div class="gallery-stage panel">
-            <button type="button" class="gallery-arrow gallery-arrow-left" id="detail-prev-image" aria-label="Xem ảnh trước">
+            <button type="button" class="gallery-arrow gallery-arrow-left" aria-label="Xem ảnh trước" onclick="var t=document.querySelectorAll('[data-detail-image]');var a=Array.from(t);var i=a.findIndex(function(x){return x.classList.contains('active')});var n=(i<=0?a.length-1:i-1);var u=a[n];if(u){var m=document.getElementById('detail-main-image');if(m){m.style.opacity='0';setTimeout(function(){m.src=u.dataset.detailImage;m.alt=u.dataset.detailAlt||m.alt;m.style.opacity='1'},120);a.forEach(function(x){x.classList.remove('active')});u.classList.add('active')}}">
                 <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
             </button>
             <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}">
-            <button type="button" class="gallery-arrow gallery-arrow-right" id="detail-next-image" aria-label="Xem ảnh tiếp theo">
+            <button type="button" class="gallery-arrow gallery-arrow-right" aria-label="Xem ảnh tiếp theo" onclick="var t=document.querySelectorAll('[data-detail-image]');var a=Array.from(t);var i=a.findIndex(function(x){return x.classList.contains('active')});var n=(i<0?0:i+1)%a.length;var u=a[n];if(u){var m=document.getElementById('detail-main-image');if(m){m.style.opacity='0';setTimeout(function(){m.src=u.dataset.detailImage;m.alt=u.dataset.detailAlt||m.alt;m.style.opacity='1'},120);a.forEach(function(x){x.classList.remove('active')});u.classList.add('active')}}">
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </button>
         </div>
@@ -80,11 +87,11 @@
 
             <div class="qty-row">
                 <label>Số lượng</label>
-                <div class="qty-stepper">
-                    <button type="button" class="qty-step" data-qty-step="-1" aria-label="Giảm số lượng">-</button>
-                    <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}" data-qty-input>
-                    <button type="button" class="qty-step" data-qty-step="1" aria-label="Tăng số lượng">+</button>
-                </div>
+            <div class="qty-stepper">
+                <button type="button" class="qty-step" onclick="var inp=this.parentElement.querySelector('[data-qty-input]');if(!inp)return;var min=parseInt(inp.min||'1',10);var max=parseInt(inp.max||'9999',10);var cur=parseInt(inp.value||String(min),10);var nxt=Math.max(min,Math.min(max,(isNaN(cur)?min:cur)-1));inp.value=String(nxt);inp.dispatchEvent(new Event('change',{bubbles:true}))">-</button>
+                <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}" data-qty-input>
+                <button type="button" class="qty-step" onclick="var inp=this.parentElement.querySelector('[data-qty-input]');if(!inp)return;var min=parseInt(inp.min||'1',10);var max=parseInt(inp.max||'9999',10);var cur=parseInt(inp.value||String(min),10);var nxt=Math.max(min,Math.min(max,(isNaN(cur)?min:cur)+1));inp.value=String(nxt);inp.dispatchEvent(new Event('change',{bubbles:true}))">+</button>
+            </div>
             </div>
 
             <div class="detail-promises">

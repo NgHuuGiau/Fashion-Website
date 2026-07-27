@@ -14,72 +14,158 @@
         </div>
     </div>
 
-    <div class="account-layout account-layout-single">
-        <article class="account-card panel profile-overview">
-            <div class="account-head">
+    <div class="account-layout">
+        <div class="account-sidebar panel">
+            <div class="account-avatar-box">
                 <div class="account-avatar" aria-hidden="true">{{ display_initials }}</div>
-                <div>
-                    <h2>{{ display_name }}</h2>
-                    <p>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
-                </div>
+                <h2>{{ display_name }}</h2>
+                <p class="muted">{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
             </div>
+            <nav class="account-nav">
+                <a href="{% url 'users:profile' %}" class="account-nav-item active">
+                    <i class="fa-regular fa-user"></i> Hồ sơ
+                </a>
+                <a href="{% url 'orders:my_orders' %}" class="account-nav-item">
+                    <i class="fa-regular fa-box"></i> Đơn hàng
+                </a>
+                <a href="{% url 'products:wishlist_list' %}" class="account-nav-item">
+                    <i class="fa-regular fa-heart"></i> Yêu thích
+                </a>
+            </nav>
+        </div>
 
-            <div class="account-stats profile-stats">
-                <article>
-                    <strong>{{ profile.phone_number|default:"Chưa cập nhật"|repair_text }}</strong>
-                    <span>Số điện thoại</span>
-                </article>
-                <article>
-                    <strong>{{ request.user.username }}</strong>
-                    <span>Tên đăng nhập</span>
-                </article>
-                <article>
-                    <strong>{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</strong>
-                    <span>Email</span>
-                </article>
-            </div>
-
-            <div class="stack row profile-actions">
-                <a href="{% url 'orders:my_orders' %}" class="btn">Xem đơn hàng</a>
-                <a href="{% url 'products:wishlist_list' %}" class="btn ghost">Danh sách yêu thích</a>
-            </div>
-        </article>
-
-        <article class="account-card panel profile-edit">
-            <p class="eyebrow">Cập nhật hồ sơ</p>
-            <form method="post" class="account-form">
+        <div class="account-main panel">
+            <form method="post" class="profile-form">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
                 <div class="message error">{{ form.non_field_errors|striptags }}</div>
                 {% endif %}
-                <div class="form-grid">
-                    <label class="field">
-                        <span>{{ form.first_name.label }}</span>
+                <div class="profile-grid">
+                    <label class="profile-field">
+                        <span>Họ</span>
                         {{ form.first_name }}
                         {% if form.first_name.errors %}<small class="error-text">{{ form.first_name.errors|striptags }}</small>{% endif %}
                     </label>
-                    <label class="field">
-                        <span>{{ form.last_name.label }}</span>
+                    <label class="profile-field">
+                        <span>Tên</span>
                         {{ form.last_name }}
                         {% if form.last_name.errors %}<small class="error-text">{{ form.last_name.errors|striptags }}</small>{% endif %}
                     </label>
-                    <label class="field">
-                        <span>{{ form.email.label }}</span>
+                    <label class="profile-field">
+                        <span>Email</span>
                         {{ form.email }}
                         {% if form.email.errors %}<small class="error-text">{{ form.email.errors|striptags }}</small>{% endif %}
                     </label>
-                    <label class="field">
-                        <span>{{ form.phone_number.label }}</span>
+                    <label class="profile-field">
+                        <span>Số điện thoại</span>
                         {{ form.phone_number }}
                         {% if form.phone_number.errors %}<small class="error-text">{{ form.phone_number.errors|striptags }}</small>{% endif %}
                     </label>
                 </div>
-                <div class="stack row">
+                <div class="profile-actions">
                     <button type="submit" class="btn">Lưu thay đổi</button>
-                    <a href="{% url 'orders:my_orders' %}" class="btn ghost">Đơn hàng</a>
+                    <a href="{% url 'orders:my_orders' %}" class="btn ghost">Xem đơn hàng</a>
                 </div>
             </form>
-        </article>
+        </div>
     </div>
 </section>
+
+<style>
+.account-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+.account-sidebar {
+    padding: 1.25rem;
+}
+.account-avatar-box {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 1rem;
+}
+.account-avatar-box h2 {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+.account-avatar-box .muted {
+    font-size: 0.82rem;
+}
+.account-nav {
+    display: grid;
+    gap: 0.2rem;
+}
+.account-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-soft);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.88rem;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.account-nav-item:hover {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+.account-nav-item.active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+}
+.account-nav-item i {
+    width: 1.1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.account-main {
+    padding: 1.5rem;
+}
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.profile-field {
+    display: grid;
+    gap: 0.25rem;
+}
+.profile-field span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+.profile-field input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 0.88rem;
+}
+.profile-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+@media (max-width: 700px) {
+    .account-layout { grid-template-columns: 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+}
+</style>
 {% endblock %}
