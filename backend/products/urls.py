@@ -10,4 +10,5 @@ urlpatterns = [
     path("san-pham/<int:pk>/<slug:slug>/", views.product_detail, name="product_detail"),
     path("yeu-thich/", views.wishlist_list, name="wishlist_list"),
     path("yeu-thich/<int:product_id>/toggle/", views.wishlist_toggle, name="wishlist_toggle"),
+    path("tim-kiem/goi-y/", views.search_suggest, name="search_suggest"),
 ]

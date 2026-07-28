@@ -543,6 +543,20 @@ def product_list(request):
 
 def product_detail(request, pk, slug):
     product = get_object_or_404(Product.objects.prefetch_related("gallery_images"), id=pk, slug=slug, available=True)
+
+    recent_ids = request.session.get("recently_viewed", [])
+    recent_ids = [rid for rid in recent_ids if rid != pk]
+    recent_ids.insert(0, pk)
+    request.session["recently_viewed"] = recent_ids[:20]
+    request.session.modified = True
+
+    recently_viewed_products = []
+    if recent_ids:
+        lookback_ids = [rid for rid in recent_ids if rid != pk][:6]
+        ordered = Product.objects.filter(id__in=lookback_ids, available=True)
+        ordered_map = {p.id: p for p in ordered}
+        recently_viewed_products = [ordered_map[rid] for rid in lookback_ids if rid in ordered_map]
+
     related_products = Product.objects.filter(available=True, category=product.category).exclude(id=product.id)[:4]
     variants = ProductVariant.objects.filter(product=product, is_active=True).order_by("color_name", "size")
     requires_variant = product.requires_variants
@@ -575,6 +589,7 @@ def product_detail(request, pk, slug):
         {
             "product": product,
             "related_products": related_products,
+            "recently_viewed_products": recently_viewed_products,
             "variants": variants,
             "requires_variant": requires_variant,
             "default_variant_id": default_variant.id if default_variant else None,
@@ -622,3 +637,41 @@ def wishlist_toggle(request, product_id):
     if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = reverse("products:product_detail", kwargs={"pk": product.id, "slug": product.slug})
     return redirect(next_url)
+
+
+def search_suggest(request):
+    q = request.GET.get("q", "").strip()
+    if not q or len(q) < 1:
+        return JsonResponse([], safe=False)
+    normalized_q = normalize_vn_text(q)
+    products = Product.objects.filter(available=True)[:8]
+    results = []
+    for p in products:
+        match_name = normalized_q in normalize_vn_text(p.name)
+        match_category = normalized_q in normalize_vn_text(p.category.name)
+        if match_name or match_category:
+            results.append({
+                "id": p.id,
+                "slug": p.slug,
+                "name": repair_mojibake_text(p.name),
+                "price": str(p.price),
+                "image": p.get_image() or "",
+                "category": repair_mojibake_text(p.category.name),
+            })
+        if len(results) >= 6:
+            break
+    if not results:
+        products = Product.objects.filter(available=True)[:10]
+        for p in products:
+            if normalized_q in normalize_vn_text(p.name) or normalized_q in normalize_vn_text(p.description):
+                results.append({
+                    "id": p.id,
+                    "slug": p.slug,
+                    "name": repair_mojibake_text(p.name),
+                    "price": str(p.price),
+                    "image": p.get_image() or "",
+                    "category": repair_mojibake_text(p.category.name),
+                })
+                if len(results) >= 6:
+                    break
+    return JsonResponse(results[:6], safe=False)

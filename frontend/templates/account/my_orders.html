@@ -67,6 +67,9 @@
                 {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Thanh toán ngay</a>
                 {% endif %}
+                {% if order.status == "pending" or order.status == "processing" and not order.is_paid %}
+                <a href="{% url 'orders:user_cancel_order' order.id %}" class="btn ghost danger" onclick="return confirm('Huỷ đơn hàng #{{ order.id }}?')">Huỷ đơn</a>
+                {% endif %}
             </div>
         </article>
         {% endfor %}

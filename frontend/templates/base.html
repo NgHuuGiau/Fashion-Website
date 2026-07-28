@@ -10,6 +10,48 @@
     <link rel="stylesheet" href="/static/css/fontawesome-all.min.css?v=6.5.2">
     <link rel="stylesheet" href="/static/css/site_theme.css?v=20260729a">
     <script>!function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';l.onerror=function(){this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css'};document.head.appendChild(l)}()</script>
+    <style>
+    .header-search { position: relative; }
+    .header-search-suggest {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+        z-index: 1000;
+        max-height: 360px;
+        overflow-y: auto;
+        margin-top: 4px;
+    }
+    .header-search-suggest.is-active { display: block; }
+    .suggest-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0.75rem;
+        text-decoration: none;
+        color: var(--text);
+        transition: background 0.15s;
+    }
+    .suggest-item:hover,
+    .suggest-item.is-highlight { background: var(--surface); }
+    .suggest-item:first-child { border-radius: 10px 10px 0 0; }
+    .suggest-item:last-child { border-radius: 0 0 10px 10px; }
+    .suggest-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--surface);
+    }
+    .suggest-info { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+    .suggest-name { font-size: 0.82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .suggest-price { font-size: 0.75rem; color: var(--accent); font-weight: 700; }
+    </style>
 </head>
 <body>
     <div class="topline">Black / white editorial lookbook · ảnh lớn, chữ gọn, chốt đơn nhanh</div>
@@ -124,8 +166,9 @@
             </nav>
 
             <div class="header-right">
-                <form class="header-search" method="get" action="{% url 'products:product_list' %}">
-                    <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}">
+                <form class="header-search" method="get" action="{% url 'products:product_list' %}" id="header-search-form" autocomplete="off">
+                    <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}" id="header-search-input">
+                    <div class="header-search-suggest" id="search-suggest"></div>
                 </form>
                 <a href="{% url 'orders:cart_detail' %}" class="icon-btn cart-btn" aria-label="Giỏ hàng">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
@@ -194,6 +237,7 @@
                 <h3>CAM KẾT</h3>
                 <p>Ảnh rõ, thao tác gọn, cập nhật đơn minh bạch và trải nghiệm mua tốt trên cả điện thoại lẫn máy tính.</p>
                 <p>Freeship từ 499K • COD hoặc chuyển khoản</p>
+                <p style="margin-top:0.45rem"><a href="{% url 'orders:order_lookup' %}" style="color:var(--text-soft);text-decoration:none;font-size:0.8rem;">Tra cứu đơn hàng</a></p>
                 <p style="margin-top:0.45rem;font-size:0.82rem;color:var(--muted);">&copy; 2026 HUUGIAU Atelier</p>
             </div>
         </div>
@@ -232,6 +276,57 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ─── Search autocomplete ───
+        (function(){
+            var input = document.getElementById('header-search-input');
+            var box = document.getElementById('search-suggest');
+            if (!input || !box) return;
+            var timer, selected = -1;
+            input.addEventListener('input', function(){
+                clearTimeout(timer);
+                var q = this.value.trim();
+                if (q.length < 1) { box.innerHTML = ''; box.classList.remove('is-active'); return; }
+                timer = setTimeout(function(){
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', '/tim-kiem/goi-y/?q=' + encodeURIComponent(q), true);
+                    xhr.onload = function(){
+                        if (xhr.status !== 200) return;
+                        var data = JSON.parse(xhr.responseText);
+                        if (!data.length) { box.innerHTML = ''; box.classList.remove('is-active'); return; }
+                        var html = '';
+                        data.forEach(function(item){
+                            html += '<a href="/san-pham/' + item.id + '/' + item.slug + '/" class="suggest-item">';
+                            if (item.image) html += '<img src="' + item.image + '" alt="" class="suggest-img">';
+                            html += '<div class="suggest-info"><span class="suggest-name">' + escapeHtml(item.name) + '</span>';
+                            html += '<span class="suggest-price">' + Number(item.price).toLocaleString('vi-VN') + '₫</span></div></a>';
+                        });
+                        box.innerHTML = html;
+                        box.classList.add('is-active');
+                        selected = -1;
+                    };
+                    xhr.send();
+                }, 250);
+            });
+            input.addEventListener('keydown', function(e){
+                var items = box.querySelectorAll('.suggest-item');
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, items.length - 1); highlight(items, selected); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, -1); highlight(items, selected); }
+                else if (e.key === 'Enter' && selected >= 0) { e.preventDefault(); items[selected].click(); }
+            });
+            document.addEventListener('click', function(e){
+                if (!input.contains(e.target) && !box.contains(e.target)) { box.classList.remove('is-active'); }
+            });
+            function highlight(items, idx) {
+                items.forEach(function(item, i){ item.classList.toggle('is-highlight', i === idx); });
+            }
+            function escapeHtml(text) {
+                var d = document.createElement('div');
+                d.textContent = text;
+                return d.innerHTML;
+            }
+        })();
+
         // ─── Sidebar menu (toggle on hamburger) ───
         var hamburger = document.getElementById('hamburger-btn');
         var closeMenu = document.getElementById('close-menu');

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Tra cứu đơn hàng{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Hỗ trợ</p>
+            <h1>Tra cứu đơn hàng</h1>
+            <p>Nhập mã đơn và số điện thoại để xem trạng thái đơn hàng của bạn.</p>
+        </div>
+    </div>
+
+    <form method="post" class="lookup-form" style="max-width:400px;margin:1.5rem auto 2rem">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="order_id">Mã đơn hàng</label>
+            <input type="text" id="order_id" name="order_id" required placeholder="VD: 42">
+        </div>
+        <div class="form-group">
+            <label for="phone">Số điện thoại</label>
+            <input type="tel" id="phone" name="phone" required placeholder="Số điện thoại đã đặt">
+        </div>
+        {% if lookup_error %}<p class="error-text" style="margin-bottom:0.75rem">{{ lookup_error }}</p>{% endif %}
+        <button type="submit" class="btn">Tra cứu</button>
+    </form>
+
+    {% if looked_up_order %}
+    <div class="panel" style="max-width:500px;margin:0 auto">
+        <h3>Đơn hàng #{{ looked_up_order.id }}</h3>
+        <div class="order-info-grid" style="display:grid;gap:0.5rem;margin:0.75rem 0">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Khách hàng</span><strong>{{ looked_up_order.customer_name }}</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">SĐT</span><strong>{{ looked_up_order.phone }}</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Địa chỉ</span><strong>{{ looked_up_order.shipping_address }}</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Trạng thái</span><strong class="status-badge status-{{ looked_up_order.status }}">{{ looked_up_order.get_status_display }}</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Thanh toán</span><strong>{{ looked_up_order.get_payment_method_display }}{% if looked_up_order.is_paid %} &bull; Đã thanh toán{% endif %}</strong></div>
+            {% if looked_up_order.eta_label %}<div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Dự kiến giao</span><strong>{{ looked_up_order.eta_label }}</strong></div>{% endif %}
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem"><span style="color:var(--text-soft)">Tổng tiền</span><strong style="color:var(--accent)">{{ looked_up_order.total_amount|floatformat:"0" }}đ</strong></div>
+        </div>
+        <h4 style="margin-top:1rem;font-size:0.85rem">Sản phẩm</h4>
+        <ul style="list-style:none;padding:0;margin:0.5rem 0 0;font-size:0.82rem">
+            {% for item in looked_up_order.items.all %}
+            <li style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--line-soft)">
+                <span>{{ item.product.name|repair_text }} {% if item.selected_color %} - {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %} x{{ item.quantity }}</span>
+                <strong>{{ item.subtotal|floatformat:"0" }}đ</strong>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -108,7 +108,7 @@
 
         <div class="detail-accordions">
             <details class="detail-accordion" open>
-                <summary>Mô tả và size</summary>
+                <summary>Mô tả và size <button type="button" class="size-guide-btn" onclick="document.getElementById('size-guide-modal').classList.add('is-open');event.stopPropagation()">Bảng size</button></summary>
                 <div>
                     <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
                     {% if product.category.slug == "quan" %}
@@ -181,4 +181,127 @@
     </div>
 </section>
 {% endif %}
+
+{% if recently_viewed_products %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đã xem gần đây</p>
+            <h2>Tiếp tục khám phá</h2>
+        </div>
+    </div>
+    <div class="product-grid product-grid-editorial">
+        {% for item in recently_viewed_products %}
+        <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if item.get_image %}
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}">
+                {% else %}
+                <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
+                {% endif %}
+            </div>
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ item.category.name|repair_text }}</p>
+                <h3>{{ item.name|repair_text }}</h3>
+                <div class="card-footer">
+                    <strong class="price">{{ item.price|vnd }}đ</strong>
+                    <span>{% if item.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<div class="size-guide-overlay" id="size-guide-modal" onclick="if(event.target===this)this.classList.remove('is-open')">
+    <div class="size-guide-modal">
+        <button type="button" class="size-guide-close" onclick="document.getElementById('size-guide-modal').classList.remove('is-open')">&times;</button>
+        <h3>Bảng size tham khảo</h3>
+        {% if product.category.slug == "quan" %}
+        <table>
+            <thead><tr><th>Size</th><th>Lưng (cm)</th><th>Mông (cm)</th><th>Dài (cm)</th></tr></thead>
+            <tbody>
+                <tr><td>M</td><td>74-78</td><td>94</td><td>96</td></tr>
+                <tr><td>L</td><td>78-82</td><td>98</td><td>98</td></tr>
+                <tr><td>XL</td><td>82-86</td><td>102</td><td>100</td></tr>
+                <tr><td>XXL</td><td>86-90</td><td>106</td><td>102</td></tr>
+            </tbody>
+        </table>
+        {% elif product.category.slug == "phu-kien" %}
+        <table>
+            <thead><tr><th>Loại</th><th>Kích thước</th></tr></thead>
+            <tbody>
+                <tr><td>Túi nhỏ</td><td>Dài 18 cm, Rộng 6 cm, Cao 14 cm</td></tr>
+                <tr><td>Túi vừa</td><td>Dài 22 cm, Rộng 8 cm, Cao 16 cm</td></tr>
+                <tr><td>Nón</td><td>56-60 cm, có dây điều chỉnh</td></tr>
+            </tbody>
+        </table>
+        {% else %}
+        <table>
+            <thead><tr><th>Size</th><th>Ngang ngực (cm)</th><th>Dài áo (cm)</th><th>Dài tay (cm)</th></tr></thead>
+            <tbody>
+                <tr><td>S</td><td>50</td><td>66</td><td>55</td></tr>
+                <tr><td>M</td><td>53</td><td>69</td><td>57</td></tr>
+                <tr><td>L</td><td>56</td><td>72</td><td>59</td></tr>
+                <tr><td>XL</td><td>59</td><td>75</td><td>61</td></tr>
+            </tbody>
+        </table>
+        {% endif %}
+        <p class="size-guide-note">Số đo chỉ mang tính chất tham khảo, có thể chênh lệch &plusmn;1-2 cm theo từng đợt vải.</p>
+    </div>
+</div>
+
+<style>
+.size-guide-btn {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: transparent;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    vertical-align: middle;
+}
+.size-guide-btn:hover { background: var(--surface); }
+.size-guide-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.4);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.size-guide-overlay.is-open { display: flex; }
+.size-guide-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.75rem;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.size-guide-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-soft);
+}
+.size-guide-modal h3 { margin: 0 0 1rem; font-size: 1rem; }
+.size-guide-modal table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.size-guide-modal th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); font-weight: 700; }
+.size-guide-modal td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line-soft); }
+.size-guide-note { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-soft); }
+</style>
 {% endblock %}

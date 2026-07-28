@@ -788,3 +788,60 @@ def my_orders(request):
             "active_tracking_order": active_tracking_order,
         },
     )
+
+
+def order_lookup(request):
+    if request.method == "POST":
+        order_id = request.POST.get("order_id", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        if order_id and phone:
+            try:
+                order = Order.objects.get(id=int(order_id), phone=phone)
+                expire_bank_order_if_needed(order)
+                decorate_order_tracking(order)
+                return render(request, "shop/order_lookup.html", {"looked_up_order": order})
+            except (ValueError, Order.DoesNotExist):
+                return render(request, "shop/order_lookup.html", {"lookup_error": "Không tìm thấy đơn hàng. Kiểm tra lại mã đơn và số điện thoại."})
+    return render(request, "shop/order_lookup.html")
+
+
+@login_required
+def user_cancel_order(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    expire_bank_order_if_needed(order)
+    if order.status in ("pending", "processing") and not order.is_paid:
+        order.status = "cancelled"
+        order.is_paid = False
+        order.save(update_fields=["status", "is_paid"])
+        restore_order_stock(order)
+        messages.success(request, f"Đã huỷ đơn hàng #{order.id}.")
+    else:
+        messages.error(request, "Không thể huỷ đơn hàng ở trạng thái hiện tại.")
+    return redirect("orders:my_orders")
+
+
+@login_required
+def admin_export_orders(request):
+    if not request.user.is_staff:
+        raise Http404
+    import csv
+    from django.http import HttpResponse
+
+    status = request.GET.get("status", "")
+    orders = Order.objects.all().prefetch_related("items__product", "items__variant").order_by("-created_at")
+    if status:
+        orders = orders.filter(status=status)
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+    response["Content-Disposition"] = "attachment; filename=don-hang.csv"
+    writer = csv.writer(response)
+    writer.writerow(["Mã ĐH", "Khách hàng", "Email", "SĐT", "Địa chỉ", "PT thanh toán", "Ngân hàng", "Đã thanh toán", "Trạng thái", "Tiền hàng", "Phí ship", "Giảm giá", "Tổng cộng", "Ghi chú", "Ngày tạo"])
+    for o in orders:
+        items_str = "; ".join(f"{item.quantity}x {item.product.name}" for item in o.items.all())
+        writer.writerow([
+            o.id, o.customer_name, o.customer_email, o.phone, o.shipping_address,
+            o.get_payment_method_display(), o.bank_code, "Có" if o.is_paid else "Không",
+            o.get_status_display(), o.subtotal_amount, o.shipping_fee, o.discount_amount,
+            o.total_amount, o.note, o.created_at.strftime("%d/%m/%Y %H:%M"),
+        ])
+    return response

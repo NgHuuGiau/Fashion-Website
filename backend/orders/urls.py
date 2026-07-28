@@ -21,4 +21,7 @@ urlpatterns = [
     path("don-hang/<int:order_id>/huy-thanh-toan/", views.bank_payment_cancel, name="bank_payment_cancel"),
     path("qr-thanh-toan/<str:token>/<int:order_id>/", views.bank_payment_mobile, name="bank_payment_mobile"),
     path("don-hang-cua-toi/", views.my_orders, name="my_orders"),
+    path("tra-cuu-don/", views.order_lookup, name="order_lookup"),
+    path("don-hang/<int:order_id>/huy/", views.user_cancel_order, name="user_cancel_order"),
+    path("admin-dashboard/xuat-don/", views.admin_export_orders, name="admin_export_orders"),
 ]
