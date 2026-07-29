@@ -10,8 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v5
@@ -28,11 +29,14 @@ jobs:
 
       - name: Run Django checks
         run: python backend/manage.py check
+        working-directory: backend
 
-      - name: Seed product data
-        run: python backend/manage.py seed_products --sync
+      - name: Run migrations & seed data
+        run: |
+          python manage.py migrate
+          python manage.py seed_products --sync
         working-directory: backend
 
       - name: Run tests
-        run: python backend/manage.py test orders products users --verbosity=2
+        run: python manage.py test orders products users --verbosity=2
         working-directory: backend
