@@ -713,6 +713,11 @@ def order_review(request, order_id):
     )
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 @login_required
 @require_POST
 def bank_payment_confirm(request, order_id):
@@ -730,9 +735,31 @@ def bank_payment_confirm(request, order_id):
         messages.info(request, "Đơn hàng đã được xác nhận thanh toán trước đó.")
         return redirect("orders:order_success", order_id=order.id)
 
+    token = request.POST.get("token", "")
+    expected = _payment_token(order.id)
+    if not token or token != expected:
+        logger.warning(
+            "Payment confirm token mismatch. order=%s user=%s ip=%s",
+            order.id, request.user.id, request.META.get("REMOTE_ADDR"),
+        )
+        messages.error(request, "Mã xác nhận không hợp lệ. Vui lòng quét lại mã QR.")
+        return redirect("orders:bank_payment_waiting", order_id=order.id)
+
     order.is_paid = True
     order.status = "processing"
     order.save(update_fields=["is_paid", "status", "updated_at"])
+    logger.info(
+        "Payment confirmed. order=%s user=%s ip=%s",
+        order.id, request.user.id, request.META.get("REMOTE_ADDR"),
+    )
+    log_activity(
+        request,
+        event_type="payment_confirm",
+        metadata={
+            "order_id": order.id,
+            "payment_method": "bank",
+        },
+    )
     messages.success(request, "Đã xác nhận thanh toán chuyển khoản.")
     return redirect("orders:order_success", order_id=order.id)
 

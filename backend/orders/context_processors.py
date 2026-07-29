@@ -7,7 +7,7 @@ def wishlist_count(request):
 
     try:
         from products.models import WishlistItem
-    except Exception:
+    except ImportError:
         return 0
 
     return WishlistItem.objects.filter(user=request.user).count()

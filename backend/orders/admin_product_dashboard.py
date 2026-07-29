@@ -17,6 +17,18 @@ from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, Produ
 from .cart import safe_int
 from .models import Coupon, Order
 
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
+
+
+def _validate_uploaded_file(uploaded_file, errors, label):
+    if not uploaded_file:
+        return
+    if uploaded_file.content_type not in ALLOWED_IMAGE_TYPES:
+        errors.append(f"{label}: Chỉ chấp nhận file JPEG, PNG, WebP hoặc GIF.")
+    if uploaded_file.size > MAX_IMAGE_SIZE:
+        errors.append(f"{label}: File không được quá 5MB.")
+
 RECENT_ORDER_LIMIT = 200
 LOW_STOCK_LIMIT = 10
 REVENUE_DAYS_LIMIT = 14
@@ -266,7 +278,17 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
 def save_admin_product(request, product=None):
     form_data = build_admin_product_form_data(request)
     errors = []
-    uploaded_gallery_images = [item for item in request.FILES.getlist("gallery_images") if item]
+
+    main_image = request.FILES.get("image")
+    if main_image:
+        _validate_uploaded_file(main_image, errors, "Ảnh đại diện")
+
+    uploaded_gallery_images = []
+    for item in request.FILES.getlist("gallery_images"):
+        if item:
+            _validate_uploaded_file(item, errors, "Ảnh gallery")
+            uploaded_gallery_images.append(item)
+
     remove_gallery_image_ids = {str(item).strip() for item in form_data["remove_gallery_image_ids"] if str(item).strip()}
     slot_uploads = []
     slot_remove_indexes = set()
@@ -275,6 +297,7 @@ def save_admin_product(request, product=None):
         uploaded_file = request.FILES.get(f"gallery_slot_{index}")
         remove_requested = request.POST.get(f"remove_gallery_slot_{index}") == "on"
         if uploaded_file:
+            _validate_uploaded_file(uploaded_file, errors, f"Slot {index + 1}")
             slot_uploads.append((index, uploaded_file))
         if remove_requested:
             slot_remove_indexes.add(index)

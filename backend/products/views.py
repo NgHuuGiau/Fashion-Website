@@ -471,11 +471,9 @@ def product_list(request):
 
     sidebar_sort_links = {key: build_catalog_query(sort=key) for key in SORT_OPTIONS}
 
-    available_variant_rows = ProductVariant.objects.filter(product__available=True, is_active=True).values_list(
-        "size",
-        "color_name",
-        "color_code",
-    )
+    variant_qs = ProductVariant.objects.filter(product__available=True, is_active=True)
+
+    available_sizes = list(variant_qs.values_list("size", flat=True).distinct().order_by())
     size_order = {
         "XXS": 0,
         "XS": 1,
@@ -487,23 +485,24 @@ def product_list(request):
         "3XL": 7,
         "4XL": 8,
     }
-    sidebar_size_map = {}
-    sidebar_color_map = {}
-    for size_name, color_name, color_code in available_variant_rows:
-        if size_name:
-            normalized_size = str(size_name).strip().upper()
-            if normalized_size and normalized_size not in sidebar_size_map:
-                sidebar_size_map[normalized_size] = True
-        if color_name:
-            color_key = normalize_vn_text(color_name)
-            if color_key and color_key not in sidebar_color_map:
-                sidebar_color_map[color_key] = {
-                    "value": color_key,
-                    "label": format_color_label(color_name),
-                    "code": color_code or "#4d8fe6",
-                }
+    sidebar_size_options = sorted(
+        [s.strip().upper() for s in available_sizes if s and s.strip()],
+        key=lambda item: (size_order.get(item, 99), item),
+    )
 
-    sidebar_size_options = sorted(sidebar_size_map.keys(), key=lambda item: (size_order.get(item, 99), item))
+    available_colors = list(variant_qs.values("color_name", "color_code").distinct().order_by())
+    sidebar_color_map = {}
+    for row in available_colors:
+        color_name = row["color_name"]
+        if not color_name:
+            continue
+        color_key = normalize_vn_text(color_name)
+        if color_key and color_key not in sidebar_color_map:
+            sidebar_color_map[color_key] = {
+                "value": color_key,
+                "label": format_color_label(color_name),
+                "code": row.get("color_code") or "#4d8fe6",
+            }
     sidebar_color_options = sorted(sidebar_color_map.values(), key=lambda item: item["label"])
 
     query_params = request.GET.copy()
@@ -643,37 +642,22 @@ def wishlist_toggle(request, product_id):
 
 def search_suggest(request):
     q = request.GET.get("q", "").strip()
-    if not q or len(q) < 1:
+    if not q or len(q) < 1 or len(q) > 50:
         return JsonResponse([], safe=False)
-    normalized_q = normalize_vn_text(q)
-    products = Product.objects.filter(available=True)[:8]
-    results = []
-    for p in products:
-        match_name = normalized_q in normalize_vn_text(p.name)
-        match_category = normalized_q in normalize_vn_text(p.category.name)
-        if match_name or match_category:
-            results.append({
-                "id": p.id,
-                "slug": p.slug,
-                "name": repair_mojibake_text(p.name),
-                "price": str(p.price),
-                "image": p.get_image() or "",
-                "category": repair_mojibake_text(p.category.name),
-            })
-        if len(results) >= 6:
-            break
-    if not results:
-        products = Product.objects.filter(available=True)[:10]
-        for p in products:
-            if normalized_q in normalize_vn_text(p.name) or normalized_q in normalize_vn_text(p.description):
-                results.append({
-                    "id": p.id,
-                    "slug": p.slug,
-                    "name": repair_mojibake_text(p.name),
-                    "price": str(p.price),
-                    "image": p.get_image() or "",
-                    "category": repair_mojibake_text(p.category.name),
-                })
-                if len(results) >= 6:
-                    break
+    products = (
+        Product.objects.filter(available=True, name__icontains=q)
+        .select_related("category")
+        .only("id", "slug", "name", "price", "image_url", "category__name")[:8]
+    )
+    results = [
+        {
+            "id": p.id,
+            "slug": p.slug,
+            "name": repair_mojibake_text(p.name),
+            "price": str(p.price),
+            "image": p.get_image() or "",
+            "category": repair_mojibake_text(p.category.name),
+        }
+        for p in products
+    ]
     return JsonResponse(results[:6], safe=False)

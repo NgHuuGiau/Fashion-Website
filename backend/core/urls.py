@@ -3,6 +3,11 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
+from . import views
+
+handler404 = views.handler404
+handler500 = views.handler500
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('products.urls', namespace='products')),

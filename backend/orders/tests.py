@@ -1,6 +1,8 @@
-﻿from datetime import timedelta
+﻿import hashlib
+from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -8,6 +10,11 @@ from django.utils import timezone
 
 from products.models import Category, Product, ProductVariant
 from .models import Coupon, Order, OrderItem
+
+
+def _payment_token(order_id):
+    raw = f"bank:{order_id}:qr:{settings.SECRET_KEY}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
 
@@ -348,7 +355,11 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         order = Order.objects.first()
 
-        response = self.client.post(reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}))
+        token = _payment_token(order.id)
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": token},
+        )
         self.assertEqual(response.status_code, 302)
         order.refresh_from_db()
         self.assertTrue(order.is_paid)

@@ -35,7 +35,13 @@ def env_list(name, default=None):
 load_env_file(BASE_DIR / ".env")
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-in-env")
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key:
+    raise RuntimeError(
+        "SECRET_KEY chưa được thiết lập. "
+        "Thêm SECRET_KEY=your-secret-key vào file .env ở thư mục gốc."
+    )
+SECRET_KEY = _secret_key
 DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
 
@@ -53,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "core.middleware.CSPMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -129,20 +136,23 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
     SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
 
-if DEBUG and env_bool("ENABLE_SQL_LOGGING", False):
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-            },
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
         },
-        'loggers': {
-            'django.db.backends': {
-                'handlers': ['console'],
-                'level': 'DEBUG',
-            },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
-    }
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if (DEBUG and env_bool("ENABLE_SQL_LOGGING", False)) else 'WARNING',
+        },
+    },
+}

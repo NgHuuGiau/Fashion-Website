@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django.contrib import messages
@@ -7,6 +8,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+
+logger = logging.getLogger(__name__)
 
 from .activity import log_activity
 from .forms import ProfileForm, RegisterForm
@@ -93,32 +96,42 @@ def login_view(request):
                 next_url = reverse("products:product_list")
             return redirect(next_url)
 
+        logger.warning(
+            "Failed login attempt. identifier=%s ip=%s",
+            identifier[:20] if identifier else "(empty)",
+            request.META.get("REMOTE_ADDR"),
+        )
         messages.error(request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu.")
 
     return render(request, "auth/login.html")
 
 
+SOCIAL_LOGIN_PROVIDERS = {
+    "google": "GOOGLE_OAUTH_URL",
+    "facebook": "FACEBOOK_OAUTH_URL",
+    "apple": "APPLE_OAUTH_URL",
+}
+
+
 def social_login_view(request, provider):
     provider_key = (provider or "").strip().lower()
-    provider_urls = {
-        "google": os.getenv("GOOGLE_OAUTH_URL", "").strip(),
-        "facebook": os.getenv("FACEBOOK_OAUTH_URL", "").strip(),
-        "apple": os.getenv("APPLE_OAUTH_URL", "").strip(),
-    }
-    login_url = provider_urls.get(provider_key, "")
+    if provider_key not in SOCIAL_LOGIN_PROVIDERS:
+        messages.error(request, "Phương thức đăng nhập không hợp lệ.")
+        return redirect("users:login")
 
-    if login_url:
-        next_url = request.GET.get("next") or request.POST.get("next") or ""
-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-            joiner = "&" if "?" in login_url else "?"
-            login_url = f"{login_url}{joiner}next={next_url}"
-        return redirect(login_url)
+    login_url = os.getenv(SOCIAL_LOGIN_PROVIDERS[provider_key], "").strip()
+    if not login_url:
+        messages.info(request, f"Đăng nhập {provider_key} chưa được bật trong cấu hình.")
+        fallback = request.GET.get("next") or ""
+        if not url_has_allowed_host_and_scheme(fallback, allowed_hosts={request.get_host()}):
+            fallback = reverse("users:login")
+        return redirect(fallback)
 
-    messages.info(request, f"Đăng nhập {provider_key or 'mạng xã hội'} chưa được bật trong cấu hình.")
-    fallback = request.GET.get("next") or ""
-    if not url_has_allowed_host_and_scheme(fallback, allowed_hosts={request.get_host()}):
-        fallback = reverse("users:login")
-    return redirect(fallback)
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        joiner = "&" if "?" in login_url else "?"
+        login_url = f"{login_url}{joiner}next={next_url}"
+    return redirect(login_url)
 
 
 @login_required
