@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Django checks
-        run: python backend/manage.py check
+        run: python manage.py check
         working-directory: backend
 
       - name: Run migrations & seed data
