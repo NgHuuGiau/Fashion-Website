@@ -28,7 +28,8 @@ jobs:
       - name: Create .env file for CI
         run: |
           echo 'SECRET_KEY=django-insecure-ci-test-key-f00b4r' >> .env
-          echo 'DEBUG=False' >> .env
+          echo 'SESSION_COOKIE_SECURE=False' >> .env
+          echo 'CSRF_COOKIE_SECURE=False' >> .env
 
       - name: Install dependencies
         run: |
