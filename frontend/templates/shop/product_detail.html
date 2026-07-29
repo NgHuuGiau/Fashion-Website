@@ -15,11 +15,11 @@
 <section class="detail-layout">
     <div class="detail-gallery">
         <div class="gallery-stage panel">
-            <button type="button" class="gallery-arrow gallery-arrow-left" aria-label="Xem ảnh trước" onclick="var t=document.querySelectorAll('[data-detail-image]');var a=Array.from(t);var i=a.findIndex(function(x){return x.classList.contains('active')});var n=(i<=0?a.length-1:i-1);var u=a[n];if(u){var m=document.getElementById('detail-main-image');if(m){m.style.opacity='0';setTimeout(function(){m.src=u.dataset.detailImage;m.alt=u.dataset.detailAlt||m.alt;m.style.opacity='1'},120);a.forEach(function(x){x.classList.remove('active')});u.classList.add('active')}}">
+            <button type="button" class="gallery-arrow gallery-arrow-left" aria-label="Xem ảnh trước" data-gallery-dir="-1">
                 <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
             </button>
             <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}">
-            <button type="button" class="gallery-arrow gallery-arrow-right" aria-label="Xem ảnh tiếp theo" onclick="var t=document.querySelectorAll('[data-detail-image]');var a=Array.from(t);var i=a.findIndex(function(x){return x.classList.contains('active')});var n=(i<0?0:i+1)%a.length;var u=a[n];if(u){var m=document.getElementById('detail-main-image');if(m){m.style.opacity='0';setTimeout(function(){m.src=u.dataset.detailImage;m.alt=u.dataset.detailAlt||m.alt;m.style.opacity='1'},120);a.forEach(function(x){x.classList.remove('active')});u.classList.add('active')}}">
+            <button type="button" class="gallery-arrow gallery-arrow-right" aria-label="Xem ảnh tiếp theo" data-gallery-dir="1">
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </button>
         </div>
@@ -88,9 +88,9 @@
             <div class="qty-row">
                 <label>Số lượng</label>
             <div class="qty-stepper">
-                <button type="button" class="qty-step" onclick="var inp=this.parentElement.querySelector('[data-qty-input]');if(!inp)return;var min=parseInt(inp.min||'1',10);var max=parseInt(inp.max||'9999',10);var cur=parseInt(inp.value||String(min),10);var nxt=Math.max(min,Math.min(max,(isNaN(cur)?min:cur)-1));inp.value=String(nxt);inp.dispatchEvent(new Event('change',{bubbles:true}))">-</button>
+                <button type="button" class="qty-step" data-qty-step="-1">-</button>
                 <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}" data-qty-input>
-                <button type="button" class="qty-step" onclick="var inp=this.parentElement.querySelector('[data-qty-input]');if(!inp)return;var min=parseInt(inp.min||'1',10);var max=parseInt(inp.max||'9999',10);var cur=parseInt(inp.value||String(min),10);var nxt=Math.max(min,Math.min(max,(isNaN(cur)?min:cur)+1));inp.value=String(nxt);inp.dispatchEvent(new Event('change',{bubbles:true}))">+</button>
+                <button type="button" class="qty-step" data-qty-step="1">+</button>
             </div>
             </div>
 
@@ -108,7 +108,7 @@
 
         <div class="detail-accordions">
             <details class="detail-accordion" open>
-                <summary>Mô tả và size <button type="button" class="size-guide-btn" onclick="document.getElementById('size-guide-modal').classList.add('is-open');event.stopPropagation()">Bảng size</button></summary>
+                <summary>Mô tả và size <button type="button" class="size-guide-btn" data-modal="size-guide-modal" data-modal-action="open">Bảng size</button></summary>
                 <div>
                     <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
                     {% if product.category.slug == "quan" %}
@@ -214,9 +214,9 @@
 </section>
 {% endif %}
 
-<div class="size-guide-overlay" id="size-guide-modal" onclick="if(event.target===this)this.classList.remove('is-open')">
+<div class="size-guide-overlay" id="size-guide-modal">
     <div class="size-guide-modal">
-        <button type="button" class="size-guide-close" onclick="document.getElementById('size-guide-modal').classList.remove('is-open')">&times;</button>
+        <button type="button" class="size-guide-close" data-modal="size-guide-modal" data-modal-action="close">&times;</button>
         <h3>Bảng size tham khảo</h3>
         {% if product.category.slug == "quan" %}
         <table>
@@ -252,56 +252,5 @@
     </div>
 </div>
 
-<style>
-.size-guide-btn {
-    display: inline-block;
-    margin-left: 0.5rem;
-    padding: 0.15rem 0.55rem;
-    border-radius: 6px;
-    border: 1px solid var(--line);
-    background: transparent;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--accent);
-    cursor: pointer;
-    vertical-align: middle;
-}
-.size-guide-btn:hover { background: var(--surface); }
-.size-guide-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: rgba(0,0,0,0.4);
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-.size-guide-overlay.is-open { display: flex; }
-.size-guide-modal {
-    background: #fff;
-    border-radius: 16px;
-    padding: 1.75rem;
-    max-width: 420px;
-    width: 100%;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-.size-guide-close {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.75rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-soft);
-}
-.size-guide-modal h3 { margin: 0 0 1rem; font-size: 1rem; }
-.size-guide-modal table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.size-guide-modal th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); font-weight: 700; }
-.size-guide-modal td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line-soft); }
-.size-guide-note { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-soft); }
-</style>
+
 {% endblock %}

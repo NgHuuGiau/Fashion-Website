@@ -19,7 +19,9 @@ staticfiles/
 # Database local runtime
 *.sqlite3
 *.db
-!database/seed_data.sql
+
+# Backup files
+*.bak
 
 # Environment variables
 .env

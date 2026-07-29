@@ -84,7 +84,7 @@ class Order(models.Model):
     coupon_code = models.CharField(max_length=30, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 

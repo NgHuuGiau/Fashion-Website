@@ -15,7 +15,7 @@
     </div>
 
     {% if active_tracking_order %}
-    <article class="order-card panel highlight" onclick="if(!event.target.closest('a,button,input,textarea,select'))location.href='{% url 'orders:order_review' active_tracking_order.id %}'">
+    <article class="order-card panel highlight order-card-clickable">
         <div class="order-head">
             <div>
                 <p class="eyebrow">Cần theo dõi ngay</p>
@@ -39,7 +39,7 @@
     {% if orders %}
     <div class="order-list">
         {% for order in orders %}
-        <article class="order-card panel" onclick="if(!event.target.closest('a,button,input,textarea,select'))location.href='{% url 'orders:order_review' order.id %}'">
+        <article class="order-card panel order-card-clickable">
             <div class="order-head">
                 <div>
                     <p class="eyebrow">#{{ order.id }}</p>
@@ -68,7 +68,10 @@
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Thanh toán ngay</a>
                 {% endif %}
                 {% if order.status == "pending" or order.status == "processing" and not order.is_paid %}
-                <a href="{% url 'orders:user_cancel_order' order.id %}" class="btn ghost danger" onclick="return confirm('Huỷ đơn hàng #{{ order.id }}?')">Huỷ đơn</a>
+                <form method="post" action="{% url 'orders:user_cancel_order' order.id %}" class="form-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn ghost danger" onclick="return confirm('Huỷ đơn hàng #{{ order.id }}?')">Huỷ đơn</button>
+                </form>
                 {% endif %}
             </div>
         </article>

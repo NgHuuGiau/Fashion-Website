@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from core.text_utils import normalize_vn_text
+from core.ratelimit import rate_limit
 from products.models import Product, ProductVariant
 from users.activity import log_activity
 
@@ -790,6 +791,7 @@ def my_orders(request):
     )
 
 
+@rate_limit("order_lookup", max_requests=15, window=60, error_msg="Quá nhiều yêu cầu tra cứu. Vui lòng thử lại sau.")
 def order_lookup(request):
     if request.method == "POST":
         order_id = request.POST.get("order_id", "").strip()
@@ -805,7 +807,11 @@ def order_lookup(request):
     return render(request, "shop/order_lookup.html")
 
 
+
+
+
 @login_required
+@require_POST
 def user_cancel_order(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     expire_bank_order_if_needed(order)

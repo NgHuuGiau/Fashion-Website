@@ -237,7 +237,7 @@
 
         {% if expired or cancelled or paid %}
         <div class="btn-group">
-            <a href="/" class="btn btn-primary">Về trang chủ</a>
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary">Về trang chủ</a>
         </div>
         {% endif %}
     </div>

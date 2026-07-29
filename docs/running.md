@@ -1,58 +1,60 @@
-# Running
+# Hướng dẫn chạy
 
-## Fastest way
+## Chạy nhanh
 
 ```powershell
 .\scripts\run_local.ps1
 ```
 
-That script:
+Script sẽ:
+1. Chạy `python manage.py check`
+2. Chạy `python manage.py migrate`
+3. Chạy `python manage.py seed_products --sync`
+4. Mở server tại `http://localhost:8000/`
 
-1. checks Django settings
-2. runs migrations
-3. seeds sample products
-4. opens the browser at `http://localhost:8000/`
-5. starts the local server
-
-## Options
+## Chạy thủ công từng bước
 
 ```powershell
-.\scripts\run_local.ps1 -SkipMigrate
-.\scripts\run_local.ps1 -SkipSeed
-.\scripts\run_local.ps1 -Port 9000
-.\scripts\run_local.ps1 -BindHost 127.0.0.1
-```
-
-## Manual run
-
-```powershell
-.venv\Scripts\Activate.ps1
 cd backend
-python manage.py check
-python manage.py migrate
-python manage.py seed_products --sync
-python manage.py runserver localhost:8000
+python manage.py check          # Kiểm tra hệ thống
+python manage.py migrate        # Đồng bộ database
+python manage.py seed_products --sync  # Seed sản phẩm
+python manage.py runserver localhost:8000  # Chạy server
 ```
 
-## Important URLs
+## Các URL chính
 
-- Home: `http://localhost:8000/`
-- Login: `http://localhost:8000/dang-nhap/`
-- Register: `http://localhost:8000/dang-ky/`
-- Cart: `http://localhost:8000/gio-hang/`
-- Checkout: `http://localhost:8000/thanh-toan/`
-- Shop admin dashboard: `http://localhost:8000/admin-dashboard/`
+| URL | Mô tả |
+|-----|-------|
+| `http://localhost:8000/` | Trang chủ / danh mục sản phẩm |
+| `http://localhost:8000/admin-dashboard/` | Quản trị (chỉ staff) |
+| `http://localhost:8000/dang-nhap/` | Đăng nhập |
+| `http://localhost:8000/dang-ky/` | Đăng ký |
+| `http://localhost:8000/gio-hang/` | Giỏ hàng |
+| `http://localhost:8000/tra-cuu-don/` | Tra cứu đơn hàng |
 
-## Smoke test
+## Tài khoản admin
+
+Tạo tài khoản staff:
+
+```powershell
+cd backend
+python manage.py createsuperuser
+```
+
+Sau đó đăng nhập tại `/dang-nhap/` và vào `/admin-dashboard/`.
+
+## Chạy test
+
+```powershell
+cd backend
+python manage.py test
+```
+
+## Kiểm tra nhanh
 
 ```powershell
 .\scripts\local_smoke_test.ps1
 ```
 
-It checks:
-
-- Django import
-- `manage.py check`
-- migrations
-- product seeding
-- server responds with HTTP 200
+Script kiểm tra server trả về kết quả trên các endpoint chính.

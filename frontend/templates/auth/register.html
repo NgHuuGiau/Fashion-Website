@@ -30,7 +30,7 @@
                 </label>
                 {{ field }}
                 {% if field.help_text %}
-                <small class="help-text">{{ field.help_text|safe }}</small>
+                <small class="help-text">{{ field.help_text }}</small>
                 {% endif %}
                 {% if field.errors %}
                 <small class="error-text">{{ field.errors|striptags }}</small>

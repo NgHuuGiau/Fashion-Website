@@ -1,6 +1,8 @@
 ﻿from django.contrib import messages
 from datetime import timedelta
+from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, Q, Sum
@@ -15,7 +17,7 @@ from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, Produ
 from .cart import safe_int
 from .models import Coupon, Order
 
-RECENT_ORDER_LIMIT = 10
+RECENT_ORDER_LIMIT = 200
 LOW_STOCK_LIMIT = 10
 REVENUE_DAYS_LIMIT = 14
 
@@ -146,15 +148,23 @@ def build_variant_rows(form_data):
     return variant_rows
 
 
-def build_admin_dashboard_context(form_data=None, form_errors=None, editing_product=None):
+def build_admin_dashboard_context(form_data=None, form_errors=None, editing_product=None, order_status=None, order_q=None):
     effective_form_data = form_data or build_admin_product_form_data()
-    orders = Order.objects.all().prefetch_related("items__product")
+    all_orders = Order.objects.all().prefetch_related("items__product")
+    orders_qs = all_orders
+    if order_status:
+        orders_qs = orders_qs.filter(status=order_status)
+    if order_q:
+        orders_qs = orders_qs.filter(
+            Q(id__icontains=order_q) | Q(customer_name__icontains=order_q) | Q(phone__icontains=order_q)
+        )
+    orders = orders_qs
     from .views import decorate_order_tracking
 
     now = timezone.now()
     today = timezone.localdate()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    status_counts = orders.aggregate(
+    status_counts = all_orders.aggregate(
         total=Count("id"),
         pending=Count("id", filter=Q(status="pending")),
         processing=Count("id", filter=Q(status="processing")),
@@ -162,12 +172,12 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         delivered=Count("id", filter=Q(status="delivered")),
         cancelled=Count("id", filter=Q(status="cancelled")),
     )
-    total_revenue = orders.filter(status="delivered").aggregate(total=Sum("total_amount"))["total"] or 0
+    total_revenue = all_orders.filter(status="delivered").aggregate(total=Sum("total_amount"))["total"] or 0
     month_revenue = (
-        orders.filter(status="delivered", created_at__gte=month_start).aggregate(total=Sum("total_amount"))["total"] or 0
+        all_orders.filter(status="delivered", created_at__gte=month_start).aggregate(total=Sum("total_amount"))["total"] or 0
     )
     daily_revenue = (
-        orders.filter(status="delivered")
+        all_orders.filter(status="delivered")
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(total=Sum("total_amount"), orders_count=Count("id"))
@@ -212,6 +222,11 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         growth_label = "Ổn định so với 7 ngày trước"
         growth_class = "is-flat"
 
+    today_orders = all_orders.filter(created_at__date=today).count()
+    today_revenue = all_orders.filter(status="delivered", created_at__date=today).aggregate(total=Sum("total_amount"))["total"] or 0
+    UserModel = get_user_model()
+    today_new_accounts = UserModel.objects.filter(date_joined__date=today).count()
+
     return {
         "total_orders": status_counts["total"],
         "pending_orders": status_counts["pending"],
@@ -228,10 +243,14 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "revenue_growth_pct": growth_pct,
         "revenue_growth_label": growth_label,
         "revenue_growth_class": growth_class,
+        "today_orders": today_orders,
+        "today_revenue": today_revenue,
+        "today_new_accounts": today_new_accounts,
         "recent_orders": [decorate_order_tracking(order) for order in orders.order_by("-created_at")[:RECENT_ORDER_LIMIT]],
         "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:LOW_STOCK_LIMIT],
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),
+        "coupons": Coupon.objects.all().order_by("-created_at"),
         "recent_products": Product.objects.select_related("category").order_by("-created"),
         "product_form": effective_form_data,
         "product_form_variant_rows": build_variant_rows(effective_form_data),
@@ -458,8 +477,70 @@ def admin_dashboard(request):
         messages.error(request, "Bạn không có quyền truy cập trang này.")
         return redirect("products:product_list")
 
+    order_status = request.GET.get("order_status", "").strip() or None
+    order_q = request.GET.get("order_q", "").strip() or None
+
     if request.method == "POST":
         action = request.POST.get("action", "save_product").strip()
+
+        if action == "update_order_status":
+            order_id = request.POST.get("order_id")
+            new_status = request.POST.get("new_status", "").strip()
+            valid_statuses = [s[0] for s in Order.STATUS_CHOICES]
+            if order_id and new_status in valid_statuses:
+                order = get_object_or_404(Order, id=order_id)
+                order.status = new_status
+                order.save(update_fields=["status", "updated_at"])
+                messages.success(request, f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(new_status)}'.")
+            return redirect("orders:admin_dashboard")
+
+        if action == "save_coupon":
+            coupon_id = request.POST.get("coupon_id", "").strip()
+            code = request.POST.get("code", "").strip().upper()
+            if not code:
+                messages.error(request, "Mã giảm giá không được để trống.")
+                return redirect("orders:admin_dashboard")
+            discount_type = request.POST.get("discount_type", "percent").strip()
+            value = request.POST.get("value", "0").strip()
+            min_order = request.POST.get("min_order_amount", "0").strip()
+            max_discount = request.POST.get("max_discount_amount", "").strip()
+            is_active = request.POST.get("is_active") == "on"
+            if coupon_id:
+                coupon = get_object_or_404(Coupon, id=coupon_id)
+                coupon.code = code
+                coupon.discount_type = discount_type
+                coupon.value = Decimal(value)
+                coupon.min_order_amount = Decimal(min_order)
+                coupon.max_discount_amount = Decimal(max_discount) if max_discount else None
+                coupon.is_active = is_active
+                coupon.save()
+                messages.success(request, f"Đã cập nhật mã '{code}'.")
+            else:
+                Coupon.objects.create(
+                    code=code, discount_type=discount_type, value=Decimal(value),
+                    min_order_amount=Decimal(min_order),
+                    max_discount_amount=Decimal(max_discount) if max_discount else None,
+                    is_active=is_active,
+                )
+                messages.success(request, f"Đã tạo mã '{code}'.")
+            return redirect("orders:admin_dashboard")
+
+        if action == "delete_coupon":
+            coupon = get_object_or_404(Coupon, id=request.POST.get("coupon_id"))
+            code = coupon.code
+            coupon.delete()
+            messages.success(request, f"Đã xóa mã '{code}'.")
+            return redirect("orders:admin_dashboard")
+
+        if action == "bulk_toggle_available":
+            product_ids = request.POST.get("product_ids", "")
+            make_available = request.POST.get("make_available") == "1"
+            ids = [pid for pid in product_ids.split(",") if pid.strip().isdigit()]
+            if ids:
+                count = Product.objects.filter(id__in=ids).update(available=make_available)
+                label = "hiện" if make_available else "ẩn"
+                messages.success(request, f"Đã {label} {count} sản phẩm.")
+            return redirect("orders:admin_dashboard")
 
         if action == "delete_product":
             product = get_object_or_404(Product, id=request.POST.get("product_id"))
@@ -484,7 +565,7 @@ def admin_dashboard(request):
         return render(
             request,
             "admin/admin_dashboard.html",
-            build_admin_dashboard_context(form_data=form_data, form_errors=errors, editing_product=editing_product),
+            build_admin_dashboard_context(form_data=form_data, form_errors=errors, editing_product=editing_product, order_status=order_status or None, order_q=order_q or None),
         )
 
     editing_product = None
@@ -497,5 +578,5 @@ def admin_dashboard(request):
     return render(
         request,
         "admin/admin_dashboard.html",
-        build_admin_dashboard_context(form_data=form_data, editing_product=editing_product),
+        build_admin_dashboard_context(form_data=form_data, editing_product=editing_product, order_status=order_status, order_q=order_q),
     )

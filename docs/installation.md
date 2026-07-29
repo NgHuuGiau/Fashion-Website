@@ -1,40 +1,54 @@
-# Installation
+# Hướng dẫn cài đặt
 
-## Requirements
+## Yêu cầu hệ thống
 
-- Windows 11+
-- Python 3.10+
-- PowerShell 7+
+| Yêu cầu | Phiên bản |
+|---------|-----------|
+| Python | 3.10 trở lên |
+| Windows | 11+ (khuyên dùng) / 10 |
+| PowerShell | 7+ (hoặc Windows PowerShell 5.1) |
 
-## Quick setup
+## Cài đặt
 
 ```powershell
-git clone <repo-url>
+# 1. Clone repository
+git clone <repo-url> Fashion-Website
 cd Fashion-Website
+
+# 2. Tạo môi trường ảo
 python -m venv .venv
+
+# 3. Kích hoạt
 .venv\Scripts\Activate.ps1
+
+# 4. Cài dependencies
 pip install -r requirements.txt
+
+# 5. Copy cấu hình
+cp .env.example .env
+# Mở .env để sửa nếu cần (mặc định chạy local được)
+
+# 6. Kiểm tra hệ thống
+cd backend
+python manage.py check
+
+# 7. Migrate database
+python manage.py migrate
+
+# 8. Seed dữ liệu sản phẩm
+python manage.py seed_products --sync
 ```
 
-If PowerShell blocks scripts:
+## Cấu hình
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
+File `.env` hỗ trợ các biến sau:
 
-## Environment file
-
-Create a `.env` file in the repo root if you want to override defaults:
-
-```env
-SECRET_KEY=django-insecure-change-this-in-env
-DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost,testserver
-DB_PATH=
-```
-
-## Notes
-
-- SQLite data lives in `database/db.sqlite3`
-- Static files live in `frontend/static`
-- That folder also acts as the project `MEDIA_ROOT`
+| Biến | Mặc định | Mô tả |
+|------|---------|-------|
+| `SECRET_KEY` | tự sinh | Khóa bí mật Django |
+| `DEBUG` | `True` | Chế độ debug (tắt khi production) |
+| `ALLOWED_HOSTS` | `127.0.0.1,localhost` | Danh sách host cho phép |
+| `DB_PATH` | *(rỗng)* | Đường dẫn database tuỳ chỉnh |
+| `SECURE_SSL_REDIRECT` | `False` | Chuyển hướng sang HTTPS |
+| `SESSION_COOKIE_SECURE` | `False` | Cookie session an toàn |
+| `CSRF_COOKIE_SECURE` | `False` | Cookie CSRF an toàn |

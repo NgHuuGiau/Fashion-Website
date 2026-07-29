@@ -12,6 +12,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from core.text_utils import normalize_vn_text, parse_keyword_list, repair_mojibake_text
+from core.ratelimit import rate_limit
+from urllib.parse import quote
 
 from .constants import FEATURED_PRODUCT_LIMIT, get_category_type_label
 from .models import (
@@ -103,7 +105,6 @@ def format_color_label(color_name):
 
 
 def build_gallery_placeholder(product, slot_index):
-    from urllib.parse import quote
 
     category_label = normalize_vn_text(get_category_type_label(product.category.slug)).upper()
     slot_label = f"{slot_index + 1:02d}"
@@ -605,6 +606,7 @@ def product_detail(request, pk, slug):
     )
 
 
+@rate_limit("chat", max_requests=30, window=60, error_msg="Quá nhiều yêu cầu chat.")
 def support_chat_reply(request):
     question = request.GET.get("q", "").strip()
     if not question:

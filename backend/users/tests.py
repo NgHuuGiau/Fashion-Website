@@ -1,4 +1,5 @@
 ﻿from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
@@ -9,6 +10,7 @@ from .models import UserActivity, UserProfile, VisitorSession
 class UserAuthFlowTest(TestCase):
 
     def setUp(self):
+        cache.clear()
         self.existing = User.objects.create_user(
             username="existing",
             email="existing@test.com",
@@ -188,6 +190,9 @@ class UserAuthFlowTest(TestCase):
 
 
 class UserTrackingStorageTest(TestCase):
+
+    def setUp(self):
+        cache.clear()
 
     def test_guest_visit_is_stored(self):
         self.client.get(reverse("products:product_list"))

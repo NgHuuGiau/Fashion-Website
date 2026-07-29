@@ -27,7 +27,7 @@ class Category(models.Model):
 class Product(models.Model):
     category = models.ForeignKey(Category, related_name="products", on_delete=models.CASCADE)
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
-    slug = models.SlugField(max_length=200)
+    slug = models.SlugField(max_length=200, db_index=True)
     image = models.ImageField(upload_to="products/%Y/%m/%d", blank=True, verbose_name="Ảnh sản phẩm")
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
@@ -35,7 +35,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng kho")
     available = models.BooleanField(default=True, verbose_name="Đang bán")
     featured = models.BooleanField(default=False, verbose_name="Nổi bật")
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:

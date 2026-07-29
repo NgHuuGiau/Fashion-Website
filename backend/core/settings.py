@@ -117,6 +117,18 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", Fals
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
 
+if not DEBUG:
+    if os.getenv("ALLOWED_HOSTS", "").strip() in ("", "*"):
+        import warnings
+        warnings.warn("ALLOWED_HOSTS không được để trống hoặc '*' khi DEBUG=False. Đặt giá trị cụ thể trong .env")
+
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
+    CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
+
 if DEBUG and env_bool("ENABLE_SQL_LOGGING", False):
     LOGGING = {
         'version': 1,

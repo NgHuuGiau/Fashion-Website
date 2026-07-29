@@ -27,6 +27,16 @@
         <strong>{{ low_stock_products|length }}</strong>
         <small>Nên bổ sung</small>
       </article>
+      <article class="admin-control-card">
+        <span>Đơn hôm nay</span>
+        <strong>{{ today_orders }}</strong>
+        <small>Doanh thu {{ today_revenue|vnd }}đ</small>
+      </article>
+      <article class="admin-control-card">
+        <span>Tài khoản mới</span>
+        <strong>{{ today_new_accounts }}</strong>
+        <small>Hôm nay</small>
+      </article>
     </div>
   </div>
 
@@ -86,7 +96,13 @@
   <button type="button" class="admin-tab" data-target="admin-product-table">
     <i class="fa-solid fa-table-list"></i> Bảng sản phẩm
   </button>
-  <a href="{% url 'orders:admin_export_orders' %}" class="admin-tab" style="text-decoration:none;display:flex;align-items:center;gap:0.35rem;padding:0.55rem 0.9rem;border-radius:8px;font-size:0.78rem;font-weight:600;color:var(--text-soft);transition:all 0.2s">
+  <button type="button" class="admin-tab" data-target="admin-orders">
+    <i class="fa-solid fa-receipt"></i> Đơn hàng
+  </button>
+  <button type="button" class="admin-tab" data-target="admin-coupons">
+    <i class="fa-solid fa-tags"></i> Mã giảm giá
+  </button>
+  <a href="{% url 'orders:admin_export_orders' %}" class="admin-tab">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Xuất đơn
   </a>
@@ -280,11 +296,31 @@
         <h2>Toàn bộ sản phẩm</h2>
         <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
       </div>
+      <div>
+        <input type="text" id="admin-product-search" placeholder="Tìm sản phẩm..." class="admin-input" style="width:200px">
+      </div>
+    </div>
+    <div class="bulk-actions" id="admin-bulk-actions">
+      <label class="bulk-label"><input type="checkbox" id="admin-select-all"> Chọn tất cả</label>
+      <form method="post" class="admin-inline-form" onsubmit="return confirm('Ẩn các sản phẩm đã chọn?')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_toggle_available">
+        <div id="admin-bulk-ids"></div>
+        <button type="submit" class="btn small ghost" id="admin-bulk-hide-btn" disabled>Ẩn</button>
+      </form>
+      <form method="post" class="admin-inline-form" onsubmit="return confirm('Hiện các sản phẩm đã chọn?')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_toggle_available">
+        <div id="admin-bulk-ids-show"></div>
+        <button type="submit" class="btn small ghost" id="admin-bulk-show-btn" disabled>Hiện</button>
+      </form>
     </div>
     <div class="admin-product-table-shell">
       <div class="table-wrap">
         <table class="cart-table admin-product-table">
           <colgroup>
+            <col class="admin-col-check">
+            <col class="admin-col-thumb">
             <col class="admin-col-product">
             <col class="admin-col-category">
             <col class="admin-col-price">
@@ -294,6 +330,8 @@
           </colgroup>
           <thead>
             <tr>
+              <th><input type="checkbox" id="admin-select-all-header"></th>
+              <th>Ảnh</th>
               <th>Tên sản phẩm</th>
               <th>Danh mục</th>
               <th>Giá</th>
@@ -305,6 +343,16 @@
           <tbody>
             {% for product in recent_products %}
             <tr>
+              <td><input type="checkbox" class="admin-product-check" value="{{ product.id }}"></td>
+              <td>
+                {% if product.image and product.image.url %}
+                <img src="{{ product.image.url }}" alt="" class="admin-product-thumb">
+                {% elif product.image_url %}
+                <img src="{{ product.image_url }}" alt="" class="admin-product-thumb">
+                {% else %}
+                <div class="admin-product-placeholder">?</div>
+                {% endif %}
+              </td>
               <td>{{ product.name }}</td>
               <td>{{ product.category.name }}</td>
               <td>{{ product.price|vnd }}đ</td>
@@ -335,7 +383,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6" class="admin-empty-cell">Chưa có sản phẩm nào.</td></tr>
+            <tr><td colspan="8" class="admin-empty-cell">Chưa có sản phẩm nào.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -344,35 +392,203 @@
   </div>
 </section>
 
-<script>
-(function() {
-  var tabs = document.querySelectorAll('.admin-tab');
-  var contents = {
-    'admin-chart': document.getElementById('admin-chart'),
-    'admin-product-form': document.getElementById('admin-product-form'),
-    'admin-product-table': document.getElementById('admin-product-table')
-  };
+<section class="admin-tab-content" id="admin-orders">
+  <div class="admin-board-panel panel">
+    <div class="section-head">
+      <div>
+        <h2>Đơn hàng</h2>
+        <p>Danh sách tất cả đơn hàng. Chọn trạng thái để cập nhật.</p>
+      </div>
+      <div style="display:flex;gap:0.4rem;align-items:center">
+        <form method="get" id="order-filter-form" class="order-filter-form">
+          <select name="order_status" class="admin-input" data-auto-submit>
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending" {% if request.GET.order_status == 'pending' %}selected{% endif %}>Chờ xử lý</option>
+            <option value="processing" {% if request.GET.order_status == 'processing' %}selected{% endif %}>Đang xử lý</option>
+            <option value="shipping" {% if request.GET.order_status == 'shipping' %}selected{% endif %}>Đang giao</option>
+            <option value="delivered" {% if request.GET.order_status == 'delivered' %}selected{% endif %}>Hoàn thành</option>
+            <option value="cancelled" {% if request.GET.order_status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+          </select>
+          <input type="search" name="order_q" placeholder="Tìm theo ID, tên, SĐT" value="{{ request.GET.order_q }}" class="admin-input" style="width:200px">
+          <button type="submit" class="btn small ghost">Tìm</button>
+        </form>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="cart-table admin-order-table">
+        <colgroup>
+          <col class="admin-col-id">
+          <col class="admin-col-customer">
+          <col class="admin-col-total">
+          <col class="admin-col-payment">
+          <col class="admin-col-status">
+          <col class="admin-col-date">
+          <col class="admin-col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Mã ĐH</th>
+            <th>Khách hàng / SĐT</th>
+            <th>Tổng tiền</th>
+            <th>Thanh toán</th>
+            <th>Trạng thái</th>
+            <th>Ngày tạo</th>
+            <th>Cập nhật</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in recent_orders %}
+          <tr>
+            <td><strong><a href="{% url 'orders:order_review' order.id %}" class="admin-order-link">#{{ order.id }}</a></strong></td>
+            <td>
+              <div>{{ order.customer_name }}</div>
+              <small class="admin-muted">{{ order.phone }}</small>
+              {% if order.items.all %}
+              <small class="admin-muted-sm">{{ order.items.all|length }} sản phẩm</small>
+              {% endif %}
+            </td>
+            <td><strong>{{ order.total_amount|vnd }}đ</strong></td>
+            <td>
+              {% if order.payment_method == "bank" %}
+                <span class="admin-badge admin-badge-bank">Chuyển khoản</span>
+                {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
+              {% else %}
+                <span class="admin-badge admin-badge-cod">COD</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="admin-badge admin-badge-status-{{ order.status }}">{% if order.status == "pending" %}Chờ xử lý{% elif order.status == "processing" %}Đang xử lý{% elif order.status == "shipping" %}Đang giao{% elif order.status == "delivered" %}Hoàn thành{% elif order.status == "cancelled" %}Đã hủy{% endif %}</span>
+            </td>
+            <td><small>{{ order.created_at|date:"d/m/Y H:i" }}</small></td>
+            <td>
+              <form method="post" class="admin-quick-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_order_status">
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <select name="new_status" class="admin-input-sm">
+                  <option value="pending" {% if order.status == "pending" %}selected{% endif %}>Chờ xử lý</option>
+                  <option value="processing" {% if order.status == "processing" %}selected{% endif %}>Đang xử lý</option>
+                  <option value="shipping" {% if order.status == "shipping" %}selected{% endif %}>Đang giao</option>
+                  <option value="delivered" {% if order.status == "delivered" %}selected{% endif %}>Hoàn thành</option>
+                  <option value="cancelled" {% if order.status == "cancelled" %}selected{% endif %}>Đã hủy</option>
+                </select>
+                <button type="submit" class="btn small ghost">Lưu</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="admin-empty-cell">Chưa có đơn hàng nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
-  function showTab(targetId) {
-    tabs.forEach(function(t) { t.classList.remove('active'); });
-    Object.keys(contents).forEach(function(id) {
-      if (contents[id]) contents[id].classList.remove('active');
-    });
-    var targetTab = document.querySelector('.admin-tab[data-target="' + targetId + '"]');
-    if (targetTab) targetTab.classList.add('active');
-    if (contents[targetId]) contents[targetId].classList.add('active');
-  }
+<section class="admin-tab-content" id="admin-coupons">
+  <div class="admin-board-panel panel">
+    <div class="section-head">
+      <div>
+        <h2>Mã giảm giá</h2>
+        <p>Tạo, sửa, xoá mã giảm giá. Mã sẽ tự động được kiểm tra khi khách áp dụng tại checkout.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="cart-table admin-coupon-table">
+        <colgroup>
+          <col class="coupon-col-code">
+          <col class="coupon-col-type">
+          <col class="coupon-col-value">
+          <col class="coupon-col-min">
+          <col class="coupon-col-limit">
+          <col class="coupon-col-active">
+          <col class="coupon-col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Mã</th>
+            <th>Loại</th>
+            <th>Giá trị</th>
+            <th>Đơn tối thiểu</th>
+            <th>Giới hạn</th>
+            <th>Kích hoạt</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for coupon in coupons %}
+          <tr>
+            <td><strong>{{ coupon.code }}</strong></td>
+            <td>{% if coupon.discount_type == "percent" %}%{% elif coupon.discount_type == "fixed" %}₫{% else %}Ship{% endif %}</td>
+            <td>{{ coupon.value|vnd }}{% if coupon.discount_type == "percent" %}%{% endif %}</td>
+            <td>{{ coupon.min_order_amount|vnd }}đ</td>
+            <td>{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
+            <td>{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
+            <td>
+              <div class="admin-row-actions">
+                <button type="button" class="btn ghost small" data-edit-coupon="{{ coupon.id }}" data-coupon-code="{{ coupon.code }}" data-coupon-type="{{ coupon.discount_type }}" data-coupon-value="{{ coupon.value }}" data-coupon-min="{{ coupon.min_order_amount }}" data-coupon-max="{{ coupon.max_discount_amount|default:'' }}" data-coupon-active="{{ coupon.is_active }}">Sửa</button>
+                <form method="post" class="admin-inline-form" onsubmit="return confirm('Xoá mã {{ coupon.code }}?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_coupon">
+                  <input type="hidden" name="coupon_id" value="{{ coupon.id }}">
+                  <button type="submit" class="btn danger small">Xóa</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="admin-empty-cell">Chưa có mã giảm giá nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <hr class="admin-hr">
+    <div class="section-head">
+      <div>
+        <h2 id="coupon-form-title">Thêm mã mới</h2>
+      </div>
+    </div>
+    <form method="post" class="coupon-form-layout">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_coupon">
+      <input type="hidden" name="coupon_id" id="coupon-id-input" value="">
+      <label class="admin-field">
+        <span>Mã giảm giá</span>
+        <input type="text" name="code" id="coupon-code-input" placeholder="VD: FREESHIP" required class="coupon-code-input">
+      </label>
+      <label class="admin-field">
+        <span>Loại</span>
+        <select name="discount_type" id="coupon-type-select">
+          <option value="percent">Phần trăm (%)</option>
+          <option value="fixed">Số tiền cố định (₫)</option>
+          <option value="freeship">Miễn phí ship</option>
+        </select>
+      </label>
+      <label class="admin-field">
+        <span>Giá trị</span>
+        <input type="number" name="value" id="coupon-value-input" min="0" step="1" placeholder="10" required>
+      </label>
+      <label class="admin-field">
+        <span>Đơn tối thiểu (₫)</span>
+        <input type="number" name="min_order_amount" id="coupon-min-input" min="0" step="1" value="0">
+      </label>
+      <label class="admin-field">
+        <span>Giới hạn giảm tối đa (₫)</span>
+        <input type="number" name="max_discount_amount" id="coupon-max-input" min="0" step="1" placeholder="Không giới hạn">
+      </label>
+      <label class="admin-field field-gap">
+        <input type="checkbox" name="is_active" id="coupon-active-input" checked>
+        <span>Kích hoạt ngay</span>
+      </label>
+      <div class="coupon-full-width">
+        <button type="submit" class="btn">Lưu mã</button>
+        <button type="button" class="btn ghost" id="coupon-cancel-btn" style="display:none">Huỷ</button>
+      </div>
+    </form>
+  </div>
+</section>
 
-  tabs.forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      showTab(this.dataset.target);
-    });
-  });
 
-  var hash = window.location.hash.replace('#', '');
-  if (hash && contents[hash]) showTab(hash);
-})();
-</script>
 
 <style>
 .admin-hero-head {
@@ -566,6 +782,23 @@
   padding: 2rem !important;
   color: var(--muted);
 }
+
+/* Order table */
+.admin-order-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
+.admin-col-id { width: 60px; }
+.admin-col-check { width: 36px; }
+.admin-col-thumb { width: 50px; }
+.admin-col-customer { min-width: 160px; }
+.admin-col-total { width: 100px; }
+.admin-col-payment { width: 120px; }
+.admin-col-status { width: 110px; }
+.admin-col-date { width: 110px; }
+.admin-col-actions { width: 200px; }
+.admin-badge-status-pending { background: #fef0d5; color: #b87820; }
+.admin-badge-status-processing { background: #d5e8fe; color: #2058b8; }
+.admin-badge-status-shipping { background: #e3d5fe; color: #5820b8; }
+.admin-badge-status-delivered { background: #e3f5e8; color: #1a7a3a; }
+.admin-badge-status-cancelled { background: #fde8e4; color: #b33a2a; }
 
 @media (max-width: 768px) {
   .admin-hero-head { grid-template-columns: 1fr; }

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}500 — Lỗi máy chủ{% endblock %}
+{% block content %}
+<section class="error-page">
+  <h1 class="error-code">500</h1>
+  <p class="error-message">Máy chủ gặp sự cố. Vui lòng thử lại sau.</p>
+  <a href="{% url 'products:product_list' %}" class="btn">Về trang chủ</a>
+</section>
+{% endblock %}

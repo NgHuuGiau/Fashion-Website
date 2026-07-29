@@ -502,6 +502,79 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+    def test_admin_dashboard_order_list_has_data(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertGreater(len(response.context["recent_orders"]), 0)
+
+
+    def test_admin_dashboard_update_order_status(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.assertIsNotNone(order)
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "shipping"},
+        )
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "shipping")
+
+
+    def test_user_cancel_order_requires_post(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.assertIsNotNone(order)
+        response = self.client.get(reverse("orders:user_cancel_order", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 405)
+
+
+    def test_user_cancel_order_via_post(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.status, "pending")
+        response = self.client.post(
+            reverse("orders:user_cancel_order", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "cancelled")
+
+
     def test_admin_dashboard_requires_staff(self):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("orders:admin_dashboard"))

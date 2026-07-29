@@ -11,6 +11,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from .activity import log_activity
 from .forms import ProfileForm, RegisterForm
 from .models import UserProfile
+from core.ratelimit import rate_limit
 
 
 def _sync_visitor_auth_state(request, user):
@@ -37,6 +38,7 @@ def _build_login_candidates(identifier):
     return login_candidates
 
 
+@rate_limit("register", max_requests=5, window=300, error_msg="Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 5 phút.")
 def register_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -65,6 +67,7 @@ def register_view(request):
     return render(request, "auth/register.html", {"form": form})
 
 
+@rate_limit("login", max_requests=10, window=300, error_msg="Quá nhiều lần đăng nhập. Vui lòng thử lại sau 5 phút.")
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("products:product_list")

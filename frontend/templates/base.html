@@ -1,15 +1,22 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.">
+    <meta property="og:title" content="HUUGIAU Atelier — Streetwear Local">
+    <meta property="og:description" content="Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
     <title>{% block title %}HUUGIAU Studio{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/fontawesome-all.min.css?v=6.5.2">
-    <link rel="stylesheet" href="/static/css/site_theme.css?v=20260729a">
+    <link rel="stylesheet" href="{% static 'css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/site_theme.css' %}">
     <script>!function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';l.onerror=function(){this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css'};document.head.appendChild(l)}()</script>
+    <script defer src="{% static 'js/site_interactions.js' %}"></script>
     <style>
     .header-search { position: relative; }
     .header-search-suggest {
@@ -152,7 +159,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         Bảng điều khiển
                     </a>
-                    <a href="/admin/">
+                    <a href="{% url 'admin:index' %}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         Quản trị
                     </a>
@@ -166,7 +173,7 @@
             </nav>
 
             <div class="header-right">
-                <form class="header-search" method="get" action="{% url 'products:product_list' %}" id="header-search-form" autocomplete="off">
+                <form class="header-search" method="get" action="{% url 'products:product_list' %}" id="header-search-form" autocomplete="off" data-suggest-url="{% url 'products:search_suggest' %}">
                     <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}" id="header-search-input">
                     <div class="header-search-suggest" id="search-suggest"></div>
                 </form>
@@ -195,7 +202,7 @@
                         {% endif %}
                         {% if request.user.is_staff %}
                         <a href="{% url 'orders:admin_dashboard' %}" class="highlight">Bảng điều khiển</a>
-                        <a href="/admin/">Quản trị</a>
+                        <a href="{% url 'admin:index' %}">Quản trị</a>
                         {% endif %}
                     </div>
                 </details>
@@ -204,41 +211,72 @@
     </header>
 
     <main class="container page-wrap">
-        {% if messages %}
-        <div class="message-stack">
-            {% for message in messages %}
-            <div class="message {{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
+        <div id="toast-container"></div>
+        <div id="messages-data" style="display:none">{% if messages %}[{% for message in messages %}{"text":"{{ message|escapejs }}","tags":"{{ message.tags }}"}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %}</div>
 
         {% block content %}{% endblock %}
     </main>
 
     <footer class="site-footer">
         <div class="container footer-wrap">
-            <div>
-                <h3>HUUGIAU STUDIO</h3>
-                <p>Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
+            <div class="footer-col">
+                <h3>HUUGIAU Atelier</h3>
+                <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
                 <div class="footer-social">
                     <a href="#" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
                     <a href="#" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
                     <a href="#" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
-                    <a href="#" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>
                 </div>
+                <form class="footer-newsletter" method="get" action="{% url 'products:product_list' %}">
+                    <input type="text" name="q" placeholder="Tìm sản phẩm..." aria-label="Tìm sản phẩm">
+                    <button type="submit" class="btn"><i class="fa-solid fa-arrow-right"></i></button>
+                </form>
             </div>
-            <div>
-                <h3>HỖ TRỢ MUA HÀNG</h3>
-                <p>Tư vấn size, kiểm tra hàng, thanh toán và theo dõi đơn ngay trên web.</p>
-                <p>Hỗ trợ từ 9:00 đến 21:30 mỗi ngày.</p>
-                <p><a href="mailto:hello@huugiau.com" style="color:var(--accent);text-decoration:none;font-weight:600;">hello@huugiau.com</a></p>
+            <div class="footer-col">
+                <h3>Hỗ trợ</h3>
+                <ul>
+                    <li><a href="{% url 'orders:order_lookup' %}">Tra cứu đơn hàng</a></li>
+                    <li><a href="{% url 'orders:my_orders' %}">Đơn hàng của tôi</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Chính sách đổi trả</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Hướng dẫn chọn size</a></li>
+                    <li><a href="mailto:hello@huugiau.com" class="footer-email">hello@huugiau.com</a></li>
+                </ul>
+                <p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hỗ trợ 9:00–21:30 mỗi ngày</p>
             </div>
-            <div>
-                <h3>CAM KẾT</h3>
-                <p>Ảnh rõ, thao tác gọn, cập nhật đơn minh bạch và trải nghiệm mua tốt trên cả điện thoại lẫn máy tính.</p>
-                <p>Freeship từ 499K • COD hoặc chuyển khoản</p>
-                <p style="margin-top:0.45rem"><a href="{% url 'orders:order_lookup' %}" style="color:var(--text-soft);text-decoration:none;font-size:0.8rem;">Tra cứu đơn hàng</a></p>
-                <p style="margin-top:0.45rem;font-size:0.82rem;color:var(--muted);">&copy; 2026 HUUGIAU Atelier</p>
+            <div class="footer-col">
+                <h3>Danh mục</h3>
+                <ul>
+                    <li><a href="{% url 'products:product_list' %}?category=ao">Áo</a></li>
+                    <li><a href="{% url 'products:product_list' %}?category=quan">Quần</a></li>
+                    <li><a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a></li>
+                    <li><a href="{% url 'products:product_list' %}?sort=newest">Hàng mới về</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Tất cả sản phẩm</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Về HUUGIAU</h3>
+                <ul>
+                    <li><a href="{% url 'products:product_list' %}">Câu chuyện thương hiệu</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Chất liệu &amp; bảo quản</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Tuyển dụng</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Liên hệ</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="footer-bottom-links">
+                    <span>&copy; 2026 HUUGIAU Atelier</span>
+                    <a href="{% url 'products:product_list' %}">Chính sách bảo mật</a>
+                    <a href="{% url 'products:product_list' %}">Điều khoản</a>
+                </div>
+                <div class="footer-payments">
+                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
+                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
+                    <i class="fa-brands fa-cc-paypal" title="PayPal"></i>
+                    <i class="fa-regular fa-building-columns" title="Chuyển khoản ngân hàng"></i>
+                    <i class="fa-solid fa-truck-fast" title="COD"></i>
+                </div>
             </div>
         </div>
     </footer>
@@ -268,7 +306,7 @@
             <button type="button" class="chat-suggestion">Còn màu đen size M không?</button>
             <button type="button" class="chat-suggestion">Thanh toán thế nào?</button>
         </div>
-        <form class="chatbox-form" id="chatbox-form">
+        <form class="chatbox-form" id="chatbox-form">{% csrf_token %}
             <input type="text" id="chatbox-input" placeholder="Ví dụ: 1m72, 68kg..." autocomplete="off">
             <button type="submit" class="btn small">Gửi</button>
         </form>
@@ -280,7 +318,9 @@
         (function(){
             var input = document.getElementById('header-search-input');
             var box = document.getElementById('search-suggest');
-            if (!input || !box) return;
+            var form = document.getElementById('header-search-form');
+            if (!input || !box || !form) return;
+            var suggestUrl = form.getAttribute('data-suggest-url');
             var timer, selected = -1;
             input.addEventListener('input', function(){
                 clearTimeout(timer);
@@ -288,7 +328,7 @@
                 if (q.length < 1) { box.innerHTML = ''; box.classList.remove('is-active'); return; }
                 timer = setTimeout(function(){
                     var xhr = new XMLHttpRequest();
-                    xhr.open('GET', '/tim-kiem/goi-y/?q=' + encodeURIComponent(q), true);
+                    xhr.open('GET', suggestUrl + '?q=' + encodeURIComponent(q), true);
                     xhr.onload = function(){
                         if (xhr.status !== 200) return;
                         var data = JSON.parse(xhr.responseText);
@@ -406,8 +446,28 @@
             });
             observer.observe(cartCount, { childList: true, characterData: true, subtree: true });
         }
+
+        // ─── Toast notifications ───
+        (function(){
+            var dataEl = document.getElementById('messages-data');
+            if (!dataEl) return;
+            var raw = dataEl.textContent.trim();
+            if (!raw || raw === '[]') return;
+            var messages;
+            try { messages = JSON.parse(raw); } catch(e) { return; }
+            var container = document.getElementById('toast-container');
+            if (!container) return;
+            messages.forEach(function(msg, idx){
+                var toast = document.createElement('div');
+                toast.className = 'toast toast-' + (msg.tags || 'info');
+                toast.textContent = msg.text;
+                toast.style.animationDelay = (idx * 0.15) + 's';
+                container.appendChild(toast);
+                setTimeout(function(){ toast.classList.add('toast-hide'); }, 3000 + idx * 150);
+                setTimeout(function(){ if (toast.parentNode) toast.remove(); }, 3500 + idx * 150);
+            });
+        })();
     });
     </script>
-    <script src="/static/js/site_interactions.js?v=20260729a"></script>
 </body>
 </html>
