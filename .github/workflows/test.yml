@@ -25,6 +25,11 @@ jobs:
       - name: Show Python version
         run: python --version
 
+      - name: Set up environment secrets
+        run: |
+          echo "SECRET_KEY=django-insecure-ci-test-key-$(python3 -c 'import uuid; print(uuid.uuid4().hex)')" >> $GITHUB_ENV
+          echo "DEBUG=False" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
