@@ -37,6 +37,14 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+# Cache/temp
+.ruff_cache/
+backend/.ruff_cache/
+backend/.pytest_cache/
+
+# SSL certs (dev only)
+backend/certs/
+
 # Local notes (do not push)
 Ghi Chú.txt
 a.txt

@@ -38,7 +38,7 @@
 
             <div class="review-section">
                 <h2 class="review-section-title">
-                    <i class="fa-regular fa-truck"></i>
+                    <i class="fa-solid fa-truck"></i>
                     Thông tin giao hàng
                 </h2>
                 <div class="review-info-grid">
@@ -122,7 +122,7 @@
                             </button>
                             {% if order.payment_method == "bank" and not order.is_paid %}
                             <button type="submit" name="action" value="pay_now" class="btn small">
-                                <i class="fa-regular fa-qrcode"></i>
+                                <i class="fa-solid fa-qrcode"></i>
                                 Lưu và tới QR
                             </button>
                             {% endif %}
@@ -133,7 +133,7 @@
             {% else %}
             <div class="review-section">
                 <div class="review-locked-box">
-                    <i class="fa-regular fa-lock"></i>
+                    <i class="fa-solid fa-lock"></i>
                     <span>Đơn hàng đã được xác nhận và không thể chỉnh sửa.</span>
                 </div>
             </div>
@@ -143,7 +143,7 @@
         <aside class="review-side panel">
             <div class="review-side-section">
                 <h2 class="review-section-title">
-                    <i class="fa-regular fa-bag-shopping"></i>
+                    <i class="fa-solid fa-bag-shopping"></i>
                     Sản phẩm
                 </h2>
                 <div class="review-product-list">
@@ -168,7 +168,7 @@
 
             <div class="review-side-section">
                 <h2 class="review-section-title">
-                    <i class="fa-regular fa-receipt"></i>
+                    <i class="fa-solid fa-receipt"></i>
                     Chi tiết thanh toán
                 </h2>
                 <div class="review-totals">
@@ -211,7 +211,7 @@
                         <span>Bấm để mở QR to</span>
                     </a>
                     <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn small">
-                        <i class="fa-regular fa-qrcode"></i>
+                        <i class="fa-solid fa-qrcode"></i>
                         Đi tới trang thanh toán
                     </a>
                 </div>
@@ -220,7 +220,7 @@
             <div class="review-side-section">
                 <div class="review-payment-box">
                     <h3>
-                        <i class="fa-regular fa-truck-fast"></i>
+                        <i class="fa-solid fa-truck-fast"></i>
                         Thanh toán khi nhận hàng
                     </h3>
                     <p>Bạn không cần quét mã. Shop sẽ xác nhận đơn và giao tới địa chỉ đã nhập.</p>
@@ -537,7 +537,7 @@
     width: 140px;
     border-radius: var(--radius-xs);
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface-strong);
     padding: 0.35rem;
     display: block;
     margin: 0 auto;

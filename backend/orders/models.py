@@ -17,17 +17,17 @@ class Coupon(models.Model):
         (TYPE_FREESHIP, "Miễn phí vận chuyển"),
     ]
 
-    code = models.CharField(max_length=30, unique=True)
+    code = models.CharField(max_length=30, unique=True, db_index=True)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=TYPE_PERCENT)
     value = models.DecimalField(max_digits=10, decimal_places=0, default=Decimal("0"))
     min_order_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
     max_discount_amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    starts_at = models.DateTimeField(null=True, blank=True)
-    ends_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    starts_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    ends_at = models.DateTimeField(null=True, blank=True, db_index=True)
     usage_limit = models.PositiveIntegerField(null=True, blank=True)
     used_count = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -69,13 +69,13 @@ class Order(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
     customer_name = models.CharField(max_length=150)
     customer_email = models.EmailField(blank=True)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20, db_index=True)
     shipping_address = models.TextField()
     note = models.TextField(blank=True)
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod", db_index=True)
     bank_code = models.CharField(max_length=20, blank=True)
-    is_paid = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    is_paid = models.BooleanField(default=False, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
 
     subtotal_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
     shipping_fee = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
@@ -90,6 +90,12 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "status", "-created_at"]),
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["payment_method", "is_paid", "status"]),
+            models.Index(fields=["phone"]),
+        ]
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"

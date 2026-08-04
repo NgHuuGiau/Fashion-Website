@@ -26,10 +26,13 @@
                     <i class="fa-regular fa-user"></i> Hồ sơ
                 </a>
                 <a href="{% url 'orders:my_orders' %}" class="account-nav-item">
-                    <i class="fa-regular fa-box"></i> Đơn hàng
+                    <i class="fa-solid fa-box"></i> Đơn hàng
                 </a>
                 <a href="{% url 'products:wishlist_list' %}" class="account-nav-item">
                     <i class="fa-regular fa-heart"></i> Yêu thích
+                </a>
+                <a href="{% url 'users:change_password' %}" class="account-nav-item">
+                    <i class="fa-solid fa-key"></i> Đổi mật khẩu
                 </a>
             </nav>
         </div>

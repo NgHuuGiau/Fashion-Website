@@ -53,13 +53,17 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
     cart = _get_cart(request.session)
     product = Product.objects.filter(id=product_id, available=True).first()
     if not product:
-        return
+        return False, "Sản phẩm không tồn tại hoặc đã ngừng bán."
 
     variant = None
     if variant_id:
         variant = ProductVariant.objects.filter(id=variant_id, product=product, is_active=True).first()
         if not variant:
-            return
+            return False, "Biến thể sản phẩm không tồn tại hoặc đã ngừng bán."
+
+    max_stock = variant.stock if variant else product.stock
+    if max_stock <= 0:
+        return False, "Sản phẩm đã hết hàng."
 
     key = _item_key(product_id, variant_id)
 
@@ -76,13 +80,11 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
     else:
         cart[key]["quantity"] += safe_quantity
 
-    max_stock = variant.stock if variant else product.stock
     if max_stock > 0:
         cart[key]["quantity"] = min(cart[key]["quantity"], max_stock)
-    else:
-        cart[key]["quantity"] = 0
 
     request.session.modified = True
+    return True, f"Đã thêm '{product.name}' vào giỏ hàng."
 
 
 
@@ -106,7 +108,7 @@ def iter_cart(request):
     cart = _get_cart(request.session)
     product_ids, variant_ids = _collect_cart_ids(cart)
 
-    products = Product.objects.filter(id__in=product_ids, available=True).select_related("category")
+    products = Product.objects.filter(id__in=product_ids, available=True).select_related("category").prefetch_related("gallery_images")
     products_by_id = {product.id: product for product in products}
     variants_by_id = {
         variant.id: variant

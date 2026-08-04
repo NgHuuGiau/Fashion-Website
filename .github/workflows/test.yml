@@ -26,10 +26,7 @@ jobs:
         run: python --version
 
       - name: Create .env file for CI
-        run: |
-          echo 'SECRET_KEY=django-insecure-ci-test-key-f00b4r' >> .env
-          echo 'SESSION_COOKIE_SECURE=False' >> .env
-          echo 'CSRF_COOKIE_SECURE=False' >> .env
+        run: cp .env.example .env
 
       - name: Install dependencies
         run: |
@@ -40,12 +37,35 @@ jobs:
         run: python manage.py check
         working-directory: backend
 
+      - name: Run Django deploy checks
+        run: python manage.py check --deploy
+        working-directory: backend
+
+      - name: Lint with ruff
+        run: |
+          pip install ruff
+          python -m ruff check .
+        working-directory: backend
+
       - name: Run migrations & seed data
         run: |
           python manage.py migrate
           python manage.py seed_products --sync
         working-directory: backend
 
-      - name: Run tests
-        run: python manage.py test orders products users --verbosity=2
+      - name: Install test tools
+        run: pip install coverage bandit
+
+      - name: Run tests with coverage
+        run: |
+          coverage run --source='.' --omit='*/migrations/*,*/tests.py,manage.py' manage.py test orders products users --verbosity=2
+          coverage report --show-missing --fail-under=90
+        working-directory: backend
+
+      - name: Security scan with bandit
+        run: |
+          bandit -r backend --ini .bandit --quiet
+
+      - name: Run Django deploy checks
+        run: python manage.py check --deploy
         working-directory: backend

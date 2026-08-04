@@ -10,14 +10,14 @@ GO
 SET IDENTITY_INSERT [Users] ON;
 GO
 INSERT INTO [Users] ([id], [username], [email], [password], [role], [is_active], [date_joined], [phone]) VALUES
-(1, N'admin', N'admin@example.com', N'pbkdf2_sha256$1200000$quYQSxOupVGu9pyi9uD54p$YlwvyIxhOw14xSau0qE84AifCgynwkOmwPVKeuAeOIo=', 0, 1, N'2026-07-29 07:14:07.174474', N''),
-(2, N'codexstaff', N'staff@codex.com', N'pbkdf2_sha256$1200000$Encu3z8RRo3JKvacal1b4P$b0qwC+oEVYqERjl552anLEfMaKGQK9/9OMCdegp7zzI=', 1, 1, N'2026-07-29 07:14:07.974154', N''),
-(3, N'readmestaff', N'readme@staff.com', N'pbkdf2_sha256$1200000$MBsAYYW19VEF2UGyhwEbfA$cVwpQlNdysY9FefkSm1QIWsI+jgvkIEh3AST1kvil9E=', 1, 1, N'2026-07-29 07:14:08.726297', N''),
-(4, N'nguyenvanA', N'nguyenvana@email.com', N'pbkdf2_sha256$1200000$ppU7ExsrzglRuFfXXUHZIc$7Chg84xl/uT3tTR5JCWvZqqR6hQcoHJhRephvKi3yAg=', 2, 1, N'2026-07-29 07:14:09.514670', N''),
-(5, N'tranthib', N'tranthib@email.com', N'pbkdf2_sha256$1200000$qpQQnwLXXWBgW3qK46rRVv$WrGcxR1rkOi1ez/vOMkMGLV3gfSoCfb+cvClIB1IqAE=', 2, 1, N'2026-07-29 07:14:10.315180', N''),
-(6, N'lethic', N'lethic@email.com', N'pbkdf2_sha256$1200000$cDcWIlOQnqy39pGYuepRTx$3CAAVv33UXUGp1drv2cZO9Q5/Oc566AdznkNAXC4AOc=', 2, 1, N'2026-07-29 07:14:11.111345', N''),
-(7, N'phamvand', N'phamvand@email.com', N'pbkdf2_sha256$1200000$gv7nRw2kHO11Yy3J1u6yEC$ayT+CH570mMzFYKSoIKj5PH9iR636Q9v8uKpvAfZBV0=', 2, 1, N'2026-07-29 07:14:11.853581', N''),
-(8, N'hoangthie', N'hoangthie@email.com', N'pbkdf2_sha256$1200000$xZwARtSsLpkmnlCGhCQha8$FbF5Lz/Bdcvz7JGwV8LwuN8MqQX/0vDwg9y1BpfHO80=', 2, 1, N'2026-07-29 07:14:12.700696', N'');
+(1, N'admin', N'admin@example.com', N'pbkdf2_sha256$1200000$K3AlovVJR4GQQzRQrafZUh$pfKPgpJK+xgXKt/RRG9n68XH0sSgwPFWgNofepPmSgM=', 0, 1, N'2026-07-29 07:14:07.174474', N''),
+(2, N'codexstaff', N'staff@codex.com', N'pbkdf2_sha256$1200000$YglQOMUax9xTdkSV0rGekX$i19RhyRNBxmZQEx2A7xCJjP+1Mn7G1NRfeeY1v7vjmI=', 1, 1, N'2026-07-29 07:14:07.974154', N''),
+(3, N'readmestaff', N'readme@staff.com', N'pbkdf2_sha256$1200000$vu78zLjOwD8l91cAJl3rec$KhWTPrgUNUSYqBfX1Oqs4gk7eRgjaJWsppERDAS1sv0=', 1, 1, N'2026-07-29 07:14:08.726297', N''),
+(4, N'nguyenvanA', N'nguyenvana@email.com', N'pbkdf2_sha256$1200000$KQtzQK4Wwzk2NaNO24FXn9$0+eZ6ha6eoVblSk8qv6XOg2jscprdlkg1veeAALlrNA=', 2, 1, N'2026-07-29 07:14:09.514670', N''),
+(5, N'tranthib', N'tranthib@email.com', N'pbkdf2_sha256$1200000$nEJO69pXugv88XGchrgKtX$prZqZz2rDYSuSGKl0iNBgSlT0DsCDdDgrXsd3lqa+Ec=', 2, 1, N'2026-07-29 07:14:10.315180', N''),
+(6, N'lethic', N'lethic@email.com', N'pbkdf2_sha256$1200000$p4FBIVRmF6pkTdEIxnqAkP$mc+x18S0AHTZQY17wktiOoNrWBO2SWr3s9AY9CxRTbw=', 2, 1, N'2026-07-29 07:14:11.111345', N''),
+(7, N'phamvand', N'phamvand@email.com', N'pbkdf2_sha256$1200000$3vKlnEy8IxxoXayWs6shvm$5pl2nrsXrnlnbEZF3+HIeTahRGlYL8nJIOg2YDLbzZk=', 2, 1, N'2026-07-29 07:14:11.853581', N''),
+(8, N'hoangthie', N'hoangthie@email.com', N'pbkdf2_sha256$1200000$0P3KGbieRYWZyPHzakHGQ5$0DlryNLxs6Ghjxopk8XWjfsgrwIhvQfp1HhghFla0H0=', 2, 1, N'2026-07-29 07:14:12.700696', N'');
 GO
 SET IDENTITY_INSERT [Users] OFF;
 GO
@@ -629,3 +629,527 @@ GO
 SET IDENTITY_INSERT [Activities] OFF;
 GO
 
+-- ============================================================
+-- Additional seed data: 10 users, 20 products, 59 orders
+-- All new users password: user123
+-- ============================================================
+GO
+
+-- 10 user accounts (password: user123)
+SET IDENTITY_INSERT [Users] ON;
+GO
+INSERT INTO [Users] ([id],[username],[email],[password],[role],[is_active],[date_joined],[phone]) VALUES
+(9, N'nguyenvanE', N'nguyenvane@email.com', N'pbkdf2_sha256$1200000$KQtzQK4Wwzk2NaNO24FXn9$0+eZ6ha6eoVblSk8qv6XOg2jscprdlkg1veeAALlrNA=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(10, N'phamthif', N'phamthif@email.com', N'pbkdf2_sha256$1200000$nEJO69pXugv88XGchrgKtX$prZqZz2rDYSuSGKl0iNBgSlT0DsCDdDgrXsd3lqa+Ec=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(11, N'hoangthig', N'hoangthig@email.com', N'pbkdf2_sha256$1200000$p4FBIVRmF6pkTdEIxnqAkP$mc+x18S0AHTZQY17wktiOoNrWBO2SWr3s9AY9CxRTbw=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(12, N'dothih', N'dothih@email.com', N'pbkdf2_sha256$1200000$3vKlnEy8IxxoXayWs6shvm$5pl2nrsXrnlnbEZF3+HIeTahRGlYL8nJIOg2YDLbzZk=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(13, N'buithii', N'buithii@email.com', N'pbkdf2_sha256$1200000$0P3KGbieRYWZyPHzakHGQ5$0DlryNLxs6Ghjxopk8XWjfsgrwIhvQfp1HhghFla0H0=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(14, N'dangthank', N'dangthank@email.com', N'pbkdf2_sha256$1200000$iAffsnahNyqOpChCH3RkIX$Mfh/gUfAjc85kRqawENqljkkvoLbwC8Cag+pqxrRtAU=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(15, N'ngothil', N'ngothil@email.com', N'pbkdf2_sha256$1200000$b5HIwfIJJwjrJmfTqaLwLs$xw7eZ+ChgcfWLZLzssVzMsfiWMwOHw8CJfNkgnN/2cY=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(16, N'lyvanm', N'lyvanm@email.com', N'pbkdf2_sha256$1200000$QcRD6Gk5VzAROSvKMMm80f$0Z8BvzS2D7Q062vQjJTI3+mMStmong9aiBl2awO5Pwo=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(17, N'tranvann', N'tranvann@email.com', N'pbkdf2_sha256$1200000$HjF5z1glcLmZpvSQaXGswl$xhE7Rz4EWF6S/q+yIacGk5Yn6KARd4S7LinxjXsJ8fk=', 2, 1, N'2026-07-30 07:14:07.174474', N''),
+(18, N'vuongo', N'vuongo@email.com', N'pbkdf2_sha256$1200000$2dOp0Fd1jOOXnaB7gVnWkF$2uSu52dXH/C0RbXaU2y/8QCjXgTr2WeMDdssOfdGKg4=', 2, 1, N'2026-07-30 07:14:07.174474', N'');
+GO
+SET IDENTITY_INSERT [Users] OFF;
+GO
+
+-- 20 additional products
+SET IDENTITY_INSERT [Products] ON;
+GO
+INSERT INTO [Products] ([id],[name],[slug],[category_id],[price],[stock],[available],[featured],[image_url],[created]) VALUES
+(57,N'Áo khoác lông vũ Puffer',N'ao-khoac-long-vu-puffer',3,890000,200,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(58,N'Áo blazer Oversize',N'ao-blazer-oversize',3,750000,200,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(59,N'Quần jeans Skinny Black',N'quan-jeans-skinny-black',1,520000,300,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(60,N'Áo thun cổ trụ Basic',N'ao-thun-co-tru-basic',3,280000,300,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(61,N'Mũ snapback Logo',N'mu-snapback-logo',2,220000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(62,N'Balo Urban Mini',N'balo-urban-mini',2,450000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(63,N'Áo sơ mi linen Relax',N'ao-so-mi-linen-relax',3,380000,200,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(64,N'Quần short kaki Basic',N'quan-short-kaki-basic',1,350000,300,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(65,N'Dây chuyền bạc Minimal',N'day-chuyen-bac-minimal',2,180000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(66,N'Vòng tay da Bracelet',N'vong-tay-da-bracelet',2,160000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(67,N'Áo hoodie Zip Up',N'ao-hoodie-zip-up',3,650000,200,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(68,N'Quần tây ống côn Slim',N'quan-tay-ong-con-slim',1,480000,300,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(69,N'Áo khoác dạ Cashmere',N'ao-khoac-da-cashmere',3,1200000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(70,N'Khăn choàng cổ Len',N'khan-choang-co-len',2,320000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(71,N'Áo polo Pique Basic',N'ao-polo-pique-basic',3,340000,300,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(72,N'Quần baggy Denim Light',N'quan-baggy-denim-light',1,610000,300,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(73,N'Túi đeo hông Waist Bag',N'tui-deo-hong-waist-bag',2,280000,100,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(74,N'Áo len cổ lọ Tight',N'ao-len-co-lo-tight',3,420000,200,1,0,N'',N'2026-07-30 07:14:05.039275'),
+(75,N'Giày sneaker Platform',N'giay-sneaker-platform',2,950000,100,1,1,N'',N'2026-07-30 07:14:05.039275'),
+(76,N'Mũ beret Pháp',N'mu-beret-phap',2,140000,100,1,0,N'',N'2026-07-30 07:14:05.039275');
+GO
+SET IDENTITY_INSERT [Products] OFF;
+GO
+
+-- Variants for new products
+SET IDENTITY_INSERT [Variants] ON;
+GO
+INSERT INTO [Variants] ([id],[product_id],[color_name],[color_code],[size],[stock],[is_active]) VALUES
+(273,57,N'Đen',N'#111111',N'M',50,1),
+(274,57,N'Đen',N'#111111',N'L',50,1),
+(275,57,N'Đen',N'#111111',N'XL',50,1),
+(276,57,N'Trắng',N'#F5F5F5',N'M',50,1),
+(277,57,N'Trắng',N'#F5F5F5',N'L',50,1),
+(278,57,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(279,58,N'Đen',N'#111111',N'M',50,1),
+(280,58,N'Đen',N'#111111',N'L',50,1),
+(281,58,N'Đen',N'#111111',N'XL',50,1),
+(282,58,N'Trắng',N'#F5F5F5',N'M',50,1),
+(283,58,N'Trắng',N'#F5F5F5',N'L',50,1),
+(284,58,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(285,59,N'Đen',N'#111111',N'M',50,1),
+(286,59,N'Đen',N'#111111',N'L',50,1),
+(287,59,N'Đen',N'#111111',N'XL',50,1),
+(288,59,N'Trắng',N'#F5F5F5',N'M',50,1),
+(289,59,N'Trắng',N'#F5F5F5',N'L',50,1),
+(290,59,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(291,60,N'Đen',N'#111111',N'M',50,1),
+(292,60,N'Đen',N'#111111',N'L',50,1),
+(293,60,N'Đen',N'#111111',N'XL',50,1),
+(294,60,N'Trắng',N'#F5F5F5',N'M',50,1),
+(295,60,N'Trắng',N'#F5F5F5',N'L',50,1),
+(296,60,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(297,61,N'Đen',N'#111111',N'FREE',50,1),
+(298,61,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(299,62,N'Đen',N'#111111',N'FREE',50,1),
+(300,62,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(301,63,N'Đen',N'#111111',N'M',50,1),
+(302,63,N'Đen',N'#111111',N'L',50,1),
+(303,63,N'Đen',N'#111111',N'XL',50,1),
+(304,63,N'Trắng',N'#F5F5F5',N'M',50,1),
+(305,63,N'Trắng',N'#F5F5F5',N'L',50,1),
+(306,63,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(307,64,N'Đen',N'#111111',N'M',50,1),
+(308,64,N'Đen',N'#111111',N'L',50,1),
+(309,64,N'Đen',N'#111111',N'XL',50,1),
+(310,64,N'Trắng',N'#F5F5F5',N'M',50,1),
+(311,64,N'Trắng',N'#F5F5F5',N'L',50,1),
+(312,64,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(313,65,N'Đen',N'#111111',N'FREE',50,1),
+(314,65,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(315,66,N'Đen',N'#111111',N'FREE',50,1),
+(316,66,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(317,67,N'Đen',N'#111111',N'M',50,1),
+(318,67,N'Đen',N'#111111',N'L',50,1),
+(319,67,N'Đen',N'#111111',N'XL',50,1),
+(320,67,N'Trắng',N'#F5F5F5',N'M',50,1),
+(321,67,N'Trắng',N'#F5F5F5',N'L',50,1),
+(322,67,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(323,68,N'Đen',N'#111111',N'M',50,1),
+(324,68,N'Đen',N'#111111',N'L',50,1),
+(325,68,N'Đen',N'#111111',N'XL',50,1),
+(326,68,N'Trắng',N'#F5F5F5',N'M',50,1),
+(327,68,N'Trắng',N'#F5F5F5',N'L',50,1),
+(328,68,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(329,69,N'Đen',N'#111111',N'M',50,1),
+(330,69,N'Đen',N'#111111',N'L',50,1),
+(331,69,N'Đen',N'#111111',N'XL',50,1),
+(332,69,N'Trắng',N'#F5F5F5',N'M',50,1),
+(333,69,N'Trắng',N'#F5F5F5',N'L',50,1),
+(334,69,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(335,70,N'Đen',N'#111111',N'FREE',50,1),
+(336,70,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(337,71,N'Đen',N'#111111',N'M',50,1),
+(338,71,N'Đen',N'#111111',N'L',50,1),
+(339,71,N'Đen',N'#111111',N'XL',50,1),
+(340,71,N'Trắng',N'#F5F5F5',N'M',50,1),
+(341,71,N'Trắng',N'#F5F5F5',N'L',50,1),
+(342,71,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(343,72,N'Đen',N'#111111',N'M',50,1),
+(344,72,N'Đen',N'#111111',N'L',50,1),
+(345,72,N'Đen',N'#111111',N'XL',50,1),
+(346,72,N'Trắng',N'#F5F5F5',N'M',50,1),
+(347,72,N'Trắng',N'#F5F5F5',N'L',50,1),
+(348,72,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(349,73,N'Đen',N'#111111',N'FREE',50,1),
+(350,73,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(351,74,N'Đen',N'#111111',N'M',50,1),
+(352,74,N'Đen',N'#111111',N'L',50,1),
+(353,74,N'Đen',N'#111111',N'XL',50,1),
+(354,74,N'Trắng',N'#F5F5F5',N'M',50,1),
+(355,74,N'Trắng',N'#F5F5F5',N'L',50,1),
+(356,74,N'Trắng',N'#F5F5F5',N'XL',50,1),
+(357,75,N'Đen',N'#111111',N'FREE',50,1),
+(358,75,N'Trắng',N'#F5F5F5',N'FREE',50,1),
+(359,76,N'Đen',N'#111111',N'FREE',50,1),
+(360,76,N'Trắng',N'#F5F5F5',N'FREE',50,1);
+GO
+SET IDENTITY_INSERT [Variants] OFF;
+GO
+
+-- 59 orders (total 100)
+SET IDENTITY_INSERT [Orders] ON;
+GO
+INSERT INTO [Orders] ([id],[user_id],[customer_name],[phone],[shipping_address],[status],[total_amount],[is_paid],[payment_method],[discount_amount],[coupon],[created_at]) VALUES
+(42,4,N'nguyenvanA',N'0913356886',N'760 Đường Võ Văn Tần, Quận 4, TP.HCM',N'processing',3165000,0,N'cod',0,N'',N'2026-07-13 18:17:00'),
+(43,1,N'admin',N'0931429110',N'715 Đường Cách Mạng Tháng 8, Quận 6, TP.HCM',N'shipping',2385000,1,N'cod',0,N'',N'2026-07-14 17:07:00'),
+(44,13,N'buithii',N'0920576383',N'566 Đường Võ Văn Tần, Quận 11, TP.HCM',N'cancelled',525000,1,N'cod',0,N'',N'2026-06-29 03:24:00'),
+(45,9,N'nguyenvanE',N'0970855700',N'651 Đường Trần Hưng Đạo, Quận 3, TP.HCM',N'shipping',3120000,1,N'bank',0,N'',N'2026-07-29 17:14:00'),
+(46,11,N'hoangthig',N'0917507864',N'235 Đường Lê Lợi, Quận 6, TP.HCM',N'delivered',1330000,1,N'bank',0,N'',N'2026-07-14 04:16:00'),
+(47,5,N'tranthib',N'0943101783',N'763 Đường Võ Văn Tần, Quận 12, TP.HCM',N'cancelled',475000,1,N'bank',50000,N'SALE10',N'2026-07-25 05:50:00'),
+(48,14,N'dangthank',N'0990048665',N'66 Đường Cách Mạng Tháng 8, Quận 7, TP.HCM',N'cancelled',3600000,1,N'bank',0,N'',N'2026-07-06 03:18:00'),
+(49,14,N'dangthank',N'0931227574',N'465 Đường Lê Lợi, Quận 12, TP.HCM',N'shipping',2895000,1,N'cod',0,N'',N'2026-07-05 15:01:00'),
+(50,4,N'nguyenvanA',N'0958718453',N'900 Đường Võ Văn Tần, Quận 4, TP.HCM',N'pending',3380000,0,N'cod',0,N'',N'2026-07-29 06:45:00'),
+(51,10,N'phamthif',N'0963551839',N'688 Đường Trần Hưng Đạo, Quận 8, TP.HCM',N'cancelled',735000,1,N'cod',0,N'',N'2026-06-29 00:04:00'),
+(52,2,N'codexstaff',N'0940728046',N'70 Đường Lê Lợi, Quận 6, TP.HCM',N'pending',1700000,0,N'bank',100000,N'WELCOME',N'2026-06-30 15:51:00'),
+(53,14,N'dangthank',N'0935556386',N'97 Đường Hai Bà Trưng, Quận 11, TP.HCM',N'delivered',3025000,1,N'bank',50000,N'GIAM50K',N'2026-07-13 04:27:00'),
+(54,6,N'lethic',N'0947385696',N'474 Đường Nguyễn Huệ, Quận 2, TP.HCM',N'delivered',270000,1,N'cod',0,N'',N'2026-07-11 15:30:00'),
+(55,7,N'phamvand',N'0963826716',N'925 Đường Lê Lợi, Quận 3, TP.HCM',N'delivered',3200000,1,N'cod',50000,N'GIAM50K',N'2026-07-03 06:03:00'),
+(56,18,N'vuongo',N'0918181586',N'766 Đường Trần Hưng Đạo, Quận 1, TP.HCM',N'pending',1845000,1,N'cod',0,N'',N'2026-06-19 21:55:00'),
+(57,8,N'hoangthie',N'0964193837',N'123 Đường Nguyễn Huệ, Quận 10, TP.HCM',N'cancelled',3545000,0,N'cod',50000,N'GIAM50K',N'2026-07-26 09:29:00'),
+(58,11,N'hoangthig',N'0919736572',N'10 Đường Phạm Ngũ Lão, Quận 10, TP.HCM',N'cancelled',1590000,0,N'cod',0,N'',N'2026-07-30 09:39:00'),
+(59,17,N'tranvann',N'0911049999',N'684 Đường Võ Văn Tần, Quận 11, TP.HCM',N'pending',680000,0,N'bank',0,N'',N'2026-07-03 19:13:00'),
+(60,11,N'hoangthig',N'0937326368',N'704 Đường Võ Văn Tần, Quận 9, TP.HCM',N'delivered',320000,1,N'bank',0,N'',N'2026-06-15 10:49:00'),
+(61,5,N'tranthib',N'0995511909',N'269 Đường Lý Thường Kiệt, Quận 12, TP.HCM',N'delivered',900000,1,N'bank',0,N'',N'2026-06-17 11:37:00'),
+(62,18,N'vuongo',N'0929876811',N'441 Đường Lý Thường Kiệt, Quận 1, TP.HCM',N'shipping',2340000,1,N'bank',0,N'',N'2026-06-24 07:55:00'),
+(63,6,N'lethic',N'0933763566',N'903 Đường Cách Mạng Tháng 8, Quận 1, TP.HCM',N'processing',2060000,1,N'bank',0,N'',N'2026-07-04 07:14:00'),
+(64,1,N'admin',N'0998588154',N'198 Đường Cách Mạng Tháng 8, Quận 6, TP.HCM',N'shipping',1905000,1,N'cod',0,N'FREESHIP',N'2026-07-22 08:02:00'),
+(65,4,N'nguyenvanA',N'0990070438',N'445 Đường Trần Hưng Đạo, Quận 12, TP.HCM',N'shipping',4260000,1,N'bank',0,N'',N'2026-06-19 21:58:00'),
+(66,11,N'hoangthig',N'0993638503',N'322 Đường Hai Bà Trưng, Quận 12, TP.HCM',N'shipping',1690000,1,N'bank',50000,N'GIAM50K',N'2026-07-28 23:57:00'),
+(67,6,N'lethic',N'0992613013',N'583 Đường Võ Văn Tần, Quận 7, TP.HCM',N'cancelled',1945000,0,N'bank',0,N'FREESHIP',N'2026-07-13 21:13:00'),
+(68,17,N'tranvann',N'0973509974',N'813 Đường Lý Thường Kiệt, Quận 11, TP.HCM',N'pending',710000,1,N'bank',0,N'',N'2026-06-30 15:39:00'),
+(69,3,N'readmestaff',N'0971124923',N'425 Đường Nguyễn Huệ, Quận 12, TP.HCM',N'delivered',435000,1,N'bank',50000,N'GIAM50K',N'2026-07-29 16:29:00'),
+(70,2,N'codexstaff',N'0984813739',N'256 Đường Hai Bà Trưng, Quận 8, TP.HCM',N'processing',3620000,1,N'bank',100000,N'WELCOME',N'2026-06-30 08:28:00'),
+(71,3,N'readmestaff',N'0948349783',N'241 Đường Võ Văn Tần, Quận 6, TP.HCM',N'shipping',1725000,1,N'cod',0,N'',N'2026-07-11 13:21:00'),
+(72,18,N'vuongo',N'0972535301',N'426 Đường Lê Lợi, Quận 4, TP.HCM',N'delivered',6260000,1,N'bank',0,N'',N'2026-06-29 08:27:00'),
+(73,16,N'lyvanm',N'0913895645',N'399 Đường Trần Hưng Đạo, Quận 11, TP.HCM',N'delivered',2440000,1,N'cod',100000,N'WELCOME',N'2026-07-26 13:08:00'),
+(74,15,N'ngothil',N'0934391257',N'52 Đường Võ Văn Tần, Quận 7, TP.HCM',N'shipping',1865000,1,N'cod',100000,N'WELCOME',N'2026-07-19 01:22:00'),
+(75,8,N'hoangthie',N'0997260863',N'71 Đường Lê Lợi, Quận 1, TP.HCM',N'processing',1035000,0,N'cod',0,N'',N'2026-07-29 08:49:00'),
+(76,12,N'dothih',N'0932520277',N'621 Đường Hai Bà Trưng, Quận 3, TP.HCM',N'shipping',1520000,1,N'cod',0,N'',N'2026-07-29 09:54:00'),
+(77,4,N'nguyenvanA',N'0985958181',N'802 Đường Lê Lợi, Quận 6, TP.HCM',N'cancelled',1380000,1,N'bank',0,N'',N'2026-07-12 05:46:00'),
+(78,17,N'tranvann',N'0997302916',N'277 Đường Phạm Ngũ Lão, Quận 8, TP.HCM',N'delivered',1975000,1,N'bank',50000,N'SALE10',N'2026-07-24 21:24:00'),
+(79,11,N'hoangthig',N'0913852048',N'507 Đường Trần Hưng Đạo, Quận 3, TP.HCM',N'delivered',2490000,1,N'cod',50000,N'SALE10',N'2026-06-30 23:26:00'),
+(80,16,N'lyvanm',N'0984514489',N'777 Đường Nguyễn Huệ, Quận 12, TP.HCM',N'delivered',229500,1,N'bank',40500,N'WELCOME',N'2026-07-10 22:15:00'),
+(81,10,N'phamthif',N'0999115205',N'596 Đường Trần Hưng Đạo, Quận 8, TP.HCM',N'cancelled',2070000,1,N'bank',50000,N'SALE10',N'2026-07-19 22:11:00'),
+(82,7,N'phamvand',N'0939042654',N'757 Đường Phạm Ngũ Lão, Quận 5, TP.HCM',N'cancelled',4605000,1,N'cod',0,N'',N'2026-06-17 01:35:00'),
+(83,10,N'phamthif',N'0926948946',N'654 Đường Phạm Ngũ Lão, Quận 2, TP.HCM',N'pending',1795000,1,N'bank',100000,N'WELCOME',N'2026-06-24 18:19:00'),
+(84,3,N'readmestaff',N'0943311626',N'122 Đường Cách Mạng Tháng 8, Quận 10, TP.HCM',N'cancelled',4650000,0,N'bank',100000,N'WELCOME',N'2026-06-20 05:15:00'),
+(85,6,N'lethic',N'0984087145',N'77 Đường Lý Thường Kiệt, Quận 1, TP.HCM',N'delivered',2920000,1,N'bank',100000,N'WELCOME',N'2026-07-25 18:42:00'),
+(86,7,N'phamvand',N'0967061186',N'118 Đường Nguyễn Huệ, Quận 11, TP.HCM',N'processing',1935000,1,N'cod',0,N'',N'2026-07-21 09:28:00'),
+(87,4,N'nguyenvanA',N'0972907576',N'706 Đường Võ Văn Tần, Quận 12, TP.HCM',N'delivered',2480000,1,N'bank',100000,N'WELCOME',N'2026-07-28 08:36:00'),
+(88,2,N'codexstaff',N'0933513701',N'482 Đường Phạm Ngũ Lão, Quận 5, TP.HCM',N'processing',2775000,1,N'bank',0,N'',N'2026-07-10 17:02:00'),
+(89,15,N'ngothil',N'0921819185',N'323 Đường Võ Văn Tần, Quận 6, TP.HCM',N'pending',3155000,1,N'cod',100000,N'WELCOME',N'2026-07-03 14:56:00'),
+(90,16,N'lyvanm',N'0926297533',N'30 Đường Nguyễn Huệ, Quận 12, TP.HCM',N'processing',1030000,1,N'cod',50000,N'GIAM50K',N'2026-06-22 20:53:00'),
+(91,5,N'tranthib',N'0976890827',N'956 Đường Võ Văn Tần, Quận 9, TP.HCM',N'shipping',2580000,1,N'bank',100000,N'WELCOME',N'2026-07-17 08:52:00'),
+(92,1,N'admin',N'0947962005',N'744 Đường Võ Văn Tần, Quận 10, TP.HCM',N'cancelled',4515000,1,N'cod',100000,N'WELCOME',N'2026-06-29 13:02:00'),
+(93,11,N'hoangthig',N'0973481797',N'723 Đường Cách Mạng Tháng 8, Quận 7, TP.HCM',N'processing',1230000,1,N'cod',0,N'',N'2026-06-24 02:30:00'),
+(94,9,N'nguyenvanE',N'0955440919',N'639 Đường Cách Mạng Tháng 8, Quận 11, TP.HCM',N'pending',3895000,1,N'bank',50000,N'SALE10',N'2026-07-25 22:55:00'),
+(95,4,N'nguyenvanA',N'0969549527',N'171 Đường Võ Văn Tần, Quận 1, TP.HCM',N'pending',1695000,1,N'cod',0,N'FREESHIP',N'2026-06-26 02:39:00'),
+(96,13,N'buithii',N'0993176117',N'700 Đường Nguyễn Huệ, Quận 8, TP.HCM',N'cancelled',2160000,0,N'cod',100000,N'WELCOME',N'2026-07-13 11:37:00'),
+(97,10,N'phamthif',N'0995756900',N'986 Đường Cách Mạng Tháng 8, Quận 12, TP.HCM',N'shipping',1925000,1,N'bank',0,N'FREESHIP',N'2026-07-07 18:18:00'),
+(98,10,N'phamthif',N'0912944682',N'850 Đường Cách Mạng Tháng 8, Quận 5, TP.HCM',N'pending',2565000,0,N'bank',0,N'FREESHIP',N'2026-07-28 23:49:00'),
+(99,5,N'tranthib',N'0994322033',N'100 Đường Lê Lợi, Quận 5, TP.HCM',N'delivered',825000,1,N'cod',50000,N'SALE10',N'2026-06-23 17:56:00'),
+(100,12,N'dothih',N'0981249799',N'514 Đường Võ Văn Tần, Quận 3, TP.HCM',N'shipping',1480000,1,N'bank',0,N'FREESHIP',N'2026-06-20 12:00:00');
+GO
+SET IDENTITY_INSERT [Orders] OFF;
+GO
+
+-- Order items for new orders
+SET IDENTITY_INSERT [OrderItems] ON;
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(65,42,5,21,N'Đen',N'M',1,620000),
+(66,42,28,100,N'Đen',N'L',3,555000),
+(67,42,4,19,N'Trắng',N'L',1,560000),
+(68,42,70,336,N'Trắng',N'FREE',1,320000),
+(69,43,14,47,N'Đen',N'FREE',2,240000),
+(70,43,13,46,N'Trắng',N'FREE',2,255000),
+(71,43,34,135,N'Đen',N'M',3,465000),
+(72,44,30,113,N'Đen',N'XL',1,525000),
+(73,45,10,39,N'Đen',N'FREE',3,300000),
+(74,45,32,124,N'Đen',N'L',2,495000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(75,45,49,227,N'Đen',N'XL',3,410000),
+(76,46,73,350,N'Trắng',N'FREE',1,280000),
+(77,46,64,310,N'Trắng',N'M',3,350000),
+(78,47,18,56,N'Trắng',N'FREE',1,180000),
+(79,47,7,33,N'Đen',N'FREE',1,345000),
+(80,48,69,331,N'Đen',N'XL',3,1200000),
+(81,49,65,313,N'Đen',N'FREE',1,180000),
+(82,49,48,220,N'Đen',N'L',3,425000),
+(83,49,68,323,N'Đen',N'M',3,480000),
+(84,50,9,37,N'Đen',N'FREE',1,315000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(85,50,61,297,N'Đen',N'FREE',2,220000),
+(86,50,68,327,N'Trắng',N'L',2,480000),
+(87,50,28,103,N'Trắng',N'L',3,555000),
+(88,51,9,38,N'Trắng',N'FREE',1,315000),
+(89,51,76,359,N'Đen',N'FREE',3,140000),
+(90,52,70,335,N'Đen',N'FREE',3,320000),
+(91,52,74,355,N'Trắng',N'L',2,420000),
+(92,53,60,296,N'Trắng',N'XL',1,280000),
+(93,53,13,45,N'Đen',N'FREE',2,255000),
+(94,53,44,195,N'Đen',N'M',1,485000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(95,53,25,82,N'Đen',N'L',3,600000),
+(96,54,12,43,N'Đen',N'FREE',1,270000),
+(97,55,59,287,N'Đen',N'XL',2,520000),
+(98,55,72,348,N'Trắng',N'XL',3,610000),
+(99,55,63,302,N'Đen',N'L',1,380000),
+(100,56,24,75,N'Đen',N'M',3,615000),
+(101,57,34,136,N'Đen',N'L',3,465000),
+(102,57,41,178,N'Đen',N'L',2,530000),
+(103,57,51,238,N'Đen',N'L',3,380000),
+(104,58,17,54,N'Trắng',N'FREE',1,195000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(105,58,32,125,N'Đen',N'XL',2,495000),
+(106,58,21,62,N'Trắng',N'FREE',3,135000),
+(107,59,71,338,N'Đen',N'L',2,340000),
+(108,60,55,263,N'Đen',N'XL',1,320000),
+(109,61,10,39,N'Đen',N'FREE',3,300000),
+(110,62,27,98,N'Trắng',N'XL',1,570000),
+(111,62,14,48,N'Trắng',N'FREE',3,240000),
+(112,62,53,253,N'Trắng',N'L',3,350000),
+(113,63,21,61,N'Đen',N'FREE',2,135000),
+(114,63,5,24,N'Trắng',N'M',1,620000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(115,63,26,90,N'Trắng',N'M',2,585000),
+(116,64,66,316,N'Trắng',N'FREE',3,160000),
+(117,64,69,331,N'Đen',N'XL',1,1200000),
+(118,64,15,50,N'Trắng',N'FREE',1,225000),
+(119,65,74,352,N'Đen',N'L',2,420000),
+(120,65,6,32,N'Trắng',N'XL',2,390000),
+(121,65,1,5,N'Trắng',N'L',3,490000),
+(122,65,26,89,N'Đen',N'XL',2,585000),
+(123,66,52,248,N'Trắng',N'XL',2,365000),
+(124,66,71,338,N'Đen',N'L',1,340000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(125,66,54,260,N'Trắng',N'XL',2,335000),
+(126,67,56,271,N'Trắng',N'L',3,305000),
+(127,67,42,186,N'Trắng',N'M',2,515000),
+(128,68,40,172,N'Đen',N'L',1,545000),
+(129,68,19,57,N'Đen',N'FREE',1,165000),
+(130,69,19,57,N'Đen',N'FREE',1,165000),
+(131,69,55,262,N'Đen',N'L',1,320000),
+(132,70,71,340,N'Trắng',N'M',1,340000),
+(133,70,61,298,N'Trắng',N'FREE',2,220000),
+(134,70,32,128,N'Trắng',N'XL',2,495000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(135,70,67,320,N'Trắng',N'M',3,650000),
+(136,71,30,114,N'Trắng',N'M',3,525000),
+(137,71,20,59,N'Đen',N'FREE',1,150000),
+(138,72,62,299,N'Đen',N'FREE',2,450000),
+(139,72,39,168,N'Trắng',N'M',2,560000),
+(140,72,69,334,N'Trắng',N'XL',3,1200000),
+(141,72,70,335,N'Đen',N'FREE',2,320000),
+(142,73,69,329,N'Đen',N'M',2,1200000),
+(143,73,76,359,N'Đen',N'FREE',1,140000),
+(144,74,44,198,N'Trắng',N'M',2,485000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(145,74,54,257,N'Đen',N'XL',1,335000),
+(146,74,61,297,N'Đen',N'FREE',3,220000),
+(147,75,17,54,N'Trắng',N'FREE',3,195000),
+(148,75,15,49,N'Đen',N'FREE',2,225000),
+(149,76,74,356,N'Trắng',N'XL',2,420000),
+(150,76,51,242,N'Trắng',N'XL',1,380000),
+(151,76,10,39,N'Đen',N'FREE',1,300000),
+(152,77,2,8,N'Trắng',N'FREE',2,190000),
+(153,77,14,48,N'Trắng',N'FREE',2,240000),
+(154,77,59,290,N'Trắng',N'XL',1,520000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(155,78,12,44,N'Trắng',N'FREE',2,270000),
+(156,78,32,126,N'Trắng',N'M',3,495000),
+(157,79,44,197,N'Đen',N'XL',3,485000),
+(158,79,36,151,N'Trắng',N'L',1,435000),
+(159,79,67,318,N'Đen',N'L',1,650000),
+(160,80,12,44,N'Trắng',N'FREE',1,270000),
+(161,81,59,287,N'Đen',N'XL',2,520000),
+(162,81,33,130,N'Đen',N'L',1,480000),
+(163,81,25,83,N'Đen',N'XL',1,600000),
+(164,82,30,113,N'Đen',N'XL',1,525000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(165,82,39,165,N'Đen',N'M',3,560000),
+(166,82,69,330,N'Đen',N'L',2,1200000),
+(167,83,44,196,N'Đen',N'L',1,485000),
+(168,83,33,132,N'Trắng',N'M',1,480000),
+(169,83,9,38,N'Trắng',N'FREE',2,315000),
+(170,83,10,39,N'Đen',N'FREE',1,300000),
+(171,84,39,169,N'Trắng',N'L',2,560000),
+(172,84,40,175,N'Trắng',N'L',3,545000),
+(173,84,8,35,N'Đen',N'FREE',1,330000),
+(174,84,28,101,N'Đen',N'XL',3,555000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(175,85,5,22,N'Đen',N'L',2,620000),
+(176,85,37,158,N'Trắng',N'XL',2,590000),
+(177,85,10,39,N'Đen',N'FREE',2,300000),
+(178,86,22,65,N'Đen',N'XL',3,645000),
+(179,87,11,41,N'Đen',N'FREE',2,285000),
+(180,87,42,187,N'Trắng',N'L',2,515000),
+(181,87,4,15,N'Đen',N'M',1,560000),
+(182,87,74,355,N'Trắng',N'L',1,420000),
+(183,88,45,204,N'Trắng',N'M',2,470000),
+(184,88,42,188,N'Trắng',N'XL',1,515000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(185,88,21,62,N'Trắng',N'FREE',2,135000),
+(186,88,64,309,N'Đen',N'XL',3,350000),
+(187,89,7,33,N'Đen',N'FREE',3,345000),
+(188,89,47,217,N'Trắng',N'L',2,440000),
+(189,89,57,273,N'Đen',N'M',1,890000),
+(190,89,35,145,N'Trắng',N'L',1,450000),
+(191,90,29,105,N'Đen',N'M',2,540000),
+(192,91,32,126,N'Trắng',N'M',3,495000),
+(193,91,19,58,N'Trắng',N'FREE',1,165000),
+(194,91,66,315,N'Đen',N'FREE',1,160000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(195,91,36,150,N'Trắng',N'M',2,435000),
+(196,92,45,203,N'Đen',N'XL',3,470000),
+(197,92,70,336,N'Trắng',N'FREE',2,320000),
+(198,92,42,184,N'Đen',N'L',3,515000),
+(199,92,31,121,N'Trắng',N'L',2,510000),
+(200,93,13,46,N'Trắng',N'FREE',1,255000),
+(201,93,68,326,N'Trắng',N'M',1,480000),
+(202,93,19,58,N'Trắng',N'FREE',3,165000),
+(203,94,70,335,N'Đen',N'FREE',3,320000),
+(204,94,9,37,N'Đen',N'FREE',3,315000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(205,94,37,154,N'Đen',N'L',3,590000),
+(206,94,12,44,N'Trắng',N'FREE',1,270000),
+(207,95,48,222,N'Trắng',N'M',1,425000),
+(208,95,32,127,N'Trắng',N'L',2,495000),
+(209,95,73,349,N'Đen',N'FREE',1,280000),
+(210,96,59,287,N'Đen',N'XL',3,520000),
+(211,96,2,8,N'Trắng',N'FREE',2,190000),
+(212,96,70,335,N'Đen',N'FREE',1,320000),
+(213,97,50,234,N'Trắng',N'M',1,395000),
+(214,97,31,120,N'Trắng',N'M',3,510000);
+GO
+INSERT INTO [OrderItems] ([id],[order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES
+(215,98,46,208,N'Đen',N'L',3,455000),
+(216,98,25,85,N'Trắng',N'L',2,600000),
+(217,99,12,44,N'Trắng',N'FREE',2,270000),
+(218,99,54,256,N'Đen',N'L',1,335000),
+(219,100,15,50,N'Trắng',N'FREE',1,225000),
+(220,100,19,57,N'Đen',N'FREE',3,165000),
+(221,100,51,241,N'Trắng',N'L',2,380000);
+GO
+SET IDENTITY_INSERT [OrderItems] OFF;
+GO
+
+-- Wishlist items for new users
+SET IDENTITY_INSERT [Wishlist] ON;
+GO
+INSERT INTO [Wishlist] ([id],[user_id],[product_id],[created]) VALUES
+(19,9,69,N'2026-07-08 00:00:00'),
+(20,9,16,N'2026-07-28 00:00:00'),
+(21,9,59,N'2026-07-28 00:00:00'),
+(22,10,75,N'2026-06-21 00:00:00'),
+(23,10,49,N'2026-07-28 00:00:00'),
+(24,10,48,N'2026-06-29 00:00:00'),
+(25,11,4,N'2026-07-26 00:00:00'),
+(26,11,72,N'2026-06-19 00:00:00'),
+(27,11,42,N'2026-07-25 00:00:00'),
+(28,11,29,N'2026-07-14 00:00:00'),
+(29,12,53,N'2026-06-17 00:00:00'),
+(30,12,15,N'2026-06-17 00:00:00'),
+(31,12,18,N'2026-07-04 00:00:00'),
+(32,13,15,N'2026-06-23 00:00:00'),
+(33,13,13,N'2026-07-09 00:00:00'),
+(34,13,31,N'2026-07-14 00:00:00'),
+(35,13,69,N'2026-07-08 00:00:00'),
+(36,14,76,N'2026-07-16 00:00:00'),
+(37,14,20,N'2026-07-24 00:00:00'),
+(38,14,54,N'2026-07-11 00:00:00'),
+(39,14,13,N'2026-07-02 00:00:00'),
+(40,15,48,N'2026-06-28 00:00:00'),
+(41,16,57,N'2026-07-28 00:00:00'),
+(42,16,31,N'2026-07-08 00:00:00'),
+(43,16,47,N'2026-07-19 00:00:00'),
+(44,16,13,N'2026-07-26 00:00:00'),
+(45,17,8,N'2026-06-27 00:00:00'),
+(46,17,51,N'2026-06-22 00:00:00'),
+(47,17,36,N'2026-07-14 00:00:00'),
+(48,18,28,N'2026-07-26 00:00:00');
+GO
+SET IDENTITY_INSERT [Wishlist] OFF;
+GO
+
+-- Activities
+SET IDENTITY_INSERT [Activities] ON;
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(52,1,N'checkout',N'/products/',N'2026-06-18 00:00:00'),
+(53,1,N'cart_add',N'/',N'2026-06-23 00:00:00'),
+(54,2,N'cart_add',N'/products/',N'2026-07-22 00:00:00'),
+(55,2,N'cart_add',N'/orders/',N'2026-07-06 00:00:00'),
+(56,2,N'checkout',N'/products/',N'2026-06-15 00:00:00'),
+(57,3,N'checkout',N'/products/',N'2026-07-19 00:00:00'),
+(58,3,N'page_view',N'/products/',N'2026-06-22 00:00:00'),
+(59,3,N'checkout',N'/products/',N'2026-06-15 00:00:00'),
+(60,4,N'cart_add',N'/cart/',N'2026-06-16 00:00:00'),
+(61,4,N'cart_add',N'/checkout/',N'2026-06-18 00:00:00');
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(62,4,N'page_view',N'/',N'2026-07-18 00:00:00'),
+(63,4,N'action',N'/cart/',N'2026-07-15 00:00:00'),
+(64,5,N'cart_add',N'/orders/',N'2026-07-13 00:00:00'),
+(65,5,N'checkout',N'/checkout/',N'2026-06-17 00:00:00'),
+(66,6,N'action',N'/checkout/',N'2026-06-18 00:00:00'),
+(67,6,N'page_view',N'/checkout/',N'2026-07-12 00:00:00'),
+(68,7,N'page_view',N'/cart/',N'2026-06-19 00:00:00'),
+(69,7,N'cart_add',N'/',N'2026-07-23 00:00:00'),
+(70,7,N'checkout',N'/orders/',N'2026-06-23 00:00:00'),
+(71,7,N'checkout',N'/checkout/',N'2026-07-25 00:00:00');
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(72,7,N'checkout',N'/checkout/',N'2026-07-23 00:00:00'),
+(73,8,N'page_view',N'/orders/',N'2026-06-21 00:00:00'),
+(74,8,N'action',N'/checkout/',N'2026-06-28 00:00:00'),
+(75,8,N'action',N'/cart/',N'2026-06-29 00:00:00'),
+(76,8,N'action',N'/checkout/',N'2026-07-14 00:00:00'),
+(77,8,N'checkout',N'/checkout/',N'2026-06-21 00:00:00'),
+(78,9,N'checkout',N'/cart/',N'2026-07-27 00:00:00'),
+(79,9,N'action',N'/',N'2026-06-24 00:00:00'),
+(80,9,N'page_view',N'/',N'2026-06-20 00:00:00'),
+(81,9,N'page_view',N'/cart/',N'2026-07-12 00:00:00');
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(82,10,N'page_view',N'/orders/',N'2026-07-20 00:00:00'),
+(83,10,N'checkout',N'/',N'2026-07-20 00:00:00'),
+(84,10,N'checkout',N'/checkout/',N'2026-07-11 00:00:00'),
+(85,11,N'checkout',N'/cart/',N'2026-07-03 00:00:00'),
+(86,11,N'cart_add',N'/products/',N'2026-06-21 00:00:00'),
+(87,12,N'page_view',N'/cart/',N'2026-06-29 00:00:00'),
+(88,12,N'checkout',N'/',N'2026-07-20 00:00:00'),
+(89,12,N'cart_add',N'/checkout/',N'2026-07-02 00:00:00'),
+(90,12,N'page_view',N'/orders/',N'2026-07-20 00:00:00'),
+(91,12,N'checkout',N'/',N'2026-07-27 00:00:00');
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(92,13,N'checkout',N'/cart/',N'2026-07-02 00:00:00'),
+(93,13,N'page_view',N'/products/',N'2026-07-07 00:00:00'),
+(94,13,N'action',N'/',N'2026-06-24 00:00:00'),
+(95,14,N'page_view',N'/',N'2026-07-25 00:00:00'),
+(96,14,N'cart_add',N'/checkout/',N'2026-07-18 00:00:00'),
+(97,14,N'action',N'/cart/',N'2026-07-11 00:00:00'),
+(98,15,N'checkout',N'/cart/',N'2026-07-08 00:00:00'),
+(99,15,N'page_view',N'/',N'2026-07-21 00:00:00'),
+(100,15,N'cart_add',N'/orders/',N'2026-06-24 00:00:00'),
+(101,16,N'page_view',N'/cart/',N'2026-07-28 00:00:00');
+GO
+INSERT INTO [Activities] ([id],[user_id],[event],[path],[created_at]) VALUES
+(102,16,N'action',N'/checkout/',N'2026-07-13 00:00:00'),
+(103,17,N'checkout',N'/products/',N'2026-07-11 00:00:00'),
+(104,17,N'page_view',N'/cart/',N'2026-07-17 00:00:00'),
+(105,17,N'page_view',N'/cart/',N'2026-07-12 00:00:00'),
+(106,17,N'action',N'/orders/',N'2026-07-28 00:00:00'),
+(107,17,N'checkout',N'/',N'2026-07-27 00:00:00'),
+(108,18,N'page_view',N'/',N'2026-07-10 00:00:00'),
+(109,18,N'checkout',N'/products/',N'2026-06-28 00:00:00'),
+(110,18,N'checkout',N'/cart/',N'2026-06-23 00:00:00');
+GO
+SET IDENTITY_INSERT [Activities] OFF;
+GO

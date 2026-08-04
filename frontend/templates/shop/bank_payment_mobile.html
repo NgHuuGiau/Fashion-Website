@@ -5,11 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Xác nhận thanh toán #{{ order.id }}</title>
     <style>
+        :root {
+            --bg: #f5f0ea;
+            --bg-soft: #fcf9f5;
+            --surface-strong: #ffffff;
+            --surface-tint: #efe7de;
+            --line-strong: rgba(30, 22, 16, 0.14);
+            --text: #0d0a08;
+            --text-soft: #3d2d24;
+            --muted: #7d6b5c;
+            --muted-light: #ab9a8b;
+            --accent: #c96f2e;
+            --accent-strong: #a8551f;
+            --accent-soft: #f5e1ce;
+            --accent-glow: rgba(201, 111, 46, 0.20);
+            --success: #1f8a4d;
+            --success-soft: rgba(31, 138, 77, 0.10);
+            --danger: #d94a34;
+            --danger-soft: rgba(217, 74, 52, 0.10);
+            --shadow-sm: 0 1px 3px rgba(30, 22, 16, 0.04), 0 4px 12px rgba(30, 22, 16, 0.05);
+            --radius: 18px;
+            --radius-sm: 10px;
+        }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: #fffdf8;
-            color: #1a1410;
+            background:
+                radial-gradient(ellipse at 100% 0%, rgba(240, 225, 205, 0.4), transparent 45%),
+                radial-gradient(ellipse at 0% 100%, rgba(225, 210, 195, 0.22), transparent 50%),
+                linear-gradient(180deg, #fffcf8 0%, #f6efe6 100%);
+            color: var(--text);
             line-height: 1.5;
             min-height: 100dvh;
             display: flex;
@@ -25,10 +50,11 @@
             width: 100%;
         }
         .card {
-            background: #fff;
+            background: var(--surface-strong);
+            border: 1px solid rgba(30, 22, 16, 0.06);
             border-radius: 20px;
             padding: 1.75rem 1.5rem;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 0.75rem;
         }
         .brand {
@@ -36,14 +62,14 @@
             font-weight: 800;
             font-size: 1.1rem;
             letter-spacing: 0.15em;
-            color: #d4803f;
+            color: var(--accent);
             margin-bottom: 0.25rem;
         }
         .brand-sub {
             text-align: center;
             font-size: 0.65rem;
             letter-spacing: 0.1em;
-            color: #998575;
+            color: var(--muted-light);
             margin-bottom: 0.75rem;
         }
         .order-id {
@@ -56,12 +82,12 @@
             text-align: center;
             font-size: 2rem;
             font-weight: 800;
-            color: #d4803f;
+            color: var(--accent-strong);
             margin: 0.5rem 0 1rem;
             letter-spacing: -0.02em;
         }
         .bank-info {
-            background: #f5f0eb;
+            background: var(--surface-tint);
             border-radius: 12px;
             padding: 1rem;
             margin-bottom: 0.75rem;
@@ -72,8 +98,30 @@
             justify-content: space-between;
             padding: 0.25rem 0;
         }
-        .bank-info span { color: #7b6758; }
-        .bank-info strong { font-weight: 600; color: #1a1410; }
+        .bank-info span { color: var(--muted); }
+        .bank-info strong { font-weight: 600; color: var(--text); }
+        .qr-box {
+            text-align: center;
+            margin-bottom: 0.9rem;
+        }
+        .qr-img {
+            width: 200px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid rgba(30, 22, 16, 0.08);
+            border-radius: 14px;
+            background: var(--surface-strong);
+            padding: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .qr-hint {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.45rem;
+        }
+        .qr-box.qr-missing .qr-hint { color: var(--danger); }
         .status-box {
             text-align: center;
             padding: 1.25rem 1rem;
@@ -81,9 +129,9 @@
             font-weight: 600;
             margin-bottom: 0.75rem;
         }
-        .status-paid { background: #e3f5e8; color: #1a7a3a; }
-        .status-expired { background: #fde8e4; color: #b33a2a; }
-        .status-cancelled { background: #f0ece8; color: #7b6758; }
+        .status-paid { background: var(--success-soft); color: var(--success); }
+        .status-expired { background: var(--danger-soft); color: var(--danger); }
+        .status-cancelled { background: var(--surface-tint); color: var(--muted); }
         .btn-group {
             display: flex;
             flex-direction: column;
@@ -107,20 +155,20 @@
         }
         .btn:active { transform: scale(0.97); }
         .btn-primary {
-            background: #d4803f;
-            color: #fff;
-            box-shadow: 0 4px 14px rgba(212,128,63,0.3);
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #fffdfa;
+            box-shadow: 0 4px 14px var(--accent-glow);
         }
         .btn-ghost {
             background: transparent;
-            color: #7b6758;
-            border: 2px solid #e0d6cc;
+            color: var(--muted);
+            border: 2px solid var(--line-strong);
         }
-        .btn-ghost:active { background: #f5f0eb; }
+        .btn-ghost:active { background: var(--surface-tint); }
         .note {
             text-align: center;
             font-size: 0.72rem;
-            color: #998575;
+            color: var(--muted-light);
             margin-top: 0.75rem;
             padding-bottom: 1rem;
         }
@@ -131,10 +179,10 @@
         .close-note {
             text-align: center;
             font-size: 0.78rem;
-            color: #7b6758;
+            color: var(--muted);
             margin-top: 0.3rem;
         }
-        .close-note a { color: #1a7a3a; font-weight: 600; }
+        .close-note a { color: var(--success); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -148,7 +196,7 @@
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10003;</span>
                     Xác nhận thanh toán thành công!
                 </div>
-                <p style="text-align:center;font-size:0.85rem;color:#7b6758;">
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
                     Đơn hàng #{{ order.id }} đã được xác nhận. Cảm ơn bạn.
                 </p>
                 <p class="close-note">
@@ -160,7 +208,7 @@
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10003;</span>
                     Đơn hàng #{{ order.id }} đã thanh toán
                 </div>
-                <p style="text-align:center;font-size:0.85rem;color:#7b6758;">
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
                     Đơn hàng đã được thanh toán trước đó.
                 </p>
                 <p class="close-note">
@@ -172,7 +220,7 @@
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#9888;</span>
                     Đơn hàng #{{ order.id }} đã hết hạn
                 </div>
-                <p style="text-align:center;font-size:0.85rem;color:#7b6758;">
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
                     Quá 15 phút chưa thanh toán. Vui lòng đặt lại đơn hàng mới.
                 </p>
             {% elif just_cancelled %}
@@ -180,7 +228,7 @@
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10005;</span>
                     Đã hủy thanh toán
                 </div>
-                <p style="text-align:center;font-size:0.85rem;color:#7b6758;">
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
                     Đơn hàng #{{ order.id }} đã được hủy.
                 </p>
                 <p class="close-note">
@@ -191,7 +239,7 @@
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10005;</span>
                     Đơn hàng #{{ order.id }} đã hủy
                 </div>
-                <p style="text-align:center;font-size:0.85rem;color:#7b6758;">
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
                     Đơn hàng này đã được hủy trước đó.
                 </p>
                 <p class="close-note">
@@ -208,7 +256,12 @@
                     <p><span>Nội dung</span><strong>DH{{ order.id }}</strong></p>
                 </div>
 
-                <p style="text-align:center;font-size:0.78rem;color:#7b6758;">
+                <div class="qr-box">
+                    <img src="{{ qr_url }}" alt="QR chuyển khoản" class="qr-img" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('qr-missing')">
+                    <p class="qr-hint">Dùng app ngân hàng quét mã này để chuyển khoản</p>
+                </div>
+
+                <p style="text-align:center;font-size:0.78rem;color:var(--muted);">
                     Chuyển khoản đúng số tiền và nội dung<br>bên trên, sau đó bấm <strong>Xác nhận</strong>.
                 </p>
 

@@ -35,15 +35,19 @@
         <div>
             <p class="eyebrow">{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}TẤT CẢ SẢN PHẨM{% endif %}</p>
             <h2>{% if is_random_home %}Lookbook hôm nay{% else %}Catalog{% endif %}</h2>
-            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ products|length }} sản phẩm đang có sẵn.{% endif %}</p>
+            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ total_products }} sản phẩm đang có sẵn.{% endif %}</p>
         </div>
         <div class="catalog-controls">
-            <a href="{% url 'products:product_list' %}?sort=newest" class="chip {% if request.GET.sort == 'newest' or not request.GET.sort %}active{% endif %}">Mới nhất</a>
-            <a href="{% url 'products:product_list' %}?sort=price_asc" class="chip {% if request.GET.sort == 'price_asc' %}active{% endif %}">Giá thấp</a>
-            <a href="{% url 'products:product_list' %}?sort=price_desc" class="chip {% if request.GET.sort == 'price_desc' %}active{% endif %}">Giá cao</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="chip {% if selected_sort == 'newest' %}active{% endif %}">Mới nhất</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_asc }}" class="chip {% if selected_sort == 'price_asc' %}active{% endif %}">Giá thấp</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_desc }}" class="chip {% if selected_sort == 'price_desc' %}active{% endif %}">Giá cao</a>
+            {% if not is_random_home %}
+            <button type="button" class="chip filter-toggle" data-filters-toggle aria-expanded="false">Bộ lọc</button>
+            {% endif %}
         </div>
     </div>
 
+    {% if is_random_home %}
     <div class="product-grid product-grid-editorial">
         {% for product in products %}
         <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
@@ -80,37 +84,345 @@
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <div class="catalog-layout">
+        <aside class="filter-sidebar panel" id="catalog-filter-panel">
+            <div class="filter-sidebar-head">
+                <h3>Bộ lọc</h3>
+                <a href="{% url 'products:product_list' %}" class="filter-reset" title="Xóa bộ lọc">Xóa</a>
+            </div>
 
-    {% if products.paginator.num_pages > 1 %}
-    <div class="pagination">
-        {% if products.has_previous %}
-        <a href="?page={{ products.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="pagination-prev">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-            Trước
-        </a>
-        {% endif %}
+            <form method="get" action="{% url 'products:product_list' %}" class="filter-form" data-filter-form>
+                <input type="hidden" name="sort" value="{{ selected_sort }}">
+                {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
 
-        <div class="pagination-pages">
-            {% for num in products.paginator.page_range %}
-                {% if num == products.number %}
-                <span class="pagination-current">{{ num }}</span>
-                {% elif num > products.number|add:"-3" and num < products.number|add:"3" %}
-                <a href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ num }}</a>
+                <div class="filter-group">
+                    <span class="filter-label">Danh mục</span>
+                    <div class="filter-cats">
+                        <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="filter-cat {% if not selected_category %}active{% endif %}">Tất cả</a>
+                        {% for category in categories %}
+                        <a href="{% url 'products:product_list' %}?{{ category.catalog_query }}" class="filter-cat {% if selected_category and selected_category.id == category.id %}active{% endif %}">{{ category.name|repair_text }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <span class="filter-label">Khoảng giá</span>
+                    <div class="price-range">
+                        <input type="text" inputmode="numeric" name="min_price" value="{{ min_price }}" placeholder="Từ" aria-label="Giá tối thiểu">
+                        <span class="price-range-sep">–</span>
+                        <input type="text" inputmode="numeric" name="max_price" value="{{ max_price }}" placeholder="Đến" aria-label="Giá tối đa">
+                    </div>
+                </div>
+
+                {% if sidebar_size_options %}
+                <div class="filter-group">
+                    <span class="filter-label">Size</span>
+                    <div class="size-grid">
+                        {% for size in sidebar_size_options %}
+                        <label class="size-opt">
+                            <input type="checkbox" name="size" value="{{ size }}" {% if size in selected_sizes %}checked{% endif %}>
+                            <span>{{ size }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endif %}
-            {% endfor %}
-        </div>
 
-        {% if products.has_next %}
-        <a href="?page={{ products.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="pagination-next">
-            Sau
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-        </a>
-        {% endif %}
+                {% if sidebar_color_options %}
+                <div class="filter-group">
+                    <span class="filter-label">Màu sắc</span>
+                    <div class="color-options">
+                        {% for color in sidebar_color_options %}
+                        <label class="color-opt" title="{{ color.label }}">
+                            <input type="checkbox" name="color" value="{{ color.value }}" {% if color.value in selected_colors %}checked{% endif %}>
+                            <span class="color-swatch" style="background: {{ color.code }}"></span>
+                            <span class="color-name">{{ color.label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn filter-apply">Áp dụng</button>
+            </form>
+        </aside>
+
+        <div class="catalog-main">
+            <div class="product-grid product-grid-editorial">
+                {% for product in products %}
+                <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
+                    <div class="card-media card-media-editorial">
+                        {% if product.get_image %}
+                        <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
+                        {% else %}
+                        <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                        {% endif %}
+                        {% if product.featured %}
+                        <span class="tag">NỔI BẬT</span>
+                        {% endif %}
+                        {% if not product.available %}
+                        <span class="tag tag-soldout">HẾT HÀNG</span>
+                        {% endif %}
+                        {% if product.stock <= 0 and product.available %}
+                        <span class="tag tag-soldout">HẾT HÀNG</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body card-body-editorial">
+                        <p class="card-category">{{ product.category.name|repair_text }}</p>
+                        <h3>{{ product.name|repair_text }}</h3>
+                        <div class="card-footer">
+                            <strong class="price">{{ product.price|vnd }}đ</strong>
+                            <span>Xem chi tiết</span>
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="empty-state panel">
+                    <h2>Chưa có sản phẩm phù hợp</h2>
+                    <p>Thử giảm bớt bộ lọc hoặc quay lại danh mục chính.</p>
+                    <a href="{% url 'products:product_list' %}" class="btn">Xem toàn bộ sản phẩm</a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if products.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}&{{ query_without_page }}" class="pagination-prev">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                    Trước
+                </a>
+                {% endif %}
+
+                <div class="pagination-pages">
+                    {% for num in products.paginator.page_range %}
+                        {% if num == products.number %}
+                        <span class="pagination-current">{{ num }}</span>
+                        {% elif num > products.number|add:"-3" and num < products.number|add:"3" %}
+                        <a href="?page={{ num }}&{{ query_without_page }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}&{{ query_without_page }}" class="pagination-next">
+                    Sau
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </section>
 
 <style>
+.catalog-layout {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+.filter-sidebar {
+    position: sticky;
+    top: 1.25rem;
+    padding: 1.1rem;
+}
+.filter-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+}
+.filter-sidebar-head h3 {
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.filter-reset {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    text-decoration: none;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    transition: background 0.2s ease;
+}
+.filter-reset:hover {
+    background: var(--accent);
+    color: #fff;
+}
+.filter-group {
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+}
+.filter-group:first-of-type {
+    border-top: 0;
+}
+.filter-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.55rem;
+}
+.filter-cats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.filter-cat {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    text-decoration: none;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border-left: 2px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.filter-cat:hover {
+    background: var(--surface-tint);
+    color: var(--accent-strong);
+}
+.filter-cat.active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+    border-left-color: var(--accent);
+}
+.price-range {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.4rem;
+    align-items: center;
+}
+.price-range input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.6rem;
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 0.78rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.price-range input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.price-range-sep {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+.size-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.size-opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.size-opt span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.size-opt input:checked + span {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 3px 8px var(--accent-glow);
+}
+.size-opt:hover span {
+    border-color: var(--accent);
+    color: var(--accent-strong);
+}
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.color-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.74rem;
+    color: var(--text-soft);
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    transition: all 0.2s ease;
+}
+.color-opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    display: inline-block;
+}
+.color-opt:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+}
+.color-opt:hover {
+    border-color: var(--accent);
+}
+.filter-apply {
+    width: 100%;
+    margin-top: 0.4rem;
+    justify-content: center;
+}
+.catalog-main {
+    min-width: 0;
+}
+.filter-toggle {
+    cursor: pointer;
+    font-family: inherit;
+    display: none;
+}
+@media (max-width: 900px) {
+    .filter-toggle {
+        display: inline-flex;
+    }
+    .catalog-layout {
+        grid-template-columns: 1fr;
+    }
+    .filter-sidebar {
+        position: static;
+    }
+    .filter-sidebar[hidden] {
+        display: none;
+    }
+}
 .pagination {
     display: flex;
     align-items: center;
@@ -179,4 +491,28 @@
     .pagination-current { width: 28px; height: 28px; font-size: 0.72rem; }
 }
 </style>
+<script>
+(function () {
+    var toggle = document.querySelector('[data-filters-toggle]');
+    var panel = document.getElementById('catalog-filter-panel');
+    if (!toggle || !panel) return;
+    function applyState() {
+        var collapsed = window.innerWidth <= 900 && !panel.hasAttribute('hidden');
+        if (collapsed) panel.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+    applyState();
+    toggle.addEventListener('click', function () {
+        var isHidden = panel.hasAttribute('hidden');
+        if (isHidden) {
+            panel.removeAttribute('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+        } else {
+            panel.setAttribute('hidden', '');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+    window.addEventListener('resize', applyState);
+})();
+</script>
 {% endblock %}

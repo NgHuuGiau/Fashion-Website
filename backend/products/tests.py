@@ -272,3 +272,244 @@ class SupportChatApiTest(TestCase):
         response = self.client.get(reverse("products:support_chat_reply"), {"q": "Mình cao 1m68 mặc size gì?"})
         self.assertEqual(response.status_code, 200)
         self.assertIn("cân nặng", response.json()["reply"].lower())
+
+
+class SearchSuggestTest(TestCase):
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Áo", slug="ao")
+        Product.objects.create(
+            category=self.category,
+            name="Áo thun trơn",
+            slug="ao-thun-tron",
+            price=250000,
+            stock=10,
+            available=True,
+        )
+        Product.objects.create(
+            category=self.category,
+            name="Áo hoodie",
+            slug="ao-hoodie",
+            price=500000,
+            stock=5,
+            available=True,
+        )
+        Product.objects.create(
+            category=self.category,
+            name="Áo khoác",
+            slug="ao-khoac",
+            price=800000,
+            stock=3,
+            available=True,
+        )
+        Product.objects.create(
+            category=self.category,
+            name="Quần jeans",
+            slug="quan-jeans",
+            price=600000,
+            stock=0,
+            available=False,
+        )
+
+    def test_search_suggest_returns_json(self):
+        response = self.client.get(reverse("products:search_suggest"), {"q": "hoodie"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        data = response.json()
+        self.assertGreaterEqual(len(data), 1)
+
+    def test_search_suggest_excludes_unavailable(self):
+        response = self.client.get(reverse("products:search_suggest"), {"q": "jeans"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 0)
+
+    def test_search_suggest_empty_query_returns_empty(self):
+        response = self.client.get(reverse("products:search_suggest"), {"q": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_search_suggest_min_length_one_works(self):
+        response = self.client.get(reverse("products:search_suggest"), {"q": "h"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertGreaterEqual(len(data), 1)
+
+    def test_search_suggest_contains_product_details(self):
+        response = self.client.get(reverse("products:search_suggest"), {"q": "hoodie"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertGreaterEqual(len(data), 1)
+        self.assertIn("name", data[0])
+        self.assertIn("price", data[0])
+        self.assertIn("slug", data[0])
+        self.assertIn("id", data[0])
+
+    def test_search_suggest_long_query_truncated(self):
+        long_q = "a" * 51
+        response = self.client.get(reverse("products:search_suggest"), {"q": long_q})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+
+class ChatServiceUnitTest(TestCase):
+
+    def test_has_any_keyword_match(self):
+        from .services.chat_service import has_any_keyword
+        self.assertTrue(has_any_keyword("chao ban", ("chao", "hello")))
+
+    def test_has_any_keyword_no_match(self):
+        from .services.chat_service import has_any_keyword
+        self.assertFalse(has_any_keyword("goodbye", ("chao", "hello")))
+
+    def test_has_any_keyword_empty_message(self):
+        from .services.chat_service import has_any_keyword
+        self.assertFalse(has_any_keyword("", ("chao", "hello")))
+
+    def test_extract_height_cm_172cm(self):
+        from .services.chat_service import extract_height_cm
+        self.assertEqual(extract_height_cm("Tôi cao 172cm"), 172)
+
+    def test_extract_height_cm_1m72(self):
+        from .services.chat_service import extract_height_cm
+        self.assertEqual(extract_height_cm("Tôi cao 1m72"), 172)
+
+    def test_extract_height_cm_no_match(self):
+        from .services.chat_service import extract_height_cm
+        self.assertIsNone(extract_height_cm("Tôi cao"))
+
+    def test_extract_weight_kg_68kg(self):
+        from .services.chat_service import extract_weight_kg
+        self.assertEqual(extract_weight_kg("Tôi nặng 68kg"), 68)
+
+    def test_extract_weight_kg_no_match(self):
+        from .services.chat_service import extract_weight_kg
+        self.assertIsNone(extract_weight_kg("Tôi nặng"))
+
+    def test_build_size_recommendation_s(self):
+        from .services.chat_service import build_size_recommendation
+        result = build_size_recommendation(158, 48)
+        self.assertIn("S", result)
+
+    def test_build_size_recommendation_m(self):
+        from .services.chat_service import build_size_recommendation
+        result = build_size_recommendation(165, 58)
+        self.assertIn("M", result)
+
+    def test_build_size_recommendation_l(self):
+        from .services.chat_service import build_size_recommendation
+        result = build_size_recommendation(172, 68)
+        self.assertIn("L", result)
+
+    def test_build_size_recommendation_xl(self):
+        from .services.chat_service import build_size_recommendation
+        result = build_size_recommendation(178, 76)
+        self.assertIn("XL", result)
+
+    def test_build_size_recommendation_xxl(self):
+        from .services.chat_service import build_size_recommendation
+        result = build_size_recommendation(185, 85)
+        self.assertIn("XXL", result)
+
+    def test_detect_topic_size(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("toi cao 1m72 mac size gi"), "size")
+
+    def test_detect_topic_shipping(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("phi ship bao nhieu"), "shipping")
+
+    def test_detect_topic_payment(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("thanh toan chuyen khoan duoc khong"), "payment")
+
+    def test_detect_topic_empty(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("troi dep qua"), "")
+
+    def test_greeting_reply(self):
+        from .services.chat_service import build_greeting_reply
+        self.assertIn("Chào bạn", build_greeting_reply())
+
+    def test_thanks_reply(self):
+        from .services.chat_service import build_thanks_reply
+        self.assertIn("cần chốt size", build_thanks_reply())
+
+    def test_human_support_reply(self):
+        from .services.chat_service import build_human_support_reply
+        self.assertIn("câu hỏi cụ thể", build_human_support_reply())
+
+    def test_size_support_reply_not_size_topic(self):
+        from .services.chat_service import build_size_support_reply
+        result = build_size_support_reply("troi dep qua", state={"topic": "style"})
+        self.assertIsNone(result)
+
+    def test_size_support_reply_needs_both(self):
+        from .services.chat_service import build_size_support_reply
+        result = build_size_support_reply("size")
+        self.assertIn("gửi theo mẫu", result)
+
+    def test_size_support_reply_only_height(self):
+        from .services.chat_service import build_size_support_reply
+        result = build_size_support_reply("cao 1m72")
+        self.assertIn("cân nặng", result)
+
+    def test_find_support_reply_greeting(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("Chào shop")
+        self.assertIn("Chào bạn", result)
+
+    def test_find_support_reply_thanks(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("Cảm ơn shop")
+        self.assertIn("cần chốt size", result)
+
+    def test_find_support_reply_fallback(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("abcxyz")
+        self.assertIn("hỗ trợ về size", result)
+
+
+class ProductModelTest(TestCase):
+
+    def setUp(self):
+        self.ao_category = Category.objects.create(name="Áo", slug="ao")
+        self.pk_category = Category.objects.create(name="Phụ kiện", slug="phu-kien")
+
+        self.product_ao = Product.objects.create(
+            category=self.ao_category,
+            name="Áo hoodie test",
+            slug="ao-hoodie-test",
+            price=500000,
+            stock=10,
+            available=True,
+        )
+        self.product_pk = Product.objects.create(
+            category=self.pk_category,
+            name="Mũ test",
+            slug="mu-test",
+            price=200000,
+            stock=5,
+            available=True,
+        )
+
+    def test_product_requires_variants_true_for_apparel(self):
+        self.assertTrue(self.product_ao.requires_variants)
+
+    def test_product_requires_variants_false_for_accessories(self):
+        self.assertFalse(self.product_pk.requires_variants)
+
+    def test_product_str_representation(self):
+        self.assertEqual(str(self.product_ao), "Áo hoodie test")
+
+    def test_product_requires_variants_for_quan(self):
+        quan_category = Category.objects.create(name="Quần", slug="quan")
+        product_quan = Product.objects.create(
+            category=quan_category,
+            name="Quần test",
+            slug="quan-test",
+            price=300000,
+            stock=10,
+            available=True,
+        )
+        self.assertTrue(product_quan.requires_variants)

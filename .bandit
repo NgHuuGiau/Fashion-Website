@@ -1,0 +1,3 @@
+[bandit]
+exclude: /migrations,/tests.py,manage.py,core/settings.py
+skips: B101,B311,B303

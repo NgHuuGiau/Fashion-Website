@@ -1,6 +1,5 @@
 import json
 import random
-import sqlite3
 import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -39,7 +38,7 @@ LOADTEST_REQUESTS_PER_USER = 10
 class Command(BaseCommand):
     help = (
         "Công cụ quản lý dữ liệu sản phẩm: sync, export, random HOT, "
-        "inspect DB, SQL shell, run SQL, load test."
+        "inspect DB, load test."
     )
 
     def add_arguments(self, parser):
@@ -53,15 +52,13 @@ class Command(BaseCommand):
             const=12,
             help="Reset và chọn ngẫu nhiên N sản phẩm HOT trực tiếp trong DB.",
         )
-        parser.add_argument("--inspect", action="store_true", help="Xem bảng dữ liệu tương tác.")
-        parser.add_argument("--shell", action="store_true", help="Môi trường SQL shell tương tác.")
-        parser.add_argument("--run-sql", type=str, help="Chạy file SQL trong thư mục database.")
+        parser.add_argument("--inspect", action="store_true", help="Xem bảng dữ liệu.")
         parser.add_argument("--loadtest", action="store_true", help="Chạy kiểm thử tải.")
         parser.add_argument("--path", type=str, default="/", help="Route cần test, ví dụ: /")
         parser.add_argument("--users", type=int, default=50, help="Số user đồng thời cho load test")
 
     def handle(self, *args, **options):
-        json_path = Path(settings.BASE_DIR) / "database" / "products_to_sync.json"
+        json_path = Path(settings.BASE_DIR) / "database" / "seed" / "products_to_sync.json"
         db_path = Path(settings.DATABASES["default"]["NAME"])
 
         if options["sync"]:
@@ -74,10 +71,6 @@ class Command(BaseCommand):
             self._shuffle_hot_db(options["shuffle_hot"])
         elif options["inspect"]:
             self._inspect_db(str(db_path))
-        elif options["shell"]:
-            self._sql_shell(str(db_path))
-        elif options["run_sql"]:
-            self._run_sql(str(db_path), options["run_sql"])
         elif options["loadtest"]:
             self._run_loadtest(options["path"], options["users"])
         else:
@@ -181,44 +174,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Đã chọn ngẫu nhiên {len(ids)} sản phẩm HOT trực tiếp trong DB."))
 
     def _inspect_db(self, db_path):
-        with sqlite3.connect(db_path) as connection:
-            cursor = connection.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-            tables = [row[0] for row in cursor.fetchall()]
-            for index, table_name in enumerate(tables, 1):
-                self.stdout.write(f"{index}. {table_name}")
-            choice = input("\nNhập số bảng (Enter để thoát): ").strip()
-            if choice.isdigit():
-                cursor.execute(f"SELECT * FROM {tables[int(choice) - 1]} LIMIT 10")
-                for row in cursor.fetchall():
-                    self.stdout.write(str(row))
-
-    def _sql_shell(self, db_path):
-        self.stdout.write(self.style.SUCCESS(f"[*] SQL Shell: {Path(db_path).name}"))
-        with sqlite3.connect(db_path) as connection:
-            cursor = connection.cursor()
-            while True:
-                query = input("\nsqlite> ").strip()
-                if query.lower() in ("exit", "quit"):
-                    break
-                try:
-                    cursor.execute(query)
-                    if cursor.description:
-                        for row in cursor.fetchall():
-                            self.stdout.write(str(row))
-                    else:
-                        connection.commit()
-                        self.stdout.write("Thành công.")
-                except Exception as exc:
-                    self.stdout.write(self.style.ERROR(str(exc)))
-
-    def _run_sql(self, db_path, sql_file):
-        sql_path = Path(settings.BASE_DIR) / "database" / sql_file
-        if not sql_path.exists():
-            return
-        with sqlite3.connect(db_path) as connection:
-            connection.executescript(sql_path.read_text(encoding="utf-8"))
-        self.stdout.write(self.style.SUCCESS("[+] Thành công."))
+        from django.db import connection as db_conn
+        tables = db_conn.introspection.table_names()
+        for index, table_name in enumerate(tables, 1):
+            self.stdout.write(f"{index}. {table_name}")
 
     def _run_loadtest(self, path, users):
         self.stdout.write(self.style.NOTICE(f"Đang load test: path={path}, users={users}"))

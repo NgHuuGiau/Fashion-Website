@@ -446,5 +446,165 @@
         "price": 305000.0,
         "featured": 0,
         "category_name": "Áo"
+    },
+    {
+        "id": 57,
+        "name": "Áo khoác lông vũ Puffer",
+        "slug": "ao-khoac-long-vu-puffer",
+        "price": 890000.0,
+        "featured": 1,
+        "category_name": "Áo"
+    },
+    {
+        "id": 58,
+        "name": "Áo blazer Oversize",
+        "slug": "ao-blazer-oversize",
+        "price": 750000.0,
+        "featured": 0,
+        "category_name": "Áo"
+    },
+    {
+        "id": 59,
+        "name": "Quần jeans Skinny Black",
+        "slug": "quan-jeans-skinny-black",
+        "price": 520000.0,
+        "featured": 0,
+        "category_name": "Quần"
+    },
+    {
+        "id": 60,
+        "name": "Áo thun cổ trụ Basic",
+        "slug": "ao-thun-co-tru-basic",
+        "price": 280000.0,
+        "featured": 1,
+        "category_name": "Áo"
+    },
+    {
+        "id": 61,
+        "name": "Mũ snapback Logo",
+        "slug": "mu-snapback-logo",
+        "price": 220000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 62,
+        "name": "Balo Urban Mini",
+        "slug": "balo-urban-mini",
+        "price": 450000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 63,
+        "name": "Áo sơ mi linen Relax",
+        "slug": "ao-so-mi-linen-relax",
+        "price": 380000.0,
+        "featured": 1,
+        "category_name": "Áo"
+    },
+    {
+        "id": 64,
+        "name": "Quần short kaki Basic",
+        "slug": "quan-short-kaki-basic",
+        "price": 350000.0,
+        "featured": 0,
+        "category_name": "Quần"
+    },
+    {
+        "id": 65,
+        "name": "Dây chuyền bạc Minimal",
+        "slug": "day-chuyen-bac-minimal",
+        "price": 180000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 66,
+        "name": "Vòng tay da Bracelet",
+        "slug": "vong-tay-da-bracelet",
+        "price": 160000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 67,
+        "name": "Áo hoodie Zip Up",
+        "slug": "ao-hoodie-zip-up",
+        "price": 650000.0,
+        "featured": 1,
+        "category_name": "Áo"
+    },
+    {
+        "id": 68,
+        "name": "Quần tây ống côn Slim",
+        "slug": "quan-tay-ong-con-slim",
+        "price": 480000.0,
+        "featured": 0,
+        "category_name": "Quần"
+    },
+    {
+        "id": 69,
+        "name": "Áo khoác dạ Cashmere",
+        "slug": "ao-khoac-da-cashmere",
+        "price": 1200000.0,
+        "featured": 0,
+        "category_name": "Áo"
+    },
+    {
+        "id": 70,
+        "name": "Khăn choàng cổ Len",
+        "slug": "khan-choang-co-len",
+        "price": 320000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 71,
+        "name": "Áo polo Pique Basic",
+        "slug": "ao-polo-pique-basic",
+        "price": 340000.0,
+        "featured": 0,
+        "category_name": "Áo"
+    },
+    {
+        "id": 72,
+        "name": "Quần baggy Denim Light",
+        "slug": "quan-baggy-denim-light",
+        "price": 610000.0,
+        "featured": 1,
+        "category_name": "Quần"
+    },
+    {
+        "id": 73,
+        "name": "Túi đeo hông Waist Bag",
+        "slug": "tui-deo-hong-waist-bag",
+        "price": 280000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 74,
+        "name": "Áo len cổ lọ Tight",
+        "slug": "ao-len-co-lo-tight",
+        "price": 420000.0,
+        "featured": 0,
+        "category_name": "Áo"
+    },
+    {
+        "id": 75,
+        "name": "Giày sneaker Platform",
+        "slug": "giay-sneaker-platform",
+        "price": 950000.0,
+        "featured": 1,
+        "category_name": "Phụ Kiện"
+    },
+    {
+        "id": 76,
+        "name": "Mũ beret Pháp",
+        "slug": "mu-beret-phap",
+        "price": 140000.0,
+        "featured": 0,
+        "category_name": "Phụ Kiện"
     }
 ]
