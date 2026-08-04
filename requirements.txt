@@ -1,7 +1,7 @@
 Django>=6.0,<6.1
 pillow>=12.0
 django-compressor>=4.5,<5
-rcssmin>=1.1,<2
+rcssmin>=1.2.2,<2
 rjsmin>=1.2,<2
 django-redis>=5.4,<6
 mssql-django>=1.7,<2
