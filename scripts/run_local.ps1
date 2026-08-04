@@ -1,6 +1,7 @@
 ﻿param(
     [switch]$SkipMigrate,
     [switch]$SkipSeed,
+    [switch]$SkipImport,
     [int]$Port = 8000,
     [string]$BindHost = "localhost"
 )
@@ -15,8 +16,9 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
+if ($BindHost -eq "localhost") { $BindHost = "[::1]" }
 $bind = "${BindHost}:$Port"
-$openUrl = "http://localhost:$Port/"
+$openUrl = "https://localhost:$Port/"
 
 function Step($message) {
     Write-Host ""
@@ -37,12 +39,17 @@ try {
         & $pythonExe manage.py migrate
     }
 
+    if (-not $SkipImport) {
+        Step "Import dữ liệu từ database/sql"
+        & $pythonExe manage.py import_legacy
+    }
+
     if (-not $SkipSeed) {
         Step "Đồng bộ sản phẩm"
         & $pythonExe manage.py seed_products --sync
     }
 
-    Step "Bật server local"
+    Step "Bật server local (HTTPS)"
     Write-Host "Mở: $openUrl" -ForegroundColor Green
     Start-Process $openUrl
     & $pythonExe manage.py runserver $bind

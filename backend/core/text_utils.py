@@ -12,7 +12,8 @@ def repair_mojibake_text(value):
 def normalize_vn_text(value):
     repaired = repair_mojibake_text(value).casefold()
     normalized = unicodedata.normalize("NFD", repaired)
-    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return stripped.replace("\u0111", "d")
 
 
 def parse_keyword_list(value):

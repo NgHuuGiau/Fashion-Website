@@ -2,22 +2,24 @@ import logging
 import os
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.shortcuts import redirect, render
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
-logger = logging.getLogger(__name__)
-
 from .activity import log_activity
-from .forms import ProfileForm, RegisterForm
+from .captcha import generate_captcha_code, generate_captcha_image
+from .forms import ForgotPasswordForm, CaptchaForm, ResetPasswordForm, ProfileForm, RegisterForm, ChangePasswordForm
 from .models import UserProfile
 from core.ratelimit import rate_limit
 
+logger = logging.getLogger(__name__)
 
-def _sync_visitor_auth_state(request, user):
+
+def _sync_visitor_auth_state(request: HttpRequest, user) -> None:
     visitor = getattr(request, "visitor_session", None)
     if not visitor:
         return
@@ -26,7 +28,7 @@ def _sync_visitor_auth_state(request, user):
     visitor.save(update_fields=["user", "is_authenticated", "last_seen"])
 
 
-def _build_login_candidates(identifier):
+def _build_login_candidates(identifier: str) -> list:
     if not identifier:
         return []
 
@@ -42,7 +44,7 @@ def _build_login_candidates(identifier):
 
 
 @rate_limit("register", max_requests=5, window=300, error_msg="Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 5 phút.")
-def register_view(request):
+def register_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("products:product_list")
 
@@ -71,7 +73,7 @@ def register_view(request):
 
 
 @rate_limit("login", max_requests=10, window=300, error_msg="Quá nhiều lần đăng nhập. Vui lòng thử lại sau 5 phút.")
-def login_view(request):
+def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("products:product_list")
 
@@ -113,7 +115,7 @@ SOCIAL_LOGIN_PROVIDERS = {
 }
 
 
-def social_login_view(request, provider):
+def social_login_view(request: HttpRequest, provider: str) -> HttpResponse:
     provider_key = (provider or "").strip().lower()
     if provider_key not in SOCIAL_LOGIN_PROVIDERS:
         messages.error(request, "Phương thức đăng nhập không hợp lệ.")
@@ -135,7 +137,7 @@ def social_login_view(request, provider):
 
 
 @login_required
-def logout_view(request):
+def logout_view(request: HttpRequest) -> HttpResponse:
     log_activity(request, event_type="logout", metadata={"username": request.user.username})
     _sync_visitor_auth_state(request, None)
     logout(request)
@@ -144,7 +146,7 @@ def logout_view(request):
 
 
 @login_required
-def profile_view(request):
+def profile_view(request: HttpRequest) -> HttpResponse:
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     display_name = (request.user.get_full_name() or request.user.username).strip() or request.user.username
     name_parts = [part for part in display_name.split() if part]
@@ -169,3 +171,88 @@ def profile_view(request):
             "display_initials": display_initials,
         },
     )
+
+
+@login_required
+def change_password_view(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ChangePasswordForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, request.user)
+            log_activity(request, event_type="change_password", metadata={"username": request.user.username})
+            messages.success(request, "Đổi mật khẩu thành công.")
+            return redirect("users:profile")
+    else:
+        form = ChangePasswordForm(user=request.user)
+
+    return render(request, "account/change_password.html", {"password_form": form})
+
+
+@rate_limit("forgot_password", max_requests=50, window=300, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.")
+def forgot_password_view(request: HttpRequest) -> HttpResponse:
+    """Bước 1: Nhập tài khoản (username/email/phone) để kiểm tra tồn tại."""
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    if request.method == "POST":
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data["_matched_user"]
+            request.session["reset_user_id"] = user.id
+            return redirect("users:forgot_password_captcha")
+    else:
+        form = ForgotPasswordForm()
+
+    return render(request, "auth/forgot_password.html", {"form": form})
+
+
+def captcha_image_view(request: HttpRequest) -> HttpResponse:
+    """Trả về ảnh CAPTCHA PNG."""
+    code = generate_captcha_code()
+    request.session["captcha_code"] = code
+    img_data = generate_captcha_image(code)
+    return HttpResponse(img_data, content_type="image/png")
+
+
+@rate_limit("forgot_password_captcha", max_requests=50, window=300, error_msg="Quá nhiều lần thử. Vui lòng thử lại sau 5 phút.")
+def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
+    """Bước 2: Xác thực CAPTCHA."""
+    if "reset_user_id" not in request.session:
+        return redirect("users:forgot_password")
+
+    if request.method == "POST":
+        form = CaptchaForm(request.POST)
+        form.request = request
+        if form.is_valid():
+            return redirect("users:reset_password")
+    else:
+        form = CaptchaForm()
+
+    return render(request, "auth/forgot_password_captcha.html", {"form": form})
+
+
+@rate_limit("reset_password", max_requests=50, window=300, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.")
+def reset_password_view(request: HttpRequest) -> HttpResponse:
+    """Bước 3: Đặt mật khẩu mới."""
+    if "reset_user_id" not in request.session:
+        return redirect("users:forgot_password")
+
+    user_id = request.session["reset_user_id"]
+    from django.contrib.auth.models import User
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == "POST":
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data["password1"])
+            user.save(update_fields=["password"])
+            # Clear session
+            request.session.pop("reset_user_id", None)
+            request.session.pop("captcha_code", None)
+            messages.success(request, "Đổi mật khẩu thành công. Vui lòng đăng nhập.")
+            return redirect("users:login")
+    else:
+        form = ResetPasswordForm()
+
+    return render(request, "auth/reset_password.html", {"form": form, "username": user.username})

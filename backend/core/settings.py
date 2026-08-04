@@ -13,7 +13,7 @@ def load_env_file(env_path):
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 
 
@@ -42,8 +42,14 @@ if not _secret_key:
         "Thêm SECRET_KEY=your-secret-key vào file .env ở thư mục gốc."
     )
 SECRET_KEY = _secret_key
-DEBUG = env_bool("DEBUG", True)
+DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
+CSRF_TRUSTED_ORIGINS = [
+    "https://localhost:8000",
+    "https://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -51,7 +57,10 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "core",
     "django.contrib.staticfiles",
+    "compressor",
+    "django_extensions",
     "products",
     "users",
     "orders",
@@ -93,12 +102,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.getenv("DB_PATH") or str(BASE_DIR / "database/db.sqlite3"),
+DB_ENGINE = os.getenv("DB_ENGINE", "sqlite")
+
+if DB_ENGINE == "mssql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "mssql",
+            "NAME": os.getenv("DB_NAME", "HUUGIAU_Fashion"),
+            "HOST": os.getenv("DB_HOST", "."),
+            "OPTIONS": {
+                "driver": "ODBC Driver 18 for SQL Server",
+                "trusted_connection": "yes",
+                "extra_params": "TrustServerCertificate=yes;Encrypt=yes",
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "database" / "db.sqlite3",
+        }
+    }
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
@@ -107,14 +132,46 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "frontend/static"]
+
+COMPRESS_ENABLED = env_bool("COMPRESS_ENABLED", not DEBUG)
+COMPRESS_URL = STATIC_URL
+COMPRESS_ROOT = BASE_DIR / "frontend/static"
+COMPRESS_CSS_FILTERS = ["compressor.filters.cssmin.rCSSMinFilter"]
+COMPRESS_JS_FILTERS = ["compressor.filters.jsmin.rJSMinFilter"]
+COMPRESS_OUTPUT_DIR = "CACHE"
+COMPRESS_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+if not DEBUG:
+    COMPRESS_OFFLINE = True
+    COMPRESS_OFFLINE_CONTEXT = {}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "frontend/static/images"
 
+TRUSTED_PROXY = env_bool("TRUSTED_PROXY", False)
 LOGIN_URL = "users:login"
 LOGIN_REDIRECT_URL = "products:product_list"
 LOGOUT_REDIRECT_URL = "products:product_list"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+_redis_url = os.getenv("REDIS_URL", "")
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _redis_url,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        }
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+else:
+    # WARNING: LocMemCache is per-process and NOT suitable for production with multiple workers.
+    # Set REDIS_URL in .env for production to enable cross-worker rate limiting and caching.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "huugiau-cache",
+        }
+    }
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", False)
@@ -135,6 +192,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
     SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
 LOGGING = {
     'version': 1,

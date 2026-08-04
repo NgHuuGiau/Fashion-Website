@@ -25,13 +25,14 @@
             </div>
             <div class="form-group">
                 <label for="id_password">
-                    <i class="fa-regular fa-lock"></i>
+                    <i class="fa-solid fa-lock"></i>
                     Mật khẩu
                 </label>
                 <input type="password" id="id_password" name="password" required placeholder="Nhập mật khẩu">
+                <a href="{% url 'users:forgot_password' %}" class="forgot-password-link">Quên mật khẩu?</a>
             </div>
             <button type="submit" class="btn">
-                <i class="fa-regular fa-arrow-right-to-bracket"></i>
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
                 Đăng nhập
             </button>
         </form>
@@ -60,14 +61,14 @@
     <aside class="auth-benefits">
         <div>
             <div class="auth-benefits-brand">
-                <i class="fa-regular fa-crown"></i>
+                <i class="fa-solid fa-crown"></i>
                 <span>HUUGIAU Atelier</span>
             </div>
             <h2>Đăng nhập để tiếp tục mua sắm nhanh hơn</h2>
             <p>Mở tài khoản để xem đơn hàng, lưu wishlist và thanh toán thuận tiện trên mọi thiết bị.</p>
         </div>
         <ul class="auth-benefits-list">
-            <li><i class="fa-regular fa-box"></i> Đơn hàng của tôi</li>
+            <li><i class="fa-solid fa-box"></i> Đơn hàng của tôi</li>
             <li><i class="fa-regular fa-heart"></i> Danh sách yêu thích</li>
             <li><i class="fa-regular fa-credit-card"></i> Theo dõi thanh toán</li>
             <li><i class="fa-regular fa-message"></i> Tư vấn size ngay trên web</li>

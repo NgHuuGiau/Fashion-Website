@@ -43,16 +43,16 @@
 
             <div class="success-actions">
                 <a href="{% url 'orders:my_orders' %}" class="btn">
-                    <i class="fa-regular fa-box"></i>
+                    <i class="fa-solid fa-box"></i>
                     Xem đơn hàng
                 </a>
                 <a href="{% url 'products:product_list' %}" class="btn ghost">
-                    <i class="fa-regular fa-bag-shopping"></i>
+                    <i class="fa-solid fa-bag-shopping"></i>
                     Mua thêm
                 </a>
                 {% if not order.is_paid and order.payment_method == "bank" and order.status != "cancelled" %}
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn outline">
-                    <i class="fa-regular fa-qrcode"></i>
+                    <i class="fa-solid fa-qrcode"></i>
                     Thanh toán ngay
                 </a>
                 {% endif %}

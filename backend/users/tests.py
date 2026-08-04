@@ -219,3 +219,47 @@ class UserTrackingStorageTest(TestCase):
         visitor = VisitorSession.objects.order_by("-id").first()
         self.assertIsNotNone(visitor)
         self.assertTrue(visitor.is_authenticated)
+
+
+class ProfileViewTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="profileuser", password="StrongPass123!")
+
+    def test_profile_page_renders(self):
+        self.client.login(username="profileuser", password="StrongPass123!")
+        response = self.client.get(reverse("users:profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/profile.html")
+        self.assertIn("form", response.context)
+        self.assertIn("display_name", response.context)
+
+    def test_profile_update_success(self):
+        self.client.login(username="profileuser", password="StrongPass123!")
+        response = self.client.post(
+            reverse("users:profile"),
+            {
+                "first_name": "Nguyen",
+                "last_name": "Van A",
+                "email": "nguyenvana@test.com",
+                "phone_number": "0912345678",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Nguyen")
+        self.assertEqual(self.user.last_name, "Van A")
+        self.assertEqual(self.user.email, "nguyenvana@test.com")
+
+    def test_profile_update_invalid_phone(self):
+        self.client.login(username="profileuser", password="StrongPass123!")
+        response = self.client.post(
+            reverse("users:profile"),
+            {
+                "first_name": "Nguyen",
+                "last_name": "Van A",
+                "phone_number": "abc123",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Số điện thoại không hợp lệ")

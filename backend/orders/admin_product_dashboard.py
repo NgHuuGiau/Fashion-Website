@@ -1,7 +1,7 @@
-﻿from django.contrib import messages
-from datetime import timedelta
-from decimal import Decimal
+﻿from datetime import timedelta
 
+from django import forms
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -14,6 +14,7 @@ from django.utils.text import slugify
 from products.constants import APPAREL_CATEGORY_SLUGS
 from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, ProductImage, ProductVariant
 
+from .admin_forms import CouponForm, OrderStatusForm, ProductForm, ProductVariantFormSet
 from .cart import safe_int
 from .models import Coupon, Order
 
@@ -24,10 +25,16 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 def _validate_uploaded_file(uploaded_file, errors, label):
     if not uploaded_file:
         return
-    if uploaded_file.content_type not in ALLOWED_IMAGE_TYPES:
-        errors.append(f"{label}: Chỉ chấp nhận file JPEG, PNG, WebP hoặc GIF.")
     if uploaded_file.size > MAX_IMAGE_SIZE:
         errors.append(f"{label}: File không được quá 5MB.")
+        return
+    try:
+        from PIL import Image
+        import io
+        Image.open(io.BytesIO(uploaded_file.read()))
+        uploaded_file.seek(0)
+    except Exception:
+        errors.append(f"{label}: File không phải là ảnh hợp lệ.")
 
 RECENT_ORDER_LIMIT = 200
 LOW_STOCK_LIMIT = 10
@@ -176,17 +183,17 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
     now = timezone.now()
     today = timezone.localdate()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    status_counts = all_orders.aggregate(
+    combined = all_orders.aggregate(
         total=Count("id"),
         pending=Count("id", filter=Q(status="pending")),
         processing=Count("id", filter=Q(status="processing")),
         shipping=Count("id", filter=Q(status="shipping")),
         delivered=Count("id", filter=Q(status="delivered")),
         cancelled=Count("id", filter=Q(status="cancelled")),
-    )
-    total_revenue = all_orders.filter(status="delivered").aggregate(total=Sum("total_amount"))["total"] or 0
-    month_revenue = (
-        all_orders.filter(status="delivered", created_at__gte=month_start).aggregate(total=Sum("total_amount"))["total"] or 0
+        total_revenue=Sum("total_amount", filter=Q(status="delivered")),
+        month_revenue=Sum("total_amount", filter=Q(status="delivered", created_at__gte=month_start)),
+        today_orders=Count("id", filter=Q(created_at__date=today)),
+        today_revenue=Sum("total_amount", filter=Q(status="delivered", created_at__date=today)),
     )
     daily_revenue = (
         all_orders.filter(status="delivered")
@@ -234,8 +241,11 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         growth_label = "Ổn định so với 7 ngày trước"
         growth_class = "is-flat"
 
-    today_orders = all_orders.filter(created_at__date=today).count()
-    today_revenue = all_orders.filter(status="delivered", created_at__date=today).aggregate(total=Sum("total_amount"))["total"] or 0
+    total_revenue = combined.pop("total_revenue") or 0
+    month_revenue = combined.pop("month_revenue") or 0
+    today_orders = combined.pop("today_orders") or 0
+    today_revenue = combined.pop("today_revenue") or 0
+    status_counts = combined
     UserModel = get_user_model()
     today_new_accounts = UserModel.objects.filter(date_joined__date=today).count()
 
@@ -276,8 +286,33 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
 
 
 def save_admin_product(request, product=None):
-    form_data = build_admin_product_form_data(request)
+    is_update = product is not None
+    post_data = request.POST.copy()
+    post_data["category"] = post_data.get("category_id", "")
+    if "category_id" in post_data:
+        del post_data["category_id"]
+    post_data.pop("slug", None)
+
+    form = ProductForm(post_data, request.FILES, instance=product)
+    form.fields.pop("slug", None)
+
+    if not form.is_valid():
+        errors = []
+        for field, field_errors in form.errors.items():
+            for err in field_errors:
+                label = {"category": "Danh mục", "name": "Tên sản phẩm", "price": "Giá bán", "image": "Ảnh đại diện", "image_url": "URL ảnh đại diện", "description": "Mô tả"}.get(field, field)
+                errors.append(f"{label}: {err}")
+        form_data = build_admin_product_form_data(request)
+        return None, form_data, errors, None
+
+    cd = form.cleaned_data
     errors = []
+
+    try:
+        variant_rows = ProductVariantFormSet.validate_variants(request.POST)
+    except forms.ValidationError as e:
+        errors.extend(e.messages)
+        variant_rows = []
 
     main_image = request.FILES.get("image")
     if main_image:
@@ -289,7 +324,7 @@ def save_admin_product(request, product=None):
             _validate_uploaded_file(item, errors, "Ảnh gallery")
             uploaded_gallery_images.append(item)
 
-    remove_gallery_image_ids = {str(item).strip() for item in form_data["remove_gallery_image_ids"] if str(item).strip()}
+    remove_gallery_image_ids = {str(item).strip() for item in request.POST.getlist("remove_gallery_image_ids") if str(item).strip()}
     slot_uploads = []
     slot_remove_indexes = set()
 
@@ -302,22 +337,10 @@ def save_admin_product(request, product=None):
         if remove_requested:
             slot_remove_indexes.add(index)
 
-    category = Category.objects.filter(id=form_data["category_id"]).first()
-    if not category:
-        errors.append("Vui lòng chọn danh mục sản phẩm.")
+    category = cd["category"]
 
-    if not form_data["name"]:
-        errors.append("Vui lòng nhập tên sản phẩm.")
-
-    price_input = (form_data["price"] or "").replace(",", "").strip()
-    price = int(price_input) if price_input.isdigit() else None
-    if price is None:
-        errors.append("Giá sản phẩm không hợp lệ.")
-
-    stock_input = (form_data["stock"] or "").strip()
+    stock_input = (request.POST.get("stock", "") or "").strip()
     stock = safe_int(stock_input, default=0, minimum=0)
-    if stock_input and str(stock) != stock_input:
-        errors.append("Tồn kho tổng không hợp lệ.")
 
     existing_base_count = 0
     existing_gallery_count = 0
@@ -328,7 +351,7 @@ def save_admin_product(request, product=None):
         )
         existing_gallery_count = min(existing_gallery_count + len(slot_uploads), MAX_PRODUCT_GALLERY_IMAGES)
 
-    new_base_count = 1 if (request.FILES.get("image") or form_data["image_url"]) else 0
+    new_base_count = 1 if (request.FILES.get("image") or cd.get("image_url")) else 0
     if not new_base_count and product:
         new_base_count = existing_base_count
 
@@ -340,45 +363,6 @@ def save_admin_product(request, product=None):
         errors.append(
             f"Mỗi sản phẩm chỉ được tối đa {MAX_PRODUCT_GALLERY_IMAGES} hình ảnh. "
             f"Bạn có thể để 0 đến {MAX_PRODUCT_GALLERY_IMAGES} hình, nhưng không được vượt quá {MAX_PRODUCT_GALLERY_IMAGES}."
-        )
-
-    variant_rows = []
-    max_rows = max(
-        len(form_data["variant_row_key"]),
-        len(form_data["variant_color_name"]),
-        len(form_data["variant_color_code"]),
-        len(form_data["variant_size"]),
-        len(form_data["variant_stock"]),
-    )
-    active_keys = set(form_data["variant_is_active"])
-
-    for index in range(max_rows):
-        row_key = form_data["variant_row_key"][index].strip() if index < len(form_data["variant_row_key"]) else f"row-{index + 1}"
-        color_name = form_data["variant_color_name"][index].strip() if index < len(form_data["variant_color_name"]) else ""
-        color_code = form_data["variant_color_code"][index].strip() if index < len(form_data["variant_color_code"]) else ""
-        size = form_data["variant_size"][index].strip() if index < len(form_data["variant_size"]) else ""
-        stock_raw = form_data["variant_stock"][index].strip() if index < len(form_data["variant_stock"]) else ""
-
-        if not any([color_name, color_code, size, stock_raw]):
-            continue
-
-        variant_stock = safe_int(stock_raw, default=-1, minimum=-1)
-        if variant_stock < 0:
-            errors.append(f"Tồn kho biến thể ở dòng {index + 1} không hợp lệ.")
-            continue
-        if not color_name:
-            errors.append(f"Dòng biến thể {index + 1} đang thiếu tên màu.")
-        if not size:
-            errors.append(f"Dòng biến thể {index + 1} đang thiếu size.")
-
-        variant_rows.append(
-            {
-                "color_name": color_name,
-                "color_code": color_code or "#111111",
-                "size": size,
-                "stock": variant_stock,
-                "is_active": row_key in active_keys,
-            }
         )
 
     requires_variant = bool(category and category.slug in APPAREL_CATEGORY_SLUGS)
@@ -394,15 +378,15 @@ def save_admin_product(request, product=None):
         seen_variants.add(key)
 
     if errors:
+        form_data = build_admin_product_form_data(request)
         return None, form_data, errors, None
 
     if requires_variant or variant_rows:
         stock = sum(item["stock"] for item in variant_rows if item["is_active"])
-        form_data["stock"] = str(stock)
 
-    slug_base = slugify(form_data["name"]) or f"san-pham-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+    slug_base = slugify(cd["name"]) or f"san-pham-{timezone.now().strftime('%Y%m%d%H%M%S')}"
     slug = product.slug if product else slug_base
-    if product is None or product.name != form_data["name"]:
+    if product is None or product.name != cd["name"]:
         slug = slug_base
         slug_qs = Product.objects.all()
         if product:
@@ -416,28 +400,28 @@ def save_admin_product(request, product=None):
         if product is None:
             product = Product.objects.create(
                 category=category,
-                name=form_data["name"],
+                name=cd["name"],
                 slug=slug,
                 image=request.FILES.get("image"),
-                image_url=form_data["image_url"],
-                description=form_data["description"],
-                price=price,
+                image_url=cd.get("image_url", ""),
+                description=cd.get("description", ""),
+                price=cd["price"],
                 stock=stock,
-                available=form_data["available"],
-                featured=form_data["featured"],
+                available=cd.get("available", False),
+                featured=cd.get("featured", False),
             )
         else:
             product.category = category
-            product.name = form_data["name"]
+            product.name = cd["name"]
             product.slug = slug
             if request.FILES.get("image"):
                 product.image = request.FILES.get("image")
-            product.image_url = form_data["image_url"]
-            product.description = form_data["description"]
-            product.price = price
+            product.image_url = cd.get("image_url", "")
+            product.description = cd.get("description", "")
+            product.price = cd["price"]
             product.stock = stock
-            product.available = form_data["available"]
-            product.featured = form_data["featured"]
+            product.available = cd.get("available", False)
+            product.featured = cd.get("featured", False)
             product.save()
             product.variants.all().delete()
             if remove_gallery_image_ids:
@@ -481,7 +465,7 @@ def save_admin_product(request, product=None):
                 item.sort_order = index
                 item.save(update_fields=["sort_order"])
 
-    action_label = "cập nhật" if form_data["product_id"] else "tạo"
+    action_label = "cập nhật" if is_update else "tạo"
     return product, build_admin_product_form_data(), [], action_label
 
 
@@ -508,44 +492,41 @@ def admin_dashboard(request):
 
         if action == "update_order_status":
             order_id = request.POST.get("order_id")
-            new_status = request.POST.get("new_status", "").strip()
-            valid_statuses = [s[0] for s in Order.STATUS_CHOICES]
-            if order_id and new_status in valid_statuses:
+            status_post = request.POST.copy()
+            status_post["status"] = status_post.get("new_status", "")
+            status_post.pop("new_status", None)
+            order_status_form = OrderStatusForm(status_post)
+            if order_status_form.is_valid():
                 order = get_object_or_404(Order, id=order_id)
-                order.status = new_status
-                order.save(update_fields=["status", "updated_at"])
-                messages.success(request, f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(new_status)}'.")
+                order.status = order_status_form.cleaned_data["status"]
+                order.is_paid = order_status_form.cleaned_data.get("is_paid", False)
+                order.save(update_fields=["status", "is_paid", "updated_at"])
+                messages.success(request, f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(order.status)}'.")
+            else:
+                for err in order_status_form.errors.get("__all__", order_status_form.errors.get("status", [])):
+                    messages.error(request, err)
             return redirect("orders:admin_dashboard")
 
         if action == "save_coupon":
-            coupon_id = request.POST.get("coupon_id", "").strip()
-            code = request.POST.get("code", "").strip().upper()
-            if not code:
-                messages.error(request, "Mã giảm giá không được để trống.")
+            coupon_form = CouponForm(request.POST)
+            if coupon_form.is_valid():
+                coupon_id = request.POST.get("coupon_id", "").strip()
+                cd = coupon_form.cleaned_data
+                if coupon_id:
+                    coupon = get_object_or_404(Coupon, id=coupon_id)
+                    for field, value in cd.items():
+                        setattr(coupon, field, value)
+                    coupon.save()
+                    messages.success(request, f"Đã cập nhật mã '{cd['code']}'.")
+                else:
+                    cd.pop("usage_limit", None)
+                    cd.pop("used_count", None)
+                    Coupon.objects.create(**cd)
+                    messages.success(request, f"Đã tạo mã '{cd['code']}'.")
                 return redirect("orders:admin_dashboard")
-            discount_type = request.POST.get("discount_type", "percent").strip()
-            value = request.POST.get("value", "0").strip()
-            min_order = request.POST.get("min_order_amount", "0").strip()
-            max_discount = request.POST.get("max_discount_amount", "").strip()
-            is_active = request.POST.get("is_active") == "on"
-            if coupon_id:
-                coupon = get_object_or_404(Coupon, id=coupon_id)
-                coupon.code = code
-                coupon.discount_type = discount_type
-                coupon.value = Decimal(value)
-                coupon.min_order_amount = Decimal(min_order)
-                coupon.max_discount_amount = Decimal(max_discount) if max_discount else None
-                coupon.is_active = is_active
-                coupon.save()
-                messages.success(request, f"Đã cập nhật mã '{code}'.")
-            else:
-                Coupon.objects.create(
-                    code=code, discount_type=discount_type, value=Decimal(value),
-                    min_order_amount=Decimal(min_order),
-                    max_discount_amount=Decimal(max_discount) if max_discount else None,
-                    is_active=is_active,
-                )
-                messages.success(request, f"Đã tạo mã '{code}'.")
+            for field, field_errors in coupon_form.errors.items():
+                for err in field_errors:
+                    messages.error(request, f"{field}: {err}")
             return redirect("orders:admin_dashboard")
 
         if action == "delete_coupon":

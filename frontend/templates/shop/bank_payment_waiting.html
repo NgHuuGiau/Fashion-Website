@@ -95,7 +95,7 @@
                         </p>
                         <a href="{{ mobile_url }}" target="_blank" rel="noopener" class="payment-qr-link-wrap">
                             <div class="payment-qr-box">
-                                <img src="{{ qr_url }}" alt="QR xác nhận" class="payment-qr-img" id="qr-confirm-img" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\'display:block;padding:1rem;font-size:0.75rem;color:#9a8a7a\'>Không tải được QR.<br><a href=\''+this.closest(\'a\').href+'\' style=\'color:#d4803f;font-weight:600\'>Bấm để mở</a></span>'">
+                                <img src="{{ qr_url }}" alt="QR xác nhận" class="payment-qr-img" id="qr-confirm-img" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\'display:block;padding:1rem;font-size:0.75rem;color:#ab9a8b\'>Không tải được QR.<br><a href=\''+this.closest(\'a\').href+'\' style=\'color:#c96f2e;font-weight:600\'>Bấm để mở</a></span>'">
                                 <div class="payment-qr-box-overlay">
                                     <span>Bấm để mở</span>
                                 </div>
@@ -113,7 +113,7 @@
                             Quét mã để chuyển khoản
                         </p>
                         <div class="payment-qr-box">
-                            <img src="{{ qr_url }}" alt="QR chuyển khoản" class="payment-qr-img" onerror="this.onerror=null;this.alt='QR chuyển khoản';this.style.display='none';this.parentElement.innerHTML+='<div style=\'padding:0.75rem;font-size:0.75rem;color:#9a8a7a\'>QR không tải được. Vui lòng chuyển khoản thủ công.</div>'">
+                            <img src="{{ qr_url }}" alt="QR chuyển khoản" class="payment-qr-img" onerror="this.onerror=null;this.alt='QR chuyển khoản';this.style.display='none';this.parentElement.innerHTML+='<div style=\'padding:0.75rem;font-size:0.75rem;color:#ab9a8b\'>QR không tải được. Vui lòng chuyển khoản thủ công.</div>'">
                         </div>
                         <div class="payment-qr-hint">
                             <span class="payment-qr-hint-dot"></span>
@@ -283,9 +283,10 @@
     padding: 1rem 0;
 }
 .payment-card {
-    background: #fff;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
     border-radius: 20px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     position: relative;
     animation: paymentFadeIn 0.5s ease;
@@ -304,11 +305,11 @@
     width: 52px;
     height: 52px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #f5f0eb 0%, #ede6dc 100%);
+    background: linear-gradient(135deg, var(--surface-tint) 0%, var(--bg-soft) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #9a8a7a;
+    color: var(--accent);
     position: relative;
     z-index: 1;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -331,8 +332,8 @@
     display: inline-flex;
     padding: 0.3rem 0.75rem;
     border-radius: 20px;
-    background: #f5f0eb;
-    color: #7b6758;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -341,7 +342,7 @@
 .payment-title {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #1a1410;
+    color: var(--text);
     margin: 0 0 0.5rem;
     letter-spacing: -0.01em;
 }
@@ -351,8 +352,8 @@
     gap: 0.4rem;
     margin-bottom: 0.75rem;
 }
-.payment-meta-label { font-size: 0.75rem; color: #9a8a7a; }
-.payment-meta-value { font-size: 0.9rem; color: #1a1410; font-weight: 700; }
+.payment-meta-label { font-size: 0.75rem; color: var(--muted-light); }
+.payment-meta-value { font-size: 0.9rem; color: var(--text); font-weight: 700; }
 
 .payment-countdown-wrap { margin: 0.75rem 0 1.25rem; }
 .payment-countdown-ring {
@@ -362,14 +363,14 @@
     margin: 0 auto;
 }
 .payment-countdown-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.payment-countdown-bg { fill: none; stroke: #f0ece8; stroke-width: 4; }
+.payment-countdown-bg { fill: none; stroke: var(--line-strong); stroke-width: 4; }
 .payment-countdown-progress {
     fill: none;
-    stroke: #d4803f;
+    stroke: var(--accent);
     stroke-width: 4;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.5s ease;
-    filter: drop-shadow(0 0 4px rgba(212,128,63,0.2));
+    filter: drop-shadow(0 0 4px var(--accent-glow));
 }
 .payment-countdown-inner {
     position: absolute;
@@ -381,13 +382,13 @@
 .payment-countdown-number {
     font-size: 1.3rem;
     font-weight: 800;
-    color: #d4803f;
+    color: var(--accent-strong);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.04em;
 }
 .payment-countdown-label {
     font-size: 0.68rem;
-    color: #9a8a7a;
+    color: var(--muted-light);
     margin-top: 0.35rem;
 }
 
@@ -396,10 +397,10 @@
     gap: 0.5rem;
     max-width: 340px;
     margin: 0 auto 1rem;
-    background: #faf8f6;
+    background: var(--bg-soft);
     border-radius: 14px;
     padding: 0.85rem 1rem;
-    border: 1px solid #f0ece8;
+    border: 1px solid var(--line);
 }
 .payment-info-item {
     display: flex;
@@ -408,14 +409,14 @@
     gap: 0.5rem;
     padding: 0.15rem 0;
 }
-.payment-info-label { font-size: 0.78rem; color: #9a8a7a; }
-.payment-info-value { font-size: 0.82rem; color: #1a1410; font-weight: 600; }
-.payment-info-item-highlight .payment-info-value { color: #d4803f; }
+.payment-info-label { font-size: 0.78rem; color: var(--muted-light); }
+.payment-info-value { font-size: 0.82rem; color: var(--text); font-weight: 600; }
+.payment-info-item-highlight .payment-info-value { color: var(--accent-strong); }
 .payment-info-price { font-size: 1rem; font-weight: 800; }
 .payment-currency { font-size: 0.72rem; font-weight: 600; margin-left: 0.05rem; }
 .payment-info-ref {
     font-family: monospace;
-    background: #f0ece8;
+    background: var(--surface-tint);
     padding: 0.1rem 0.45rem;
     border-radius: 4px;
     font-size: 0.82rem;
@@ -438,12 +439,13 @@
 .payment-btn svg { transition: transform 0.2s ease; }
 .payment-btn-outline {
     background: transparent;
-    color: #7b6758;
-    border: 1.5px solid #e0d6cc;
+    color: var(--muted);
+    border: 1.5px solid var(--line-strong);
 }
 .payment-btn-outline:hover {
-    background: #f5f0eb;
-    border-color: #c4b5a5;
+    background: var(--surface-tint);
+    border-color: var(--accent);
+    color: var(--accent-strong);
 }
 .payment-btn-outline:hover svg { transform: translateX(-2px); }
 
@@ -452,16 +454,17 @@
 .payment-sidebar-sticky { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 
 .payment-qr-section {
-    background: #fff;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
     border-radius: 18px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     animation: paymentFadeIn 0.5s ease 0.1s both;
 }
 .payment-qr-tabs {
     display: flex;
-    background: #faf8f6;
-    border-bottom: 1px solid #f0ece8;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--line);
 }
 .payment-qr-tab {
     flex: 1;
@@ -474,15 +477,15 @@
     background: transparent;
     font-size: 0.74rem;
     font-weight: 600;
-    color: #9a8a7a;
+    color: var(--muted-light);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
 }
 .payment-qr-tab svg { width: 14px; height: 14px; flex-shrink: 0; }
 .payment-qr-tab.active {
-    color: #d4803f;
-    background: #fff;
+    color: var(--accent-strong);
+    background: var(--surface-strong);
 }
 .payment-qr-tab.active::after {
     content: "";
@@ -491,10 +494,10 @@
     left: 20%;
     right: 20%;
     height: 2px;
-    background: #d4803f;
+    background: var(--accent);
     border-radius: 2px;
 }
-.payment-qr-tab:not(.active):hover { color: #7b6758; }
+.payment-qr-tab:not(.active):hover { color: var(--muted); }
 .payment-qr-panel {
     display: none;
     padding: 1rem 1.25rem 1.1rem;
@@ -511,20 +514,20 @@
     justify-content: center;
     gap: 0.3rem;
     font-size: 0.7rem;
-    color: #7b6758;
+    color: var(--muted);
     margin-bottom: 0.65rem;
 }
-.payment-qr-panel-label svg { width: 12px; height: 12px; flex-shrink: 0; color: #d4803f; }
+.payment-qr-panel-label svg { width: 12px; height: 12px; flex-shrink: 0; color: var(--accent); }
 .payment-qr-box {
     position: relative;
     display: inline-block;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-sm);
     transition: box-shadow 0.2s ease;
 }
 .payment-qr-link-wrap { text-decoration: none; display: inline-block; }
-.payment-qr-link-wrap:hover .payment-qr-box { box-shadow: 0 4px 16px rgba(212,128,63,0.12); }
+.payment-qr-link-wrap:hover .payment-qr-box { box-shadow: 0 4px 16px var(--accent-glow); }
 .payment-qr-link-wrap:hover .payment-qr-box-overlay { opacity: 1; }
 .payment-qr-img {
     width: 100%;
@@ -535,7 +538,7 @@
 .payment-qr-box-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(26,20,16,0.45);
+    background: rgba(22,16,12,0.45);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -559,13 +562,13 @@
     gap: 0.35rem;
     margin-top: 0.5rem;
     font-size: 0.65rem;
-    color: #9a8a7a;
+    color: var(--muted-light);
 }
 .payment-qr-hint-dot {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #b8aa9a;
+    background: var(--accent);
     animation: pulseDot 1.8s ease-in-out infinite;
 }
 @keyframes pulseDot {
@@ -574,9 +577,10 @@
 }
 
 .payment-summary-card {
-    background: #fff;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
     border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     animation: paymentFadeIn 0.5s ease 0.2s both;
 }
@@ -587,12 +591,12 @@
     padding: 0.7rem 1rem;
     font-size: 0.72rem;
     font-weight: 700;
-    color: #7b6758;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    border-bottom: 1px solid #f5f0eb;
+    border-bottom: 1px solid var(--line);
 }
-.payment-summary-header svg { width: 14px; height: 14px; color: #d4803f; }
+.payment-summary-header svg { width: 14px; height: 14px; color: var(--accent); }
 .payment-summary-body { padding: 0.65rem 1rem; display: grid; gap: 0.3rem; }
 .payment-summary-row {
     display: flex;
@@ -601,12 +605,12 @@
     font-size: 0.74rem;
     padding: 0.2rem 0;
 }
-.payment-summary-row span { color: #9a8a7a; }
-.payment-summary-row strong { color: #1a1410; font-weight: 600; }
-.payment-summary-row-price strong { color: #d4803f; font-weight: 800; font-size: 0.85rem; }
+.payment-summary-row span { color: var(--muted-light); }
+.payment-summary-row strong { color: var(--text); font-weight: 600; }
+.payment-summary-row-price strong { color: var(--accent-strong); font-weight: 800; font-size: 0.85rem; }
 .payment-ref-code {
     font-family: monospace;
-    background: #f5f0eb;
+    background: var(--surface-tint);
     padding: 0.05rem 0.4rem;
     border-radius: 3px;
 }
@@ -618,19 +622,20 @@
     padding: 0.55rem 1rem;
     font-size: 0.7rem;
     font-weight: 600;
-    color: #d4803f;
+    color: var(--accent-strong);
     cursor: pointer;
     transition: all 0.2s ease;
-    border-top: 1px solid #f5f0eb;
+    border-top: 1px solid var(--line);
 }
-.payment-summary-copy:hover { background: #fdf8f3; }
-.payment-summary-copy.copied { color: #2a8a4a; background: #eaf5ee; }
+.payment-summary-copy:hover { background: var(--surface-tint); }
+.payment-summary-copy.copied { color: var(--success); background: var(--success-soft); }
 
 .payment-guide {
-    background: #fff;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 0.85rem 1rem;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
@@ -645,8 +650,8 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #f5f0eb;
-    color: #7b6758;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
     font-size: 0.68rem;
     font-weight: 800;
     display: flex;
@@ -659,13 +664,13 @@
     flex-direction: column;
     gap: 0.05rem;
 }
-.payment-guide-text strong { font-size: 0.75rem; color: #1a1410; }
-.payment-guide-text span { font-size: 0.65rem; color: #9a8a7a; }
+.payment-guide-text strong { font-size: 0.75rem; color: var(--text); }
+.payment-guide-text span { font-size: 0.65rem; color: var(--muted-light); }
 .payment-guide-arrow {
     display: flex;
     justify-content: center;
     padding: 0.1rem 0;
-    color: #c4b5a5;
+    color: var(--muted-light);
 }
 
 /* success flash */
@@ -673,8 +678,8 @@
     animation: flashGreen 0.6s ease;
 }
 @keyframes flashGreen {
-    0%, 100% { box-shadow: 0 2px 20px rgba(0,0,0,0.04); }
-    50% { box-shadow: 0 0 0 4px rgba(42,138,74,0.15), 0 2px 20px rgba(0,0,0,0.04); }
+    0%, 100% { box-shadow: var(--shadow-sm); }
+    50% { box-shadow: 0 0 0 4px var(--success-soft), var(--shadow-sm); }
 }
 
 @media (max-width: 780px) {

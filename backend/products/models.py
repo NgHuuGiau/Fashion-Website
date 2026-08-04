@@ -31,18 +31,21 @@ class Product(models.Model):
     image = models.ImageField(upload_to="products/%Y/%m/%d", blank=True, verbose_name="Ảnh sản phẩm")
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
-    price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá tiền")
-    stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng kho")
-    available = models.BooleanField(default=True, verbose_name="Đang bán")
-    featured = models.BooleanField(default=False, verbose_name="Nổi bật")
+    price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá tiền", db_index=True)
+    stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng kho", db_index=True)
+    available = models.BooleanField(default=True, verbose_name="Đang bán", db_index=True)
+    featured = models.BooleanField(default=False, verbose_name="Nổi bật", db_index=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         ordering = ("-created",)
         indexes = [
             models.Index(fields=["id", "slug"]),
             models.Index(fields=["name"]),
+            models.Index(fields=["available", "featured", "price"]),
+            models.Index(fields=["available", "stock"]),
+            models.Index(fields=["category", "available", "-created"]),
         ]
 
     def __str__(self):
@@ -159,11 +162,11 @@ class Product(models.Model):
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
-    color_name = models.CharField(max_length=50, verbose_name="Màu sắc")
+    color_name = models.CharField(max_length=50, verbose_name="Màu sắc", db_index=True)
     color_code = models.CharField(max_length=20, default="#111111", verbose_name="Mã màu")
-    size = models.CharField(max_length=20, verbose_name="Size")
-    stock = models.PositiveIntegerField(default=0, verbose_name="Tồn kho")
-    is_active = models.BooleanField(default=True, verbose_name="Hiển thị")
+    size = models.CharField(max_length=20, verbose_name="Size", db_index=True)
+    stock = models.PositiveIntegerField(default=0, verbose_name="Tồn kho", db_index=True)
+    is_active = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
 
     class Meta:
         ordering = ["color_name", "size"]
@@ -176,7 +179,7 @@ class ProductVariant(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, related_name="gallery_images", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="products/gallery/%Y/%m/%d", verbose_name="Ảnh gallery")
-    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Thứ tự")
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Thứ tự", db_index=True)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

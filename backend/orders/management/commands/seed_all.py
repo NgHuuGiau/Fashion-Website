@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from orders.models import Coupon, Order, OrderItem
-from products.models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
+from products.models import Product, SupportFAQ, WishlistItem
 from users.models import UserActivity, UserProfile, VisitorSession
 
 
