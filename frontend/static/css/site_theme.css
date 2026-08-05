@@ -2015,6 +2015,58 @@ button {
     height: 18px;
 }
 
+.admin-variant-matrix .matrix-size-col {
+    min-width: 88px;
+    text-align: center;
+    font-size: 0.82rem;
+}
+
+.admin-variant-matrix td {
+    vertical-align: middle;
+}
+
+.admin-variant-matrix .matrix-size-cell input {
+    width: 78px;
+    text-align: center;
+}
+
+.matrix-color-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.matrix-color-inputs input[type="text"] {
+    width: 130px;
+}
+
+.matrix-color-inputs input[type="color"] {
+    width: 42px;
+    height: 38px;
+    padding: 2px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    background: var(--bg-soft);
+    cursor: pointer;
+}
+
+.admin-variant-addsize {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    padding: 0.2rem 0 0.4rem;
+}
+
+.admin-variant-addsize .addsize-label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-right: 0.3rem;
+}
+
 .admin-actions {
     display: flex;
     justify-content: flex-end;

@@ -251,43 +251,133 @@
         });
     }
 
-    // ─── Add variant row (admin) ───
-    const addRowBtn = document.getElementById('add-variant-row');
-    const variantTableBody = document.getElementById('variant-table-body');
-    if (addRowBtn && variantTableBody) {
-        function makeRowKey() { return 'row-' + Date.now() + '-' + Math.floor(Math.random() * 1000); }
-        function buildRow() {
-            const rowKey = makeRowKey();
-            const row = document.createElement('tr');
-            row.className = 'variant-row';
-            row.innerHTML = [
-                '<td><input type="hidden" name="variant_row_key[]" value="' + rowKey + '"><input type="text" name="variant_color_name[]" placeholder="Đen"></td>',
-                '<td><input type="text" name="variant_color_code[]" value="#111111" placeholder="#111111"></td>',
-                '<td><input type="text" name="variant_size[]" placeholder="M"></td>',
-                '<td><input type="number" name="variant_stock[]" min="0" step="1" value="0" placeholder="0"></td>',
-                '<td class="variant-check"><input type="checkbox" name="variant_is_active[]" value="' + rowKey + '" checked></td>',
-                '<td><button type="button" class="btn danger small variant-remove">Xóa</button></td>'
-            ].join('');
-            return row;
+    // ─── Variant matrix editor (admin) ───
+    const matrixBody = document.getElementById('variant-matrix-body');
+    const matrixHead = document.getElementById('variant-matrix-head');
+    const matrixSizesBox = document.getElementById('variant-matrix-sizes');
+    const matrixStockTotal = document.querySelector('.admin-product-form input[name="stock"]');
+
+    function matrixToken(size) {
+        return String(size).trim().toUpperCase().replace(/[^A-Za-z0-9]+/g, '_') || 'size';
+    }
+    function matrixExistingSizes() {
+        const set = new Set();
+        if (matrixSizesBox) {
+            matrixSizesBox.querySelectorAll('input[name="matrix_sizes"]').forEach(inp => set.add(inp.value.trim().toUpperCase()));
         }
-        addRowBtn.addEventListener('click', () => variantTableBody.appendChild(buildRow()));
-        variantTableBody.addEventListener('click', e => {
-            const target = e.target;
-            if (!target.classList.contains('variant-remove')) return;
-            const rows = variantTableBody.querySelectorAll('.variant-row');
+        matrixBody.querySelectorAll('.matrix-size-cell').forEach(cell => set.add(cell.dataset.size.toUpperCase()));
+        return set;
+    }
+    function matrixNextColorIndex() {
+        let max = -1;
+        matrixBody.querySelectorAll('.variant-color-row').forEach(row => {
+            const idx = parseInt(row.dataset.colorIndex, 10);
+            if (!isNaN(idx) && idx > max) max = idx;
+        });
+        return max + 1;
+    }
+    function matrixBuildColorRow(index, sizes) {
+        const tr = document.createElement('tr');
+        tr.className = 'variant-color-row';
+        tr.dataset.colorIndex = String(index);
+        const cells = [
+            '<td><div class="matrix-color-inputs">' +
+            '<input type="text" name="matrix_color_name[]" placeholder="Đen">' +
+            '<input type="color" name="matrix_color_code[]" value="#111111" title="Mã màu">' +
+            '</div></td>',
+            '<td class="variant-check"><input type="checkbox" name="matrix_color_active[]" value="' + index + '" checked></td>'
+        ];
+        sizes.forEach(size => {
+            cells.push('<td class="matrix-size-cell" data-size="' + size + '"><input type="number" name="matrix_stock_' + index + '_' + matrixToken(size) + '" min="0" step="1" value="0" placeholder="0"></td>');
+        });
+        cells.push('<td><button type="button" class="btn danger small variant-color-remove">Xóa</button></td>');
+        tr.innerHTML = cells.join('');
+        return tr;
+    }
+    function matrixAddSizeColumn(size) {
+        size = String(size).trim().toUpperCase();
+        if (!size || matrixExistingSizes().has(size)) return;
+        const token = matrixToken(size);
+        if (matrixHead) {
+            const th = document.createElement('th');
+            th.className = 'matrix-size-col';
+            th.textContent = size;
+            matrixHead.insertBefore(th, matrixHead.querySelector('.matrix-corner-end'));
+        }
+        matrixBody.querySelectorAll('.variant-color-row').forEach(row => {
+            const idx = row.dataset.colorIndex;
+            const td = document.createElement('td');
+            td.className = 'matrix-size-cell';
+            td.dataset.size = size;
+            td.innerHTML = '<input type="number" name="matrix_stock_' + idx + '_' + token + '" min="0" step="1" value="0" placeholder="0">';
+            row.insertBefore(td, row.querySelector('.variant-color-remove').closest('td'));
+        });
+        if (matrixSizesBox) {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'matrix_sizes';
+            hidden.value = size;
+            matrixSizesBox.appendChild(hidden);
+        }
+        matrixUpdateStockTotal();
+    }
+    function matrixUpdateStockTotal() {
+        if (!matrixStockTotal) return;
+        let total = 0;
+        matrixBody.querySelectorAll('.variant-color-row').forEach(row => {
+            const active = row.querySelector('input[name="matrix_color_active[]"]');
+            if (active && !active.checked) return;
+            row.querySelectorAll('input[type="number"]').forEach(inp => {
+                const value = parseInt(inp.value, 10);
+                if (!isNaN(value) && value > 0) total += value;
+            });
+        });
+        matrixStockTotal.value = total;
+    }
+    if (matrixBody && matrixHead) {
+        const addColorBtn = document.getElementById('add-variant-color');
+        if (addColorBtn) {
+            addColorBtn.addEventListener('click', () => {
+                matrixBody.appendChild(matrixBuildColorRow(matrixNextColorIndex(), matrixExistingSizes()));
+            });
+        }
+        matrixBody.addEventListener('click', e => {
+            const removeBtn = e.target.closest('.variant-color-remove');
+            if (!removeBtn) return;
+            const rows = matrixBody.querySelectorAll('.variant-color-row');
             if (rows.length <= 1) {
-                const inputs = rows[0].querySelectorAll('input');
-                inputs.forEach(inp => {
-                    if (inp.type === 'checkbox') inp.checked = true;
-                    else if (inp.type === 'number') inp.value = '0';
-                    else if (inp.name === 'variant_color_code[]') inp.value = '#111111';
-                    else inp.value = '';
-                });
+                rows[0].querySelectorAll('input[type="text"]').forEach(inp => { inp.value = ''; });
+                rows[0].querySelectorAll('input[type="number"]').forEach(inp => { inp.value = '0'; });
+                rows[0].querySelector('input[type="checkbox"]').checked = true;
                 return;
             }
-            const row = target.closest('.variant-row');
-            if (row) row.remove();
+            removeBtn.closest('tr').remove();
+            matrixUpdateStockTotal();
         });
+        matrixBody.addEventListener('input', e => {
+            if (e.target && e.target.type === 'number') matrixUpdateStockTotal();
+        });
+        matrixBody.addEventListener('change', e => {
+            if (e.target && e.target.matches('input[name="matrix_color_active[]"]')) matrixUpdateStockTotal();
+        });
+        document.querySelectorAll('.add-size-quick').forEach(btn => {
+            btn.addEventListener('click', () => matrixAddSizeColumn(btn.dataset.size));
+        });
+        const customSizeInput = document.getElementById('variant-custom-size');
+        const addCustomSizeBtn = document.getElementById('add-variant-custom-size');
+        function matrixAddCustomSize() {
+            if (!customSizeInput) return;
+            matrixAddSizeColumn(customSizeInput.value);
+            customSizeInput.value = '';
+            customSizeInput.focus();
+        }
+        if (addCustomSizeBtn) addCustomSizeBtn.addEventListener('click', matrixAddCustomSize);
+        if (customSizeInput) {
+            customSizeInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); matrixAddCustomSize(); }
+            });
+        }
+        matrixUpdateStockTotal();
     }
 
     // ─── Smooth scroll for anchor links ───
