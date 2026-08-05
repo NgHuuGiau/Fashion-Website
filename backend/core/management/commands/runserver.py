@@ -21,6 +21,13 @@ class SSLWSGIServer(WSGIServer):
         super().__init__(*args, **kwargs)
         if _SSL_CONTEXT is not None:
             self.socket = _SSL_CONTEXT.wrap_socket(self.socket, server_side=True)
+            # The socket is wrapped with TLS below WSGI, so Django/wsgiref can
+            # not tell that requests are HTTPS on their own. wsgiref.servers
+            # derive wsgi.url_scheme from the legacy ``HTTPS`` environ entry
+            # (and otherwise rewrite it to ``http``), so advertise both to keep
+            # every generated absolute URL (e.g. the VietQR mobile link) HTTPS.
+            self.base_environ["HTTPS"] = "on"
+            self.base_environ["wsgi.url_scheme"] = "https"
 
 
 class Command(StaticfilesRunserverCommand):

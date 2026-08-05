@@ -3857,38 +3857,48 @@ button {
 }
 
 .qty-stepper {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem;
-    border-radius: 999px;
+    display: inline-grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    align-items: stretch;
+    width: 132px;
+    height: 40px;
+    border-radius: 12px;
     border: 1px solid var(--line-strong);
-    background: var(--surface);
+    background: var(--surface-strong);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.qty-stepper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 
 .qty-stepper input {
-    width: 64px;
+    width: 100%;
+    min-width: 0;
     text-align: center;
     border: 0;
     background: transparent;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+    padding: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
+.qty-stepper input::-webkit-outer-spin-button,
+.qty-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .qty-step {
-    width: 36px;
-    height: 36px;
+    width: 34px;
     border: 0;
-    border-radius: 999px;
-    background: var(--accent-soft);
+    background: var(--bg-soft);
     color: var(--accent-strong);
-    font-weight: 800;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
-
-.qty-step:hover {
-    background: var(--accent-glow);
-}
+.qty-step:hover { background: var(--accent-soft); color: var(--accent); }
+.qty-step:active { background: var(--accent-glow); }
 
 .detail-promises {
     display: flex;
@@ -3934,6 +3944,29 @@ button {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.detail-accordion summary > span { margin-right: auto; }
+
+.detail-accordion .size-guide-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-strong);
+    color: var(--accent-strong);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.detail-accordion .size-guide-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
 }
 
 .detail-accordion summary::after {

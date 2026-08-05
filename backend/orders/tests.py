@@ -1141,3 +1141,584 @@ class AdminDashboardFormIntegrationTest(TestCase):
         self.assertEqual(response.status_code, 302)
         order.refresh_from_db()
         self.assertEqual(order.status, "shipping")
+
+
+class PaymentEdgeBranchesTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="payer", password="StrongPass123!")
+        self.category_pk = Category.objects.create(name="Phu kien", slug="phu-kien")
+        self.product = Product.objects.create(
+            category=self.category_pk, name="Vi test", slug="vi-test",
+            price=150000, stock=10, available=True,
+        )
+        self.client.login(username="payer", password="StrongPass123!")
+
+    def _cod_order(self, **kw):
+        defaults = dict(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=150000, subtotal_amount=150000,
+            shipping_fee=30000, discount_amount=0, status="pending", is_paid=False,
+        )
+        defaults.update(kw)
+        return Order.objects.create(**defaults)
+
+    def test_order_success_expired_bank_redirects_failed(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", status="processing", is_paid=False, total_amount=150000,
+        )
+        Order.objects.filter(id=order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        response = self.client.get(reverse("orders:order_success", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_failed", kwargs={"order_id": order.id}))
+
+    def test_order_success_paid_cod_renders(self):
+        order = self._cod_order(is_paid=True)
+        response = self.client.get(reverse("orders:order_success", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 200)
+
+    def test_bank_payment_confirm_non_bank_order(self):
+        order = self._cod_order()
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": _payment_token(order.id)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+        order.refresh_from_db()
+        self.assertFalse(order.is_paid)
+
+    def test_bank_payment_confirm_expired_order(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", status="processing", is_paid=False, total_amount=150000,
+        )
+        Order.objects.filter(id=order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": _payment_token(order.id)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_failed", kwargs={"order_id": order.id}))
+
+    def test_bank_payment_confirm_token_mismatch(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", status="processing", is_paid=False, total_amount=150000,
+        )
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": "wrong-token"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id}))
+        order.refresh_from_db()
+        self.assertFalse(order.is_paid)
+
+    def test_bank_payment_cancel_already_cancelled(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", status="cancelled", is_paid=False, total_amount=150000,
+        )
+        response = self.client.post(reverse("orders:bank_payment_cancel", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+
+    def test_bank_payment_cancel_non_bank(self):
+        order = self._cod_order()
+        response = self.client.post(reverse("orders:bank_payment_cancel", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+
+    def test_order_failed_with_reason_param(self):
+        order = self._cod_order()
+        response = self.client.get(
+            reverse("orders:order_failed", kwargs={"order_id": order.id}),
+            {"reason": "custom"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["failed_reason"], "Đã hủy thanh toán")
+
+    def test_order_failed_with_expired_note(self):
+        order = self._cod_order(note="[AUTO_TIMEOUT_15_MIN]")
+        response = self.client.get(reverse("orders:order_failed", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["failed_reason"], "Quá 15 phút chưa thanh toán")
+
+    def test_bank_payment_waiting_non_bank_redirects(self):
+        order = self._cod_order()
+        response = self.client.get(reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+
+    def test_bank_payment_waiting_paid_redirects_success(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", status="processing", is_paid=True, total_amount=150000,
+        )
+        response = self.client.get(reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+
+
+class OrderViewEdgeBranchesTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="orderview", password="StrongPass123!")
+        self.client.login(username="orderview", password="StrongPass123!")
+
+    def test_estimate_delivery_days_hcm(self):
+        from .views.order import estimate_delivery_days
+        self.assertEqual(estimate_delivery_days("123 Quan 1, Ho Chi Minh"), 2)
+
+    def test_estimate_delivery_days_near_hcm(self):
+        from .views.order import estimate_delivery_days
+        self.assertEqual(estimate_delivery_days("Binh Duong"), 3)
+
+    def test_estimate_delivery_days_northern(self):
+        from .views.order import estimate_delivery_days
+        self.assertEqual(estimate_delivery_days("Ha Noi"), 7)
+
+    def test_estimate_delivery_days_default(self):
+        from .views.order import estimate_delivery_days
+        self.assertEqual(estimate_delivery_days("Da Lat"), 5)
+
+    def test_order_review_not_editable_when_paid(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="processing", is_paid=True,
+        )
+        response = self.client.post(
+            reverse("orders:order_review", kwargs={"order_id": order.id}),
+            {"customer_name": "Hacked", "phone": "0909", "shipping_address": "HCM"},
+        )
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.customer_name, "T")
+
+    def test_my_orders_picks_shipping_as_active_tracking(self):
+        Order.objects.create(
+            user=self.user, customer_name="S", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="shipping", is_paid=True,
+        )
+        response = self.client.get(reverse("orders:my_orders"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_tracking_order"].status, "shipping")
+
+    def test_user_cancel_order_not_cancellable_state(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="delivered", is_paid=True,
+        )
+        response = self.client.post(reverse("orders:user_cancel_order", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "delivered")
+
+
+class AdminFormsEdgeTest(TestCase):
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Ao", slug="ao")
+
+    def test_product_form_empty_name_invalid(self):
+        form = ProductForm(data={"name": "  ", "category": self.category.id, "price": 100000})
+        self.assertFalse(form.is_valid())
+
+    def test_variant_formset_validation_errors(self):
+        from django import forms
+        from django.http import QueryDict
+        from .admin_forms import ProductVariantFormSet
+        data = QueryDict(
+            "variant_row_key[]=row-1&variant_row_key[]=row-2"
+            "&variant_color_name[]=Do&variant_color_name[]="
+            "&variant_size[]=M&variant_size[]="
+            "&variant_stock[]=3&variant_stock[]=abc"
+        )
+        with self.assertRaises(forms.ValidationError) as ctx:
+            ProductVariantFormSet.validate_variants(data)
+        errors = str(ctx.exception)
+        self.assertIn("thiếu size", errors)
+        self.assertIn("Tồn kho biến thể ở dòng 2", errors)
+
+    def test_variant_formset_valid(self):
+        from django.http import QueryDict
+        from .admin_forms import ProductVariantFormSet
+        data = QueryDict(
+            "variant_row_key[]=row-1"
+            "&variant_color_name[]=Den"
+            "&variant_color_code[]=#111111"
+            "&variant_size[]=L"
+            "&variant_stock[]=5"
+            "&variant_is_active[]=row-1"
+        )
+        cleaned = ProductVariantFormSet.validate_variants(data)
+        self.assertEqual(len(cleaned), 1)
+        self.assertEqual(cleaned[0]["stock"], 5)
+        self.assertTrue(cleaned[0]["is_active"])
+
+    def test_variant_formset_skips_empty_rows(self):
+        from django.http import QueryDict
+        from .admin_forms import ProductVariantFormSet
+        data = QueryDict(
+            "variant_row_key[]=row-1&variant_row_key[]=row-2"
+            "&variant_color_name[]=Den&variant_color_name[]="
+            "&variant_size[]=L&variant_size[]="
+            "&variant_stock[]=&variant_stock[]="
+        )
+        cleaned = ProductVariantFormSet.validate_variants(data)
+        self.assertEqual(len(cleaned), 1)
+
+    def test_order_search_form_invalid_dates(self):
+        from .admin_forms import OrderSearchForm
+        form = OrderSearchForm(data={"date_from": "not-a-date", "date_to": "also-bad"})
+        self.assertFalse(form.is_valid())
+
+    def test_order_edit_form_unknown_bank_falls_back_vcb(self):
+        from .admin_forms import OrderEditForm
+        form = OrderEditForm(
+            data={"customer_name": "T", "customer_email": "", "phone": "0912345678", "shipping_address": "HCM", "bank_code": "UNKNOWN"}
+        )
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["bank_code"], "VCB")
+
+
+class CartHelperTest(TestCase):
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Phu kien", slug="phu-kien")
+        self.product = Product.objects.create(
+            category=self.category, name="Test cart helper", slug="test-cart-helper",
+            price=100000, stock=5, available=True,
+        )
+
+    def _fake_request(self):
+        from types import SimpleNamespace
+        class FakeSession(dict):
+            modified = False
+        return SimpleNamespace(session=FakeSession())
+
+    def test_safe_int_invalid_falls_back(self):
+        from .cart import safe_int
+        self.assertEqual(safe_int("abc", default=1, minimum=1), 1)
+        self.assertEqual(safe_int(None, default=7, minimum=0), 7)
+
+    def test_parse_item_key_invalid(self):
+        from .cart import _parse_item_key
+        self.assertEqual(_parse_item_key("bad-key"), (None, None))
+
+    def test_add_cart_variant_not_found(self):
+        from .cart import add_cart
+        request = self._fake_request()
+        success, msg = add_cart(request, self.product.id, variant_id=999999)
+        self.assertFalse(success)
+        self.assertIn("Biến thể", msg)
+
+    def test_add_cart_out_of_stock(self):
+        from .cart import add_cart
+        self.product.stock = 0
+        self.product.save()
+        request = self._fake_request()
+        success, msg = add_cart(request, self.product.id)
+        self.assertFalse(success)
+        self.assertIn("hết hàng", msg)
+
+    def test_add_cart_override_quantity(self):
+        from .cart import add_cart
+        request = self._fake_request()
+        add_cart(request, self.product.id, quantity=2)
+        success, _ = add_cart(request, self.product.id, quantity=1, override_quantity=True)
+        self.assertTrue(success)
+        cart = request.session["cart"]
+        key = f"{self.product.id}:0"
+        self.assertEqual(cart[key]["quantity"], 1)
+
+    def test_iter_cart_skips_bad_keys_and_unavailable(self):
+        from .cart import iter_cart
+        request = self._fake_request()
+        request.session["cart"] = {
+            "bad-key": {"quantity": 1},
+            f"{self.product.id}:0": {"quantity": 1, "price": "100000"},
+            "99999:0": {"quantity": 1},
+        }
+        rows, total = iter_cart(request)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(total, Decimal("100000"))
+
+    def test_cart_count(self):
+        from .cart import cart_count
+        request = self._fake_request()
+        request.session["cart"] = {
+            f"{self.product.id}:0": {"quantity": 2},
+            "abc:1": {"quantity": 3},
+        }
+        self.assertEqual(cart_count(request), 5)
+
+
+class CouponModelTest(TestCase):
+
+    def test_is_usable_now_branches(self):
+        coupon = Coupon.objects.create(
+            code="BRANCH",
+            discount_type=Coupon.TYPE_FIXED,
+            value=Decimal("50000"),
+            min_order_amount=Decimal("0"),
+            is_active=True,
+        )
+        self.assertTrue(coupon.is_usable_now())
+
+        coupon.is_active = False
+        self.assertFalse(coupon.is_usable_now())
+        coupon.is_active = True
+
+        coupon.starts_at = timezone.now() + timedelta(days=1)
+        self.assertFalse(coupon.is_usable_now())
+        coupon.starts_at = None
+
+        coupon.ends_at = timezone.now() - timedelta(days=1)
+        self.assertFalse(coupon.is_usable_now())
+        coupon.ends_at = None
+
+        coupon.usage_limit = 1
+        coupon.used_count = 1
+        self.assertFalse(coupon.is_usable_now())
+        coupon.usage_limit = None
+        self.assertTrue(coupon.is_usable_now())
+
+    def test_coupon_str(self):
+        coupon = Coupon.objects.create(code="STRTEST", discount_type="percent", value=10, is_active=True)
+        self.assertEqual(str(coupon), "STRTEST")
+
+    def test_order_str(self):
+        user = User.objects.create_user(username="ostr", password="StrongPass123!")
+        order = Order.objects.create(
+            user=user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000,
+        )
+        self.assertIn("Order", str(order))
+
+    def test_order_item_str_and_subtotal(self):
+        category = Category.objects.create(name="Ao", slug="ao")
+        product = Product.objects.create(
+            category=category, name="Ao subtotal", slug="ao-subtotal",
+            price=200000, stock=5, available=True,
+        )
+        user = User.objects.create_user(username="oitem", password="StrongPass123!")
+        order = Order.objects.create(
+            user=user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=200000,
+        )
+        item = OrderItem.objects.create(order=order, product=product, quantity=2, price=200000)
+        self.assertEqual(str(item), "2 x Ao subtotal")
+        self.assertEqual(item.subtotal(), Decimal("400000"))
+
+
+class CouponDiscountMathTest(TestCase):
+
+    def setUp(self):
+        self.coupon_percent = Coupon.objects.create(code="P", discount_type="percent", value=Decimal("10"), is_active=True)
+        self.coupon_fixed = Coupon.objects.create(code="F", discount_type="fixed", value=Decimal("50000"), is_active=True)
+        self.coupon_freeship = Coupon.objects.create(code="S", discount_type="freeship", value=Decimal("0"), is_active=True)
+
+    def test_shipping_fee_threshold(self):
+        from .views.cart import calculate_shipping_fee
+        self.assertEqual(calculate_shipping_fee(Decimal("499000")), Decimal("0"))
+        self.assertEqual(calculate_shipping_fee(Decimal("100000")), Decimal("30000"))
+
+    def test_coupon_discount_branches(self):
+        from .views.cart import calculate_coupon_discount
+        self.assertEqual(calculate_coupon_discount(None, Decimal("200000"), Decimal("30000")), Decimal("0"))
+        self.assertEqual(calculate_coupon_discount(self.coupon_percent, Decimal("200000"), Decimal("30000")), Decimal("20000"))
+        self.assertEqual(calculate_coupon_discount(self.coupon_fixed, Decimal("200000"), Decimal("30000")), Decimal("50000"))
+        self.assertEqual(calculate_coupon_discount(self.coupon_freeship, Decimal("200000"), Decimal("30000")), Decimal("30000"))
+
+    def test_coupon_max_discount_cap(self):
+        from .views.cart import calculate_coupon_discount
+        self.coupon_fixed.max_discount_amount = Decimal("10000")
+        self.assertEqual(calculate_coupon_discount(self.coupon_fixed, Decimal("200000"), Decimal("30000")), Decimal("10000"))
+
+    def test_coupon_discount_never_negative(self):
+        from .views.cart import calculate_coupon_discount
+        self.coupon_fixed.value = Decimal("999999")
+        result = calculate_coupon_discount(self.coupon_fixed, Decimal("100000"), Decimal("30000"))
+        self.assertGreaterEqual(result, Decimal("0"))
+
+
+class ContextProcessorTest(TestCase):
+
+    def test_wishlist_count_cached(self):
+        from types import SimpleNamespace
+        user = User.objects.create_user(username="cpuser", password="StrongPass123!")
+        from .context_processors import wishlist_count
+        class FakeSession(dict):
+            def set_expiry(self, value):
+                self["_expiry"] = value
+        request = SimpleNamespace(user=user, session=FakeSession())
+        first = wishlist_count(request)
+        second = wishlist_count(request)
+        self.assertEqual(first, second)
+        self.assertIn(f"_wishlist_count_{user.id}", request.session)
+
+    def test_cart_count_cached_returns_cached(self):
+        from types import SimpleNamespace
+        from .context_processors import cart_count_cached
+        request = SimpleNamespace(session={"cart": {"_cart_item_count": 9, "1:0": {"quantity": 1}}})
+        self.assertEqual(cart_count_cached(request), 9)
+
+    def test_cart_count_cached_empty_cart(self):
+        from types import SimpleNamespace
+        from .context_processors import cart_count_cached
+        request = SimpleNamespace(session={})
+        self.assertEqual(cart_count_cached(request), 0)
+
+
+class PaymentExtraBranchesTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="payextra", password="StrongPass123!")
+        self.client.login(username="payextra", password="StrongPass123!")
+
+    def _bank_order(self, **kw):
+        defaults = dict(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", total_amount=100000,
+            status="processing", is_paid=False,
+        )
+        defaults.update(kw)
+        return Order.objects.create(**defaults)
+
+    def test_order_success_unpaid_bank_redirects_waiting(self):
+        order = self._bank_order()
+        response = self.client.get(reverse("orders:order_success", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id}))
+
+    def test_order_success_paid_bank_renders_with_qr(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.get(reverse("orders:order_success", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["qr_url"])
+
+    def test_bank_waiting_cancelled_redirects_failed(self):
+        order = self._bank_order(status="cancelled")
+        response = self.client.get(reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_failed", kwargs={"order_id": order.id}))
+
+    def test_bank_confirm_cancelled_redirects_success(self):
+        order = self._bank_order(status="cancelled")
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": _payment_token(order.id)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+
+    def test_bank_confirm_already_paid(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.post(
+            reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id}),
+            {"token": _payment_token(order.id)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+
+    def test_bank_cancel_already_paid(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.post(reverse("orders:bank_payment_cancel", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": order.id}))
+
+    def _mobile_url(self, order):
+        return reverse("orders:bank_payment_mobile", kwargs={"token": _payment_token(order.id), "order_id": order.id})
+
+    def test_mobile_confirm_expired(self):
+        order = self._bank_order()
+        Order.objects.filter(id=order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        response = self.client.post(self._mobile_url(order), {"action": "confirm"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["expired"])
+
+    def test_mobile_confirm_cancelled(self):
+        order = self._bank_order(status="cancelled")
+        response = self.client.post(self._mobile_url(order), {"action": "confirm"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["cancelled"])
+
+    def test_mobile_confirm_already_paid(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.post(self._mobile_url(order), {"action": "confirm"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["just_paid"])
+
+    def test_mobile_cancel_already_paid(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.post(self._mobile_url(order), {"action": "cancel"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["paid"])
+
+    def test_mobile_cancel_expired(self):
+        order = self._bank_order()
+        Order.objects.filter(id=order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        response = self.client.post(self._mobile_url(order), {"action": "cancel"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["expired"])
+
+    def test_mobile_get_already_paid(self):
+        order = self._bank_order(is_paid=True)
+        response = self.client.get(self._mobile_url(order))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["paid"])
+
+    def test_mobile_get_cancelled(self):
+        order = self._bank_order(status="cancelled")
+        response = self.client.get(self._mobile_url(order))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["cancelled"])
+
+
+class OrderViewExtraBranchesTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="orderextra", password="StrongPass123!")
+        self.client.login(username="orderextra", password="StrongPass123!")
+
+    def test_order_review_expired_bank_redirects_failed(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="VCB", total_amount=100000, status="processing", is_paid=False,
+        )
+        Order.objects.filter(id=order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        response = self.client.get(reverse("orders:order_review", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_failed", kwargs={"order_id": order.id}))
+
+    def test_order_review_post_invalid_form_redirects(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="pending", is_paid=False,
+        )
+        response = self.client.post(
+            reverse("orders:order_review", kwargs={"order_id": order.id}),
+            {"customer_name": "T", "phone": "abc", "shipping_address": "HCM"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_review", kwargs={"order_id": order.id}))
+
+    def test_order_review_get_bank_builds_qr_and_defaults_bank(self):
+        order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="bank", bank_code="", total_amount=100000, status="processing", is_paid=False,
+        )
+        response = self.client.get(reverse("orders:order_review", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["qr_url"])
+        self.assertTrue(response.context["selected_bank_name"])
+
+    def test_my_orders_no_active_tracking(self):
+        Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="pending", is_paid=False,
+        )
+        response = self.client.get(reverse("orders:my_orders"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context["active_tracking_order"])

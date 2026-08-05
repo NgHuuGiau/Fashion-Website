@@ -3,7 +3,7 @@ from time import time
 
 from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden
 
 
 def get_client_ip(request):
@@ -68,6 +68,8 @@ class RateLimiter:
     def __call__(self, view):
         @wraps(view)
         def _wrapped(request, *args, **kwargs):
+            if request.method != "POST":
+                return view(request, *args, **kwargs)
             if not self.is_allowed(request):
                 return self.get_response(request)
             self._record_hit(request)
