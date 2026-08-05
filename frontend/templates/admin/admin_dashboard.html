@@ -341,37 +341,55 @@
           <div class="admin-variant-panel">
             <div class="section-head">
               <div>
-                <h2>Bảng biến thể màu và size</h2>
-                <p>Danh mục áo và quần nên nhập đầy đủ màu, size và tồn kho từng dòng.</p>
+                <h2>Biến thể màu × size</h2>
+                <p>Chọn màu (từng hàng) và size (cột S/M/L/XL), nhập tồn kho cho từng ô màu × size.</p>
               </div>
-              <button type="button" class="btn ghost small" id="add-variant-row">Thêm dòng</button>
+              <button type="button" class="btn ghost small" id="add-variant-color">+ Thêm màu</button>
             </div>
             <div class="table-wrap">
-              <table class="cart-table admin-variant-table">
+              <table class="cart-table admin-variant-table admin-variant-matrix">
                 <thead>
-                  <tr>
+                  <tr id="variant-matrix-head">
                     <th>Màu sắc</th>
-                    <th>Mã màu</th>
-                    <th>Size</th>
-                    <th>Tồn kho</th>
-                    <th>Hiển thị</th>
-                    <th>Xóa</th>
+                    <th class="variant-check">Hiển thị</th>
+                    {% for size in variant_matrix.sizes %}<th class="matrix-size-col">{{ size }}</th>{% endfor %}
+                    <th class="matrix-corner-end"></th>
                   </tr>
                 </thead>
-                <tbody id="variant-table-body">
-                  {% for row in product_form_variant_rows %}
-                  <tr class="variant-row">
-                    <td><input type="hidden" name="variant_row_key[]" value="{{ row.row_key }}"><input type="text" name="variant_color_name[]" value="{{ row.color_name }}" placeholder="Đen"></td>
-                    <td><input type="text" name="variant_color_code[]" value="{{ row.color_code }}" placeholder="#111111"></td>
-                    <td><input type="text" name="variant_size[]" value="{{ row.size }}" placeholder="M"></td>
-                    <td><input type="number" name="variant_stock[]" min="0" step="1" value="{{ row.stock }}" placeholder="0"></td>
-                    <td class="variant-check"><input type="checkbox" name="variant_is_active[]" value="{{ row.row_key }}" {% if row.is_active %}checked{% endif %}></td>
-                    <td><button type="button" class="btn danger small variant-remove">Xóa</button></td>
+                <tbody id="variant-matrix-body">
+                  {% for color in variant_matrix.colors %}
+                  <tr class="variant-color-row" data-color-index="{{ color.index }}">
+                    <td>
+                      <div class="matrix-color-inputs">
+                        <input type="text" name="matrix_color_name[]" value="{{ color.name }}" placeholder="Đen">
+                        <input type="color" name="matrix_color_code[]" value="{{ color.code }}" title="Mã màu">
+                      </div>
+                    </td>
+                    <td class="variant-check"><input type="checkbox" name="matrix_color_active[]" value="{{ color.index }}" {% if color.is_active %}checked{% endif %}></td>
+                    {% for cell in color.stocks %}
+                    <td class="matrix-size-cell" data-size="{{ cell.size }}"><input type="number" name="matrix_stock_{{ color.index }}_{{ cell.token }}" min="0" step="1" value="{{ cell.stock }}" placeholder="0"></td>
+                    {% endfor %}
+                    <td><button type="button" class="btn danger small variant-color-remove">Xóa</button></td>
                   </tr>
                   {% endfor %}
                 </tbody>
               </table>
             </div>
+            <div class="admin-variant-addsize">
+              <span class="addsize-label">Thêm size nhanh:</span>
+              <button type="button" class="btn ghost small add-size-quick" data-size="S">S</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="M">M</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="L">L</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="XL">XL</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="XXL">XXL</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="3XL">3XL</button>
+              <input type="text" id="variant-custom-size" placeholder="Size khác (VD: 36)" class="admin-input" style="width:150px">
+              <button type="button" class="btn ghost small" id="add-variant-custom-size">Thêm size</button>
+            </div>
+            <div id="variant-matrix-sizes" style="display:none">
+              {% for size in variant_matrix.sizes %}<input type="hidden" name="matrix_sizes" value="{{ size }}">{% endfor %}
+            </div>
+            <p class="help-text">Bỏ tick &quot;Hiển thị&quot; ở màu nào sẽ ẩn toàn bộ size của màu đó ở shop. Khi đã có biến thể, &quot;Tồn kho tổng&quot; sẽ tự cộng từ các ô.</p>
           </div>
 
           <div class="admin-actions">

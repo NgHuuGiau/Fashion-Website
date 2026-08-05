@@ -1,4 +1,5 @@
-﻿from datetime import timedelta
+﻿import re
+from datetime import timedelta
 
 from django import forms
 from django.contrib import messages
@@ -20,6 +21,9 @@ from .models import Coupon, Order
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
+
+DEFAULT_MATRIX_COLORS = [{"name": "Đen", "code": "#111111"}]
+DEFAULT_MATRIX_SIZES = ["S", "M", "L", "XL"]
 
 
 def _validate_uploaded_file(uploaded_file, errors, label):
@@ -61,6 +65,42 @@ def build_gallery_slot_rows(product=None):
     return slots
 
 
+def _size_token(size: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", (size or "").strip()) or "size"
+
+
+def _matrix_post_to_arrays(post_data):
+    sizes = [size.strip() for size in post_data.getlist("matrix_sizes") if size and size.strip()]
+    color_names = post_data.getlist("matrix_color_name[]")
+    color_codes = post_data.getlist("matrix_color_code[]")
+    active_indexes = {value.strip() for value in post_data.getlist("matrix_color_active[]") if value.strip()}
+
+    row_keys, names, codes, size_list, stocks, active_keys = [], [], [], [], [], []
+    for index, color_name in enumerate(color_names):
+        color_code = color_codes[index] if index < len(color_codes) else "#111111"
+        is_active = str(index) in active_indexes
+        for size in sizes:
+            token = _size_token(size)
+            stock_raw = post_data.get(f"matrix_stock_{index}_{token}", "").strip()
+            row_key = f"mat-{index}-{token}"
+            row_keys.append(row_key)
+            names.append(color_name.strip())
+            codes.append(color_code.strip())
+            size_list.append(size)
+            stocks.append(stock_raw if stock_raw else "0")
+            if is_active:
+                active_keys.append(row_key)
+
+    return {
+        "variant_row_key": row_keys,
+        "variant_color_name": names,
+        "variant_color_code": codes,
+        "variant_size": size_list,
+        "variant_stock": stocks,
+        "variant_is_active": active_keys,
+    }
+
+
 def build_admin_product_form_data(request=None):
     if request is None:
         return {
@@ -74,13 +114,26 @@ def build_admin_product_form_data(request=None):
             "gallery_count": 0,
             "available": True,
             "featured": False,
-            "variant_row_key": ["row-1"],
-            "variant_color_name": ["Đen"],
-            "variant_color_code": ["#111111"],
-            "variant_size": ["M"],
-            "variant_stock": ["0"],
-            "variant_is_active": ["row-1"],
+            "variant_row_key": [f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))],
+            "variant_color_name": [DEFAULT_MATRIX_COLORS[0]["name"]] * len(DEFAULT_MATRIX_SIZES),
+            "variant_color_code": [DEFAULT_MATRIX_COLORS[0]["code"]] * len(DEFAULT_MATRIX_SIZES),
+            "variant_size": list(DEFAULT_MATRIX_SIZES),
+            "variant_stock": ["0"] * len(DEFAULT_MATRIX_SIZES),
+            "variant_is_active": [f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))],
         }
+
+    variant_arrays = (
+        _matrix_post_to_arrays(request.POST)
+        if "matrix_sizes" in request.POST
+        else {
+            "variant_row_key": request.POST.getlist("variant_row_key[]"),
+            "variant_color_name": request.POST.getlist("variant_color_name[]"),
+            "variant_color_code": request.POST.getlist("variant_color_code[]"),
+            "variant_size": request.POST.getlist("variant_size[]"),
+            "variant_stock": request.POST.getlist("variant_stock[]"),
+            "variant_is_active": request.POST.getlist("variant_is_active[]"),
+        }
+    )
 
     return {
         "product_id": request.POST.get("product_id", "").strip(),
@@ -94,12 +147,7 @@ def build_admin_product_form_data(request=None):
         "remove_gallery_image_ids": request.POST.getlist("remove_gallery_image_ids"),
         "available": request.POST.get("available") == "on",
         "featured": request.POST.get("featured") == "on",
-        "variant_row_key": request.POST.getlist("variant_row_key[]"),
-        "variant_color_name": request.POST.getlist("variant_color_name[]"),
-        "variant_color_code": request.POST.getlist("variant_color_code[]"),
-        "variant_size": request.POST.getlist("variant_size[]"),
-        "variant_stock": request.POST.getlist("variant_stock[]"),
-        "variant_is_active": request.POST.getlist("variant_is_active[]"),
+        **variant_arrays,
     }
 
 
@@ -165,6 +213,46 @@ def build_variant_rows(form_data):
             }
         )
     return variant_rows
+
+
+def build_variant_matrix(form_data):
+    rows = build_variant_rows(form_data)
+
+    color_rows = []
+    color_index_by_key = {}
+    size_index_by_key = {}
+    sizes = []
+    cell_stock = {}
+
+    for row in rows:
+        color_name = row["color_name"].strip()
+        size = row["size"].strip().upper()
+        if not any([color_name, size, row["stock"]]):
+            continue
+        color_key = color_name.casefold()
+        if color_key not in color_index_by_key:
+            color_index_by_key[color_key] = len(color_rows)
+            color_rows.append(
+                {
+                    "index": len(color_rows),
+                    "name": color_name,
+                    "code": row["color_code"].strip() or "#111111",
+                    "is_active": row["is_active"],
+                }
+            )
+        if size and size not in size_index_by_key:
+            size_index_by_key[size] = len(sizes)
+            sizes.append(size)
+        if size:
+            cell_stock[(color_index_by_key[color_key], size_index_by_key[size])] = str(row["stock"])
+
+    for color in color_rows:
+        color["stocks"] = [
+            {"size": size, "token": _size_token(size), "stock": cell_stock.get((color["index"], index), "0")}
+            for index, size in enumerate(sizes)
+        ]
+
+    return {"colors": color_rows, "sizes": sizes}
 
 
 def build_admin_dashboard_context(form_data=None, form_errors=None, editing_product=None, order_status=None, order_q=None):
@@ -276,6 +364,7 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "recent_products": Product.objects.select_related("category").order_by("-created"),
         "product_form": effective_form_data,
         "product_form_variant_rows": build_variant_rows(effective_form_data),
+        "variant_matrix": build_variant_matrix(effective_form_data),
         "product_form_errors": form_errors or [],
         "editing_product": editing_product,
         "editing_product_gallery": (
@@ -292,6 +381,10 @@ def save_admin_product(request, product=None):
     if "category_id" in post_data:
         del post_data["category_id"]
     post_data.pop("slug", None)
+    if "matrix_sizes" in post_data:
+        matrix_arrays = _matrix_post_to_arrays(post_data)
+        for key, values in matrix_arrays.items():
+            post_data.setlist(key + "[]", values)
 
     form = ProductForm(post_data, request.FILES, instance=product)
     form.fields.pop("slug", None)
@@ -309,7 +402,7 @@ def save_admin_product(request, product=None):
     errors = []
 
     try:
-        variant_rows = ProductVariantFormSet.validate_variants(request.POST)
+        variant_rows = ProductVariantFormSet.validate_variants(post_data)
     except forms.ValidationError as e:
         errors.extend(e.messages)
         variant_rows = []

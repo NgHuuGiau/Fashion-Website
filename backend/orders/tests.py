@@ -633,6 +633,72 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(product.price, Decimal("650000"))
         self.assertEqual(product.variants.count(), 2)
 
+    def test_admin_dashboard_create_product_with_matrix_variants(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "category_id": str(self.category_ao.id),
+                "name": "Ao polo matrix",
+                "price": "350000",
+                "stock": "0",
+                "available": "on",
+                "matrix_sizes": ["S", "M", "L"],
+                "matrix_color_name[]": ["Den", "Trang"],
+                "matrix_color_code[]": ["#111111", "#ffffff"],
+                "matrix_color_active[]": ["0", "1"],
+                "matrix_stock_0_S": "2",
+                "matrix_stock_0_M": "3",
+                "matrix_stock_0_L": "5",
+                "matrix_stock_1_S": "1",
+                "matrix_stock_1_M": "0",
+                "matrix_stock_1_L": "4",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        product = Product.objects.get(name="Ao polo matrix")
+        self.assertEqual(product.variants.count(), 6)
+        self.assertEqual(product.stock, 15)
+        den_s = product.variants.get(color_name="Den", size="S")
+        self.assertTrue(den_s.is_active)
+        self.assertEqual(den_s.stock, 2)
+
+    def test_admin_dashboard_matrix_inactive_color_excluded_from_stock(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "category_id": str(self.category_ao.id),
+                "name": "Ao den tinh",
+                "price": "400000",
+                "stock": "0",
+                "available": "on",
+                "matrix_sizes": ["S", "M"],
+                "matrix_color_name[]": ["Den", "Do"],
+                "matrix_color_code[]": ["#111111", "#c1121f"],
+                "matrix_color_active[]": ["0"],
+                "matrix_stock_0_S": "3",
+                "matrix_stock_0_M": "4",
+                "matrix_stock_1_S": "9",
+                "matrix_stock_1_M": "9",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        product = Product.objects.get(name="Ao den tinh")
+        self.assertEqual(product.stock, 7)
+        self.assertTrue(product.variants.get(color_name="Den", size="S").is_active)
+        self.assertFalse(product.variants.get(color_name="Do", size="S").is_active)
+
+    def test_admin_dashboard_matrix_default_sizes_render(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="matrix_sizes"')
+        self.assertContains(response, 'name="matrix_stock_0_S"')
+        self.assertContains(response, 'name="matrix_stock_0_XL"')
+
 
     def test_admin_dashboard_apparel_requires_variants(self):
         self.client.login(username="staff", password="StrongPass123!")
