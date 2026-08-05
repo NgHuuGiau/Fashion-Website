@@ -513,3 +513,246 @@ class ProductModelTest(TestCase):
             available=True,
         )
         self.assertTrue(product_quan.requires_variants)
+
+
+class ChatServiceCoverageTest(TestCase):
+
+    def test_find_support_reply_human_support(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("cần nhân viên tư vấn")
+        self.assertIn("hỗ trợ ngay", result)
+
+    def test_find_support_reply_style_recommend(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("tư vấn cách phối đồ")
+        self.assertIn("phối", result)
+
+    def test_find_support_reply_stock_question(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("còn hàng không?")
+        self.assertIn("tồn kho", result)
+
+    def test_detect_topic_order(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("theo doi don cua toi"), "order")
+
+    def test_detect_topic_return(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("muon doi tra hang"), "return")
+
+    def test_detect_topic_style(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("cach phoi do dep"), "style")
+
+    def test_detect_topic_stock(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("con hang khong"), "stock")
+
+    def test_detect_topic_human(self):
+        from .services.chat_service import detect_topic
+        self.assertEqual(detect_topic("can nhan vien tu van"), "human")
+
+    def test_faq_ship_reply(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("van chuyen toan quoc khong")
+        self.assertIn("free ship toan quoc", result)
+
+    def test_faq_payment_reply(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("thanh toan sao")
+        self.assertIn("chuyen khoan ngan hang", result)
+
+    def test_faq_track_reply(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("theo doi don the nao")
+        self.assertIn("Don hang", result)
+
+    def test_faq_return_reply(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("can doi tra the nao")
+        self.assertIn("lien he shop", result)
+
+    def test_faq_size_reply_via_keyword(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("chat lieu the nao")
+        self.assertIn("chon mau va size", result)
+
+    def test_build_size_support_reply_weight_only(self):
+        from .services.chat_service import build_size_support_reply
+        result = build_size_support_reply("tôi nặng 60kg")
+        self.assertIn("chiều cao", result)
+
+    def test_find_support_reply_with_db_faq_scoring(self):
+        from .models import SupportFAQ
+        SupportFAQ.objects.create(
+            question="Hàng có bảo hành không?",
+            keywords="bao hanh,loi ky thuat",
+            answer="Có bảo hành 30 ngày.",
+            priority=1,
+            is_active=True,
+        )
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("san pham co bao hanh khong")
+        self.assertEqual(result, "Có bảo hành 30 ngày.")
+
+    def test_product_matches_keyword(self):
+        from .services.chat_service import product_matches_keyword
+        product = Product.objects.create(
+            category=Category.objects.create(name="Áo", slug="ao2"),
+            name="Áo hoodie",
+            slug="ao-hoodie-2",
+            price=100000,
+            stock=5,
+            available=True,
+        )
+        self.assertTrue(product_matches_keyword(product, "hoodie"))
+
+    def test_extract_height_1m7_single_suffix(self):
+        from .services.chat_service import extract_height_cm
+        self.assertEqual(extract_height_cm("tôi cao 1m7"), 170)
+
+    def test_extract_height_1m72_double_suffix(self):
+        from .services.chat_service import extract_height_cm
+        self.assertEqual(extract_height_cm("tôi cao 1m72"), 172)
+
+    def test_extract_weight_kg_invalid_range(self):
+        from .services.chat_service import extract_weight_kg
+        self.assertIsNone(extract_weight_kg("nặng 200kg"))
+
+    def test_build_style_reply(self):
+        from .services.chat_service import build_style_reply
+        self.assertIn("phối", build_style_reply())
+
+    def test_build_stock_reply(self):
+        from .services.chat_service import build_stock_reply
+        self.assertIn("tồn kho", build_stock_reply())
+
+
+class ProductModelMethodTest(TestCase):
+
+    def setUp(self):
+        self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
+        self.product = Product.objects.create(
+            category=self.pk, name="Mũ placeholder", slug="mu-placeholder",
+            price=100000, stock=5, available=True,
+        )
+
+    def test_category_str(self):
+        self.assertEqual(str(self.pk), "Phụ kiện")
+
+    def test_product_image_url_used(self):
+        self.product.image_url = "https://example.com/cap.jpg"
+        self.assertEqual(self.product.get_image(), "https://example.com/cap.jpg")
+
+    def test_product_image_placeholder_without_image(self):
+        image = self.product.get_image()
+        self.assertTrue(image.startswith("data:image/svg+xml"))
+
+    def test_build_placeholder_contains_labels(self):
+        placeholder = self.product._build_placeholder_image()
+        self.assertTrue(placeholder.startswith("data:image/svg+xml"))
+        self.assertIn("PLACEHOLDER", placeholder)
+
+    def test_generated_detail_images_without_assets(self):
+        self.assertEqual(self.product._generated_detail_images(), [])
+
+    def test_build_generated_asset_url_missing(self):
+        self.assertEqual(self.product._build_generated_asset_url("cover.svg"), "")
+
+    def test_total_image_count_with_url(self):
+        self.product.image_url = "https://example.com/cap.jpg"
+        self.assertEqual(self.product.total_image_count(), 1)
+
+    def test_total_image_count_without_image(self):
+        self.assertEqual(self.product.total_image_count(), 0)
+
+    def test_get_gallery_falls_back_to_placeholder(self):
+        images = self.product.get_gallery_images()
+        self.assertGreaterEqual(len(images), 1)
+        self.assertTrue(images[0]["url"].startswith("data:image/svg+xml"))
+
+    def test_get_detail_gallery_falls_back_to_primary(self):
+        images = self.product.get_detail_gallery_images()
+        self.assertEqual(len(images), 1)
+        self.assertTrue(images[0]["is_primary"])
+
+    def test_append_unique_image(self):
+        images = []
+        seen = set()
+        Product._append_unique_image(images, seen, "a.jpg", True)
+        Product._append_unique_image(images, seen, "a.jpg", False)
+        Product._append_unique_image(images, seen, "", False)
+        self.assertEqual(len(images), 1)
+
+    def test_product_image_str(self):
+        from .models import ProductImage
+        image = ProductImage.objects.create(product=self.product, sort_order=1)
+        self.assertIn("Mũ placeholder", str(image))
+
+    def test_wishlist_item_str(self):
+        from django.contrib.auth.models import User
+        from .models import WishlistItem
+        user = User.objects.create_user(username="wishstr", password="StrongPass123!")
+        item = WishlistItem.objects.create(user=user, product=self.product)
+        self.assertIn("Mũ placeholder", str(item))
+
+    def test_support_faq_str(self):
+        from .models import SupportFAQ
+        faq = SupportFAQ.objects.create(question="Q test", answer="A", priority=1)
+        self.assertEqual(str(faq), "Q test")
+
+    def test_product_variant_str(self):
+        from .models import ProductVariant
+        variant = ProductVariant.objects.create(
+            product=self.product, color_name="Den", color_code="#111111", size="M", stock=2, is_active=True,
+        )
+        self.assertIn("Den", str(variant))
+
+
+class ProductGeneratedAssetTest(TestCase):
+
+    SLUG = "asset-generated-unique"
+
+    def setUp(self):
+        from django.conf import settings
+        self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
+        self.product = Product.objects.create(
+            category=self.pk, name="Asset", slug=self.SLUG,
+            price=1, stock=1, available=True,
+        )
+        self.gen_dir = settings.MEDIA_ROOT / "products" / "generated" / self.SLUG
+        self.gen_dir.mkdir(parents=True, exist_ok=True)
+        (self.gen_dir / "cover.svg").write_text("<svg/>")
+        (self.gen_dir / "detail-1.svg").write_text("<svg/>")
+        (self.gen_dir / "detail-2.svg").write_text("<svg/>")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.gen_dir, ignore_errors=True)
+
+    def test_get_image_returns_generated_cover(self):
+        from django.conf import settings
+        url = self.product.get_image()
+        self.assertEqual(url, f"{settings.MEDIA_URL}products/generated/{self.SLUG}/cover.svg")
+
+    def test_build_generated_asset_url_exists(self):
+        from django.conf import settings
+        url = self.product._build_generated_asset_url("detail-1.svg")
+        self.assertTrue(url.startswith(settings.MEDIA_URL))
+
+    def test_generated_detail_images_present(self):
+        self.assertEqual(len(self.product._generated_detail_images()), 2)
+
+    def test_get_gallery_includes_generated_detail(self):
+        images = self.product.get_gallery_images()
+        self.assertGreaterEqual(len(images), 1)
+        self.assertTrue(images[0]["url"].startswith("/media/"))
+
+    def test_get_detail_gallery_includes_generated_detail(self):
+        images = self.product.get_detail_gallery_images()
+        self.assertGreaterEqual(len(images), 2)
+
+    def test_build_generated_asset_url_missing_slug(self):
+        self.product.slug = ""
+        self.product.save(update_fields=["slug"])
+        self.assertEqual(self.product._build_generated_asset_url("cover.svg"), "")

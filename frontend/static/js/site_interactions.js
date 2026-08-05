@@ -389,6 +389,11 @@
         var modalId = trigger.dataset.modal;
         var modal = document.getElementById(modalId);
         if (!modal) return;
+        // A trigger inside an accordion <summary> must not toggle the accordion.
+        if (trigger.closest('summary')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         var action = trigger.dataset.modalAction || 'open';
         if (action === 'open') {
             modal.classList.add('is-open');

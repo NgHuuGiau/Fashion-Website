@@ -108,7 +108,7 @@
 
         <div class="detail-accordions">
             <details class="detail-accordion" open>
-                <summary>Mô tả và size <button type="button" class="size-guide-btn" data-modal="size-guide-modal" data-modal-action="open">Bảng size</button></summary>
+                <summary><span>Mô tả và size</span> <button type="button" class="size-guide-btn" data-modal="size-guide-modal" data-modal-action="open">Bảng size</button></summary>
                 <div>
                     <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
                     {% if product.category.slug == "quan" %}
