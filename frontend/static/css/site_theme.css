@@ -3581,8 +3581,8 @@ button {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.55rem 0.75rem;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
     background: var(--bg-soft);
@@ -3605,26 +3605,9 @@ button {
     background: var(--surface-strong);
 }
 
-.bank-picker-badge {
-    flex: 0 0 auto;
-    min-width: 46px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 0.5rem;
-    border-radius: 7px;
-    background: #7d6b5c;
-    color: #fff;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    line-height: 1;
-}
-
 .bank-picker-text {
     flex: 1 1 auto;
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -3650,26 +3633,26 @@ button {
 .bank-picker-menu {
     position: absolute;
     z-index: 60;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
-    max-height: 320px;
+    max-height: 360px;
     overflow-y: auto;
-    padding: 0.4rem;
+    padding: 0.5rem;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
     background: var(--surface-strong);
-    box-shadow: 0 14px 34px rgba(30, 22, 16, 0.16);
+    box-shadow: 0 18px 44px rgba(30, 22, 16, 0.18);
 }
 
 .bank-picker-option {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.8rem;
     width: 100%;
-    padding: 0.5rem 0.6rem;
+    padding: 0.65rem 0.8rem;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     color: var(--text);
     font: inherit;
@@ -3687,15 +3670,9 @@ button {
     background: rgba(201, 111, 46, 0.16);
 }
 
-.bank-picker-option .bank-picker-badge {
-    height: 26px;
-    min-width: 42px;
-    font-size: 0.62rem;
-}
-
 .bank-picker-option-name {
     flex: 1 1 auto;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     font-weight: 600;
 }
 

@@ -64,7 +64,6 @@
                             <button type="button" class="bank-picker-trigger" id="bank-picker-trigger" hidden
                                     aria-haspopup="listbox" aria-expanded="false" aria-controls="bank-picker-menu"
                                     aria-labelledby="bank-picker-text">
-                                <span class="bank-picker-badge" id="bank-picker-badge">NH</span>
                                 <span class="bank-picker-text is-placeholder" id="bank-picker-text">-- Chọn ngân hàng --</span>
                                 <span class="bank-picker-caret" aria-hidden="true">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -158,6 +157,14 @@
         SSB: "#00539f", EIB: "#002d62", STB: "#e31837", DAB: "#d3222a", PGB: "#005bac",
         BVB: "#00a8e0", ABB: "#002f6c", KLB: "#00529a"
     };
+    var bankDisplayNames = {
+        VCB: "Vietcombank", TCB: "Techcombank", MB: "MBBank", ACB: "ACB Bank", BIDV: "BIDV",
+        VPB: "VPBank", VIB: "VIB", HDB: "HDBank", OCB: "OCB", MSB: "MSB",
+        TPB: "TPBank", SCB: "SCB", SHB: "SHB", LPB: "LPBank", NAB: "Nam A Bank",
+        SSB: "SeABank", EIB: "Eximbank", STB: "Sacombank", DAB: "DongABank", PGB: "PG Bank",
+        BVB: "BaoVietBank", ABB: "ABBANK", KLB: "KienLongBank"
+    };
+    function displayName(code) { return bankDisplayNames[code] || code; }
 
     function updateDisplay() {
         var isBank = paymentSelect.value === "bank";
@@ -178,9 +185,8 @@
     var picker = document.getElementById("bank-picker");
     var trigger = document.getElementById("bank-picker-trigger");
     var menu = document.getElementById("bank-picker-menu");
-    var badge = document.getElementById("bank-picker-badge");
     var text = document.getElementById("bank-picker-text");
-    var PICKER_ACTIVE = picker && trigger && menu && badge && text && banksData;
+    var PICKER_ACTIVE = picker && trigger && menu && text && banksData;
 
     function bankColor(code) { return bankColors[code] || "#7d6b5c"; }
 
@@ -188,13 +194,9 @@
         var opt = bankSelect.querySelector('option[value="' + code + '"]');
         bankSelect.value = code;
         if (code && opt) {
-            badge.style.background = bankColor(code);
-            badge.textContent = code;
-            text.textContent = opt.text;
+            text.textContent = displayName(code);
             text.classList.remove("is-placeholder");
         } else {
-            badge.style.background = "";
-            badge.textContent = "NH";
             text.textContent = "-- Chọn ngân hàng --";
             text.classList.add("is-placeholder");
         }
@@ -219,10 +221,9 @@
             btn.setAttribute("role", "option");
             btn.dataset.code = opt.value;
             btn.innerHTML =
-                '<span class="bank-picker-badge" style="background:' + bankColor(opt.value) + '">' + opt.value + '</span>' +
                 '<span class="bank-picker-option-name"></span>' +
                 '<span class="bank-picker-option-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
-            btn.querySelector(".bank-picker-option-name").textContent = opt.text;
+            btn.querySelector(".bank-picker-option-name").textContent = displayName(opt.value);
             btn.addEventListener("click", function () {
                 selectBank(this.dataset.code, true);
                 closeMenu();
@@ -272,11 +273,6 @@
         trigger.hidden = false;
         buildBankMenu();
         selectBank(bankSelect.value, true);
-        if (!bankSelect.value) {
-            badge.style.background = "";
-            badge.textContent = "NH";
-            text.classList.add("is-placeholder");
-        }
 
         trigger.addEventListener("click", function () { menu.hidden ? openMenu() : closeMenu(); });
         trigger.addEventListener("keydown", function (e) {
