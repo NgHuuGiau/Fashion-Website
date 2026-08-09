@@ -281,6 +281,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "shop_bank_account": SHOP_BANK_ACCOUNT,
                                     "shop_account_name": SHOP_ACCOUNT_NAME,
                                     "demo_qr_url": build_vietqr_url(bank_code or "VCB", subtotal + shipping_fee, "DH-TAM"),
+                                    "banks": BANKS,
                                 },
                             )
                         selected_coupon.used_count += 1
@@ -337,6 +338,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                 transaction.set_rollback(True)
                                 messages.error(request, f"Sản phẩm {product.name} không đủ hàng.")
                                 return redirect("orders:cart_detail")
+                            Product.objects.filter(id=product.id).update(
+                                stock=Greatest(F("stock") - quantity, 0),
+                                updated=timezone.now(),
+                            )
 
                         OrderItem.objects.create(
                             order=order,
@@ -353,7 +358,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         variant = item.get("variant")
                         if variant:
                             product.stock = ProductVariant.objects.filter(product=product, is_active=True).aggregate(total=Sum("stock"))["total"] or 0
-                        product.save(update_fields=["stock", "updated"])
+                            product.save(update_fields=["stock", "updated"])
 
                 clear_cart(request)
                 log_activity(
@@ -399,5 +404,6 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "shop_account_name": SHOP_ACCOUNT_NAME,
             "demo_qr_url": build_vietqr_url(demo_bank_code, total, "DH-TAM"),
             "freeship_threshold": FREESHIP_THRESHOLD,
+            "banks": BANKS,
         },
     )

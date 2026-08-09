@@ -58,11 +58,23 @@
                 </div>
 
                 <div class="payment-box panel-soft" id="bank-code-wrap">
-                    <label class="field">
+                    <div class="field">
                         <span>{{ form.bank_code.label }}</span>
-                        {{ form.bank_code }}
-                        {{ form.bank_code.errors }}
-                    </label>
+                        <div class="bank-picker" id="bank-picker">
+                            <button type="button" class="bank-picker-trigger" id="bank-picker-trigger" hidden
+                                    aria-haspopup="listbox" aria-expanded="false" aria-controls="bank-picker-menu"
+                                    aria-labelledby="bank-picker-text">
+                                <span class="bank-picker-badge" id="bank-picker-badge">NH</span>
+                                <span class="bank-picker-text is-placeholder" id="bank-picker-text">-- Chọn ngân hàng --</span>
+                                <span class="bank-picker-caret" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                </span>
+                            </button>
+                            <div class="bank-picker-menu" id="bank-picker-menu" role="listbox" aria-label="Chọn ngân hàng" hidden></div>
+                            {{ form.bank_code }}
+                            {{ form.bank_code.errors }}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="payment-box panel-soft payment-qr-layout" id="bank-transfer-box">
@@ -121,6 +133,7 @@
     </div>
 </section>
 
+{{ banks|json_script:"banks-data" }}
 <script>
 (function () {
     var paymentSelect = document.getElementById("id_payment_method");
@@ -136,13 +149,14 @@
     var accountNo = "{{ shop_bank_account }}";
     var accountName = "{{ shop_account_name|urlencode }}";
     var amount = "{{ total|floatformat:0 }}";
-    var bankBins = {
-        VCB: { name: "Vietcombank", bin: "970436" },
-        TCB: { name: "Techcombank", bin: "970407" },
-        MB: { name: "MBBank", bin: "970422" },
-        ACB: { name: "ACB", bin: "970416" },
-        BIDV: { name: "BIDV", bin: "970418" },
-        VPB: { name: "VPBank", bin: "970432" }
+    var banksData = document.getElementById("banks-data");
+    var banks = banksData ? JSON.parse(banksData.textContent) : {};
+    var bankColors = {
+        VCB: "#0060a9", TCB: "#008b50", MB: "#e4002b", ACB: "#00a650", BIDV: "#0b8344",
+        VPB: "#e62e4d", VIB: "#f7941d", HDB: "#00558c", OCB: "#00a651", MSB: "#0057a0",
+        TPB: "#001489", SCB: "#0d47a1", SHB: "#ed1c24", LPB: "#e5002d", NAB: "#0f3c7d",
+        SSB: "#00539f", EIB: "#002d62", STB: "#e31837", DAB: "#d3222a", PGB: "#005bac",
+        BVB: "#00a8e0", ABB: "#002f6c", KLB: "#00529a"
     };
 
     function updateDisplay() {
@@ -153,11 +167,150 @@
         if (!isBank) return;
 
         var bankCode = bankSelect.value || "VCB";
-        var bank = bankBins[bankCode] || bankBins.VCB;
+        var bank = banks[bankCode] || { name: "Vietcombank", bin: "970436" };
         var note = "DH-TAM";
         bankNameLabel.textContent = bank.name;
         transferNoteLabel.textContent = note;
         bankQrImage.src = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
+    }
+
+    /* ---- custom bank picker ---- */
+    var picker = document.getElementById("bank-picker");
+    var trigger = document.getElementById("bank-picker-trigger");
+    var menu = document.getElementById("bank-picker-menu");
+    var badge = document.getElementById("bank-picker-badge");
+    var text = document.getElementById("bank-picker-text");
+    var PICKER_ACTIVE = picker && trigger && menu && badge && text && banksData;
+
+    function bankColor(code) { return bankColors[code] || "#7d6b5c"; }
+
+    function selectBank(code, updateMenu) {
+        var opt = bankSelect.querySelector('option[value="' + code + '"]');
+        bankSelect.value = code;
+        if (code && opt) {
+            badge.style.background = bankColor(code);
+            badge.textContent = code;
+            text.textContent = opt.text;
+            text.classList.remove("is-placeholder");
+        } else {
+            badge.style.background = "";
+            badge.textContent = "NH";
+            text.textContent = "-- Chọn ngân hàng --";
+            text.classList.add("is-placeholder");
+        }
+        if (updateMenu) {
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            for (var i = 0; i < opts.length; i++) {
+                opts[i].classList.toggle("is-selected", opts[i].dataset.code === code);
+            }
+        }
+        bankSelect.dispatchEvent(new Event("change"));
+    }
+
+    function buildBankMenu() {
+        menu.innerHTML = "";
+        var opts = bankSelect.querySelectorAll("option");
+        for (var i = 0; i < opts.length; i++) {
+            var opt = opts[i];
+            if (!opt.value) continue;
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "bank-picker-option";
+            btn.setAttribute("role", "option");
+            btn.dataset.code = opt.value;
+            btn.innerHTML =
+                '<span class="bank-picker-badge" style="background:' + bankColor(opt.value) + '">' + opt.value + '</span>' +
+                '<span class="bank-picker-option-name"></span>' +
+                '<span class="bank-picker-option-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
+            btn.querySelector(".bank-picker-option-name").textContent = opt.text;
+            btn.addEventListener("click", function () {
+                selectBank(this.dataset.code, true);
+                closeMenu();
+            });
+            menu.appendChild(btn);
+        }
+    }
+
+    function highlightOption(idx) {
+        var opts = menu.querySelectorAll(".bank-picker-option");
+        for (var i = 0; i < opts.length; i++) {
+            opts[i].classList.toggle("is-highlight", i === idx);
+        }
+        if (idx >= 0 && opts[idx]) opts[idx].scrollIntoView({ block: "nearest" });
+        return idx;
+    }
+
+    function openMenu() {
+        if (menu.hidden) {
+            menu.hidden = false;
+            picker.classList.add("is-open");
+            trigger.setAttribute("aria-expanded", "true");
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            var current = bankSelect.value;
+            for (var i = 0; i < opts.length; i++) {
+                if (opts[i].dataset.code === current) {
+                    highlightOption(i);
+                    opts[i].focus();
+                    return;
+                }
+            }
+            highlightOption(0);
+            opts[0].focus();
+        }
+    }
+
+    function closeMenu() {
+        if (!menu.hidden) {
+            menu.hidden = true;
+            picker.classList.remove("is-open");
+            trigger.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    if (PICKER_ACTIVE) {
+        picker.classList.add("is-js");
+        trigger.hidden = false;
+        buildBankMenu();
+        selectBank(bankSelect.value, true);
+        if (!bankSelect.value) {
+            badge.style.background = "";
+            badge.textContent = "NH";
+            text.classList.add("is-placeholder");
+        }
+
+        trigger.addEventListener("click", function () { menu.hidden ? openMenu() : closeMenu(); });
+        trigger.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                openMenu();
+            }
+        });
+        menu.addEventListener("keydown", function (e) {
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            var idx = Array.prototype.indexOf.call(opts, document.activeElement);
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                var next = idx < opts.length - 1 ? idx + 1 : 0;
+                highlightOption(next);
+                opts[next].focus();
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                var prev = idx > 0 ? idx - 1 : opts.length - 1;
+                highlightOption(prev);
+                opts[prev].focus();
+            } else if (e.key === "Enter") {
+                if (idx >= 0) { e.preventDefault(); selectBank(opts[idx].dataset.code, true); closeMenu(); }
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                closeMenu();
+                trigger.focus();
+            } else if (e.key === "Tab") {
+                closeMenu();
+            }
+        });
+        document.addEventListener("click", function (e) {
+            if (!picker.contains(e.target)) closeMenu();
+        });
     }
 
     paymentSelect.addEventListener("change", updateDisplay);
