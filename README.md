@@ -28,7 +28,7 @@ File `.env` ở thư mục gốc hỗ trợ:
 | `SECRET_KEY` | tự sinh | Khóa bí mật Django |
 | `DEBUG` | `True` | Chế độ debug |
 | `ALLOWED_HOSTS` | `127.0.0.1,localhost` | Danh sách host cho phép |
-| `DB_ENGINE` | `mssql` | Database engine (`mssql` hoặc `sqlite3`) |
+| `DB_ENGINE` | `mssql` | Database engine (chỉ hỗ trợ `mssql` = SQL Server) |
 | `DB_HOST` | `.` | Host SQL Server (`.` = shared memory) |
 | `DB_PORT` | *(rỗng)* | Port (để trống nếu dùng shared memory) |
 | `DB_NAME` | `HUUGIAU_Fashion` | Tên database |
@@ -171,6 +171,7 @@ Database `HUUGIAU_Fashion` đã có sẵn 18 tài khoản (được `seed_all.py
 ## Ghi chú
 
 - Dùng SQL Server làm database chính (`DB_ENGINE=mssql`)
+- **Phân quyền đồng bộ 2 chiều:** đổi quyền trên web (Django admin) là SQL Server `[Users].role` đổi theo (signal tự động); đổi `[Users].role` trong SSMS là web đổi theo — chạy `python manage.py install_role_sync` một lần để cài trigger (chi tiết `docs/database-setup.md`)
 - **Cách chạy nhanh nhất:** `.\scripts\start.bat` — chạy là tự mở web `https://localhost:8000/`
 - Server dev chạy HTTPS bằng cert trong `backend/certs` — đã cài CA tin cậy nên Chrome/Edge hết cảnh báo (xem `docs/https-cert.md`)
 - Lỗi `403 CSRF — Origin checking failed` thường do thiếu `CSRF_TRUSTED_ORIGINS` — đã cấu hình sẵn trong `core/settings.py`

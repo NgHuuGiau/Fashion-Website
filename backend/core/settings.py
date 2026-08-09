@@ -102,28 +102,38 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite")
+DB_ENGINE = os.getenv("DB_ENGINE", "mssql").lower()
 
-if DB_ENGINE == "mssql":
-    DATABASES = {
-        "default": {
-            "ENGINE": "mssql",
-            "NAME": os.getenv("DB_NAME", "HUUGIAU_Fashion"),
-            "HOST": os.getenv("DB_HOST", "."),
-            "OPTIONS": {
-                "driver": "ODBC Driver 18 for SQL Server",
-                "trusted_connection": "yes",
-                "extra_params": "TrustServerCertificate=yes;Encrypt=yes",
-            },
-        }
+# SQL Server is the only supported database. Do not silently fall back.
+if DB_ENGINE not in {"mssql", "sqlserver"}:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "Only SQL Server is supported (set DB_ENGINE=mssql)."
+    )
+
+_db_options = {
+    "driver": os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
+    "trusted_connection": env_bool("DB_TRUSTED_CONNECTION", True),
+    "extra_params": os.getenv(
+        "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=yes"
+    ),
+}
+
+DATABASES = {
+    "default": {
+        "ENGINE": "mssql",
+        "NAME": os.getenv("DB_NAME", "HUUGIAU_Fashion"),
+        "HOST": os.getenv("DB_HOST", "."),
+        "PORT": os.getenv("DB_PORT", ""),
+        "OPTIONS": _db_options,
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "database" / "db.sqlite3",
-        }
-    }
+}
+
+if os.getenv("DB_USER"):
+    # SQL auth (e.g. CI). Leave unset for Windows/trusted auth locally.
+    DATABASES["default"]["USER"] = os.getenv("DB_USER")
+    DATABASES["default"]["PASSWORD"] = os.getenv("DB_PASSWORD", "")
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"

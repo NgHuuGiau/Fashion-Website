@@ -68,18 +68,37 @@ python manage.py import_legacy
 | `[FAQs]` | `products_supportfaq` | Thiếu keywords, created, updated (auto) |
 | `[Activities]` | `users_useractivity` | event→event_type |
 
-## 6. Chuyển đổi giữa SQL Server và SQLite
+## 6. Database engine
 
-File `.env` hỗ trợ switch database engine:
+Hệ thống chỉ hỗ trợ **SQL Server** (`DB_ENGINE=mssql`). Không còn hỗ trợ SQLite.
 
 ```
-DB_ENGINE=mssql    # SQL Server
-DB_ENGINE=sqlite3  # SQLite (fallback)
+DB_ENGINE=mssql
 ```
 
-Khi đổi engine, cần chạy lại `migrate` và `import_legacy`.
+Sau khi đổi cấu hình, cần chạy lại `migrate` và `import_legacy`.
 
-## 7. Tài khoản mặc định
+## 7. Đồng bộ phân quyền (role 0/1/2) giữa SQL Server và web
+
+Quyền của user nằm ở bảng `auth_user` (`is_staff`/`is_superuser`) trong khi bảng legacy `[Users]` lưu cột `role` (0 = admin, 1 = nhân viên, 2 = khách hàng). Hai chiều đồng bộ:
+
+**1) Web → SQL Server:** tự động. Mỗi lần lưu user (Django admin, `createsuperuser`, ...), Django ghi `role` tương ứng vào bảng `[Users]` (signal `users.signals`).
+
+**2) SQL Server → Web:** cài trigger trên bảng `[Users]` để sửa `role` trực tiếp trong SSMS là `auth_user` đổi theo ngay. Chạy một lần:
+
+```
+python manage.py install_role_sync
+```
+
+Nếu không muốn dùng trigger, chạy thủ công khi cần:
+
+```
+python manage.py sync_roles
+```
+
+> Lưu ý: signal chỉ cập nhật user **đã có dòng trong bảng `[Users]`** (thường là user đã import). User đăng ký mới hoàn toàn trên web sẽ không tự thêm vào `[Users]`.
+
+## 8. Tài khoản mặc định
 
 Database có sẵn 18 tài khoản (hash pbkdf2 — không đọc được từ SQL, dùng đúng password bên dưới):
 
@@ -92,9 +111,9 @@ Database có sẵn 18 tài khoản (hash pbkdf2 — không đọc được từ 
 
 > Login chấp nhận username, email hoặc SĐT (lấy từ `users_userprofile`). Chặn sau 10 lần sai/5 phút; restart server để reset.
 
-## 8. Lưu ý
+## 9. Lưu ý
 
 - SQL Server dùng Windows Authentication (Trusted_Connection=yes)
 - Host `.` (dot) = shared memory/named pipes, không cần bật TCP/IP
 - Password trong `[Users]` đã là hash Django pbkdf2 hợp lệ
-- Các legacy tables có thể xoá sau khi import thành công
+- Các legacy tables có thể xoá sau khi import thành công (trừ khi muốn giữ đồng bộ role)

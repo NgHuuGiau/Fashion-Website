@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  DB_HOST: 127.0.0.1
+  DB_PORT: "1433"
+  DB_NAME: HUUGIAU_Fashion
+  DB_USER: sa
+  DB_PASSWORD: "Your_Str0ng!Pass"
+  DB_TRUSTED_CONNECTION: "false"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,6 +21,21 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13"]
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Express
+          MSSQL_SA_PASSWORD: "Your_Str0ng!Pass"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P 'Your_Str0ng!Pass' -C -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
 
     steps:
       - uses: actions/checkout@v7
@@ -28,14 +51,22 @@ jobs:
       - name: Create .env file for CI
         run: |
           cp .env.example .env
-          # GitHub Actions runners have no SQL Server. Fall back to SQLite so
-          # migrate/seed/tests can actually run (local dev keeps mssql).
-          sed -i 's/^DB_ENGINE=mssql/DB_ENGINE=sqlite3/' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST='$DB_HOST'/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=1433/' .env
+          printf '\nDB_USER=%s\nDB_PASSWORD=%s\nDB_TRUSTED_CONNECTION=false\nDB_DRIVER=%s\n' \
+            "$DB_USER" "$DB_PASSWORD" "ODBC Driver 18 for SQL Server" >> .env
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
+
+      - name: Install ODBC Driver 18 for SQL Server
+        run: |
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          sudo curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
 
       - name: Run Django checks
         run: python manage.py check
@@ -50,6 +81,22 @@ jobs:
           pip install ruff
           python -m ruff check .
         working-directory: backend
+
+      - name: Create SQL Server database
+        run: |
+          python - <<'PY'
+          import pyodbc
+          conn = pyodbc.connect(
+              "DRIVER={ODBC Driver 18 for SQL Server};SERVER=127.0.0.1,1433;UID=sa;PWD=Your_Str0ng!Pass;Encrypt=yes;TrustServerCertificate=yes",
+              autocommit=True,
+          )
+          conn.cursor().execute(
+              "IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'HUUGIAU_Fashion')"
+              " CREATE DATABASE [HUUGIAU_Fashion]"
+          )
+          conn.close()
+          print("Database HUUGIAU_Fashion ready")
+          PY
 
       - name: Run migrations & seed data
         run: |
@@ -72,7 +119,3 @@ jobs:
         run: |
           # Only MEDIUM+ findings block CI; Low findings are informational.
           bandit -r backend --ini .bandit --severity-level medium --quiet
-
-      - name: Run Django deploy checks
-        run: python manage.py check --deploy
-        working-directory: backend

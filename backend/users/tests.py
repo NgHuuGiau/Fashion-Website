@@ -626,3 +626,30 @@ class MiddlewareVisitorTest(TestCase):
         visitor.refresh_from_db()
         self.assertTrue(visitor.is_authenticated)
         self.assertEqual(visitor.user_id, user.id)
+
+
+class RoleSyncTest(TestCase):
+
+    def test_role_from_user_mapping(self):
+        from .role_sync import role_from_user
+
+        admin = User.objects.create_user(
+            username="role_admin", password="StrongPass123!", is_superuser=True, is_staff=True
+        )
+        staff = User.objects.create_user(
+            username="role_staff", password="StrongPass123!", is_staff=True
+        )
+        customer = User.objects.create_user(
+            username="role_customer", password="StrongPass123!"
+        )
+        self.assertEqual(role_from_user(admin), 0)
+        self.assertEqual(role_from_user(staff), 1)
+        self.assertEqual(role_from_user(customer), 2)
+
+    def test_sync_does_not_need_legacy_table(self):
+        from .role_sync import write_role_to_legacy
+
+        user = User.objects.create_user(username="no_legacy", password="StrongPass123!")
+        write_role_to_legacy(user)
+        self.assertTrue(User.objects.filter(pk=user.pk).exists())
+

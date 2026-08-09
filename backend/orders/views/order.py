@@ -3,9 +3,9 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Case, IntegerField, When
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from core.ratelimit import rate_limit
@@ -96,7 +96,7 @@ def estimate_delivery_days(shipping_address):
 
 def build_delivery_eta(order):
     eta_days = estimate_delivery_days(order.shipping_address)
-    base_time = order.updated_at if order.status == "shipping" else order.created_at
+    base_time = order.created_at
     eta_date = base_time + timedelta(days=eta_days)
     return {
         "eta_days": eta_days,
@@ -105,7 +105,28 @@ def build_delivery_eta(order):
     }
 
 
+def auto_advance_order_status(order):
+    now = timezone.now()
+    if order.status in ("cancelled", "delivered"):
+        return order
+    if order.status == "pending" and now > order.created_at + timedelta(hours=24):
+        order.status = "shipping"
+        order.save(update_fields=["status", "updated_at"])
+    elif order.status == "processing" and order.is_paid and now > order.created_at + timedelta(hours=24):
+        order.status = "shipping"
+        order.save(update_fields=["status", "updated_at"])
+    if order.status == "shipping":
+        eta = build_delivery_eta(order)
+        if now > eta["eta_date"]:
+            order.status = "delivered"
+            if not order.is_paid:
+                order.is_paid = True
+            order.save(update_fields=["status", "is_paid", "updated_at"])
+    return order
+
+
 def decorate_order_tracking(order):
+    auto_advance_order_status(order)
     eta = build_delivery_eta(order)
     order.eta_days = eta["eta_days"]
     order.eta_date = eta["eta_date"]
@@ -177,18 +198,7 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
 def my_orders(request: HttpRequest) -> HttpResponse:
     qs = Order.objects.all() if request.user.is_staff else Order.objects.filter(user=request.user)
     orders = list(
-        qs.prefetch_related("items__product", "items__variant")
-        .order_by(
-            Case(
-                When(status="shipping", then=0),
-                When(status="processing", then=1),
-                When(status="pending", then=2),
-                When(status="delivered", then=3),
-                default=4,
-                output_field=IntegerField(),
-            ),
-            "-created_at",
-        )
+        qs.prefetch_related("items__product", "items__variant").order_by("-created_at")
     )
     for order in orders:
         expire_bank_order_if_needed(order)
