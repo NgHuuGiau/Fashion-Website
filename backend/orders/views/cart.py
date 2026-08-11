@@ -28,7 +28,7 @@ from ..constants import (
     STANDARD_SHIPPING_FEE,
 )
 from ..forms import CheckoutForm
-from ..models import Coupon, Order, OrderItem
+from ..models import Coupon, CouponRedemption, Order, OrderItem
 
 
 def build_vietqr_url(bank_code, amount, transfer_note):
@@ -70,7 +70,7 @@ def calculate_coupon_discount(coupon, subtotal, shipping_fee):
     return max(Decimal("0"), min(discount, max_allowed_discount))
 
 
-def validate_coupon(coupon_code, subtotal):
+def validate_coupon(coupon_code, subtotal, user=None):
     if not coupon_code:
         return None, ""
 
@@ -83,6 +83,9 @@ def validate_coupon(coupon_code, subtotal):
 
     if subtotal < coupon.min_order_amount:
         return None, f"Đơn tối thiểu để dùng mã là {int(coupon.min_order_amount)} VND."
+
+    if not coupon.is_usable_by_user(user):
+        return None, "Bạn đã dùng hết lượt của mã giảm giá này."
 
     return coupon, ""
 
@@ -100,6 +103,39 @@ def restore_order_stock(order):
                     stock=F("stock") + item.quantity,
                     updated=timezone.now()
                 )
+
+
+def reserve_order_stock(order):
+    with transaction.atomic():
+        for item in order.items.select_related("product", "variant"):
+            if item.variant:
+                ProductVariant.objects.filter(id=item.variant.id).update(stock=Greatest(F("stock") - item.quantity, 0))
+                total_stock = item.product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
+                item.product.stock = total_stock
+                item.product.save(update_fields=["stock", "updated"])
+            else:
+                Product.objects.filter(id=item.product.id).update(
+                    stock=Greatest(F("stock") - item.quantity, 0),
+                    updated=timezone.now()
+                )
+
+
+def apply_order_status_change(order, new_status, is_paid=False):
+    """Cập nhật trạng thái đơn và đồng bộ tồn kho.
+
+    - Chuyển sang trạng thái 'cancelled': trả lại hàng về kho.
+    - Bỏ huỷ (từ 'cancelled' sang trạng thái khác): trừ lại hàng khỏi kho.
+    """
+    old_status = order.status
+    with transaction.atomic():
+        if old_status != "cancelled" and new_status == "cancelled":
+            restore_order_stock(order)
+        elif old_status == "cancelled" and new_status != "cancelled":
+            reserve_order_stock(order)
+        order.status = new_status
+        order.is_paid = bool(is_paid)
+        order.save(update_fields=["status", "is_paid", "updated_at"])
+    return order
 
 
 def is_bank_order_expired(order):
@@ -255,7 +291,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
             bank_code = form.cleaned_data.get("bank_code", "") if payment_method == "bank" else ""
             coupon_code = form.cleaned_data.get("coupon_code", "")
 
-            selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal)
+            selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal, user=request.user)
             if coupon_error:
                 form.add_error("coupon_code", coupon_error)
             else:
@@ -265,7 +301,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 with transaction.atomic():
                     if selected_coupon:
                         selected_coupon = Coupon.objects.select_for_update().get(id=selected_coupon.id)
-                        if not selected_coupon.is_usable_now():
+                        if not selected_coupon.is_usable_now() or not selected_coupon.is_usable_by_user(request.user):
                             form.add_error("coupon_code", "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.")
                             transaction.set_rollback(True)
                             return render(
@@ -305,6 +341,13 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         is_paid=False,
                         status="processing" if payment_method == "bank" else "pending",
                     )
+
+                    if selected_coupon:
+                        CouponRedemption.objects.create(
+                            coupon=selected_coupon,
+                            user=request.user,
+                            order=order,
+                        )
 
                     variant_ids = [item["variant"].id for item in items if item.get("variant")]
                     plain_product_ids = [item["product"].id for item in items if not item.get("variant")]

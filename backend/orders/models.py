@@ -26,6 +26,7 @@ class Coupon(models.Model):
     starts_at = models.DateTimeField(null=True, blank=True, db_index=True)
     ends_at = models.DateTimeField(null=True, blank=True, db_index=True)
     usage_limit = models.PositiveIntegerField(null=True, blank=True)
+    max_uses_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name="Giới hạn mỗi người")
     used_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -49,6 +50,30 @@ class Coupon(models.Model):
         if self.usage_limit is not None and self.used_count >= self.usage_limit:
             return False
         return True
+
+
+    def is_usable_by_user(self, user):
+        if not user or not user.is_authenticated:
+            return True
+        if self.max_uses_per_user is None:
+            return True
+        used = self.redemptions.filter(user=user).count()
+        return used < self.max_uses_per_user
+
+
+class CouponRedemption(models.Model):
+    coupon = models.ForeignKey(Coupon, related_name="redemptions", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="coupon_redemptions", on_delete=models.CASCADE)
+    order = models.ForeignKey("orders.Order", null=True, blank=True, on_delete=models.SET_NULL, related_name="coupon_redemptions")
+    used_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Lượt dùng mã giảm giá"
+        verbose_name_plural = "Lượt dùng mã giảm giá"
+        ordering = ["-used_at"]
+
+    def __str__(self):
+        return f"{self.coupon.code} - {self.user}"
 
 
 

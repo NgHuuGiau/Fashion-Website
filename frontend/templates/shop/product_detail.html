@@ -2,6 +2,12 @@
 {% load shop_format %}
 
 {% block title %}{{ product.name|repair_text }}{% endblock %}
+{% block meta_description %}{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text|truncatechars:160 }}{% endblock %}
+{% block og_title %}{{ product.name|repair_text }} — HUUGIAU Atelier{% endblock %}
+{% block og_description %}{{ product.description|default:""|repair_text|truncatechars:160 }} Giá {{ product.price|vnd }}đ.{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}">{% endblock %}
+{% block og_image %}{% if product.image and product.image.url %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}">{% elif product.image_url %}<meta property="og:image" content="{{ product.image_url }}">{% endif %}{% endblock %}
 {% block body_class %}product-page{% endblock %}
 
 {% block content %}
@@ -147,6 +153,82 @@
             </details>
         </div>
     </aside>
+</section>
+
+<section class="section-shell" id="danh-gia">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đánh giá</p>
+            <h2>Khách hàng nói gì</h2>
+        </div>
+    </div>
+
+    {% if can_review %}
+    <div class="review-form panel">
+        <h3>{% if purchased %}<i class="fa-solid fa-circle-check" style="color:var(--success,#16a34a)"></i> Bạn đã mua sản phẩm này{% else %}Đánh giá sản phẩm{% endif %}</h3>
+        <form method="post" action="{% url 'products:review_submit' product.id %}" class="review-form-grid">
+            {% csrf_token %}
+            <div class="review-stars" data-star-rating>
+                <span class="review-stars-label">Số sao:</span>
+                {% for value in "12345" %}
+                <button type="button" class="star" data-star-value="{{ forloop.counter }}" aria-label="{{ forloop.counter }} sao"><i class="fa-regular fa-star"></i></button>
+                {% endfor %}
+                <input type="hidden" name="rating" id="review-rating-input" value="" required>
+            </div>
+            <label class="admin-field review-comment">
+                <span>Nội dung (tùy chọn)</span>
+                <textarea name="comment" rows="3" maxlength="1000" placeholder="Chất lượng, form, màu sắc thực tế..."></textarea>
+            </label>
+            <button type="submit" class="btn review-submit">Gửi đánh giá</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if reviews %}
+    <div class="review-summary">
+        <div class="review-summary-score">
+            <strong>{{ rating_avg|floatformat:1 }}</strong>
+            <div class="review-summary-stars" data-static-stars="{{ rating_avg|floatformat:1 }}">
+                {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+            </div>
+            <span>{{ rating_count }} đánh giá</span>
+        </div>
+        <div class="review-summary-bars">
+            {% for item in review_buckets %}
+            <div class="review-bar-row">
+                <span>{{ item.rating }} sao</span>
+                <div class="review-bar-track">
+                    <div class="review-bar-fill" style="width: {% if rating_count %}{% widthratio item.total rating_count 100 %}{% else %}0{% endif %}%;"></div>
+                </div>
+                <small>{{ item.total }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="review-list">
+        {% for review in reviews %}
+        <article class="review-item panel">
+            <div class="review-item-head">
+                <div>
+                    <strong>{{ review.user.username }}</strong>
+                    {% if review.verified_purchase %}<span class="review-verified">Đã mua hàng</span>{% endif %}
+                </div>
+                <time>{{ review.created|date:"d/m/Y" }}</time>
+            </div>
+            <div class="review-item-stars" data-static-stars="{{ review.rating }}">
+                {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+            </div>
+            {% if review.comment %}<p>{{ review.comment|linebreaksbr }}</p>{% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="review-empty">
+        <i class="fa-regular fa-star"></i>
+        <p>Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+    </div>
+    {% endif %}
 </section>
 
 {% if related_products %}

@@ -1,6 +1,6 @@
 ﻿from django.contrib import admin
 
-from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
+from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
 
 
 @admin.register(Category)
@@ -52,3 +52,13 @@ class SupportFAQAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     list_editable = ("priority", "is_active")
     search_fields = ("question", "keywords", "answer")
+
+
+@admin.register(Review)
+
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ("product", "user", "rating", "verified_purchase", "is_published", "created")
+    list_filter = ("rating", "is_published", "verified_purchase", "created")
+    list_editable = ("is_published", "rating")
+    search_fields = ("product__name", "user__username", "comment")
+    raw_id_fields = ("product", "user")

@@ -19,6 +19,8 @@ from .views import (
     order_lookup,
     order_review,
     order_success,
+    print_invoice,
+    reorder_order,
     user_cancel_order,
 )
 
@@ -43,5 +45,7 @@ urlpatterns = [
     path("don-hang-cua-toi/", my_orders, name="my_orders"),
     path("tra-cuu-don/", order_lookup, name="order_lookup"),
     path("don-hang/<int:order_id>/huy/", user_cancel_order, name="user_cancel_order"),
+    path("don-hang/<int:order_id>/mua-lai/", reorder_order, name="reorder_order"),
     path("admin-dashboard/xuat-don/", admin_export_orders, name="admin_export_orders"),
+    path("admin-dashboard/in-hoa-don/<int:order_id>/", print_invoice, name="admin_print_invoice"),
 ]

@@ -51,7 +51,10 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-    def _media_file_exists(self, relative_name):
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("products:product_detail", kwargs={"pk": self.id, "slug": self.slug})
         if not relative_name:
             return False
         return (Path(settings.MEDIA_ROOT) / relative_name).exists()
@@ -204,6 +207,31 @@ class WishlistItem(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.product.name}"
+
+
+class Review(models.Model):
+    RATING_CHOICES = [(i, f"{i} sao") for i in range(1, 6)]
+
+    product = models.ForeignKey(Product, related_name="reviews", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE)
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Số sao", db_index=True)
+    comment = models.TextField(blank=True, verbose_name="Nội dung đánh giá")
+    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    verified_purchase = models.BooleanField(default=False, verbose_name="Đã mua hàng", db_index=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Đánh giá sản phẩm"
+        verbose_name_plural = "Đánh giá sản phẩm"
+        ordering = ["-created"]
+        unique_together = ("product", "user")
+        indexes = [
+            models.Index(fields=["product", "is_published", "-created"]),
+        ]
+
+    def __str__(self):
+        return f"{self.product.name} - {self.rating}★ - {self.user}"
 
 
 class SupportFAQ(models.Model):

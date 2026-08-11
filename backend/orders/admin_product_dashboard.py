@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -14,10 +14,21 @@ from django.utils.text import slugify
 
 from products.constants import APPAREL_CATEGORY_SLUGS
 from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, ProductImage, ProductVariant
+from users.permissions import (
+    can_delete_product,
+    can_manage_coupons,
+    can_manage_inventory,
+    can_manage_orders,
+    can_manage_products,
+    can_manage_users,
+    is_admin,
+    is_staff_member,
+)
 
 from .admin_forms import CouponForm, OrderStatusForm, ProductForm, ProductVariantFormSet
 from .cart import safe_int
-from .models import Coupon, Order
+from .models import Coupon, Order, OrderItem
+from .views.cart import apply_order_status_change
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -255,7 +266,16 @@ def build_variant_matrix(form_data):
     return {"colors": color_rows, "sizes": sizes}
 
 
-def build_admin_dashboard_context(form_data=None, form_errors=None, editing_product=None, order_status=None, order_q=None):
+def build_admin_dashboard_context(
+    form_data=None,
+    form_errors=None,
+    editing_product=None,
+    order_status=None,
+    order_q=None,
+    current_user=None,
+    inventory_status=None,
+    inventory_q=None,
+):
     effective_form_data = form_data or build_admin_product_form_data()
     all_orders = Order.objects.all().prefetch_related("items__product")
     orders_qs = all_orders
@@ -337,6 +357,145 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
     UserModel = get_user_model()
     today_new_accounts = UserModel.objects.filter(date_joined__date=today).count()
 
+    daily_orders = (
+        all_orders.annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(orders_count=Count("id"))
+        .order_by("-day")[:REVENUE_DAYS_LIMIT]
+    )
+    orders_by_day = {item["day"]: int(item["orders_count"] or 0) for item in daily_orders}
+    orders_max = max([orders_by_day.get(day, 0) for day in chart_days] or [0]) or 1
+    orders_chart = [
+        {
+            "day": day,
+            "label": weekday_labels[day.weekday()],
+            "date_label": day.strftime("%d/%m"),
+            "total": orders_by_day.get(day, 0),
+            "height": max(8, int((orders_by_day.get(day, 0) / orders_max) * 100)) if orders_by_day.get(day, 0) else 8,
+        }
+        for day in chart_days
+    ]
+
+    top_products = [
+        {
+            "name": item["product__name"],
+            "quantity": int(item["quantity"] or 0),
+            "revenue": int(item["revenue"] or 0),
+        }
+        for item in (
+            OrderItem.objects.filter(order__status="delivered")
+            .annotate(subtotal=F("quantity") * F("price"))
+            .values("product__name")
+            .annotate(quantity=Sum("quantity"), revenue=Sum("subtotal"))
+            .order_by("-quantity")[:5]
+        )
+    ]
+
+    category_revenue = [
+        {
+            "name": item["product__category__name"] or "Chưa phân loại",
+            "revenue": int(item["revenue"] or 0),
+        }
+        for item in (
+            OrderItem.objects.filter(order__status="delivered")
+            .annotate(subtotal=F("quantity") * F("price"))
+            .values("product__category__name")
+            .annotate(revenue=Sum("subtotal"))
+            .order_by("-revenue")[:6]
+        )
+    ]
+    category_max = max([item["revenue"] for item in category_revenue] or [0]) or 1
+    for item in category_revenue:
+        item["height"] = max(8, int((item["revenue"] / category_max) * 100)) if item["revenue"] else 8
+
+    top_max = max([item["quantity"] for item in top_products] or [0]) or 1
+    for item in top_products:
+        item["height"] = max(8, int((item["quantity"] / top_max) * 100)) if item["quantity"] else 8
+
+    status_chart = [
+        {
+            "key": "pending",
+            "label": "Chờ xử lý",
+            "total": status_counts["pending"],
+        },
+        {
+            "key": "processing",
+            "label": "Đang xử lý",
+            "total": status_counts["processing"],
+        },
+        {
+            "key": "shipping",
+            "label": "Đang giao",
+            "total": status_counts["shipping"],
+        },
+        {
+            "key": "delivered",
+            "label": "Hoàn thành",
+            "total": status_counts["delivered"],
+        },
+        {
+            "key": "cancelled",
+            "label": "Đã hủy",
+            "total": status_counts["cancelled"],
+        },
+    ]
+    status_max = max([item["total"] for item in status_chart] or [0]) or 1
+    for item in status_chart:
+        item["height"] = max(8, int((item["total"] / status_max) * 100)) if item["total"] else 8
+
+    status_color_map = {
+        "pending": "#d97706",
+        "processing": "#0ea5e9",
+        "shipping": "#7c3aed",
+        "delivered": "#16a34a",
+        "cancelled": "#dc2626",
+    }
+    status_total = status_counts["total"] or 1
+    running_offset = 25.0
+    for item in status_chart:
+        item["color"] = status_color_map[item["key"]]
+        item["pct"] = round((item["total"] / status_total) * 100, 1)
+        item["offset"] = running_offset
+        running_offset = running_offset - item["pct"]
+
+    inventory_product_qs = Product.objects.select_related("category")
+    if inventory_status == "out":
+        inventory_product_qs = inventory_product_qs.filter(stock=0)
+    elif inventory_status == "low":
+        inventory_product_qs = inventory_product_qs.filter(available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT)
+    elif inventory_status == "hidden":
+        inventory_product_qs = inventory_product_qs.filter(available=False, stock__gte=1)
+    if inventory_q:
+        inventory_product_qs = inventory_product_qs.filter(
+            Q(name__icontains=inventory_q) | Q(category__name__icontains=inventory_q)
+        )
+    inventory_products = list(inventory_product_qs.prefetch_related("variants").order_by("stock", "name"))
+
+    inventory_totals = Product.objects.aggregate(
+        total_units=Sum("stock"),
+        stock_value=Sum(F("stock") * F("price")),
+    )
+    inventory_stats = {
+        "total_products": Product.objects.count(),
+        "total_units": inventory_totals["total_units"] or 0,
+        "stock_value": int(inventory_totals["stock_value"] or 0),
+        "out_of_stock": Product.objects.filter(stock=0).count(),
+        "low_stock": Product.objects.filter(available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT).count(),
+        "hidden_products": Product.objects.filter(available=False, stock__gte=1).count(),
+    }
+
+    current_user = current_user or UserModel()
+    permissions = {
+        "is_admin": is_admin(current_user),
+        "is_staff_member": is_staff_member(current_user),
+        "can_manage_orders": can_manage_orders(current_user),
+        "can_manage_inventory": can_manage_inventory(current_user),
+        "can_manage_products": can_manage_products(current_user),
+        "can_delete_product": can_delete_product(current_user),
+        "can_manage_coupons": can_manage_coupons(current_user),
+        "can_manage_users": can_manage_users(current_user),
+    }
+
     return {
         "total_orders": status_counts["total"],
         "pending_orders": status_counts["pending"],
@@ -348,6 +507,10 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
         "month_revenue": month_revenue,
         "daily_revenue": daily_revenue,
         "revenue_chart": revenue_chart,
+        "orders_chart": orders_chart,
+        "top_products": top_products,
+        "category_revenue": category_revenue,
+        "status_chart": status_chart,
         "revenue_current_total": current_total,
         "revenue_previous_total": previous_total,
         "revenue_growth_pct": growth_pct,
@@ -371,6 +534,14 @@ def build_admin_dashboard_context(form_data=None, form_errors=None, editing_prod
             editing_product.gallery_images.all()[:MAX_PRODUCT_GALLERY_IMAGES] if editing_product else []
         ),
         "editing_product_gallery_slots": build_gallery_slot_rows(editing_product),
+        "inventory_stats": inventory_stats,
+        "inventory_products": inventory_products,
+        "inventory_status": inventory_status or "",
+        "inventory_q": inventory_q or "",
+        "low_stock_limit": LOW_STOCK_LIMIT,
+        "permissions": permissions,
+        "manage_users": UserModel.objects.all().order_by("-is_superuser", "-is_staff", "username"),
+        "staff_count": UserModel.objects.filter(is_staff=True).count(),
     }
 
 
@@ -573,17 +744,22 @@ def mark_product_out_of_stock(product):
 
 @login_required
 def admin_dashboard(request):
-    if not request.user.is_staff:
+    if not is_staff_member(request.user):
         messages.error(request, "Bạn không có quyền truy cập trang này.")
         return redirect("products:product_list")
 
     order_status = request.GET.get("order_status", "").strip() or None
     order_q = request.GET.get("order_q", "").strip() or None
+    inventory_status = request.GET.get("inventory_status", "").strip()
+    inventory_q = request.GET.get("inventory_q", "").strip()
 
     if request.method == "POST":
         action = request.POST.get("action", "save_product").strip()
 
         if action == "update_order_status":
+            if not can_manage_orders(request.user):
+                messages.error(request, "Bạn không có quyền cập nhật đơn hàng.")
+                return redirect("orders:admin_dashboard")
             order_id = request.POST.get("order_id")
             status_post = request.POST.copy()
             status_post["status"] = status_post.get("new_status", "")
@@ -591,16 +767,41 @@ def admin_dashboard(request):
             order_status_form = OrderStatusForm(status_post)
             if order_status_form.is_valid():
                 order = get_object_or_404(Order, id=order_id)
-                order.status = order_status_form.cleaned_data["status"]
-                order.is_paid = order_status_form.cleaned_data.get("is_paid", False)
-                order.save(update_fields=["status", "is_paid", "updated_at"])
+                apply_order_status_change(
+                    order,
+                    order_status_form.cleaned_data["status"],
+                    order_status_form.cleaned_data.get("is_paid", False),
+                )
                 messages.success(request, f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(order.status)}'.")
             else:
                 for err in order_status_form.errors.get("__all__", order_status_form.errors.get("status", [])):
                     messages.error(request, err)
             return redirect("orders:admin_dashboard")
 
+        if action == "refund_order":
+            if not can_manage_orders(request.user):
+                messages.error(request, "Bạn không có quyền xử lý đơn hàng.")
+                return redirect("orders:admin_dashboard")
+            order = get_object_or_404(Order, id=request.POST.get("order_id"))
+            if order.status == "cancelled":
+                messages.error(request, f"Đơn #{order.id} đã được hủy/hoàn tiền trước đó.")
+                return redirect("orders:admin_dashboard")
+            was_paid = order.is_paid
+            amount = int(order.total_amount)
+            apply_order_status_change(order, "cancelled", is_paid=False)
+            refund_note = f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
+            order.note = f"{order.note}\n{refund_note}".strip() if order.note else refund_note
+            order.save(update_fields=["note", "updated_at"])
+            if was_paid:
+                messages.success(request, f"Đã hoàn tiền {amount:,}đ cho đơn #{order.id}.")
+            else:
+                messages.success(request, f"Đã hủy đơn #{order.id} và trả hàng về kho.")
+            return redirect("orders:admin_dashboard")
+
         if action == "save_coupon":
+            if not can_manage_coupons(request.user):
+                messages.error(request, "Chỉ quản trị viên được quản lý mã giảm giá.")
+                return redirect("orders:admin_dashboard")
             coupon_form = CouponForm(request.POST)
             if coupon_form.is_valid():
                 coupon_id = request.POST.get("coupon_id", "").strip()
@@ -623,13 +824,104 @@ def admin_dashboard(request):
             return redirect("orders:admin_dashboard")
 
         if action == "delete_coupon":
+            if not can_manage_coupons(request.user):
+                messages.error(request, "Chỉ quản trị viên được quản lý mã giảm giá.")
+                return redirect("orders:admin_dashboard")
             coupon = get_object_or_404(Coupon, id=request.POST.get("coupon_id"))
             code = coupon.code
             coupon.delete()
             messages.success(request, f"Đã xóa mã '{code}'.")
             return redirect("orders:admin_dashboard")
 
+        if action == "create_user":
+            if not can_manage_users(request.user):
+                messages.error(request, "Chỉ quản trị viên được tạo tài khoản.")
+                return redirect("orders:admin_dashboard")
+            username = request.POST.get("username", "").strip()
+            password = request.POST.get("password", "")
+            email = request.POST.get("email", "").strip()
+            new_role = request.POST.get("role", "").strip()
+            if new_role not in ("admin", "staff", "user"):
+                messages.error(request, "Vai trò không hợp lệ.")
+                return redirect("orders:admin_dashboard")
+            if not username:
+                messages.error(request, "Tên đăng nhập không được để trống.")
+                return redirect("orders:admin_dashboard")
+            if len(password) < 8:
+                messages.error(request, "Mật khẩu phải có ít nhất 8 ký tự.")
+                return redirect("orders:admin_dashboard")
+            UserModel = get_user_model()
+            if UserModel.objects.filter(username=username).exists():
+                messages.error(request, f"Tên đăng nhập '{username}' đã tồn tại.")
+                return redirect("orders:admin_dashboard")
+            new_user = UserModel.objects.create_user(username=username, password=password, email=email)
+            if new_role == "admin":
+                new_user.is_staff = True
+                new_user.is_superuser = True
+            elif new_role == "staff":
+                new_user.is_staff = True
+            new_user.save(update_fields=["is_staff", "is_superuser"])
+            role_labels = {"admin": "quản trị viên", "staff": "nhân viên", "user": "khách hàng"}
+            messages.success(request, f"Đã tạo tài khoản '{username}' ({role_labels[new_role]}).")
+            return redirect("orders:admin_dashboard")
+
+        if action == "delete_user":
+            if not can_manage_users(request.user):
+                messages.error(request, "Chỉ quản trị viên được xóa tài khoản.")
+                return redirect("orders:admin_dashboard")
+            UserModel = get_user_model()
+            target = get_object_or_404(UserModel, id=request.POST.get("user_id"))
+            if target.id == request.user.id:
+                messages.error(request, "Không thể xóa tài khoản của chính bạn.")
+                return redirect("orders:admin_dashboard")
+            if target.is_superuser:
+                remaining_admins = UserModel.objects.filter(is_superuser=True).exclude(id=target.id).count()
+                if remaining_admins == 0:
+                    messages.error(request, "Không thể xóa quản trị viên cuối cùng.")
+                    return redirect("orders:admin_dashboard")
+            username = target.username
+            target.delete()
+            messages.success(request, f"Đã xóa tài khoản '{username}'.")
+            return redirect("orders:admin_dashboard")
+
+        if action == "set_user_role":
+            if not can_manage_users(request.user):
+                messages.error(request, "Chỉ quản trị viên được phân quyền tài khoản.")
+                return redirect("orders:admin_dashboard")
+            target = get_object_or_404(get_user_model(), id=request.POST.get("user_id"))
+            target_role = request.POST.get("role", "").strip()
+            if target_role not in ("admin", "staff", "user"):
+                messages.error(request, "Vai trò không hợp lệ.")
+                return redirect("orders:admin_dashboard")
+
+            if target_role != "admin":
+                remaining_admins = get_user_model().objects.filter(is_superuser=True).exclude(id=target.id).count()
+                if target.is_superuser and remaining_admins == 0:
+                    messages.error(request, "Không thể gỡ quyền quản trị viên cuối cùng.")
+                    return redirect("orders:admin_dashboard")
+
+            if target_role == "admin":
+                target.is_staff = True
+                target.is_superuser = True
+            elif target_role == "staff":
+                target.is_staff = True
+                target.is_superuser = False
+            else:
+                target.is_staff = False
+                target.is_superuser = False
+            target.save(update_fields=["is_staff", "is_superuser"])
+            labels = {
+                "admin": "quản trị viên",
+                "staff": "nhân viên",
+                "user": "khách hàng",
+            }
+            messages.success(request, f"Đã đặt vai trò '{labels[target_role]}' cho '{target.username}'.")
+            return redirect("orders:admin_dashboard")
+
         if action == "bulk_toggle_available":
+            if not can_manage_products(request.user):
+                messages.error(request, "Bạn không có quyền quản lý sản phẩm.")
+                return redirect("orders:admin_dashboard")
             product_ids = request.POST.get("product_ids", "")
             make_available = request.POST.get("make_available") == "1"
             ids = [pid for pid in product_ids.split(",") if pid.strip().isdigit()]
@@ -640,6 +932,9 @@ def admin_dashboard(request):
             return redirect("orders:admin_dashboard")
 
         if action == "delete_product":
+            if not can_delete_product(request.user):
+                messages.error(request, "Chỉ quản trị viên được xóa sản phẩm.")
+                return redirect("orders:admin_dashboard")
             product = get_object_or_404(Product, id=request.POST.get("product_id"))
             product_name = product.name
             product.delete()
@@ -647,6 +942,9 @@ def admin_dashboard(request):
             return redirect("orders:admin_dashboard")
 
         if action == "mark_out_of_stock":
+            if not can_manage_products(request.user):
+                messages.error(request, "Bạn không có quyền quản lý sản phẩm.")
+                return redirect("orders:admin_dashboard")
             product = get_object_or_404(Product, id=request.POST.get("product_id"))
             mark_product_out_of_stock(product)
             messages.success(request, f"Đã đánh dấu '{product.name}' là hết hàng.")
@@ -662,7 +960,16 @@ def admin_dashboard(request):
         return render(
             request,
             "admin/admin_dashboard.html",
-            build_admin_dashboard_context(form_data=form_data, form_errors=errors, editing_product=editing_product, order_status=order_status or None, order_q=order_q or None),
+            build_admin_dashboard_context(
+                form_data=form_data,
+                form_errors=errors,
+                editing_product=editing_product,
+                order_status=order_status or None,
+                order_q=order_q or None,
+                current_user=request.user,
+                inventory_status=inventory_status,
+                inventory_q=inventory_q,
+            ),
         )
 
     editing_product = None
@@ -675,5 +982,13 @@ def admin_dashboard(request):
     return render(
         request,
         "admin/admin_dashboard.html",
-        build_admin_dashboard_context(form_data=form_data, editing_product=editing_product, order_status=order_status, order_q=order_q),
+        build_admin_dashboard_context(
+            form_data=form_data,
+            editing_product=editing_product,
+            order_status=order_status,
+            order_q=order_q,
+            current_user=request.user,
+            inventory_status=inventory_status,
+            inventory_q=inventory_q,
+        ),
     )

@@ -653,3 +653,79 @@ class RoleSyncTest(TestCase):
         write_role_to_legacy(user)
         self.assertTrue(User.objects.filter(pk=user.pk).exists())
 
+
+class PermissionsTest(TestCase):
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="perm_admin", password="StrongPass123!", is_superuser=True, is_staff=True
+        )
+        self.staff = User.objects.create_user(
+            username="perm_staff", password="StrongPass123!", is_staff=True
+        )
+        self.customer = User.objects.create_user(
+            username="perm_customer", password="StrongPass123!"
+        )
+
+    def test_role_of_mapping(self):
+        from .permissions import role_of, ROLE_ADMIN, ROLE_STAFF, ROLE_USER
+
+        self.assertEqual(role_of(self.admin), ROLE_ADMIN)
+        self.assertEqual(role_of(self.staff), ROLE_STAFF)
+        self.assertEqual(role_of(self.customer), ROLE_USER)
+
+    def test_admin_has_full_access(self):
+        from .permissions import (
+            can_delete_product,
+            can_manage_coupons,
+            can_manage_inventory,
+            can_manage_orders,
+            can_manage_products,
+            can_manage_users,
+            is_admin,
+            is_staff_member,
+        )
+
+        self.assertTrue(is_admin(self.admin))
+        self.assertTrue(is_staff_member(self.admin))
+        self.assertTrue(can_manage_orders(self.admin))
+        self.assertTrue(can_manage_inventory(self.admin))
+        self.assertTrue(can_manage_products(self.admin))
+        self.assertTrue(can_delete_product(self.admin))
+        self.assertTrue(can_manage_coupons(self.admin))
+        self.assertTrue(can_manage_users(self.admin))
+
+    def test_staff_restricted_access(self):
+        from .permissions import (
+            can_delete_product,
+            can_manage_coupons,
+            can_manage_inventory,
+            can_manage_orders,
+            can_manage_products,
+            can_manage_users,
+            is_admin,
+            is_staff_member,
+        )
+
+        self.assertFalse(is_admin(self.staff))
+        self.assertTrue(is_staff_member(self.staff))
+        self.assertTrue(can_manage_orders(self.staff))
+        self.assertTrue(can_manage_inventory(self.staff))
+        self.assertTrue(can_manage_products(self.staff))
+        self.assertFalse(can_delete_product(self.staff))
+        self.assertFalse(can_manage_coupons(self.staff))
+        self.assertFalse(can_manage_users(self.staff))
+
+    def test_customer_has_no_access(self):
+        from .permissions import (
+            can_manage_inventory,
+            can_manage_orders,
+            is_admin,
+            is_staff_member,
+        )
+
+        self.assertFalse(is_admin(self.customer))
+        self.assertFalse(is_staff_member(self.customer))
+        self.assertFalse(can_manage_orders(self.customer))
+        self.assertFalse(can_manage_inventory(self.customer))
+

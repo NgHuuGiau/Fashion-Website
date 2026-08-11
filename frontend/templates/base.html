@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.">
-    <meta property="og:title" content="HUUGIAU Atelier — Streetwear Local">
-    <meta property="og:description" content="Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.">
-    <meta property="og:type" content="website">
+    <meta name="description" content="{% block meta_description %}HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}HUUGIAU Atelier — Streetwear Local{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    {% block og_image %}{% endblock %}
+    {% block canonical %}
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    {% endblock %}
     <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
     <title>{% block title %}HUUGIAU Studio{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +27,7 @@
     {% endcompress %}
 
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <div class="topline">Black / white editorial lookbook · ảnh lớn, chữ gọn, chốt đơn nhanh</div>
 
     <header class="site-header">
@@ -142,7 +146,7 @@
                 </form>
                 <a href="{% url 'orders:cart_detail' %}" class="icon-btn cart-btn" aria-label="Giỏ hàng">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                    <span class="icon-count">{{ cart_item_count }}</span>
+                    {% if cart_item_count %}<span class="icon-count">{{ cart_item_count }}</span>{% endif %}
                 </a>
                 <a href="{% url 'products:wishlist_list' %}" class="icon-btn" aria-label="Yêu thích">
                     <i class="fa-regular fa-heart" aria-hidden="true"></i>

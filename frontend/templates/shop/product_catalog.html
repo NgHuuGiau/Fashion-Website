@@ -70,6 +70,12 @@
             <div class="card-body card-body-editorial">
                 <p class="card-category">{{ product.category.name|repair_text }}</p>
                 <h3>{{ product.name|repair_text }}</h3>
+                {% if product.rating_count %}
+                <div class="card-rating" data-static-stars="{{ product.rating_avg|floatformat:1 }}">
+                    {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+                    <span>{{ product.rating_count }}</span>
+                </div>
+                {% endif %}
                 <div class="card-footer">
                     <strong class="price">{{ product.price|vnd }}đ</strong>
                     <span>Xem chi tiết</span>
@@ -171,6 +177,12 @@
                     <div class="card-body card-body-editorial">
                         <p class="card-category">{{ product.category.name|repair_text }}</p>
                         <h3>{{ product.name|repair_text }}</h3>
+                        {% if product.rating_count %}
+                        <div class="card-rating" data-static-stars="{{ product.rating_avg|floatformat:1 }}">
+                            {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+                            <span>{{ product.rating_count }}</span>
+                        </div>
+                        {% endif %}
                         <div class="card-footer">
                             <strong class="price">{{ product.price|vnd }}đ</strong>
                             <span>Xem chi tiết</span>
