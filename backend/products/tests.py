@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Product, ProductVariant, SupportFAQ, WishlistItem
+from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
 
 
 
@@ -627,6 +627,58 @@ class ChatServiceCoverageTest(TestCase):
         from .services.chat_service import build_stock_reply
         self.assertIn("tồn kho", build_stock_reply())
 
+    def test_product_stock_reply_for_named_product(self):
+        category = Category.objects.create(name="Áo", slug="ao-chat")
+        Product.objects.create(
+            category=category, name="Áo khoác da", slug="ao-khoac-da-chat",
+            price=900000, stock=4, available=True,
+        )
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("áo khoác da còn hàng không?")
+        self.assertIn("Áo khoác da", result)
+        self.assertIn("còn hàng", result)
+
+    def test_product_price_reply_for_named_product(self):
+        category = Category.objects.create(name="Áo", slug="ao-chat2")
+        Product.objects.create(
+            category=category, name="Áo khoác da", slug="ao-khoac-da-chat2",
+            price=900000, stock=4, available=True,
+        )
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("áo khoác da giá bao nhiêu?")
+        self.assertIn("Áo khoác da", result)
+        self.assertIn("900.000", result)
+
+    def test_product_reply_notes_out_of_stock(self):
+        category = Category.objects.create(name="Áo", slug="ao-chat3")
+        Product.objects.create(
+            category=category, name="Áo khoác da", slug="ao-khoac-da-chat3",
+            price=900000, stock=0, available=True,
+        )
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("áo khoác da còn không?")
+        self.assertIn("Áo khoác da", result)
+        self.assertIn("hết hàng", result)
+
+    def test_build_support_reply_returns_suggestions(self):
+        from .services.chat_service import build_support_reply
+        result = build_support_reply("Chào shop")
+        self.assertIn("reply", result)
+        self.assertIn("suggestions", result)
+        self.assertGreaterEqual(len(result["suggestions"]), 2)
+
+    def test_coupon_intent_reply(self):
+        from .services.chat_service import find_support_reply
+        result = find_support_reply("có mã giảm giá không?")
+        self.assertIn("mã giảm giá", result)
+
+    def test_chat_endpoint_returns_suggestions(self):
+        response = self.client.get(reverse("products:support_chat_reply"), {"q": "chào shop"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("reply", payload)
+        self.assertGreaterEqual(len(payload.get("suggestions", [])), 2)
+
 
 class ProductModelMethodTest(TestCase):
 
@@ -756,3 +808,119 @@ class ProductGeneratedAssetTest(TestCase):
         self.product.slug = ""
         self.product.save(update_fields=["slug"])
         self.assertEqual(self.product._build_generated_asset_url("cover.svg"), "")
+
+
+class ReviewTest(TestCase):
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Áo", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Áo có đánh giá",
+            slug="ao-danh-gia",
+            description="Mô tả",
+            price=200000,
+            stock=10,
+            available=True,
+        )
+        self.buyer = User.objects.create_user(username="buyer", password="Pass123!")
+        self.other = User.objects.create_user(username="other", password="Pass123!")
+
+    def test_review_requires_login(self):
+        response = self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "5", "comment": "Tốt"},
+        )
+        self.assertRedirects(response, f"{reverse('users:login')}?next=" + reverse("products:review_submit", kwargs={"product_id": self.product.id}))
+
+    def test_review_create_and_display(self):
+        self.client.login(username="buyer", password="Pass123!")
+        response = self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "5", "comment": "Rất đẹp"},
+        )
+        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+
+        self.assertEqual(self.product.reviews.count(), 1)
+        review = self.product.reviews.get(user=self.buyer)
+        self.assertEqual(review.rating, 5)
+        self.assertFalse(review.verified_purchase)
+
+        detail = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertContains(detail, "Rất đẹp")
+        self.assertEqual(detail.context["rating_count"], 1)
+        self.assertEqual(detail.context["rating_avg"], 5)
+
+    def test_duplicate_review_blocked(self):
+        self.client.login(username="buyer", password="Pass123!")
+        self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "4", "comment": "Lần đầu"},
+        )
+        response = self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "2", "comment": "Lần hai"},
+        )
+        self.assertEqual(self.product.reviews.count(), 1)
+        self.assertEqual(self.product.reviews.get().rating, 4)
+
+    def test_invalid_rating_rejected(self):
+        self.client.login(username="buyer", password="Pass123!")
+        response = self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "9", "comment": "Xấu"},
+        )
+        self.assertEqual(self.product.reviews.count(), 0)
+
+    def test_review_avg_and_buckets(self):
+        from .models import Review
+
+        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
+        Review.objects.create(product=self.product, user=self.other, rating=3, comment="tb")
+
+        response = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertEqual(response.context["rating_avg"], 4)
+        self.assertEqual(response.context["rating_count"], 2)
+        buckets = {item["rating"]: item["total"] for item in response.context["review_buckets"]}
+        self.assertEqual(buckets[5], 1)
+        self.assertEqual(buckets[3], 1)
+        self.assertEqual(buckets[1], 0)
+
+    def test_unpublished_review_hidden(self):
+        from .models import Review
+
+        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ẩn", is_published=False)
+        response = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertEqual(response.context["rating_count"], 0)
+        self.assertNotContains(response, "ẩn")
+
+    def test_verified_purchase_flag(self):
+        from orders.models import Order, OrderItem
+
+        order = Order.objects.create(
+            user=self.buyer,
+            customer_name="Buyer",
+            phone="0900000000",
+            shipping_address="Hà Nội",
+            status="delivered",
+            subtotal_amount=200000,
+            total_amount=200000,
+        )
+        OrderItem.objects.create(order=order, product=self.product, quantity=1, price=200000)
+
+        self.client.login(username="buyer", password="Pass123!")
+        self.client.post(
+            reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+            {"rating": "5", "comment": "Đã mua"},
+        )
+        review = self.product.reviews.get(user=self.buyer)
+        self.assertTrue(review.verified_purchase)
+
+    def test_catalog_shows_rating_count(self):
+        from .models import Review
+
+        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
+        response = self.client.get(reverse("products:product_list"))
+        self.assertContains(response, "Áo có đánh giá")
+        self.assertEqual(response.context["products"][0].rating_count, 1)
+        self.assertEqual(response.context["products"][0].rating_avg, 5)

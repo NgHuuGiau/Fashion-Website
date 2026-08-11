@@ -1,0 +1,95 @@
+{% load shop_format %}<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hoá đơn #{{ order.id }} - HUUGIAU</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; color: #1d1a17; background: #f4f1ec; padding: 24px; }
+    .sheet { max-width: 720px; margin: 0 auto; background: #fff; padding: 40px 44px; border-radius: 14px; box-shadow: 0 8px 30px rgba(60,40,20,.10); }
+    .inv-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1d1a17; padding-bottom: 18px; }
+    .brand { font-size: 1.5rem; font-weight: 900; letter-spacing: .06em; }
+    .brand small { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .18em; color: #8a4a2a; margin-top: 2px; }
+    h1 { font-size: 1.1rem; margin-top: 6px; letter-spacing: .04em; }
+    .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 20px 0; font-size: .86rem; }
+    .meta p { margin: 3px 0; }
+    .meta span { color: #7b6758; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 8px; }
+    th { text-align: left; background: #f1e1d0; padding: 9px 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+    td { padding: 9px 10px; border-bottom: 1px solid #eadfd4; vertical-align: top; }
+    .right { text-align: right; }
+    .totals { margin-top: 18px; margin-left: auto; width: 260px; font-size: .88rem; }
+    .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
+    .totals .grand { border-top: 2px solid #1d1a17; margin-top: 6px; padding-top: 10px; font-weight: 900; font-size: 1rem; }
+    .foot { margin-top: 30px; padding-top: 14px; border-top: 1px dashed #d7bda8; font-size: .78rem; color: #7b6758; text-align: center; }
+    @media print {
+        body { background: #fff; padding: 0; }
+        .sheet { box-shadow: none; border-radius: 0; padding: 16px 8px; }
+    }
+</style>
+</head>
+<body>
+<div class="sheet">
+    <div class="inv-head">
+        <div class="brand">HUUGIAU<small>BLACK / WHITE EDITORIAL</small></div>
+        <div>
+            <h1>HOÁ ĐƠN BÁN HÀNG</h1>
+            <p style="font-size:.8rem;color:#7b6758;margin-top:4px">Số: DH{{ order.id }} · Ngày: {{ order.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <div class="meta">
+        <div>
+            <p><span>Khách hàng:</span> {{ order.customer_name|repair_text }}</p>
+            <p><span>SĐT:</span> {{ order.phone }}</p>
+            {% if order.customer_email %}<p><span>Email:</span> {{ order.customer_email }}</p>{% endif %}
+            <p><span>Địa chỉ:</span> {{ order.shipping_address }}</p>
+        </div>
+        <div>
+            <p><span>Thanh toán:</span> {{ order.get_payment_method_display }}</p>
+            {% if order.payment_method == "bank" and bank_name %}<p><span>Ngân hàng:</span> {{ bank_name }}</p>{% endif %}
+            <p><span>Trạng thái:</span> {{ order.get_status_display }}{% if order.is_paid %} · Đã thanh toán{% endif %}</p>
+            {% if order.note %}<p><span>Ghi chú:</span> {{ order.note }}</p>{% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:42px">#</th>
+                <th>Sản phẩm</th>
+                <th class="right">Đơn giá</th>
+                <th class="right">SL</th>
+                <th class="right">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product.name|repair_text }}{% if item.selected_color %} · {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %}</td>
+                <td class="right">{{ item.price|vnd }}đ</td>
+                <td class="right">{{ item.quantity }}</td>
+                <td class="right">{{ item.subtotal|vnd }}đ</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div><span>Tạm tính</span><span>{{ order.subtotal_amount|vnd }}đ</span></div>
+        <div><span>Phí vận chuyển</span><span>{{ order.shipping_fee|vnd }}đ</span></div>
+        {% if order.discount_amount %}
+        <div><span>Giảm giá ({{ order.coupon_code }})</span><span>-{{ order.discount_amount|vnd }}đ</span></div>
+        {% endif %}
+        <div class="grand"><span>Tổng cộng</span><span>{{ order.total_amount|vnd }}đ</span></div>
+    </div>
+
+    <div class="foot">
+        Ngân hàng: {{ shop_bank_account }} · Chủ tài khoản: {{ shop_account_name }}<br>
+        Cảm ơn bạn đã tin tưởng HUUGIAU!
+    </div>
+</div>
+<script>window.onload = function () { window.print(); };</script>
+</body>
+</html>

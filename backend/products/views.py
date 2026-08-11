@@ -4,7 +4,7 @@ from typing import Optional
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -21,10 +21,11 @@ from .models import (
     MAX_PRODUCT_GALLERY_IMAGES,
     Product,
     ProductVariant,
+    Review,
     WishlistItem,
 )
 from .services.chat_service import (
-    find_support_reply,
+    build_support_reply,
 )
 
 
@@ -212,6 +213,10 @@ def product_list(request: HttpRequest) -> HttpResponse:
     else:
         products_qs = products_qs.order_by(SORT_OPTIONS[selected_sort])
 
+    products_qs = products_qs.annotate(
+        rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
+        rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
+    )
     paginator = Paginator(products_qs, PRODUCTS_PER_PAGE)
     products = paginator.get_page(request.GET.get("page"))
 
@@ -342,6 +347,26 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
     if request.user.is_authenticated:
         is_in_wishlist = WishlistItem.objects.filter(user=request.user, product=product).exists()
 
+    published_reviews = product.reviews.filter(is_published=True).select_related("user")
+    review_stats = published_reviews.aggregate(rating_avg=Avg("rating"), rating_count=Count("id"))
+    rating_avg = review_stats["rating_avg"] or 0
+    rating_count = review_stats["rating_count"] or 0
+    bucket_map = {item["rating"]: item["total"] for item in published_reviews.values("rating").annotate(total=Count("id"))}
+    review_buckets = [{"rating": rating, "total": bucket_map.get(rating, 0)} for rating in range(5, 0, -1)]
+
+    user_review = None
+    can_review = False
+    purchased = False
+    if request.user.is_authenticated:
+        user_review = product.reviews.filter(user=request.user).first()
+        can_review = user_review is None
+        if can_review:
+            from orders.models import OrderItem
+
+            purchased = OrderItem.objects.filter(
+                order__user=request.user, order__status="delivered", product=product
+            ).exists()
+
     return render(
         request,
         "shop/product_detail.html",
@@ -360,6 +385,13 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "size_options": size_options,
             "variant_data_json": json.dumps(variant_data, ensure_ascii=False),
             "is_in_wishlist": is_in_wishlist,
+            "reviews": published_reviews,
+            "rating_avg": rating_avg,
+            "rating_count": rating_count,
+            "review_buckets": review_buckets,
+            "user_review": user_review,
+            "can_review": can_review,
+            "purchased": purchased,
         },
     )
 
@@ -371,9 +403,9 @@ def support_chat_reply(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "empty_question"}, status=400)
 
     state = get_support_chat_state(request)
-    reply = find_support_reply(question, state=state)
+    result = build_support_reply(question, state=state)
     save_support_chat_state(request, state)
-    return JsonResponse({"reply": reply})
+    return JsonResponse(result)
 
 
 @login_required
@@ -397,6 +429,43 @@ def wishlist_toggle(request: HttpRequest, product_id: int) -> HttpResponse:
     if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = reverse("products:product_detail", kwargs={"pk": product.id, "slug": product.slug})
     return redirect(next_url)
+
+
+@require_POST
+@login_required
+def review_submit(request: HttpRequest, product_id: int) -> HttpResponse:
+    product = get_object_or_404(Product, id=product_id, available=True)
+    rating_raw = request.POST.get("rating", "")
+    comment = request.POST.get("comment", "").strip()
+
+    try:
+        rating = int(rating_raw)
+    except (TypeError, ValueError):
+        rating = 0
+    if rating not in range(1, 6):
+        messages.error(request, "Vui lòng chọn số sao từ 1 đến 5.")
+        return redirect("products:product_detail", pk=product.id, slug=product.slug)
+
+    existing = product.reviews.filter(user=request.user).first()
+    if existing:
+        messages.info(request, "Bạn đã đánh giá sản phẩm này rồi.")
+        return redirect("products:product_detail", pk=product.id, slug=product.slug)
+
+    from orders.models import OrderItem
+
+    verified = OrderItem.objects.filter(
+        order__user=request.user, order__status="delivered", product=product
+    ).exists()
+
+    Review.objects.create(
+        product=product,
+        user=request.user,
+        rating=rating,
+        comment=comment,
+        verified_purchase=verified,
+    )
+    messages.success(request, "Cảm ơn bạn đã đánh giá sản phẩm!")
+    return redirect("products:product_detail", pk=product.id, slug=product.slug)
 
 
 def search_suggest(request: HttpRequest) -> JsonResponse:

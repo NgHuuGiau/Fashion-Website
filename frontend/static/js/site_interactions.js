@@ -197,15 +197,33 @@
             return 'Shop có thể hỗ trợ bạn về: size — phí ship — thanh toán — đổi trả — theo dõi đơn hàng. Bạn thử hỏi cụ thể hơn một chút (vd: "1m72 68kg mặc size gì?", "còn màu đen không?", "ship bao nhiêu?") nhé.';
         }
 
+        function appendSuggestions(suggestions) {
+            if (!suggestions || !suggestions.length) return;
+            const holder = document.createElement('div');
+            holder.className = 'chat-suggestion-row';
+            suggestions.forEach(text => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'chat-suggestion';
+                btn.textContent = text;
+                btn.addEventListener('click', () => sendMessage(btn.textContent || ''));
+                holder.appendChild(btn);
+            });
+            chatMessages.appendChild(holder);
+            scrollToBottom();
+        }
+
         function fetchReply(message) {
-            if (!endpoint) return Promise.resolve(getFallbackReply(message));
+            if (!endpoint) return Promise.resolve({ reply: getFallbackReply(message), suggestions: [] });
             return fetch(endpoint + '?q=' + encodeURIComponent(message), {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             }).then(r => {
                 if (!r.ok) throw new Error('fail');
                 return r.json();
-            }).then(payload => payload.reply || getFallbackReply(message))
-              .catch(() => getFallbackReply(message));
+            }).then(payload => ({
+                reply: payload.reply || getFallbackReply(message),
+                suggestions: payload.suggestions || []
+            })).catch(() => ({ reply: getFallbackReply(message), suggestions: [] }));
         }
 
         function sendMessage(text) {
@@ -216,9 +234,10 @@
             chatInput.disabled = true;
             const loadingMsg = appendMessage('bot', 'Shop đang trả lời...');
             setTimeout(() => {
-                fetchReply(cleanText).then(reply => {
+                fetchReply(cleanText).then(result => {
                     if (loadingMsg && loadingMsg.parentNode) loadingMsg.remove();
-                    appendMessage('bot', reply);
+                    appendMessage('bot', result.reply);
+                    appendSuggestions(result.suggestions);
                     chatInput.disabled = false;
                     chatInput.focus();
                 });
@@ -635,6 +654,41 @@
             const openDropdown = document.querySelector('.account-menu[open]');
             if (openDropdown) openDropdown.removeAttribute('open');
         }
+    });
+
+    // ─── Star rating picker ───
+    document.querySelectorAll('[data-star-rating]').forEach(group => {
+        const input = group.querySelector('input[name="rating"]');
+        group.querySelectorAll('.star').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const value = parseInt(btn.dataset.starValue, 10);
+                group.querySelectorAll('.star').forEach((s, i) => {
+                    s.classList.toggle('active', i < value);
+                    const icon = s.querySelector('i');
+                    if (icon) icon.className = i < value ? 'fa-solid fa-star' : 'fa-regular fa-star';
+                });
+                if (input) input.value = value;
+            });
+        });
+    });
+
+    // ─── Static star display (summary + review items) ───
+    document.querySelectorAll('[data-static-stars]').forEach(el => {
+        const value = parseFloat(el.dataset.staticStars || '0');
+        const whole = Math.floor(value);
+        const frac = value - whole;
+        el.querySelectorAll('[data-star-index]').forEach(icon => {
+            const idx = parseInt(icon.dataset.starIndex, 10);
+            if (idx <= whole) {
+                icon.className = 'fa-solid fa-star is-fill';
+            } else if (idx === whole + 1 && frac >= 0.3 && frac < 0.8) {
+                icon.className = 'fa-solid fa-star-half-stroke is-half';
+            } else if (idx === whole + 1 && frac >= 0.8) {
+                icon.className = 'fa-solid fa-star is-fill';
+            } else {
+                icon.className = 'fa-regular fa-star';
+            }
+        });
     });
 
 })();

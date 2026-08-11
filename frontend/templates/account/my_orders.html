@@ -14,28 +14,6 @@
         </div>
     </div>
 
-    {% if active_tracking_order %}
-    <article class="order-card panel highlight order-card-clickable">
-        <div class="order-head">
-            <div>
-                <p class="eyebrow">Cần theo dõi ngay</p>
-                <h3>Đơn #{{ active_tracking_order.id }}</h3>
-                <p class="muted">{{ active_tracking_order.created_at|date:"d/m/Y H:i" }}</p>
-            </div>
-            <span class="status-badge status-{{ active_tracking_order.status }}">{{ active_tracking_order.get_status_display }}</span>
-        </div>
-        <div class="order-meta-grid">
-            <article><span>Ngày dự kiến</span><strong>{{ active_tracking_order.eta_date|date:"d/m/Y" }}</strong></article>
-            <article><span>Thanh toán</span><strong>{% if active_tracking_order.is_paid %}Đã thanh toán{% else %}Chưa thanh toán{% endif %}</strong></article>
-            <article><span>Tổng tiền</span><strong>{{ active_tracking_order.total_amount|vnd }}đ</strong></article>
-            <article><span>Trạng thái</span><strong>{{ active_tracking_order.eta_label }}</strong></article>
-        </div>
-        <div class="order-actions">
-            <a href="{% url 'orders:order_review' active_tracking_order.id %}" class="btn">Theo dõi đơn này</a>
-        </div>
-    </article>
-    {% endif %}
-
     {% if orders %}
     <div class="order-list">
         {% for order in orders %}
@@ -67,10 +45,16 @@
                 {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Thanh toán ngay</a>
                 {% endif %}
-                {% if order.status == "pending" or order.status == "processing" and not order.is_paid %}
+                {% if not order.is_paid and order.status == "pending" or not order.is_paid and order.status == "processing" %}
                 <form method="post" action="{% url 'orders:user_cancel_order' order.id %}" class="form-inline">
                   {% csrf_token %}
                   <button type="submit" class="btn ghost danger" onclick="return confirm('Huỷ đơn hàng #{{ order.id }}?')">Huỷ đơn</button>
+                </form>
+                {% endif %}
+                {% if order.status == "delivered" %}
+                <form method="post" action="{% url 'orders:reorder_order' order.id %}" class="form-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn">Mua lại</button>
                 </form>
                 {% endif %}
             </div>
@@ -121,7 +105,7 @@
 }
 .order-meta-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem 1rem;
     margin: 0.75rem 0;
 }
@@ -139,6 +123,8 @@
 .order-meta-grid article strong {
     font-size: 0.88rem;
     color: var(--text);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .order-lines {
     display: grid;
@@ -158,6 +144,11 @@
     color: var(--text);
     white-space: nowrap;
 }
+.order-line > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
 .order-actions {
     display: flex;
     flex-wrap: wrap;
@@ -167,11 +158,6 @@
     border-top: 1px solid var(--line);
 }
 .order-actions .btn { width: auto; }
-.order-card.highlight {
-    border-color: var(--accent);
-    border-width: 2px;
-    background: linear-gradient(180deg, var(--surface-strong), rgba(240, 223, 209, 0.35));
-}
 .status-badge {
     display: inline-flex;
     padding: 0.2rem 0.55rem;
@@ -203,7 +189,7 @@
 }
 @media (max-width: 560px) {
     .order-meta-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .order-card.panel {
         padding: 1rem;

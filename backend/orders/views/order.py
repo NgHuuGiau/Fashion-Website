@@ -203,15 +203,11 @@ def my_orders(request: HttpRequest) -> HttpResponse:
     for order in orders:
         expire_bank_order_if_needed(order)
         decorate_order_tracking(order)
-    active_tracking_order = next((order for order in orders if order.status == "shipping"), None)
-    if active_tracking_order is None:
-        active_tracking_order = next((order for order in orders if order.status == "processing"), None)
     return render(
         request,
         "account/my_orders.html",
         {
             "orders": orders,
-            "active_tracking_order": active_tracking_order,
         },
     )
 
@@ -248,3 +244,38 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
     else:
         messages.error(request, "Không thể huỷ đơn hàng ở trạng thái hiện tại.")
     return redirect("orders:my_orders")
+
+
+@login_required
+@require_POST
+def reorder_order(request: HttpRequest, order_id) -> HttpResponse:
+    order = get_object_or_404(Order.objects.prefetch_related("items__product", "items__variant"), id=order_id, user=request.user)
+
+    from ..cart import add_cart
+
+    added = 0
+    skipped = 0
+    for item in order.items.all():
+        product = item.product
+        variant = item.variant
+        if not product.available or (variant and not variant.is_active):
+            skipped += 1
+            continue
+        success, _ = add_cart(
+            request,
+            product.id,
+            quantity=item.quantity,
+            variant_id=variant.id if variant else None,
+        )
+        if success:
+            added += 1
+        else:
+            skipped += 1
+
+    if added:
+        messages.success(request, f"Đã thêm {added} món từ đơn #{order.id} vào giỏ hàng.")
+    if skipped:
+        messages.warning(request, f"{skipped} món không còn hàng hoặc đã ngừng bán nên không thêm vào giỏ.")
+    if not added and not skipped:
+        messages.info(request, "Không có sản phẩm nào để mua lại.")
+    return redirect("orders:cart_detail")

@@ -26,12 +26,22 @@
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-product-table">
         <i class="fa-solid fa-table-list"></i> Sản phẩm
       </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-inventory">
+        <i class="fa-solid fa-warehouse"></i> Kho hàng
+      </button>
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-orders">
         <i class="fa-solid fa-receipt"></i> Đơn hàng
       </button>
+      {% if permissions.can_manage_coupons %}
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-coupons">
         <i class="fa-solid fa-tags"></i> Mã giảm giá
       </button>
+      {% endif %}
+      {% if permissions.is_admin %}
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-users">
+        <i class="fa-solid fa-user-shield"></i> Nhân viên &amp; Phân quyền
+      </button>
+      {% endif %}
       <a href="{% url 'orders:admin_export_orders' %}" class="adm-nav-item">
         <i class="fa-solid fa-download"></i> Xuất đơn hàng
       </a>
@@ -42,7 +52,7 @@
         <span class="adm-side-avatar">{{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}</span>
         <div>
           <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
-          <small>Quản trị viên</small>
+          <small>{% if permissions.is_admin %}Quản trị viên{% elif permissions.is_staff_member %}Nhân viên{% endif %}</small>
         </div>
       </div>
       <a href="{% url 'products:product_list' %}" class="adm-side-link"><i class="fa-solid fa-store"></i> Về trang chủ</a>
@@ -133,12 +143,17 @@
         </div>
       </div>
 
-      <article class="admin-board-panel adm-chart-panel" id="admin-chart">
+      <article class="admin-board-panel adm-chart-panel">
         <div class="admin-chart-head">
           <div>
-            <p class="eyebrow">Biểu đồ 7 ngày</p>
-            <h2>Doanh thu</h2>
+            <p class="eyebrow">Phân tích</p>
+            <h2>Thống kê cửa hàng</h2>
           </div>
+        </div>
+        <div class="adm-chart-grid">
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Doanh thu 7 ngày</h3>
           <div class="admin-chart-meta">
             {% if revenue_growth_class == "is-up" %}
             <span class="admin-growth admin-growth-up"><i class="fa-solid fa-arrow-up"></i> {{ revenue_growth_label }}</span>
@@ -150,25 +165,170 @@
             <strong class="admin-chart-total">{{ revenue_current_total|vnd }}đ</strong>
             <small>7 ngày gần nhất</small>
           </div>
-        </div>
-        {% if revenue_chart %}
-        <div class="week-chart">
-          {% for item in revenue_chart %}
-          <div class="week-chart-item">
-            <div class="week-chart-bar-wrap">
-              <div class="week-chart-bar" style="height: {{ item.height }}%;"></div>
+          {% if revenue_chart %}
+          <div class="week-chart">
+            {% for item in revenue_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total|vnd }}đ</strong>
+              <span>{{ item.label }} {{ item.date_label }}</span>
             </div>
-            <strong>{{ item.total|vnd }}đ</strong>
-            <span>{{ item.label }} {{ item.date_label }}</span>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có dữ liệu doanh thu 7 ngày.</p>
+          </div>
+          {% endif %}
         </div>
-        {% else %}
-        <div class="admin-chart-empty">
-          <i class="fa-regular fa-chart-bar"></i>
-          <p>Chưa có dữ liệu doanh thu 7 ngày.</p>
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Đơn hàng 7 ngày</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tổng đơn hàng 7 ngày gần nhất</small>
+          </div>
+          {% if orders_chart %}
+          <div class="week-chart">
+            {% for item in orders_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar week-chart-bar-alt" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total }} đơn</strong>
+              <span>{{ item.label }} {{ item.date_label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có dữ liệu đơn hàng 7 ngày.</p>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Sản phẩm bán chạy</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">Top 5</strong>
+            <small>theo số lượng đã bán (đơn hoàn thành)</small>
+          </div>
+          {% if top_products %}
+          <div class="category-chart">
+            {% for item in top_products %}
+            <div class="category-chart-row">
+              <span class="category-chart-name" title="{{ item.name }}">{{ item.name }}</span>
+              <div class="category-chart-track">
+                <div class="category-chart-bar category-chart-bar-top" style="width: {{ item.height }}%;"></div>
+              </div>
+              <strong class="category-chart-value">{{ item.quantity }} món · {{ item.revenue|vnd }}đ</strong>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-crown"></i>
+            <p>Chưa có dữ liệu sản phẩm bán chạy.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Doanh thu theo danh mục</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ category_revenue|length }} nhóm</strong>
+            <small>theo doanh thu đơn hoàn thành</small>
+          </div>
+          {% if category_revenue %}
+          <div class="category-chart">
+            {% for item in category_revenue %}
+            <div class="category-chart-row">
+              <span class="category-chart-name">{{ item.name }}</span>
+              <div class="category-chart-track">
+                <div class="category-chart-bar" style="width: {{ item.height }}%;"></div>
+              </div>
+              <strong class="category-chart-value">{{ item.revenue|vnd }}đ</strong>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-tag"></i>
+            <p>Chưa có dữ liệu doanh thu theo danh mục.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Đơn hàng theo trạng thái</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tất cả đơn hàng đang có</small>
+          </div>
+          {% if status_chart %}
+          <div class="week-chart week-chart-status">
+            {% for item in status_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar week-chart-bar-{{ item.key }}" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total }} đơn</strong>
+              <span>{{ item.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có đơn hàng nào.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane">
+          <h3 class="chart-card-title">Tỷ trọng đơn theo trạng thái</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tỷ trọng theo trạng thái</small>
+          </div>
+          {% if status_chart %}
+          <div class="donut-layout">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 42 42" class="donut-chart" role="img" aria-label="Biểu đồ donut trạng thái đơn">
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface-tint)" stroke-width="5"></circle>
+                {% for item in status_chart %}
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="{{ item.color }}" stroke-width="5"
+                        stroke-dasharray="{{ item.pct|stringformat:'.1f' }} 100" stroke-dashoffset="{{ item.offset|stringformat:'.1f' }}"></circle>
+                {% endfor %}
+              </svg>
+              <div class="donut-center">
+                <strong>{{ total_orders }}</strong>
+                <span>đơn</span>
+              </div>
+            </div>
+            <ul class="donut-legend">
+              {% for item in status_chart %}
+              <li>
+                <span class="donut-dot" style="background: {{ item.color }}"></span>
+                <span class="donut-legend-name">{{ item.label }}</span>
+                <strong class="donut-legend-value">{{ item.total }} đơn · {{ item.pct }}%</strong>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-chart-pie"></i>
+            <p>Chưa có đơn hàng nào.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        </div>
       </article>
 
       <div class="adm-grid-2">
@@ -408,7 +568,7 @@
             <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
           </div>
           <div>
-            <input type="text" id="admin-product-search" placeholder="Tìm sản phẩm..." class="admin-input" style="width:200px">
+            <input type="text" id="admin-product-search" placeholder="Tìm sản phẩm..." class="admin-input" style="width:200px;max-width:100%">
           </div>
         </div>
         <div class="bulk-actions" id="admin-bulk-actions">
@@ -464,16 +624,14 @@
                     <div class="admin-product-placeholder">?</div>
                     {% endif %}
                   </td>
-                  <td>{{ product.name }}</td>
+                  <td><span class="admin-product-name">{{ product.name }}</span></td>
                   <td>{{ product.category.name }}</td>
                   <td>{{ product.price|vnd }}đ</td>
                   <td>{{ product.stock }}</td>
                   <td>
-                    {% if product.available %}
-                      {% if product.stock > 0 %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% else %}<span class="admin-badge admin-badge-warn">Hết hàng</span>{% endif %}
-                    {% else %}
-                      <span class="admin-badge admin-badge-muted">Ẩn</span>
-                    {% endif %}
+                    {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
+                    {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
+                    {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
                   </td>
                   <td>
                     <div class="admin-row-actions">
@@ -484,12 +642,14 @@
                         <input type="hidden" name="product_id" value="{{ product.id }}">
                         <button type="submit" class="btn small">Hết hàng</button>
                       </form>
+                      {% if permissions.can_delete_product %}
                       <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa sản phẩm này?');">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_product">
                         <input type="hidden" name="product_id" value="{{ product.id }}">
                         <button type="submit" class="btn danger small">Xóa</button>
                       </form>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -499,6 +659,124 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ TAB: KHO HÀNG ════════════════ -->
+    <section class="admin-tab-content" id="admin-inventory">
+      <div class="adm-kpis">
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-info"><i class="fa-solid fa-boxes-stacked"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tổng sản phẩm</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.total_products }}</strong>
+            <small class="adm-kpi-hint">{{ inventory_stats.hidden_products }} sản phẩm đang ẩn</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-success"><i class="fa-solid fa-box"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tổng tồn kho</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.total_units }}</strong>
+            <small class="adm-kpi-hint">Số lượng hàng đang có</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-accent"><i class="fa-solid fa-sack-dollar"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Giá trị hàng tồn</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.stock_value|vnd }}đ</strong>
+            <small class="adm-kpi-hint">Theo giá bán hiện tại</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-warning"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Hết hàng</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.out_of_stock }}</strong>
+            <small class="adm-kpi-hint">{{ inventory_stats.low_stock }} sản phẩm sắp hết (≤ {{ low_stock_limit }})</small>
+          </div>
+        </article>
+      </div>
+
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Danh sách kho hàng</h2>
+            <p>Xem số lượng tồn của từng sản phẩm và biến thể màu/size.</p>
+          </div>
+          <form method="get" class="order-filter-form">
+            <select name="inventory_status" class="admin-input" data-auto-submit>
+              <option value="">Tất cả trạng thái kho</option>
+              <option value="out" {% if inventory_status == "out" %}selected{% endif %}>Hết hàng (tồn 0)</option>
+              <option value="low" {% if inventory_status == "low" %}selected{% endif %}>Sắp hết (1–{{ low_stock_limit }})</option>
+              <option value="hidden" {% if inventory_status == "hidden" %}selected{% endif %}>Đang ẩn còn hàng</option>
+            </select>
+            <input type="search" name="inventory_q" placeholder="Tìm tên sản phẩm, danh mục..." value="{{ inventory_q }}" class="admin-input" style="width:220px;max-width:100%">
+            <button type="submit" class="btn small ghost">Lọc</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table class="cart-table admin-inventory-table">
+            <colgroup>
+              <col class="admin-col-thumb">
+              <col class="inventory-col-name">
+              <col class="inventory-col-category">
+              <col class="admin-col-price">
+              <col class="inventory-col-stock">
+              <col class="inventory-col-variants">
+              <col class="admin-col-status">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Danh mục</th>
+                <th>Giá</th>
+                <th>Tổng tồn</th>
+                <th>Chi tiết biến thể</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for product in inventory_products %}
+              <tr>
+                <td>
+                  {% if product.image and product.image.url %}
+                  <img src="{{ product.image.url }}" alt="" class="admin-product-thumb">
+                  {% elif product.image_url %}
+                  <img src="{{ product.image_url }}" alt="" class="admin-product-thumb">
+                  {% else %}
+                  <div class="admin-product-placeholder">?</div>
+                  {% endif %}
+                </td>
+                <td><span class="admin-product-name">{{ product.name }}</span></td>
+                <td>{{ product.category.name }}</td>
+                <td>{{ product.price|vnd }}đ</td>
+                <td><span class="adm-stock-pill {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}</span></td>
+                <td>
+                  {% if product.variants.all %}
+                  <div class="inv-variant-list">
+                    {% for v in product.variants.all %}
+                    <span class="inv-variant-chip {% if not v.is_active %}is-inactive{% endif %}">{{ v.color_name|default:"—" }} / {{ v.size|default:"—" }}: {{ v.stock }}</span>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <small class="admin-muted">Không có biến thể</small>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
+                  {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
+                  {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="admin-empty-cell">Không có sản phẩm nào trong kho.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -521,7 +799,7 @@
                 <option value="delivered" {% if request.GET.order_status == 'delivered' %}selected{% endif %}>Hoàn thành</option>
                 <option value="cancelled" {% if request.GET.order_status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
               </select>
-              <input type="search" name="order_q" placeholder="Tìm theo ID, tên, SĐT" value="{{ request.GET.order_q }}" class="admin-input" style="width:200px">
+              <input type="search" name="order_q" placeholder="Tìm theo ID, tên, SĐT" value="{{ request.GET.order_q }}" class="admin-input" style="width:200px;max-width:100%">
               <button type="submit" class="btn small ghost">Tìm</button>
             </form>
           </div>
@@ -540,7 +818,7 @@
             <thead>
               <tr>
                 <th>Mã ĐH</th>
-                <th>Khách hàng / SĐT</th>
+                <th>Khách hàng</th>
                 <th>Tổng tiền</th>
                 <th>Thanh toán</th>
                 <th>Trạng thái</th>
@@ -586,6 +864,17 @@
                     </select>
                     <button type="submit" class="btn small ghost">Lưu</button>
                   </form>
+                  <div class="admin-order-extra">
+                    {% if order.status != "cancelled" %}
+                    <form method="post" class="admin-quick-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="refund_order">
+                      <input type="hidden" name="order_id" value="{{ order.id }}">
+                      <button type="submit" class="btn small ghost danger" onclick="return confirm('Hoàn tiền cho đơn #{{ order.id }}?')">Hoàn tiền</button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'orders:admin_print_invoice' order.id %}" target="_blank" rel="noopener" class="btn small ghost">In hoá đơn</a>
+                  </div>
                 </td>
               </tr>
               {% empty %}
@@ -598,6 +887,7 @@
     </section>
 
     <!-- ════════════════ TAB: MÃ GIẢM GIÁ ════════════════ -->
+    {% if permissions.can_manage_coupons %}
     <section class="admin-tab-content" id="admin-coupons">
       <div class="admin-board-panel">
         <div class="section-head">
@@ -623,7 +913,7 @@
                 <th>Loại</th>
                 <th>Giá trị</th>
                 <th>Đơn tối thiểu</th>
-                <th>Giới hạn</th>
+                <th>Giảm tối đa</th>
                 <th>Kích hoạt</th>
                 <th>Thao tác</th>
               </tr>
@@ -633,7 +923,7 @@
               <tr>
                 <td><strong>{{ coupon.code }}</strong></td>
                 <td>{% if coupon.discount_type == "percent" %}%{% elif coupon.discount_type == "fixed" %}₫{% else %}Ship{% endif %}</td>
-                <td>{{ coupon.value|vnd }}{% if coupon.discount_type == "percent" %}%{% endif %}</td>
+                <td>{% if coupon.discount_type == "percent" %}{{ coupon.value|vnd }}%{% elif coupon.discount_type == "fixed" %}{{ coupon.value|vnd }}đ{% else %}Miễn phí ship{% endif %}</td>
                 <td>{{ coupon.min_order_amount|vnd }}đ</td>
                 <td>{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
                 <td>{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
@@ -689,6 +979,10 @@
             <span>Giới hạn giảm tối đa (₫)</span>
             <input type="number" name="max_discount_amount" id="coupon-max-input" min="0" step="1" placeholder="Không giới hạn">
           </label>
+          <label class="admin-field">
+            <span>Số lượt mỗi người</span>
+            <input type="number" name="max_uses_per_user" id="coupon-user-input" min="1" step="1" placeholder="Không giới hạn">
+          </label>
           <label class="admin-field field-gap">
             <input type="checkbox" name="is_active" id="coupon-active-input" checked>
             <span>Kích hoạt ngay</span>
@@ -700,6 +994,125 @@
         </form>
       </div>
     </section>
+    {% endif %}
+
+    <!-- ════════════════ TAB: NHÂN VIÊN & PHÂN QUYỀN ════════════════ -->
+    {% if permissions.is_admin %}
+    <section class="admin-tab-content" id="admin-users">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Nhân viên &amp; Phân quyền</h2>
+            <p>Đặt vai trò cho từng tài khoản: Quản trị viên (toàn quyền), Nhân viên (đơn hàng, kho, sản phẩm) hoặc Khách hàng (không vào được khu vực quản trị). Hệ thống luôn giữ ít nhất một quản trị viên.</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <span class="adm-date-chip"><i class="fa-solid fa-user-tag"></i> {{ staff_count }} tài khoản có quyền quản trị/nhân viên</span>
+            <button type="button" class="btn small ghost" data-toggle-user-create>+ Tạo tài khoản nhanh</button>
+          </div>
+        </div>
+
+        <div class="admin-create-user" id="admin-create-user" hidden>
+          <form method="post" class="admin-quick-form create-user-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_user">
+            <label class="admin-field">
+              <span>Tên đăng nhập</span>
+              <input type="text" name="username" placeholder="VD: nhanvien01" required autocomplete="off">
+            </label>
+            <label class="admin-field">
+              <span>Email</span>
+              <input type="email" name="email" placeholder="vd@email.com" autocomplete="off">
+            </label>
+            <label class="admin-field">
+              <span>Mật khẩu (tối thiểu 8 ký tự)</span>
+              <input type="password" name="password" placeholder="••••••••" required autocomplete="new-password">
+            </label>
+            <label class="admin-field">
+              <span>Vai trò</span>
+              <select name="role" class="admin-input-sm">
+                <option value="staff">Nhân viên</option>
+                <option value="admin">Quản trị viên</option>
+                <option value="user">Khách hàng</option>
+              </select>
+            </label>
+            <div class="admin-field">
+              <span>&nbsp;</span>
+              <button type="submit" class="btn">Tạo tài khoản</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cart-table admin-user-table">
+            <colgroup>
+              <col class="user-col-name">
+              <col class="user-col-email">
+              <col class="user-col-role">
+              <col class="user-col-date">
+              <col class="user-col-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Tài khoản</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Ngày đăng ký</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for account in manage_users %}
+              <tr>
+                <td>
+                  <strong>{{ account.username }}</strong>
+                  {% if account.get_full_name %}<small class="admin-muted">{{ account.get_full_name }}</small>{% endif %}
+                </td>
+                <td>{{ account.email|default:"—" }}</td>
+                <td>
+                  {% if account.is_superuser %}
+                  <span class="admin-badge admin-badge-role-admin">Quản trị viên</span>
+                  {% elif account.is_staff %}
+                  <span class="admin-badge admin-badge-role-staff">Nhân viên</span>
+                  {% else %}
+                  <span class="admin-badge admin-badge-role-user">Khách hàng</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ account.date_joined|date:"d/m/Y" }}</small></td>
+                <td>
+                  <div class="admin-user-actions">
+                    <form method="post" class="admin-quick-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="set_user_role">
+                      <input type="hidden" name="user_id" value="{{ account.id }}">
+                      <select name="role" class="admin-input-sm" {% if account.is_superuser and account.id == request.user.id %}data-self-admin{% endif %}>
+                        <option value="admin" {% if account.is_superuser %}selected{% endif %}>Quản trị viên</option>
+                        <option value="staff" {% if not account.is_superuser and account.is_staff %}selected{% endif %}>Nhân viên</option>
+                        <option value="user" {% if not account.is_superuser and not account.is_staff %}selected{% endif %}>Khách hàng</option>
+                      </select>
+                      <button type="submit" class="btn small ghost">Lưu</button>
+                    </form>
+                    {% if account.id == request.user.id %}
+                    <span class="admin-muted admin-self-badge">Chính bạn</span>
+                    {% else %}
+                    <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa tài khoản {{ account.username }}? Toàn bộ dữ liệu liên quan cũng sẽ bị xóa.');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_user">
+                      <input type="hidden" name="user_id" value="{{ account.id }}">
+                      <button type="submit" class="btn danger small">Xóa TK</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="admin-empty-cell">Chưa có tài khoản nào.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% endif %}
 
   </div>
 </section>
@@ -710,6 +1123,13 @@ document.addEventListener('click', function(e) {
   if (!btn) return;
   var nav = document.querySelector('.admin-tab[data-target="' + btn.dataset.switchTo + '"]');
   if (nav) nav.click();
+});
+
+document.addEventListener('click', function(e) {
+  var toggleBtn = e.target.closest('[data-toggle-user-create]');
+  if (!toggleBtn) return;
+  var panel = document.getElementById('admin-create-user');
+  if (panel) panel.hidden = !panel.hidden;
 });
 </script>
 
@@ -1041,6 +1461,188 @@ document.addEventListener('click', function(e) {
 .admin-chart-empty i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
 .admin-chart-empty p { font-size: 0.84rem; }
 
+.adm-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.chart-pane {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  min-width: 0;
+}
+.chart-card-title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  margin: 0 0 0.7rem;
+}
+.week-chart-status { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.adm-chart-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chart-switch {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.chart-switch:hover { border-color: var(--accent); color: var(--accent); }
+.chart-switch.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.week-chart-bar-alt { background: var(--info) !important; }
+.week-chart-bar-pending { background: #d97706 !important; }
+.week-chart-bar-processing { background: var(--info) !important; }
+.week-chart-bar-shipping { background: #7c3aed !important; }
+.week-chart-bar-delivered { background: var(--success, #16a34a) !important; }
+.week-chart-bar-cancelled { background: var(--danger, #dc2626) !important; }
+.category-chart-bar-top { background: linear-gradient(90deg, var(--info), var(--accent)) !important; }
+
+.donut-layout {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+.donut-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  flex: 0 0 auto;
+}
+.donut-chart { width: 100%; height: 100%; }
+.donut-chart circle { transition: stroke-dashoffset 0.4s ease; }
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.donut-center strong {
+  font-size: 1.8rem;
+  font-family: var(--font-display);
+  color: var(--text);
+  line-height: 1;
+}
+.donut-center span { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+.donut-legend {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 220px;
+}
+.donut-legend li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+.donut-dot { width: 10px; height: 10px; border-radius: 50%; }
+.donut-legend-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-legend-value { font-family: var(--font-display); color: var(--text); white-space: nowrap; }
+
+.chart-rank-list { display: grid; gap: 0.6rem; margin-top: 0.4rem; }
+.chart-rank-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.chart-rank-num {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+.chart-rank-main { display: grid; gap: 0.1rem; min-width: 0; }
+.chart-rank-main strong { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-rank-main small { font-size: 0.72rem; color: var(--muted); }
+.chart-rank-value { font-size: 0.84rem; font-family: var(--font-display); color: var(--text); white-space: nowrap; }
+
+.category-chart { display: grid; gap: 0.7rem; margin-top: 0.5rem; }
+.category-chart-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 0.7rem;
+}
+.category-chart-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.category-chart-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-tint);
+  overflow: hidden;
+}
+.category-chart-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+.category-chart-value {
+  font-size: 0.78rem;
+  font-family: var(--font-display);
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-create-user {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+}
+.create-user-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 0.8rem;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .create-user-form { grid-template-columns: 1fr 1fr; }
+  .adm-chart-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .category-chart-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .category-chart-value { grid-column: 2; text-align: left; }
+}
+
 /* ─── Lower grid ────────────────────────── */
 .adm-grid-2 {
   display: grid;
@@ -1132,6 +1734,19 @@ document.addEventListener('click', function(e) {
   white-space: nowrap;
 }
 
+.admin-order-extra {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.admin-order-extra .btn,
+.admin-order-extra .btn.small {
+  width: auto;
+  min-height: 0;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+}
+
 /* ─── Badges ────────────────────────────── */
 .admin-badge {
   display: inline-block;
@@ -1151,23 +1766,48 @@ document.addEventListener('click', function(e) {
 .admin-badge-status-shipping { background: var(--accent-soft); color: var(--accent-strong); }
 .admin-badge-status-delivered { background: var(--success-soft); color: var(--success); }
 .admin-badge-status-cancelled { background: var(--danger-soft); color: var(--danger); }
+.admin-badge-role-admin { background: var(--danger-soft, rgba(220,38,38,.12)); color: var(--danger, #dc2626); }
+.admin-badge-role-staff { background: rgba(91, 122, 154, 0.14); color: var(--info, #5b7a9a); }
+.admin-badge-role-user { background: var(--surface-tint); color: var(--muted); }
 
 /* ─── Tables helpers ────────────────────── */
 .admin-product-table thead th,
 .admin-order-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
 .admin-col-check { width: 36px; }
 .admin-col-thumb { width: 52px; }
-.admin-col-customer { min-width: 160px; }
-.admin-col-total { width: 100px; }
-.admin-col-payment { width: 120px; }
-.admin-col-status { width: 110px; }
-.admin-col-date { width: 110px; }
-.admin-col-actions { width: 200px; }
-.admin-col-id { width: 60px; }
-.admin-row-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.admin-col-id { width: 5%; }
+.admin-col-customer { width: 20%; }
+.admin-col-total { width: 9%; }
+.admin-col-payment { width: 13%; }
+.admin-col-status { width: 12%; }
+.admin-col-date { width: 9%; }
+.admin-col-actions { width: 32%; }
+.admin-col-product { min-width: 230px; max-width: 300px; }
+.admin-col-category { width: 125px; }
+.admin-col-price { width: 105px; }
+.admin-col-stock { width: 65px; }
+.admin-row-actions { display: flex; gap: 0.3rem; flex-wrap: nowrap; }
 .admin-row-actions .btn,
 .admin-row-actions form { margin: 0; }
 .admin-inline-form { display: inline; }
+.admin-product-table,
+.admin-inventory-table,
+.admin-coupon-table,
+.admin-user-table { width: 100%; table-layout: fixed; }
+.admin-order-table { width: 100%; table-layout: fixed; }
+.admin-product-table td,
+.admin-inventory-table td,
+.admin-coupon-table td,
+.admin-user-table td { white-space: nowrap; }
+.admin-order-table td { white-space: normal; }
+.admin-product-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  max-width: 280px;
+}
 .admin-empty-cell { text-align: center; padding: 2rem !important; color: var(--muted); }
 .admin-order-link { color: var(--accent-strong); font-weight: 700; text-decoration: none; }
 .admin-order-link:hover { text-decoration: underline; }
@@ -1193,6 +1833,57 @@ document.addEventListener('click', function(e) {
 }
 .admin-quick-form { display: inline-flex; gap: 0.3rem; align-items: center; }
 .admin-hr { border: 0; border-top: 1px solid var(--line); margin: 1.25rem 0; }
+
+/* ─── Kho hàng ──────────────────────────── */
+.admin-inventory-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
+.inventory-col-name { min-width: 200px; }
+.inventory-col-category { width: 120px; }
+.inventory-col-stock { width: 100px; }
+.inventory-col-variants { min-width: 220px; }
+.inv-variant-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.inv-variant-chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-xs);
+  background: var(--surface-tint);
+  border: 1px solid var(--line);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.inv-variant-chip.is-inactive { opacity: 0.45; text-decoration: line-through; }
+
+/* ─── Phân quyền ────────────────────────── */
+.admin-user-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
+.user-col-name { min-width: 170px; }
+.user-col-email { min-width: 150px; }
+.user-col-role { width: 150px; }
+.user-col-date { width: 110px; }
+.user-col-actions { min-width: 320px; }
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
+}
+.admin-user-actions .admin-quick-form,
+.admin-user-actions .admin-inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.admin-user-actions .btn { margin: 0; }
+.admin-self-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 0.2rem 0.45rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+}
 
 /* ─── Responsive ────────────────────────── */
 @media (max-width: 1100px) {

@@ -1,6 +1,6 @@
 ﻿from django.contrib import admin
 
-from .models import Coupon, Order, OrderItem
+from .models import Coupon, CouponRedemption, Order, OrderItem
 
 
 
@@ -53,9 +53,18 @@ class CouponAdmin(admin.ModelAdmin):
         "max_discount_amount",
         "is_active",
         "usage_limit",
+        "max_uses_per_user",
         "used_count",
         "starts_at",
         "ends_at",
     )
     list_filter = ("discount_type", "is_active")
     search_fields = ("code",)
+
+
+@admin.register(CouponRedemption)
+
+class CouponRedemptionAdmin(admin.ModelAdmin):
+    list_display = ("coupon", "user", "order", "used_at")
+    list_filter = ("used_at",)
+    search_fields = ("coupon__code", "user__username", "order__id")

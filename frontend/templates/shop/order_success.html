@@ -22,7 +22,7 @@
                 </div>
                 <div class="success-meta-item">
                     <span>Trạng thái</span>
-                    <strong class="status-{{ order.status }}">{{ order.get_status_display }}</strong>
+                    <strong class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</strong>
                 </div>
                 <div class="success-meta-item">
                     <span>Tổng thanh toán</span>
@@ -51,7 +51,7 @@
                     Mua thêm
                 </a>
                 {% if not order.is_paid and order.payment_method == "bank" and order.status != "cancelled" %}
-                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn outline">
+                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn ghost">
                     <i class="fa-solid fa-qrcode"></i>
                     Thanh toán ngay
                 </a>
@@ -94,7 +94,7 @@
 }
 .success-meta {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     padding: 0.85rem;
     background: var(--surface);
@@ -102,6 +102,10 @@
     border-radius: var(--radius-sm);
     margin: 1rem 0;
     text-align: left;
+}
+.success-meta-item strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .success-meta-item {
     display: flex;
@@ -173,7 +177,7 @@
 }
 @media (max-width: 640px) {
     .success-layout { grid-template-columns: 1fr; }
-    .success-meta { grid-template-columns: 1fr 1fr; }
+    .success-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>
 {% endblock %}

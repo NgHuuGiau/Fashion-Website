@@ -88,6 +88,7 @@ class CouponForm(forms.ModelForm):
         fields = [
             "code", "discount_type", "value", "min_order_amount",
             "max_discount_amount", "starts_at", "ends_at", "usage_limit",
+            "max_uses_per_user",
         ]
 
     def clean(self):

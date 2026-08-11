@@ -12,7 +12,7 @@
             <h1>Chi tiết đơn hàng</h1>
             <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
         </div>
-        <span class="status-badge status-{{ order.status }}">{{ tracking_order.eta_label }}</span>
+        <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
     </div>
 
     <div class="review-layout">
@@ -271,7 +271,7 @@
 <style>
 .review-summary-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--line);
@@ -291,6 +291,8 @@
 .review-summary-value {
     font-size: 0.92rem;
     color: var(--text);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .review-summary-value.price {
     color: var(--accent-strong);
@@ -315,7 +317,7 @@
 }
 .review-info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     padding: 0.85rem;
     background: var(--surface);
@@ -339,6 +341,9 @@
 .review-info-value {
     font-size: 0.88rem;
     color: var(--text);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
 }
 .review-locked-box {
     display: flex;
@@ -562,7 +567,7 @@
 }
 @media (max-width: 700px) {
     .review-summary-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .review-info-grid {
         grid-template-columns: 1fr;

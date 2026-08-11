@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db.models import Sum
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -774,6 +775,298 @@ class CartCheckoutAndAdminTest(TestCase):
         variant = self.product_ao.variants.first()
         self.assertEqual(variant.size, "XL")
 
+    def test_admin_dashboard_cancel_order_restores_stock(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 2, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.variant_black_l.refresh_from_db()
+        self.assertEqual(self.variant_black_l.stock, 3)
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "cancelled"},
+        )
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "cancelled")
+        self.variant_black_l.refresh_from_db()
+        self.product_ao.refresh_from_db()
+        self.assertEqual(self.variant_black_l.stock, 5)
+        self.assertEqual(self.product_ao.stock, 8)
+
+    def test_admin_dashboard_reopen_cancelled_order_reserves_stock(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 2, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "cancelled"},
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.status, "cancelled")
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "pending"},
+        )
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.variant_black_l.refresh_from_db()
+        self.product_ao.refresh_from_db()
+        self.assertEqual(self.variant_black_l.stock, 3)
+        self.assertEqual(self.product_ao.stock, 6)
+
+    def test_admin_dashboard_staff_cannot_delete_product(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_product", "product_id": self.product_accessory.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Product.objects.filter(id=self.product_accessory.id).exists())
+
+    def test_admin_dashboard_admin_can_delete_product(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_product", "product_id": self.product_accessory.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Product.objects.filter(id=self.product_accessory.id).exists())
+
+    def test_admin_dashboard_admin_set_user_role(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": self.user.id, "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_staff)
+        self.assertFalse(self.user.is_superuser)
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": self.user.id, "role": "user"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_staff)
+        self.assertFalse(self.user.is_superuser)
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": self.user.id, "role": "admin"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_staff)
+        self.assertTrue(self.user.is_superuser)
+
+    def test_admin_dashboard_staff_cannot_set_user_role(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": self.user.id, "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_staff)
+
+    def test_admin_dashboard_admin_cannot_demote_last_superuser(self):
+        admin = User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": admin.id, "role": "user"},
+        )
+        self.assertEqual(response.status_code, 302)
+        admin.refresh_from_db()
+        self.assertTrue(admin.is_superuser)
+
+    def test_admin_dashboard_admin_can_change_own_role_if_another_admin(self):
+        admin = User.objects.create_superuser(username="admin", password="StrongPass123!")
+        User.objects.create_superuser(username="admin2", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "set_user_role", "user_id": admin.id, "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        admin.refresh_from_db()
+        self.assertTrue(admin.is_staff)
+        self.assertFalse(admin.is_superuser)
+
+    def test_admin_dashboard_inventory_context(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("inventory_stats", response.context)
+        self.assertIn("inventory_products", response.context)
+        self.assertIn("permissions", response.context)
+        self.assertIn("manage_users", response.context)
+        self.assertEqual(response.context["inventory_stats"]["total_products"], Product.objects.count())
+        self.assertEqual(response.context["inventory_stats"]["total_units"], Product.objects.aggregate(total=Sum("stock"))["total"])
+
+    def test_admin_dashboard_inventory_out_filter(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"), {"inventory_status": "out"})
+        self.assertEqual(response.status_code, 200)
+        for product in response.context["inventory_products"]:
+            self.assertEqual(product.stock, 0)
+
+    def test_admin_dashboard_staff_permission_flags(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        perms = response.context["permissions"]
+        self.assertFalse(perms["is_admin"])
+        self.assertTrue(perms["is_staff_member"])
+        self.assertTrue(perms["can_manage_orders"])
+        self.assertTrue(perms["can_manage_inventory"])
+        self.assertTrue(perms["can_manage_products"])
+        self.assertFalse(perms["can_delete_product"])
+        self.assertFalse(perms["can_manage_coupons"])
+        self.assertFalse(perms["can_manage_users"])
+
+    def test_admin_dashboard_admin_create_user_staff(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "create_user", "username": "nhanvien01", "password": "matkhau123", "email": "nv@shop.vn", "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        new_user = User.objects.get(username="nhanvien01")
+        self.assertTrue(new_user.is_staff)
+        self.assertFalse(new_user.is_superuser)
+        self.assertTrue(new_user.check_password("matkhau123"))
+        self.assertEqual(new_user.email, "nv@shop.vn")
+
+    def test_admin_dashboard_admin_create_user_admin(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "create_user", "username": "boss", "password": "matkhau123", "role": "admin"},
+        )
+        self.assertEqual(response.status_code, 302)
+        new_user = User.objects.get(username="boss")
+        self.assertTrue(new_user.is_superuser)
+        self.assertTrue(new_user.is_staff)
+
+    def test_admin_dashboard_create_user_rejects_duplicate(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "create_user", "username": "buyer", "password": "matkhau123", "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(User.objects.filter(username="buyer").count(), 1)
+
+    def test_admin_dashboard_create_user_rejects_short_password(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "create_user", "username": "shortpwd", "password": "123", "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(username="shortpwd").exists())
+
+    def test_admin_dashboard_staff_cannot_create_user(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "create_user", "username": "hacker", "password": "matkhau123", "role": "staff"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(username="hacker").exists())
+
+    def test_admin_dashboard_admin_delete_user(self):
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        victim = User.objects.create_user(username="victim", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_user", "user_id": victim.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(username="victim").exists())
+
+    def test_admin_dashboard_admin_cannot_delete_self(self):
+        admin = User.objects.create_superuser(username="admin", password="StrongPass123!")
+        User.objects.create_superuser(username="admin2", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_user", "user_id": admin.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(id=admin.id).exists())
+
+    def test_admin_dashboard_admin_cannot_delete_last_superuser(self):
+        admin = User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_user", "user_id": admin.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(id=admin.id).exists())
+        self.assertTrue(admin.is_superuser)
+
+    def test_admin_dashboard_inventory_out_includes_hidden_products(self):
+        hidden_empty = Product.objects.create(
+            category=self.category_pk, name="An het hang", slug="an-het-hang",
+            price=100000, stock=0, available=False,
+        )
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"), {"inventory_status": "out"})
+        self.assertEqual(response.status_code, 200)
+        ids = [p.id for p in response.context["inventory_products"]]
+        self.assertIn(hidden_empty.id, ids)
+        for product in response.context["inventory_products"]:
+            self.assertEqual(product.stock, 0)
+
+    def test_admin_dashboard_chart_context(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("orders_chart", response.context)
+        self.assertIn("top_products", response.context)
+        self.assertIn("category_revenue", response.context)
+        self.assertIn("status_chart", response.context)
+        self.assertEqual(len(response.context["orders_chart"]), 7)
+        self.assertIsInstance(response.context["top_products"], list)
+        self.assertIsInstance(response.context["category_revenue"], list)
+        self.assertEqual(len(response.context["status_chart"]), 5)
+        for item in response.context["status_chart"]:
+            self.assertIn("height", item)
+            self.assertIn("label", item)
+            self.assertIn("pct", item)
+            self.assertIn("offset", item)
+            self.assertIn("color", item)
+            self.assertGreaterEqual(item["pct"], 0)
+            self.assertLessEqual(item["pct"], 100)
+
 
 class CartRemoveClearTest(TestCase):
 
@@ -1137,6 +1430,7 @@ class AdminDashboardFormIntegrationTest(TestCase):
     def setUp(self):
         from django.contrib.auth.models import User
         self.staff = User.objects.create_user(username="staff", password="pass123!", is_staff=True)
+        self.admin = User.objects.create_superuser(username="admin", password="pass123!")
         from .models import Coupon
         self.coupon = Coupon.objects.create(
             code="TEST10", discount_type="percent", value=10,
@@ -1144,7 +1438,7 @@ class AdminDashboardFormIntegrationTest(TestCase):
         )
 
     def test_dashboard_save_coupon_uses_coupon_form(self):
-        self.client.login(username="staff", password="pass123!")
+        self.client.login(username="admin", password="pass123!")
         response = self.client.post(
             reverse("orders:admin_dashboard"),
             {
@@ -1162,7 +1456,7 @@ class AdminDashboardFormIntegrationTest(TestCase):
         self.assertTrue(Coupon.objects.filter(code="NEW20", value=20).exists())
 
     def test_dashboard_coupon_form_invalid_shows_error(self):
-        self.client.login(username="staff", password="pass123!")
+        self.client.login(username="admin", password="pass123!")
         response = self.client.post(
             reverse("orders:admin_dashboard"),
             {
@@ -1175,6 +1469,33 @@ class AdminDashboardFormIntegrationTest(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
+
+    def test_dashboard_save_coupon_denied_for_staff(self):
+        self.client.login(username="staff", password="pass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "save_coupon",
+                "code": "STAFFNO",
+                "discount_type": "percent",
+                "value": "20",
+                "min_order_amount": "50000",
+                "is_active": "on",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        from .models import Coupon
+        self.assertFalse(Coupon.objects.filter(code="STAFFNO").exists())
+
+    def test_dashboard_delete_coupon_denied_for_staff(self):
+        self.client.login(username="staff", password="pass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_coupon", "coupon_id": self.coupon.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        from .models import Coupon
+        self.assertTrue(Coupon.objects.filter(id=self.coupon.id).exists())
 
     def test_dashboard_update_order_status_uses_order_status_form(self):
         self.client.login(username="staff", password="pass123!")
@@ -1361,14 +1682,15 @@ class OrderViewEdgeBranchesTest(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.customer_name, "T")
 
-    def test_my_orders_picks_shipping_as_active_tracking(self):
-        Order.objects.create(
+    def test_my_orders_lists_shipping_order(self):
+        order = Order.objects.create(
             user=self.user, customer_name="S", phone="0909", shipping_address="HCM",
             payment_method="cod", total_amount=100000, status="shipping", is_paid=True,
         )
         response = self.client.get(reverse("orders:my_orders"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["active_tracking_order"].status, "shipping")
+        self.assertContains(response, f"#{order.id}")
+        self.assertNotContains(response, "Cần theo dõi ngay")
 
     def test_user_cancel_order_not_cancellable_state(self):
         order = Order.objects.create(
@@ -1780,11 +2102,147 @@ class OrderViewExtraBranchesTest(TestCase):
         self.assertTrue(response.context["qr_url"])
         self.assertTrue(response.context["selected_bank_name"])
 
-    def test_my_orders_no_active_tracking(self):
+    def test_my_orders_shows_empty_state_without_tracking_card(self):
         Order.objects.create(
             user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
             payment_method="cod", total_amount=100000, status="pending", is_paid=False,
         )
         response = self.client.get(reverse("orders:my_orders"))
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.context["active_tracking_order"])
+        self.assertNotContains(response, "Cần theo dõi ngay")
+
+
+class CouponPerUserTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="couponuser", password="StrongPass123!")
+        self.client.login(username="couponuser", password="StrongPass123!")
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category, name="Ao coupon", slug="ao-coupon",
+            price=500000, stock=10, available=True,
+        )
+        self.coupon = Coupon.objects.create(
+            code="PERUSER",
+            discount_type=Coupon.TYPE_PERCENT,
+            value=Decimal("10"),
+            min_order_amount=Decimal("0"),
+            max_uses_per_user=1,
+            is_active=True,
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product, color_name="Den", color_code="#111111", size="L", stock=5, is_active=True,
+        )
+
+    def _place_order_with_coupon(self):
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        return self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Coupon User",
+                "customer_email": "coupon@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "PERUSER",
+            },
+        )
+
+    def test_coupon_usage_recorded_and_second_use_blocked(self):
+        response = self._place_order_with_coupon()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.count(), 1)
+        self.coupon.refresh_from_db()
+        self.assertEqual(self.coupon.used_count, 1)
+        self.assertEqual(self.coupon.redemptions.count(), 1)
+        self.assertEqual(self.coupon.redemptions.first().user, self.user)
+
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        second = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Coupon User",
+                "customer_email": "coupon@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "PERUSER",
+            },
+        )
+        self.assertEqual(second.status_code, 200)
+        self.assertContains(second, "hết lượt")
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_unlimited_per_user_allows_multiple_uses(self):
+        self.coupon.max_uses_per_user = None
+        self.coupon.save(update_fields=["max_uses_per_user"])
+        self._place_order_with_coupon()
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        second = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Coupon User",
+                "customer_email": "coupon@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "PERUSER",
+            },
+        )
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(Order.objects.count(), 2)
+
+
+class ReorderTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reorder", password="StrongPass123!")
+        self.client.login(username="reorder", password="StrongPass123!")
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category, name="Ao reorder", slug="ao-reorder",
+            price=300000, stock=5, available=True,
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product, color_name="Den", color_code="#111111", size="L", stock=3, is_active=True,
+        )
+        self.order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=300000, status="delivered", is_paid=True,
+        )
+        OrderItem.objects.create(order=self.order, product=self.product, variant=self.variant, quantity=2, price=300000)
+
+    def test_reorder_adds_items_to_cart(self):
+        response = self.client.post(reverse("orders:reorder_order", kwargs={"order_id": self.order.id}))
+        self.assertRedirects(response, reverse("orders:cart_detail"))
+        cart = self.client.session.get("cart", {})
+        self.assertEqual(cart[f"{self.product.id}:{self.variant.id}"]["quantity"], 2)
+
+    def test_reorder_requires_post(self):
+        response = self.client.get(reverse("orders:reorder_order", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 405)
+
+    def test_reorder_skips_unavailable_products(self):
+        self.product.available = False
+        self.product.save(update_fields=["available"])
+        response = self.client.post(reverse("orders:reorder_order", kwargs={"order_id": self.order.id}))
+        self.assertRedirects(response, reverse("orders:cart_detail"))
+        self.assertEqual(self.client.session.get("cart", {}), {})
+
+    def test_reorder_requires_own_order(self):
+        other = User.objects.create_user(username="otheruser", password="StrongPass123!")
+        order = Order.objects.create(
+            user=other, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=100000, status="delivered", is_paid=True,
+        )
+        response = self.client.post(reverse("orders:reorder_order", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 404)

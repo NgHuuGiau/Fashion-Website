@@ -37,14 +37,14 @@
             <div class="order-info-row"><span class="order-info-label">Trạng thái</span><strong class="status-badge status-{{ looked_up_order.status }}">{{ looked_up_order.get_status_display }}</strong></div>
             <div class="order-info-row"><span class="order-info-label">Thanh toán</span><strong>{{ looked_up_order.get_payment_method_display }}{% if looked_up_order.is_paid %} &bull; Đã thanh toán{% endif %}</strong></div>
             {% if looked_up_order.eta_label %}<div class="order-info-row"><span class="order-info-label">Dự kiến giao</span><strong>{{ looked_up_order.eta_label }}</strong></div>{% endif %}
-            <div class="order-info-row"><span class="order-info-label">Tổng tiền</span><strong class="order-info-value">{{ looked_up_order.total_amount|floatformat:"0" }}đ</strong></div>
+            <div class="order-info-row"><span class="order-info-label">Tổng tiền</span><strong class="order-info-value">{{ looked_up_order.total_amount|vnd }}đ</strong></div>
         </div>
         <h4 style="margin-top:1rem;font-size:0.85rem">Sản phẩm</h4>
         <ul class="order-product-list">
             {% for item in looked_up_order.items.all %}
             <li class="order-product-item">
                 <span>{{ item.product.name|repair_text }} {% if item.selected_color %} - {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %} x{{ item.quantity }}</span>
-                <strong>{{ item.subtotal|floatformat:"0" }}đ</strong>
+                <strong>{{ item.subtotal|vnd }}đ</strong>
             </li>
             {% endfor %}
         </ul>

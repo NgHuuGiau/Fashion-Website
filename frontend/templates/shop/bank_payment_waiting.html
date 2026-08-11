@@ -56,7 +56,7 @@
                         </div>
                         <div class="payment-info-item payment-info-item-highlight">
                             <span class="payment-info-label">Số tiền</span>
-                            <strong class="payment-info-value payment-info-price">{{ order.total_amount|floatformat:"0" }}<span class="payment-currency">đ</span></strong>
+                            <strong class="payment-info-value payment-info-price">{{ order.total_amount|vnd }}<span class="payment-currency">đ</span></strong>
                         </div>
                         <div class="payment-info-item">
                             <span class="payment-info-label">Nội dung</span>
@@ -142,7 +142,7 @@
                         </div>
                         <div class="payment-summary-row payment-summary-row-price">
                             <span>Thành tiền</span>
-                            <strong>{{ order.total_amount|floatformat:"0" }}đ</strong>
+                            <strong>{{ order.total_amount|vnd }}đ</strong>
                         </div>
                         <div class="payment-summary-row">
                             <span>Nội dung</span>

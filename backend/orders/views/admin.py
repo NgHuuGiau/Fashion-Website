@@ -2,13 +2,32 @@ import csv
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, render
 
+from users.permissions import is_staff_member
+
+from ..constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
 from ..models import Order
 
 
 @login_required
+def print_invoice(request: HttpRequest, order_id) -> HttpResponse:
+    if not is_staff_member(request.user):
+        raise Http404
+    order = get_object_or_404(Order.objects.prefetch_related("items__product", "items__variant"), id=order_id)
+    bank_name = (BANKS.get(order.bank_code) or {}).get("name", "")
+    context = {
+        "order": order,
+        "bank_name": bank_name,
+        "shop_bank_account": SHOP_BANK_ACCOUNT,
+        "shop_account_name": SHOP_ACCOUNT_NAME,
+    }
+    return render(request, "admin/invoice_print.html", context)
+
+
+@login_required
 def admin_export_orders(request: HttpRequest) -> HttpResponse:
-    if not request.user.is_staff:
+    if not is_staff_member(request.user):
         raise Http404
 
     status = request.GET.get("status", "")

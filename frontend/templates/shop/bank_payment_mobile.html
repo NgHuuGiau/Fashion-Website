@@ -85,6 +85,8 @@
             color: var(--accent-strong);
             margin: 0.5rem 0 1rem;
             letter-spacing: -0.02em;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
         .bank-info {
             background: var(--surface-tint);
@@ -247,7 +249,7 @@
                 </p>
             {% else %}
                 <div class="order-id">Đơn hàng #{{ order.id }}</div>
-                <div class="amount">{{ order.total_amount|floatformat:"0" }}<span style="font-size:0.9rem;">đ</span></div>
+                <div class="amount">{{ order.total_amount|vnd }}<span style="font-size:0.9rem;">đ</span></div>
 
                 <div class="bank-info">
                     <p><span>Ngân hàng</span><strong>{{ selected_bank_name }}</strong></p>
