@@ -63,10 +63,25 @@ jobs:
 
       - name: Install ODBC Driver 18 for SQL Server
         run: |
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
-          sudo curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
-          sudo apt-get update
+          set -euo pipefail
+          cat /etc/os-release | grep -E '^(NAME|VERSION|VERSION_ID)='
+          curl_retry() {
+            local url="$1" out="$2"
+            for i in 1 2 3 4 5; do
+              if curl -fSL --retry 3 --retry-delay 2 "$url" -o "$out" 2>/tmp/curl.err; then
+                return 0
+              fi
+              sleep 3
+            done
+            cat /tmp/curl.err >&2
+            return 1
+          }
+          curl_retry https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb /tmp/microsoft-prod.deb
+          sudo dpkg -i /tmp/microsoft-prod.deb
+          rm -f /tmp/microsoft-prod.deb
+          sudo apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=30
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+          odbcinst -q -d | grep -i 'ODBC Driver 18'
 
       - name: Run Django checks
         run: python manage.py check
