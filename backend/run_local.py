@@ -9,23 +9,21 @@ Cach dung:
     python run_local.py [host] [port]
     python run_local.py 127.0.0.1 8000
 """
-import io
 import os
+import socketserver
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-
 import django
-
-django.setup()
-
 from django.core.servers.basehttp import (
     WSGIRequestHandler,
     WSGIServer,
     get_internal_wsgi_application,
 )
-import socketserver
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+
+django.setup()
 
 
 def main():
