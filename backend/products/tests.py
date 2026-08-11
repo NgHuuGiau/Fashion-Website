@@ -861,6 +861,7 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "2", "comment": "Lần hai"},
         )
+        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
         self.assertEqual(self.product.reviews.count(), 1)
         self.assertEqual(self.product.reviews.get().rating, 4)
 
@@ -870,11 +871,10 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "9", "comment": "Xấu"},
         )
+        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
         self.assertEqual(self.product.reviews.count(), 0)
 
     def test_review_avg_and_buckets(self):
-        from .models import Review
-
         Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
         Review.objects.create(product=self.product, user=self.other, rating=3, comment="tb")
 
@@ -887,8 +887,6 @@ class ReviewTest(TestCase):
         self.assertEqual(buckets[1], 0)
 
     def test_unpublished_review_hidden(self):
-        from .models import Review
-
         Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ẩn", is_published=False)
         response = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
         self.assertEqual(response.context["rating_count"], 0)
@@ -917,8 +915,6 @@ class ReviewTest(TestCase):
         self.assertTrue(review.verified_purchase)
 
     def test_catalog_shows_rating_count(self):
-        from .models import Review
-
         Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
         response = self.client.get(reverse("products:product_list"))
         self.assertContains(response, "Áo có đánh giá")

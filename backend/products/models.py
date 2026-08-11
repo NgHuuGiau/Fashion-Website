@@ -55,9 +55,6 @@ class Product(models.Model):
         from django.urls import reverse
 
         return reverse("products:product_detail", kwargs={"pk": self.id, "slug": self.slug})
-        if not relative_name:
-            return False
-        return (Path(settings.MEDIA_ROOT) / relative_name).exists()
 
     def _build_placeholder_image(self):
         category_label = (self.category.name or self.category.slug or "HUUGIAU").upper().replace("-", " ")

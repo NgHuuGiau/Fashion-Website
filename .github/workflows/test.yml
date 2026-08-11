@@ -124,9 +124,10 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          # Omit boilerplate (admin/apps/management/templatetags/urls/wsgi) from
-          # the coverage gate; focus on application logic. Gate stays at 90%.
-          coverage run --source='.' --omit='*/migrations/*,*/tests.py,manage.py,*/admin.py,*/apps.py,*/management/*,*/templatetags/*,*/urls.py,*/wsgi.py,*/asgi.py,*__init__.py' manage.py test orders products users --verbosity=2
+          # Omit boilerplate (admin/apps/management/templatetags/urls/wsgi) and
+          # the local dev runner (run_local.py) from the coverage gate; focus on
+          # application logic. Run all apps (incl. core/api.py). Gate stays at 90%.
+          coverage run --source='.' --omit='*/migrations/*,*/tests.py,manage.py,run_local.py,*/admin.py,*/apps.py,*/management/*,*/templatetags/*,*/urls.py,*/wsgi.py,*/asgi.py,*__init__.py' manage.py test core orders products users --verbosity=2
           coverage report --show-missing --fail-under=90
         working-directory: backend
 
