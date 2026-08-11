@@ -592,29 +592,29 @@
               <colgroup>
                 <col class="admin-col-check">
                 <col class="admin-col-thumb">
-                <col class="admin-col-product">
-                <col class="admin-col-category">
-                <col class="admin-col-price">
-                <col class="admin-col-stock">
-                <col class="admin-col-status">
-                <col class="admin-col-actions">
+                <col class="pcol-name">
+                <col class="pcol-category">
+                <col class="pcol-price">
+                <col class="pcol-stock">
+                <col class="pcol-status">
+                <col class="pcol-actions">
               </colgroup>
               <thead>
                 <tr>
-                  <th><input type="checkbox" id="admin-select-all-header"></th>
+                  <th class="adm-center"><input type="checkbox" id="admin-select-all-header"></th>
                   <th>Ảnh</th>
                   <th>Tên sản phẩm</th>
                   <th>Danh mục</th>
-                  <th>Giá</th>
-                  <th>Tồn kho</th>
-                  <th>Trạng thái</th>
+                  <th class="adm-num">Giá</th>
+                  <th class="adm-center">Tồn kho</th>
+                  <th class="adm-center">Trạng thái</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {% for product in recent_products %}
                 <tr>
-                  <td><input type="checkbox" class="admin-product-check" value="{{ product.id }}"></td>
+                  <td class="adm-center"><input type="checkbox" class="admin-product-check" value="{{ product.id }}"></td>
                   <td>
                     {% if product.image and product.image.url %}
                     <img src="{{ product.image.url }}" alt="" class="admin-product-thumb">
@@ -625,10 +625,10 @@
                     {% endif %}
                   </td>
                   <td><span class="admin-product-name">{{ product.name }}</span></td>
-                  <td>{{ product.category.name }}</td>
-                  <td>{{ product.price|vnd }}đ</td>
-                  <td>{{ product.stock }}</td>
-                  <td>
+                  <td><span class="admin-ellipsis">{{ product.category.name }}</span></td>
+                  <td class="adm-num">{{ product.price|vnd }}đ</td>
+                  <td class="adm-center">{{ product.stock }}</td>
+                  <td class="adm-center">
                     {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
                     {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
                     {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
@@ -721,22 +721,22 @@
           <table class="cart-table admin-inventory-table">
             <colgroup>
               <col class="admin-col-thumb">
-              <col class="inventory-col-name">
-              <col class="inventory-col-category">
-              <col class="admin-col-price">
-              <col class="inventory-col-stock">
-              <col class="inventory-col-variants">
-              <col class="admin-col-status">
+              <col class="icol-name">
+              <col class="icol-category">
+              <col class="icol-price">
+              <col class="icol-stock">
+              <col class="icol-variants">
+              <col class="icol-status">
             </colgroup>
             <thead>
               <tr>
                 <th>Ảnh</th>
                 <th>Tên sản phẩm</th>
                 <th>Danh mục</th>
-                <th>Giá</th>
-                <th>Tổng tồn</th>
+                <th class="adm-num">Giá</th>
+                <th class="adm-center">Tồn kho</th>
                 <th>Chi tiết biến thể</th>
-                <th>Trạng thái</th>
+                <th class="adm-center">Trạng thái</th>
               </tr>
             </thead>
             <tbody>
@@ -752,9 +752,9 @@
                   {% endif %}
                 </td>
                 <td><span class="admin-product-name">{{ product.name }}</span></td>
-                <td>{{ product.category.name }}</td>
-                <td>{{ product.price|vnd }}đ</td>
-                <td><span class="adm-stock-pill {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}</span></td>
+                <td><span class="admin-ellipsis">{{ product.category.name }}</span></td>
+                <td class="adm-num">{{ product.price|vnd }}đ</td>
+                <td class="adm-center"><span class="adm-stock-pill {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}</span></td>
                 <td>
                   {% if product.variants.all %}
                   <div class="inv-variant-list">
@@ -766,7 +766,7 @@
                   <small class="admin-muted">Không có biến thể</small>
                   {% endif %}
                 </td>
-                <td>
+                <td class="adm-center">
                   {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
                   {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
                   {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
@@ -807,21 +807,21 @@
         <div class="table-wrap">
           <table class="cart-table admin-order-table">
             <colgroup>
-              <col class="admin-col-id">
-              <col class="admin-col-customer">
-              <col class="admin-col-total">
-              <col class="admin-col-payment">
-              <col class="admin-col-status">
-              <col class="admin-col-date">
-              <col class="admin-col-actions">
+              <col class="ocol-id">
+              <col class="ocol-customer">
+              <col class="ocol-total">
+              <col class="ocol-payment">
+              <col class="ocol-status">
+              <col class="ocol-date">
+              <col class="ocol-actions">
             </colgroup>
             <thead>
               <tr>
                 <th>Mã ĐH</th>
                 <th>Khách hàng</th>
-                <th>Tổng tiền</th>
+                <th class="adm-num">Tổng tiền</th>
                 <th>Thanh toán</th>
-                <th>Trạng thái</th>
+                <th class="adm-center">Trạng thái</th>
                 <th>Ngày tạo</th>
                 <th>Cập nhật</th>
               </tr>
@@ -831,25 +831,30 @@
               <tr>
                 <td><strong><a href="{% url 'orders:order_review' order.id %}" class="admin-order-link">#{{ order.id }}</a></strong></td>
                 <td>
-                  <div>{{ order.customer_name }}</div>
+                  <div class="admin-ellipsis">{{ order.customer_name }}</div>
                   <small class="admin-muted">{{ order.phone }}</small>
                   {% if order.items.all %}
                   <small class="admin-muted-sm">{{ order.items.all|length }} sản phẩm</small>
                   {% endif %}
                 </td>
-                <td><strong>{{ order.total_amount|vnd }}đ</strong></td>
+                <td class="adm-num"><strong>{{ order.total_amount|vnd }}đ</strong></td>
                 <td>
-                  {% if order.payment_method == "bank" %}
-                    <span class="admin-badge admin-badge-bank">Chuyển khoản</span>
-                    {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
-                  {% else %}
-                    <span class="admin-badge admin-badge-cod">COD</span>
-                  {% endif %}
+                  <div class="adm-badge-stack">
+                    {% if order.payment_method == "bank" %}
+                      <span class="admin-badge admin-badge-bank">Chuyển khoản</span>
+                      {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
+                    {% else %}
+                      <span class="admin-badge admin-badge-cod">COD</span>
+                    {% endif %}
+                  </div>
                 </td>
-                <td>
+                <td class="adm-center">
                   <span class="admin-badge admin-badge-status-{{ order.status }}">{% if order.status == "pending" %}Chờ xử lý{% elif order.status == "processing" %}Đang xử lý{% elif order.status == "shipping" %}Đang giao{% elif order.status == "delivered" %}Hoàn thành{% elif order.status == "cancelled" %}Đã hủy{% endif %}</span>
                 </td>
-                <td><small>{{ order.created_at|date:"d/m/Y H:i" }}</small></td>
+                <td>
+                  <span class="adm-date-main">{{ order.created_at|date:"d/m/Y" }}</span>
+                  <span class="adm-date-sub">{{ order.created_at|date:"H:i" }}</span>
+                </td>
                 <td>
                   <form method="post" class="admin-quick-form">
                     {% csrf_token %}
@@ -899,22 +904,22 @@
         <div class="table-wrap">
           <table class="cart-table admin-coupon-table">
             <colgroup>
-              <col class="coupon-col-code">
-              <col class="coupon-col-type">
-              <col class="coupon-col-value">
-              <col class="coupon-col-min">
-              <col class="coupon-col-limit">
-              <col class="coupon-col-active">
-              <col class="coupon-col-actions">
+              <col class="ccol-code">
+              <col class="ccol-type">
+              <col class="ccol-value">
+              <col class="ccol-min">
+              <col class="ccol-max">
+              <col class="ccol-active">
+              <col class="ccol-actions">
             </colgroup>
             <thead>
               <tr>
                 <th>Mã</th>
                 <th>Loại</th>
-                <th>Giá trị</th>
-                <th>Đơn tối thiểu</th>
-                <th>Giảm tối đa</th>
-                <th>Kích hoạt</th>
+                <th class="adm-num">Giá trị</th>
+                <th class="adm-num">Đơn tối thiểu</th>
+                <th class="adm-num">Giảm tối đa</th>
+                <th class="adm-center">Kích hoạt</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -923,10 +928,10 @@
               <tr>
                 <td><strong>{{ coupon.code }}</strong></td>
                 <td>{% if coupon.discount_type == "percent" %}%{% elif coupon.discount_type == "fixed" %}₫{% else %}Ship{% endif %}</td>
-                <td>{% if coupon.discount_type == "percent" %}{{ coupon.value|vnd }}%{% elif coupon.discount_type == "fixed" %}{{ coupon.value|vnd }}đ{% else %}Miễn phí ship{% endif %}</td>
-                <td>{{ coupon.min_order_amount|vnd }}đ</td>
-                <td>{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
-                <td>{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
+                <td class="adm-num">{% if coupon.discount_type == "percent" %}{{ coupon.value|vnd }}%{% elif coupon.discount_type == "fixed" %}{{ coupon.value|vnd }}đ{% else %}Miễn phí ship{% endif %}</td>
+                <td class="adm-num">{{ coupon.min_order_amount|vnd }}đ</td>
+                <td class="adm-num">{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
+                <td class="adm-center">{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
                 <td>
                   <div class="admin-row-actions">
                     <button type="button" class="btn ghost small" data-edit-coupon="{{ coupon.id }}" data-coupon-code="{{ coupon.code }}" data-coupon-type="{{ coupon.discount_type }}" data-coupon-value="{{ coupon.value }}" data-coupon-min="{{ coupon.min_order_amount }}" data-coupon-max="{{ coupon.max_discount_amount|default:'' }}" data-coupon-active="{{ coupon.is_active }}">Sửa</button>
@@ -1045,17 +1050,17 @@
         <div class="table-wrap">
           <table class="cart-table admin-user-table">
             <colgroup>
-              <col class="user-col-name">
-              <col class="user-col-email">
-              <col class="user-col-role">
-              <col class="user-col-date">
-              <col class="user-col-actions">
+              <col class="ucol-name">
+              <col class="ucol-email">
+              <col class="ucol-role">
+              <col class="ucol-date">
+              <col class="ucol-actions">
             </colgroup>
             <thead>
               <tr>
                 <th>Tài khoản</th>
                 <th>Email</th>
-                <th>Vai trò</th>
+                <th class="adm-center">Vai trò</th>
                 <th>Ngày đăng ký</th>
                 <th>Thao tác</th>
               </tr>
@@ -1067,8 +1072,8 @@
                   <strong>{{ account.username }}</strong>
                   {% if account.get_full_name %}<small class="admin-muted">{{ account.get_full_name }}</small>{% endif %}
                 </td>
-                <td>{{ account.email|default:"—" }}</td>
-                <td>
+                <td><span class="admin-ellipsis">{{ account.email|default:"—" }}</span></td>
+                <td class="adm-center">
                   {% if account.is_superuser %}
                   <span class="admin-badge admin-badge-role-admin">Quản trị viên</span>
                   {% elif account.is_staff %}
@@ -1143,6 +1148,7 @@ document.addEventListener('click', function(e) {
   margin-top: 1.25rem;
 }
 .adm-main { display: grid; gap: 1.25rem; min-width: 0; }
+.adm-main > * { min-width: 0; }
 
 /* ─── Sidebar ───────────────────────────── */
 .adm-sidebar {
@@ -1738,6 +1744,7 @@ document.addEventListener('click', function(e) {
   display: flex;
   gap: 0.4rem;
   margin-top: 0.45rem;
+  flex-wrap: wrap;
 }
 .admin-order-extra .btn,
 .admin-order-extra .btn.small {
@@ -1755,6 +1762,9 @@ document.addEventListener('click', function(e) {
   padding: 0.15rem 0.5rem;
   border-radius: 20px;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .admin-badge-ok { background: var(--success-soft); color: var(--success); }
 .admin-badge-warn { background: rgba(217, 119, 6, 0.12); color: var(--warning); }
@@ -1772,44 +1782,136 @@ document.addEventListener('click', function(e) {
 
 /* ─── Tables helpers ────────────────────── */
 .admin-product-table thead th,
-.admin-order-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
-.admin-col-check { width: 36px; }
-.admin-col-thumb { width: 52px; }
-.admin-col-id { width: 5%; }
-.admin-col-customer { width: 20%; }
-.admin-col-total { width: 9%; }
-.admin-col-payment { width: 13%; }
-.admin-col-status { width: 12%; }
-.admin-col-date { width: 9%; }
-.admin-col-actions { width: 32%; }
-.admin-col-product { min-width: 230px; max-width: 300px; }
-.admin-col-category { width: 125px; }
-.admin-col-price { width: 105px; }
-.admin-col-stock { width: 65px; }
-.admin-row-actions { display: flex; gap: 0.3rem; flex-wrap: nowrap; }
+.admin-inventory-table thead th,
+.admin-coupon-table thead th,
+.admin-user-table thead th,
+.admin-order-table thead th { font-size: 0.66rem; letter-spacing: 0.04em; white-space: nowrap; text-align: center; border-bottom: 2px solid var(--line-strong); }
+.admin-col-check { width: 3.5%; }
+.admin-col-thumb { width: 7%; }
+
+.admin-product-table th,
+.admin-product-table td,
+.admin-inventory-table th,
+.admin-inventory-table td,
+.admin-coupon-table th,
+.admin-coupon-table td,
+.admin-user-table th,
+.admin-user-table td,
+.admin-order-table th,
+.admin-order-table td { padding: 0.5rem 0.7rem; vertical-align: middle; border-right: 1px solid var(--line); font-size: 0.8rem; }
+.admin-product-table th:last-child,
+.admin-product-table td:last-child,
+.admin-inventory-table th:last-child,
+.admin-inventory-table td:last-child,
+.admin-coupon-table th:last-child,
+.admin-coupon-table td:last-child,
+.admin-user-table th:last-child,
+.admin-user-table td:last-child,
+.admin-order-table th:last-child,
+.admin-order-table td:last-child { border-right: none; }
+.adm-num { text-align: right; white-space: nowrap; }
+.adm-center { text-align: center; }
+.admin-product-table td,
+.admin-inventory-table td,
+.admin-coupon-table td,
+.admin-user-table td,
+.admin-order-table td { text-align: left; }
+.admin-product-table td.adm-num,
+.admin-inventory-table td.adm-num,
+.admin-coupon-table td.adm-num,
+.admin-user-table td.adm-num,
+.admin-order-table td.adm-num { text-align: right; }
+.admin-product-table td.adm-center,
+.admin-inventory-table td.adm-center,
+.admin-coupon-table td.adm-center,
+.admin-user-table td.adm-center,
+.admin-order-table td.adm-center { text-align: center; }
+.admin-coupon-table .admin-row-actions { justify-content: center; }
+.admin-order-table td:last-child { text-align: center; }
+.admin-order-table .admin-order-extra { justify-content: center; }
+.admin-product-table td:nth-child(2),
+.admin-inventory-table td:nth-child(2) { text-align: center; overflow: hidden; }
+
+/* Sản phẩm */
+.pcol-name { width: 24%; }
+.pcol-category { width: 12%; }
+.pcol-price { width: 12%; }
+.pcol-stock { width: 9.5%; }
+.pcol-status { width: 11%; }
+.pcol-actions { width: 21%; }
+
+/* Kho hàng */
+.icol-name { width: 21%; }
+.icol-category { width: 13%; }
+.icol-price { width: 11%; }
+.icol-stock { width: 11%; }
+.icol-variants { width: 24%; }
+.icol-status { width: 13%; }
+
+/* Đơn hàng */
+.ocol-id { width: 8%; }
+.ocol-customer { width: 20%; }
+.ocol-total { width: 11%; }
+.ocol-payment { width: 13%; }
+.ocol-status { width: 11%; }
+.ocol-date { width: 9%; }
+.ocol-actions { width: 28%; }
+
+/* Mã giảm giá */
+.ccol-code { width: 15%; }
+.ccol-type { width: 6%; }
+.ccol-value { width: 16%; }
+.ccol-min { width: 15%; }
+.ccol-max { width: 15%; }
+.ccol-active { width: 10%; }
+.ccol-actions { width: 23%; }
+
+/* Phân quyền */
+.ucol-name { width: 20%; }
+.ucol-email { width: 25%; }
+.ucol-role { width: 16%; }
+.ucol-date { width: 12%; }
+.ucol-actions { width: 27%; }
+
+.admin-row-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; row-gap: 0.3rem; }
 .admin-row-actions .btn,
 .admin-row-actions form { margin: 0; }
 .admin-inline-form { display: inline; }
 .admin-product-table,
 .admin-inventory-table,
 .admin-coupon-table,
-.admin-user-table { width: 100%; table-layout: fixed; }
-.admin-order-table { width: 100%; table-layout: fixed; }
+.admin-user-table,
+.admin-order-table { width: 100%; table-layout: fixed; min-width: 0; border-collapse: collapse; }
 .admin-product-table td,
 .admin-inventory-table td,
 .admin-coupon-table td,
-.admin-user-table td { white-space: nowrap; }
-.admin-order-table td { white-space: normal; }
+.admin-user-table td,
+.admin-order-table td { white-space: nowrap; overflow: hidden; }
+.admin-product-table th,
+.admin-inventory-table th,
+.admin-coupon-table th,
+.admin-user-table th,
+.admin-order-table th { overflow: hidden; text-overflow: ellipsis; }
 .admin-product-name {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: block;
+  max-width: 100%;
   overflow: hidden;
-  white-space: normal;
-  max-width: 280px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .admin-empty-cell { text-align: center; padding: 2rem !important; color: var(--muted); }
-.admin-order-link { color: var(--accent-strong); font-weight: 700; text-decoration: none; }
+.adm-badge-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.adm-date-main { display: block; font-size: 0.78rem; color: var(--text); white-space: nowrap; }
+.adm-date-sub { display: block; font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+.admin-order-link { color: var(--accent-strong); font-weight: 700; text-decoration: none; font-size: 0.75rem; }
+.admin-order-table td:first-child { padding-left: 0.45rem; padding-right: 0.45rem; }
 .admin-order-link:hover { text-decoration: underline; }
 .admin-muted { color: var(--muted); font-size: 0.72rem; display: block; }
 .admin-muted-sm { color: var(--muted-light); font-size: 0.66rem; display: block; margin-top: 0.15rem; }
@@ -1820,10 +1922,12 @@ document.addEventListener('click', function(e) {
   border-radius: var(--radius-xs);
   border: 1px solid var(--line);
   background: var(--surface-tint);
+  max-width: 100%;
 }
 .admin-product-placeholder {
   width: 46px;
   height: 46px;
+  max-width: 100%;
   display: grid;
   place-items: center;
   border-radius: var(--radius-xs);
@@ -1831,15 +1935,10 @@ document.addEventListener('click', function(e) {
   color: var(--muted);
   font-weight: 800;
 }
-.admin-quick-form { display: inline-flex; gap: 0.3rem; align-items: center; }
+.admin-quick-form { display: inline-flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
 .admin-hr { border: 0; border-top: 1px solid var(--line); margin: 1.25rem 0; }
 
 /* ─── Kho hàng ──────────────────────────── */
-.admin-inventory-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
-.inventory-col-name { min-width: 200px; }
-.inventory-col-category { width: 120px; }
-.inventory-col-stock { width: 100px; }
-.inventory-col-variants { min-width: 220px; }
 .inv-variant-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .inv-variant-chip {
   display: inline-block;
@@ -1855,12 +1954,6 @@ document.addEventListener('click', function(e) {
 .inv-variant-chip.is-inactive { opacity: 0.45; text-decoration: line-through; }
 
 /* ─── Phân quyền ────────────────────────── */
-.admin-user-table thead th { font-size: 0.7rem; letter-spacing: 0.04em; }
-.user-col-name { min-width: 170px; }
-.user-col-email { min-width: 150px; }
-.user-col-role { width: 150px; }
-.user-col-date { width: 110px; }
-.user-col-actions { min-width: 320px; }
 .admin-user-actions {
   display: flex;
   align-items: center;
@@ -1900,6 +1993,26 @@ document.addEventListener('click', function(e) {
   .adm-kpis { grid-template-columns: 1fr; }
   .adm-grid-2 { grid-template-columns: 1fr; }
   .adm-topbar { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 1000px) {
+  .admin-product-table td,
+  .admin-inventory-table td,
+  .admin-coupon-table td,
+  .admin-user-table td,
+  .admin-order-table td {
+    padding: 0.4rem 0.35rem;
+    font-size: 0.72rem;
+  }
+  .admin-product-table thead th,
+  .admin-inventory-table thead th,
+  .admin-coupon-table thead th,
+  .admin-user-table thead th,
+  .admin-order-table thead th { font-size: 0.6rem; }
+  .admin-badge { font-size: 0.62rem; padding: 0.09rem 0.38rem; }
+  .admin-order-link { font-size: 0.68rem; }
+  .adm-date-main { font-size: 0.72rem; }
+  .adm-date-sub { font-size: 0.62rem; }
+  .adm-num { font-size: 0.66rem; }
 }
 </style>
 {% endblock %}
