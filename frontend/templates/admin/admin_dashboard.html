@@ -149,10 +149,18 @@
             <p class="eyebrow">Phân tích</p>
             <h2>Thống kê cửa hàng</h2>
           </div>
+          <div class="adm-chart-switcher" role="tablist" aria-label="Chuyển biểu đồ">
+            <button type="button" class="chart-switch active" data-chart-target="chart-revenue" role="tab" aria-selected="true">Doanh thu</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-orders" role="tab" aria-selected="false">Đơn hàng</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-top" role="tab" aria-selected="false">Bán chạy</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-category" role="tab" aria-selected="false">Theo danh mục</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-status" role="tab" aria-selected="false">Theo trạng thái</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-donut" role="tab" aria-selected="false">Tỷ trọng</button>
+          </div>
         </div>
         <div class="adm-chart-grid">
 
-        <div class="chart-pane">
+        <div class="chart-pane chart-pane-active" id="chart-revenue" data-chart-pane>
           <h3 class="chart-card-title">Doanh thu 7 ngày</h3>
           <div class="admin-chart-meta">
             {% if revenue_growth_class == "is-up" %}
@@ -185,7 +193,7 @@
           {% endif %}
         </div>
 
-        <div class="chart-pane">
+        <div class="chart-pane" id="chart-orders" data-chart-pane>
           <h3 class="chart-card-title">Đơn hàng 7 ngày</h3>
           <div class="admin-chart-meta">
             <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
@@ -211,7 +219,7 @@
           {% endif %}
         </div>
 
-        <div class="chart-pane">
+        <div class="chart-pane" id="chart-top" data-chart-pane>
           <h3 class="chart-card-title">Sản phẩm bán chạy</h3>
           <div class="admin-chart-meta">
             <strong class="admin-chart-total">Top 5</strong>
@@ -237,7 +245,7 @@
           {% endif %}
         </div>
 
-        <div class="chart-pane">
+        <div class="chart-pane" id="chart-category" data-chart-pane>
           <h3 class="chart-card-title">Doanh thu theo danh mục</h3>
           <div class="admin-chart-meta">
             <strong class="admin-chart-total">{{ category_revenue|length }} nhóm</strong>
@@ -263,7 +271,7 @@
           {% endif %}
         </div>
 
-        <div class="chart-pane">
+        <div class="chart-pane" id="chart-status" data-chart-pane>
           <h3 class="chart-card-title">Đơn hàng theo trạng thái</h3>
           <div class="admin-chart-meta">
             <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
@@ -289,7 +297,7 @@
           {% endif %}
         </div>
 
-        <div class="chart-pane">
+        <div class="chart-pane" id="chart-donut" data-chart-pane>
           <h3 class="chart-card-title">Tỷ trọng đơn theo trạng thái</h3>
           <div class="admin-chart-meta">
             <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
@@ -1136,6 +1144,21 @@ document.addEventListener('click', function(e) {
   var panel = document.getElementById('admin-create-user');
   if (panel) panel.hidden = !panel.hidden;
 });
+
+document.addEventListener('click', function(e) {
+  var switchBtn = e.target.closest('.chart-switch[data-chart-target]');
+  if (!switchBtn) return;
+  var panes = document.querySelectorAll('.chart-pane[data-chart-pane]');
+  var switches = document.querySelectorAll('.chart-switch[data-chart-target]');
+  switches.forEach(function(s) {
+    var on = s === switchBtn;
+    s.classList.toggle('active', on);
+    s.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  panes.forEach(function(p) {
+    p.classList.toggle('chart-pane-active', p.id === switchBtn.dataset.chartTarget);
+  });
+});
 </script>
 
 <style>
@@ -1469,7 +1492,7 @@ document.addEventListener('click', function(e) {
 
 .adm-chart-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   align-items: start;
 }
@@ -1480,6 +1503,8 @@ document.addEventListener('click', function(e) {
   padding: 1rem;
   min-width: 0;
 }
+.chart-pane[data-chart-pane] { display: none; }
+.chart-pane.chart-pane-active { display: block; }
 .chart-card-title {
   font-family: var(--font-display);
   font-size: 1.02rem;

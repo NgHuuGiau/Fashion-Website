@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from orders.models import Coupon, Order, OrderItem
-from products.models import Category, Product, ProductVariant, WishlistItem, SupportFAQ
+from products.models import Category, Product, ProductVariant, SupportFAQ
 from users.models import UserActivity
 
 
