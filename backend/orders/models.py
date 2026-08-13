@@ -89,6 +89,7 @@ class Order(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ("cod", "Thanh toán khi nhận hàng"),
         ("bank", "Chuyển khoản ngân hàng"),
+        ("vnpay", "Thanh toán VNPay"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")

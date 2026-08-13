@@ -93,6 +93,11 @@
                     <p>Bạn chỉ cần xác nhận đơn, shop sẽ liên hệ và giao đến địa chỉ đã nhập.</p>
                 </div>
 
+                <div class="payment-box panel-soft" id="vnpay-note-box">
+                    <h3>Thanh toán VNPay</h3>
+                    <p>Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán VNPay để hoàn tất thanh toán trực tuyến.</p>
+                </div>
+
                 <div class="form-grid">
                     <label class="field span-2">
                         <span>{{ form.coupon_code.label }}</span>
@@ -145,7 +150,8 @@
     var transferNoteLabel = document.getElementById("transfer-note-label");
     var bankQrImage = document.getElementById("bank-qr-image");
     var codNoteBox = document.getElementById("cod-note-box");
-    if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox) return;
+    var vnpayNoteBox = document.getElementById("vnpay-note-box");
+    if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox || !vnpayNoteBox) return;
 
     var accountNo = "{{ shop_bank_account }}";
     var accountName = "{{ shop_account_name|urlencode }}";
@@ -170,9 +176,11 @@
 
     function updateDisplay() {
         var isBank = paymentSelect.value === "bank";
+        var isVnpay = paymentSelect.value === "vnpay";
         bankCodeWrap.style.display = isBank ? "block" : "none";
         bankBox.style.display = isBank ? "grid" : "none";
-        codNoteBox.style.display = isBank ? "none" : "block";
+        codNoteBox.style.display = (isBank || isVnpay) ? "none" : "block";
+        vnpayNoteBox.style.display = isVnpay ? "block" : "none";
         if (!isBank) return;
 
         var bankCode = bankSelect.value || "VCB";

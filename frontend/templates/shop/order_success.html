@@ -40,6 +40,12 @@
                 Bạn cần thanh toán trong vòng 15 phút để giữ đơn hàng.
             </div>
             {% endif %}
+            {% if not order.is_paid and order.payment_method == "vnpay" and order.status == "processing" %}
+            <div class="success-reminder">
+                <i class="fa-regular fa-clock"></i>
+                Đơn hàng đang chờ thanh toán VNPay. Bạn cần hoàn tất thanh toán trong 15 phút.
+            </div>
+            {% endif %}
 
             <div class="success-actions">
                 <a href="{% url 'orders:my_orders' %}" class="btn">
@@ -54,6 +60,12 @@
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn ghost">
                     <i class="fa-solid fa-qrcode"></i>
                     Thanh toán ngay
+                </a>
+                {% endif %}
+                {% if not order.is_paid and order.payment_method == "vnpay" and order.status == "processing" %}
+                <a href="{% url 'orders:vnpay_payment' order.id %}" class="btn ghost">
+                    <i class="fa-solid fa-credit-card"></i>
+                    Thanh toán VNPay
                 </a>
                 {% endif %}
             </div>

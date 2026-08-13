@@ -122,6 +122,9 @@ def auto_advance_order_status(order):
             if not order.is_paid:
                 order.is_paid = True
             order.save(update_fields=["status", "is_paid", "updated_at"])
+            from ..services.order_email import send_order_email
+
+            send_order_email(order, event="delivered")
     return order
 
 
@@ -160,8 +163,11 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
         if form.is_valid():
             form.save()
             messages.success(request, "Đã cập nhật thông tin đơn hàng.")
-            if request.POST.get("action") == "pay_now" and order.payment_method == "bank" and not order.is_paid:
-                return redirect("orders:bank_payment_waiting", order_id=order.id)
+            if request.POST.get("action") == "pay_now" and not order.is_paid:
+                if order.payment_method == "bank":
+                    return redirect("orders:bank_payment_waiting", order_id=order.id)
+                if order.payment_method == "vnpay":
+                    return redirect("orders:vnpay_payment", order_id=order.id)
         else:
             for field, field_errors in form.errors.items():
                 for err in field_errors:
@@ -240,6 +246,9 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
         order.is_paid = False
         order.save(update_fields=["status", "is_paid"])
         restore_order_stock(order)
+        from ..services.order_email import send_order_email
+
+        send_order_email(order, event="cancelled")
         messages.success(request, f"Đã huỷ đơn hàng #{order.id}.")
     else:
         messages.error(request, "Không thể huỷ đơn hàng ở trạng thái hiện tại.")

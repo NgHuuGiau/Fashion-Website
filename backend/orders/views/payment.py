@@ -36,6 +36,8 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
         return redirect("orders:order_failed", order_id=order.id)
     if order.payment_method == "bank" and not order.is_paid and order.status != "cancelled":
         return redirect("orders:bank_payment_waiting", order_id=order.id)
+    if order.payment_method == "vnpay" and not order.is_paid and order.status == "processing":
+        return redirect("orders:vnpay_payment", order_id=order.id)
     if order.status == "cancelled":
         return redirect("orders:order_failed", order_id=order.id)
 
@@ -140,6 +142,9 @@ def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
     order.is_paid = True
     order.status = "processing"
     order.save(update_fields=["is_paid", "status", "updated_at"])
+    from ..services.order_email import send_order_email
+
+    send_order_email(order, event="paid")
     logger.info(
         "Payment confirmed. order=%s user=%s ip=%s",
         order.id, request.user.id, request.META.get("REMOTE_ADDR"),
@@ -154,6 +159,104 @@ def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
     )
     messages.success(request, "Đã xác nhận thanh toán chuyển khoản.")
     return redirect("orders:order_success", order_id=order.id)
+
+
+@login_required
+def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
+    order = get_object_or_404(Order, **lookup)
+    if order.payment_method != "vnpay":
+        return redirect("orders:order_success", order_id=order.id)
+    if order.is_paid:
+        return redirect("orders:order_success", order_id=order.id)
+    if order.status == "cancelled":
+        return redirect("orders:order_failed", order_id=order.id)
+
+    from ..vnpay import build_payment_url, is_configured
+
+    if not is_configured():
+        messages.error(request, "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng thử chuyển khoản ngân hàng.")
+        return redirect("orders:order_review", order_id=order.id)
+
+    return_url = request.build_absolute_uri(reverse("orders:vnpay_return"))
+    ip_addr = request.META.get("REMOTE_ADDR", "127.0.0.1")
+    payment_url = build_payment_url(order, ip_addr, return_url)
+    if not payment_url:
+        messages.error(request, "Không tạo được phiên thanh toán VNPay. Vui lòng thử lại.")
+        return redirect("orders:order_review", order_id=order.id)
+    return redirect(payment_url)
+
+
+def vnpay_return(request: HttpRequest) -> HttpResponse:
+    """VNPay chuyển hướng về đây sau khi khách thanh toán."""
+    from ..vnpay import verify_return
+
+    params = request.GET.dict()
+    if not verify_return(params):
+        messages.error(request, "Chữ ký thanh toán không hợp lệ.")
+        return redirect("products:product_list")
+
+    txn_ref = params.get("vnp_TxnRef", "")
+    response_code = params.get("vnp_ResponseCode", "")
+    order = Order.objects.filter(id=txn_ref).first()
+    if not order:
+        messages.error(request, "Không tìm thấy đơn hàng.")
+        return redirect("orders:my_orders")
+
+    if order.is_paid:
+        messages.info(request, "Đơn hàng đã được thanh toán trước đó.")
+        return redirect("orders:order_success", order_id=order.id)
+    if response_code == "00":
+        order.is_paid = True
+        order.status = "processing"
+        order.save(update_fields=["is_paid", "status", "updated_at"])
+        from ..services.order_email import send_order_email
+
+        send_order_email(order, event="paid")
+        log_activity(
+            request,
+            event_type="payment_confirm",
+            metadata={"order_id": order.id, "payment_method": "vnpay", "vnp_ResponseCode": response_code},
+        )
+        messages.success(request, "Thanh toán VNPay thành công.")
+        return redirect("orders:order_success", order_id=order.id)
+
+    restore_order_stock(order)
+    order.status = "cancelled"
+    order.save(update_fields=["status", "updated_at"])
+    from ..services.order_email import send_order_email
+
+    send_order_email(order, event="cancelled")
+    return redirect("orders:order_failed", order_id=order.id)
+
+
+@transaction.atomic
+def vnpay_ipn(request: HttpRequest) -> HttpResponse:
+    """Server-to-server IPN của VNPay gọi lại. Trả về RspCode để VNPay xác nhận."""
+    from ..vnpay import verify_return
+
+    params = request.GET.dict()
+    order_id = params.get("vnp_TxnRef", "")
+    if not verify_return(params):
+        return JsonResponse({"RspCode": "97", "Message": "Invalid signature"})
+    order = Order.objects.filter(id=order_id).first()
+    if order is None:
+        return JsonResponse({"RspCode": "01", "Message": "Order not found"})
+    response_code = params.get("vnp_ResponseCode", "")
+    transaction_status = params.get("vnp_TransactionStatus", "")
+    if response_code == "00" and transaction_status == "00" and not order.is_paid:
+        order.is_paid = True
+        order.status = "processing"
+        order.save(update_fields=["is_paid", "status", "updated_at"])
+        from ..services.order_email import send_order_email
+
+        send_order_email(order, event="paid")
+        return JsonResponse({"RspCode": "00", "Message": "Confirm Success"})
+    if order.is_paid:
+        return JsonResponse({"RspCode": "02", "Message": "Order already confirmed"})
+    return JsonResponse({"RspCode": "97", "Message": "Payment not successful"})
 
 
 @login_required
@@ -218,6 +321,9 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
             order.is_paid = True
             order.status = "processing"
             order.save(update_fields=["is_paid", "status", "updated_at"])
+            from ..services.order_email import send_order_email
+
+            send_order_email(order, event="paid")
             ctx.update({"paid": True, "just_paid": True})
             return render(request, "shop/bank_payment_mobile.html", ctx)
         elif action == "cancel":
@@ -230,6 +336,9 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
             restore_order_stock(order)
             order.status = "cancelled"
             order.save(update_fields=["status", "updated_at"])
+            from ..services.order_email import send_order_email
+
+            send_order_email(order, event="cancelled")
             ctx.update({"cancelled": True, "just_cancelled": True})
             return render(request, "shop/bank_payment_mobile.html", ctx)
 

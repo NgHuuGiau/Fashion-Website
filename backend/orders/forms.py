@@ -26,6 +26,7 @@ class CheckoutForm(forms.Form):
         choices=[
             ("cod", "Thanh toán tiền mặt khi nhận hàng"),
             ("bank", "Chuyển khoản ngân hàng"),
+            ("vnpay", "Thanh toán VNPay"),
         ],
         label="Phương thức thanh toán",
     )
