@@ -144,6 +144,20 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 
+# Email (SMTP). Để trống EMAIL_HOST = tắt gửi mail (dev).
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@huugiau.local>")
+
+# VNPay (sandbox mặc định)
+VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
+VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
+
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "frontend/static"]
 

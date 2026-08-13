@@ -45,6 +45,9 @@
                 {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
                 <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Thanh toán ngay</a>
                 {% endif %}
+                {% if order.payment_method == "vnpay" and not order.is_paid and order.status == "processing" %}
+                <a href="{% url 'orders:vnpay_payment' order.id %}" class="btn">Thanh toán VNPay</a>
+                {% endif %}
                 {% if not order.is_paid and order.status == "pending" or not order.is_paid and order.status == "processing" %}
                 <form method="post" action="{% url 'orders:user_cancel_order' order.id %}" class="form-inline">
                   {% csrf_token %}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Xác nhận đơn hàng</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f0ea;font-family:Arial,Helvetica,sans-serif;color:#2b2118;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0ea;padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:#2b2118;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;">HUUGIAU Studio</h1>
+              <p style="margin:4px 0 0;color:#d9c6b5;font-size:13px;">Cảm ơn bạn đã đặt hàng!</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;font-size:18px;">Xác nhận đơn hàng #{{ order.id }}</h2>
+              <p style="margin:0 0 20px;font-size:14px;line-height:1.6;">
+                Kính chào <strong>{{ order.customer_name }}</strong>,<br>
+                Đơn hàng của bạn đã được ghi nhận và đang chờ xử lý.
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #efe6dc;border-bottom:1px solid #efe6dc;margin-bottom:20px;">
+                {% for item in items %}
+                <tr>
+                  <td style="padding:10px 0;font-size:14px;">
+                    <strong>{{ item.name }}</strong>{% if item.meta %}<br><span style="color:#8a7564;font-size:12px;">{{ item.meta }}</span>{% endif %}
+                    <br><span style="color:#8a7564;font-size:12px;">x{{ item.quantity }}</span>
+                  </td>
+                  <td style="padding:10px 0;font-size:14px;text-align:right;white-space:nowrap;">{{ item.total|floatformat:0 }}đ</td>
+                </tr>
+                {% endfor %}
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                <tr><td style="padding:3px 0;color:#8a7564;">Tạm tính</td><td align="right">{{ subtotal|floatformat:0 }}đ</td></tr>
+                <tr><td style="padding:3px 0;color:#8a7564;">Phí vận chuyển</td><td align="right">{{ shipping_fee|floatformat:0 }}đ</td></tr>
+                {% if discount_amount %}<tr><td style="padding:3px 0;color:#8a7564;">Giảm giá</td><td align="right">-{{ discount_amount|floatformat:0 }}đ</td></tr>{% endif %}
+                <tr><td style="padding:8px 0;font-size:16px;font-weight:bold;">Tổng cộng</td><td align="right" style="font-size:16px;font-weight:bold;">{{ total|floatformat:0 }}đ</td></tr>
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:1.6;margin-top:20px;">
+                <tr><td style="padding:3px 0;color:#8a7564;">Thanh toán</td><td align="right">{{ payment_label }}</td></tr>
+                <tr><td style="padding:3px 0;color:#8a7564;">Địa chỉ nhận hàng</td><td align="right">{{ order.shipping_address }}</td></tr>
+                <tr><td style="padding:3px 0;color:#8a7564;">Số điện thoại</td><td align="right">{{ order.phone }}</td></tr>
+              </table>
+              <p style="margin:24px 0 0;font-size:13px;color:#8a7564;">
+                Nếu bạn chưa hoàn tất thanh toán, hãy đăng nhập để tiếp tục.
+                Mọi thắc mắc vui lòng liên hệ qua trang hỗ trợ của chúng tôi.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

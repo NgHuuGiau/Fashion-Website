@@ -851,6 +851,9 @@
                     {% if order.payment_method == "bank" %}
                       <span class="admin-badge admin-badge-bank">Chuyển khoản</span>
                       {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
+                    {% elif order.payment_method == "vnpay" %}
+                      <span class="admin-badge admin-badge-ok">VNPay</span>
+                      {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
                     {% else %}
                       <span class="admin-badge admin-badge-cod">COD</span>
                     {% endif %}

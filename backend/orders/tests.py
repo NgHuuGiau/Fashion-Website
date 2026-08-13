@@ -5,13 +5,14 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Sum
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from products.models import Category, Product, ProductVariant
 from .admin_forms import CouponForm, OrderEditForm, OrderLookupForm, OrderSearchForm, OrderStatusForm, ProductForm
 from .models import Coupon, Order, OrderItem
+from .vnpay import _secure_hash
 
 
 def _payment_token(order_id):
@@ -2246,3 +2247,183 @@ class ReorderTest(TestCase):
         )
         response = self.client.post(reverse("orders:reorder_order", kwargs={"order_id": order.id}))
         self.assertEqual(response.status_code, 404)
+
+
+VNPAY_CONFIG = {
+    "VNPAY_URL": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    "VNPAY_TMN_CODE": "TESTTMN",
+    "VNPAY_HASH_SECRET": "tests3cret",
+}
+
+
+@override_settings(**VNPAY_CONFIG)
+class VNPayTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="buyer", password="StrongPass123!")
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category, name="Ao vnpay", slug="ao-vnpay",
+            price=300000, stock=5, available=True,
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product, color_name="Den", color_code="#111111", size="L", stock=3, is_active=True,
+        )
+        self.order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="vnpay", total_amount=300000, status="processing", is_paid=False,
+        )
+        OrderItem.objects.create(order=self.order, product=self.product, variant=self.variant, quantity=2, price=300000)
+
+    def _signed(self, **extra):
+        params = {
+            "vnp_Version": "2.1.0",
+            "vnp_Command": "pay",
+            "vnp_TmnCode": "TESTTMN",
+            "vnp_Amount": "30000000",
+            "vnp_TxnRef": str(self.order.id),
+            "vnp_ResponseCode": "00",
+            "vnp_TransactionStatus": "00",
+            "vnp_OrderInfo": "Thanh toan don hang test",
+        }
+        params.update(extra)
+        signed = params.copy()
+        signed["vnp_SecureHash"] = _secure_hash(params)
+        return signed
+
+    def test_payment_redirects_to_gateway_when_configured(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.get(reverse("orders:vnpay_payment", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("sandbox.vnpayment.vn", response.url)
+
+    def test_payment_unconfigured_redirects_review(self):
+        with override_settings(VNPAY_TMN_CODE="", VNPAY_HASH_SECRET=""):
+            self.client.login(username="buyer", password="StrongPass123!")
+            response = self.client.get(reverse("orders:vnpay_payment", kwargs={"order_id": self.order.id}))
+            self.assertRedirects(response, reverse("orders:order_review", kwargs={"order_id": self.order.id}))
+
+    def test_payment_rejects_non_vnpay_order(self):
+        self.order.payment_method = "cod"
+        self.order.save(update_fields=["payment_method"])
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.get(reverse("orders:vnpay_payment", kwargs={"order_id": self.order.id}))
+        self.assertRedirects(response, reverse("orders:order_success", kwargs={"order_id": self.order.id}))
+
+    def test_payment_rejects_foreign_order(self):
+        other = User.objects.create_user(username="otheruser", password="StrongPass123!")
+        order = Order.objects.create(
+            user=other, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="vnpay", total_amount=100000, status="processing", is_paid=False,
+        )
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.get(reverse("orders:vnpay_payment", kwargs={"order_id": order.id}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_return_success_marks_paid(self):
+        params = self._signed()
+        response = self.client.get(reverse("orders:vnpay_return"), params)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": self.order.id}))
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)
+        self.assertEqual(self.order.status, "processing")
+
+    def test_return_success_idempotent_when_already_paid(self):
+        self.order.is_paid = True
+        self.order.save(update_fields=["is_paid"])
+        params = self._signed(vnp_ResponseCode="99")
+        response = self.client.get(reverse("orders:vnpay_return"), params)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_success", kwargs={"order_id": self.order.id}))
+
+    def test_return_failure_cancels_and_restores_stock(self):
+        params = self._signed(vnp_ResponseCode="24", vnp_TransactionStatus="24")
+        response = self.client.get(reverse("orders:vnpay_return"), params)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:order_failed", kwargs={"order_id": self.order.id}))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "cancelled")
+        self.variant.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.variant.stock, 5)
+        self.assertEqual(self.product.stock, 5)
+
+    def test_return_bad_signature_rejected(self):
+        params = self._signed(vnp_ResponseCode="00")
+        params["vnp_SecureHash"] = "deadbeef"
+        response = self.client.get(reverse("orders:vnpay_return"), params)
+        self.assertEqual(response.status_code, 302)
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.is_paid)
+        self.assertEqual(self.order.status, "processing")
+
+    def test_return_unknown_order_redirects_my_orders(self):
+        params = self._signed(vnp_TxnRef="99999")
+        response = self.client.get(reverse("orders:vnpay_return"), params)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:my_orders"))
+
+    def test_ipn_success_confirms(self):
+        params = self._signed()
+        response = self.client.get(reverse("orders:vnpay_ipn"), params)
+        self.assertEqual(response.json()["RspCode"], "00")
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)
+
+    def test_ipn_bad_signature_returns_97(self):
+        params = self._signed()
+        params["vnp_SecureHash"] = "deadbeef"
+        response = self.client.get(reverse("orders:vnpay_ipn"), params)
+        self.assertEqual(response.json()["RspCode"], "97")
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.is_paid)
+
+    def test_ipn_unknown_order_returns_01(self):
+        params = self._signed(vnp_TxnRef="99999")
+        response = self.client.get(reverse("orders:vnpay_ipn"), params)
+        self.assertEqual(response.json()["RspCode"], "01")
+
+    def test_ipn_already_paid_returns_02(self):
+        self.order.is_paid = True
+        self.order.save(update_fields=["is_paid"])
+        params = self._signed()
+        response = self.client.get(reverse("orders:vnpay_ipn"), params)
+        self.assertEqual(response.json()["RspCode"], "02")
+
+    def test_checkout_vnpay_creates_processing_unpaid_and_redirects(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer Test",
+                "customer_email": "buyer@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "vnpay",
+                "coupon_code": "",
+                "note": "",
+            },
+        )
+        order = Order.objects.filter(payment_method="vnpay").order_by("-id").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("orders:vnpay_payment", kwargs={"order_id": order.id}))
+        order.refresh_from_db()
+        self.assertFalse(order.is_paid)
+        self.assertEqual(order.status, "processing")
+
+    def test_vnpay_order_auto_expires_after_15_minutes(self):
+        Order.objects.filter(id=self.order.id).update(created_at=timezone.now() - timedelta(minutes=16))
+        self.order.refresh_from_db()
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.get(reverse("orders:order_success", kwargs={"order_id": self.order.id}))
+        self.assertRedirects(response, reverse("orders:order_failed", kwargs={"order_id": self.order.id}))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "cancelled")
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 5)

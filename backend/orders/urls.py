@@ -22,6 +22,9 @@ from .views import (
     print_invoice,
     reorder_order,
     user_cancel_order,
+    vnpay_ipn,
+    vnpay_payment,
+    vnpay_return,
 )
 
 app_name = "orders"
@@ -42,6 +45,9 @@ urlpatterns = [
     path("don-hang/<int:order_id>/xac-nhan-thanh-toan/", bank_payment_confirm, name="bank_payment_confirm"),
     path("don-hang/<int:order_id>/huy-thanh-toan/", bank_payment_cancel, name="bank_payment_cancel"),
     path("qr-thanh-toan/<str:token>/<int:order_id>/", bank_payment_mobile, name="bank_payment_mobile"),
+    path("thanh-toan-vnpay/<int:order_id>/", vnpay_payment, name="vnpay_payment"),
+    path("thanh-toan-vnpay/callback/", vnpay_return, name="vnpay_return"),
+    path("thanh-toan-vnpay/ipn/", vnpay_ipn, name="vnpay_ipn"),
     path("don-hang-cua-toi/", my_orders, name="my_orders"),
     path("tra-cuu-don/", order_lookup, name="order_lookup"),
     path("don-hang/<int:order_id>/huy/", user_cancel_order, name="user_cancel_order"),

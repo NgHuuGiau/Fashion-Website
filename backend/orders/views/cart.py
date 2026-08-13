@@ -139,7 +139,7 @@ def apply_order_status_change(order, new_status, is_paid=False):
 
 
 def is_bank_order_expired(order):
-    if order.payment_method != "bank":
+    if order.payment_method not in ("bank", "vnpay"):
         return False
     if order.is_paid:
         return False
@@ -339,7 +339,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         coupon_code=selected_coupon.code if selected_coupon else "",
                         total_amount=total_amount,
                         is_paid=False,
-                        status="processing" if payment_method == "bank" else "pending",
+                        status="processing" if payment_method in ("bank", "vnpay") else "pending",
                     )
 
                     if selected_coupon:
@@ -404,6 +404,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             product.save(update_fields=["stock", "updated"])
 
                 clear_cart(request)
+                from ..services.order_email import send_order_email
+
+                send_order_email(order, event="created")
                 log_activity(
                     request,
                     event_type="checkout",
@@ -420,6 +423,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 messages.success(request, "Đặt hàng thành công.")
                 if payment_method == "bank":
                     return redirect("orders:bank_payment_waiting", order_id=order.id)
+                if payment_method == "vnpay":
+                    return redirect("orders:vnpay_payment", order_id=order.id)
                 return redirect("orders:order_success", order_id=order.id)
     else:
         form = CheckoutForm(initial=initial)
