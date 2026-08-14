@@ -34,6 +34,11 @@ File `.env` ở thư mục gốc hỗ trợ:
 | `DB_NAME` | `HUUGIAU_Fashion` | Tên database |
 | `REDIS_URL` | *(rỗng)* | Redis cho cache + session |
 | `COMPRESS_ENABLED` | `False` | Bật nén CSS/JS |
+| `EMAIL_HOST` | *(rỗng)* | SMTP server (bỏ trống = tắt gửi mail) |
+| `EMAIL_HOST_USER` | *(rỗng)* | Email gửi thông báo (Gmail App Password) |
+| `EMAIL_HOST_PASSWORD` | *(rỗng)* | App Password 16 ký tự |
+| `VNPAY_TMN_CODE` | *(rỗng)* | Mã merchant VNPay (sandbox) |
+| `VNPAY_HASH_SECRET` | *(rỗng)* | Secret key VNPay (sandbox) |
 
 > `CSRF_TRUSTED_ORIGINS` được khai báo cứng trong `core/settings.py` (gồm `https://localhost:8000`, `https://127.0.0.1:8000` và bản `http` tương ứng) — bắt buộc vì trình duyệt gửi header `Origin` khi POST; thiếu sẽ bị lỗi `403 Forbidden — Origin checking failed`.
 
@@ -45,8 +50,9 @@ File `.env` ở thư mục gốc hỗ trợ:
 | Database | SQL Server (local) |
 | Frontend | HTML5, CSS3 (3.8K dòng), JavaScript ES5 |
 | UI Icons | Font Awesome 6.5 (local + CDN dự phòng) |
-| Thanh toán | VietQR (23 ngân hàng) |
-| Testing | Django TestCase |
+| Thanh toán | VietQR (23 ngân hàng), VNPay |
+| Email | SMTP (Gmail App Password) — xác nhận đơn, đã thanh toán, hủy, hoàn thành |
+| Testing | Django TestCase — 400 tests, coverage 86% |
 | Export | CSV, JSON |
 
 ## Tính năng chính
@@ -55,7 +61,8 @@ File `.env` ở thư mục gốc hỗ trợ:
 - **Danh mục** — lọc theo danh mục, size, màu, giá, sắp xếp, phân trang (12/sp)
 - **Chi tiết sản phẩm** — gallery (6 ảnh), biến thể (màu + size), đã xem gần đây, size chart, wishlist
 - **Giỏ hàng** — session-based, cập nhật số lượng, coupon, phí ship
-- **Thanh toán** — COD hoặc chuyển khoản VietQR, polling trạng thái, tự động hết hạn (15 phút)
+- **Thanh toán** — COD, chuyển khoản VietQR (polling trạng thái, tự hết hạn 15 phút), VNPay (redirect gateway + callback/IPN xác minh chữ ký HMAC)
+- **Email thông báo** — gửi tự động khi đặt hàng, thanh toán thành công, hủy đơn, giao xong (bỏ trống email trong đơn → tự lấy email trong tài khoản)
 - **Tra cứu đơn hàng** — khách vãng lai tra bằng mã đơn + SĐT, hủy đơn + hoàn stock
 - **Tìm kiếm** — gợi ý tự động (debounce 250ms, 6 kết quả), không phân biệt dấu
 - **Đăng nhập** — bằng email / SĐT / username
@@ -132,6 +139,8 @@ Fashion-Website/
 │   ├── run_local.ps1
 │   ├── dev_server.py
 │   └── local_smoke_test.ps1
+├── backup-db.bat          # Backup DB tự động (giữ 7 ngày, lưu vào backups/)
+├── backups/               # File backup .bak (đã gitignore, OneDrive tự đồng bộ cloud)
 ├── docs/                  # Documentation
 ├── .env
 └── requirements.txt
@@ -143,6 +152,28 @@ Fashion-Website/
 cd backend
 python manage.py test
 ```
+
+> Do SQL Server local, chạy cả suite 1 lệnh có thể bị timeout — chạy theo từng app:
+> `python manage.py test users` / `products` / `orders` / `core` (hoặc theo tên class như `orders.tests.VNPayTest`).
+
+**Phủ test hiện tại (400 tests, coverage 86%):**
+
+| App | Số test | Phủ những gì |
+|-----|--------|--------------|
+| `orders` | 178 | Giỏ hàng, checkout (COD/bank/VNPay), thanh toán chuyển khoản (QR, confirm, cancel, hết hạn 15p), VNPay (15 test: gateway, callback, IPN, chữ ký, auto-expire), đơn hàng của tôi, tra cứu, mua lại, admin dashboard, coupon, export CSV |
+| `products` | 114 | Danh mục, chi tiết, biến thể, tìm kiếm, gợi ý, wishlist, đánh giá (sao/trung bình), support chat, size gợi ý, model methods |
+| `users` | 64 | Đăng ký, đăng nhập, hồ sơ, phân quyền, role sync, activity log |
+| `core` | 44 | API đơn hàng/admin, CSP header, chống spam đăng nhập (rate limit), cache, SEO, in hóa đơn, trang lỗi |
+
+**Đo coverage (đã có `coverage.py`):**
+```powershell
+coverage run --source=core,orders,products,users manage.py test products
+coverage report -m          # bảng phủ từng file
+coverage html               # mở htmlcov/index.html
+```
+
+> Phần chưa test chủ yếu là *management commands* (seed/export/import) — bỏ qua vì chỉ dùng phát triển, không thuộc luồng nghiệp vụ.
+> Lưu ý: chạy 2 lệnh test **song song** trên cùng test DB có thể gây deadlock SQL — luôn chạy tuần tự.
 
 ## URL chính
 
@@ -177,6 +208,7 @@ Database `HUUGIAU_Fashion` đã có sẵn 18 tài khoản (được `seed_all.py
 - Lỗi `403 CSRF — Origin checking failed` thường do thiếu `CSRF_TRUSTED_ORIGINS` — đã cấu hình sẵn trong `core/settings.py`
 - Nếu CSS/JS cũ, hard refresh (Ctrl+F5)
 - Tạo thêm tài khoản staff: `python manage.py createsuperuser` → đăng nhập tại `/dang-nhap/`
+- **Backup DB:** chạy `.\backup-db.bat` để backup vào `backups/` (giữ 7 ngày). Lần đầu chạy báo lỗi *Access denied* thì chạy `icacls "backups" /grant "NT SERVICE\MSSQLSERVER:(OI)(CI)M"` 1 lần. Đặt trong Windows Task Scheduler để chạy tự động mỗi ngày.
 
 ## License
 
