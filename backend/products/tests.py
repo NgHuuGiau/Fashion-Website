@@ -555,27 +555,27 @@ class ChatServiceCoverageTest(TestCase):
     def test_faq_ship_reply(self):
         from .services.chat_service import find_support_reply
         result = find_support_reply("van chuyen toan quoc khong")
-        self.assertIn("free ship toan quoc", result)
+        self.assertIn("freeship toàn quốc", result)
 
     def test_faq_payment_reply(self):
         from .services.chat_service import find_support_reply
         result = find_support_reply("thanh toan sao")
-        self.assertIn("chuyen khoan ngan hang", result)
+        self.assertIn("chuyển khoản ngân hàng", result)
 
     def test_faq_track_reply(self):
         from .services.chat_service import find_support_reply
         result = find_support_reply("theo doi don the nao")
-        self.assertIn("Don hang", result)
+        self.assertIn("Đơn hàng", result)
 
     def test_faq_return_reply(self):
         from .services.chat_service import find_support_reply
         result = find_support_reply("can doi tra the nao")
-        self.assertIn("lien he shop", result)
+        self.assertIn("liên hệ", result)
 
     def test_faq_size_reply_via_keyword(self):
         from .services.chat_service import find_support_reply
         result = find_support_reply("chat lieu the nao")
-        self.assertIn("chon mau va size", result)
+        self.assertIn("chiều cao", result)
 
     def test_build_size_support_reply_weight_only(self):
         from .services.chat_service import build_size_support_reply

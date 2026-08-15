@@ -6,33 +6,33 @@ def seed_support_faq(apps, schema_editor):
     SupportFAQ = apps.get_model("products", "SupportFAQ")
     items = [
         {
-            "question": "Phi ship the nao?",
+            "question": "Phí ship thế nào?",
             "keywords": "ship,giao,van chuyen,phi ship,free ship",
-            "answer": "Shop free ship toan quoc cho don tu 499K. Ban co the them san pham vao gio de xem phi ship truoc khi dat hang.",
+            "answer": "Shop freeship toàn quốc cho đơn từ 499K. Bạn có thể thêm sản phẩm vào giỏ để xem phí ship trước khi đặt.",
             "priority": 10,
         },
         {
-            "question": "Co thanh toan chuyen khoan khong?",
+            "question": "Có thanh toán chuyển khoản không?",
             "keywords": "thanh toan,chuyen khoan,cod,ngan hang",
-            "answer": "Shop ho tro thanh toan khi nhan hang va chuyen khoan ngan hang. O trang checkout ban co the chon phuong thuc phu hop.",
+            "answer": "Shop hỗ trợ COD và chuyển khoản ngân hàng. Bạn có thể chọn ở bước checkout.",
             "priority": 20,
         },
         {
-            "question": "Lam sao theo doi don?",
+            "question": "Làm sao theo dõi đơn?",
             "keywords": "don,theo doi,trang thai,ma don",
-            "answer": "Neu da dang nhap, ban vao muc Don hang de xem trang thai. Sau khi dat thanh cong, he thong cung hien trang xac nhan don ngay tren web.",
+            "answer": "Nếu đã đăng nhập, bạn vào mục Đơn hàng để xem trạng thái. Sau khi đặt xong, web cũng hiển thị xác nhận ngay.",
             "priority": 30,
         },
         {
-            "question": "Tu van size",
+            "question": "Tư vấn size",
             "keywords": "size,kich co,rong,chat lieu,form",
-            "answer": "Ban nen vao trang chi tiet san pham de chon mau va size. Neu can, hay gui them chieu cao, can nang va form mac mong muon de shop tu van nhanh hon.",
+            "answer": "Bạn gửi chiều cao, cân nặng và kiểu mặc mong muốn để shop gợi ý size nhanh hơn.",
             "priority": 40,
         },
         {
-            "question": "Doi tra nhu the nao?",
+            "question": "Đổi trả như thế nào?",
             "keywords": "doi,tra,hoan,huy",
-            "answer": "Ban hay lien he shop som nhat sau khi nhan hang neu can doi tra. Shop se can ma don, san pham va ly do doi tra de ho tro nhanh.",
+            "answer": "Nếu cần đổi trả, bạn liên hệ sớm sau khi nhận hàng và gửi kèm mã đơn để shop hỗ trợ nhanh.",
             "priority": 50,
         },
     ]

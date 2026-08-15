@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 """Dev server thay cho 'manage.py runserver'.
 
-Ly do: tren may nay 'manage.py runserver' bi reset moi ket noi HTTP (WinError 10054),
-nhung server WSGI truc tiep van chay binh thuong.
+Lý do: trên máy này 'manage.py runserver' bị reset mọi kết nối HTTP (WinError 10054),
+nhưng server WSGI trực tiếp vẫn chạy bình thường.
 
-Server nay phuc vu HTTPS: cac trinh duyet (Edge/Chrome) co cai dat tu dong chuyen
-sang https:// nen truoc day web khong hien thi (400, "only supports HTTP").
-Chung chi tu ky duoc tao tu dong tai backend/certs/ khi chay lan dau.
+Server này phục vụ HTTPS: các trình duyệt (Edge/Chrome) có cài đặt tự động chuyển
+sang https:// nên trước đây web không hiển thị (400, "only supports HTTP").
+Chứng chỉ tự ký được tạo tự động tại backend/certs/ khi chạy lần đầu.
 
-Cach dung:
+Cách dùng:
     python run_local.py [host] [port]
     python run_local.py 127.0.0.1 8000
-    python run_local.py 127.0.0.1 8000 --http   # chi HTTP, khong dung TLS
+    python run_local.py 127.0.0.1 8000 --http   # chỉ HTTP, không dùng TLS
 """
 import ipaddress
 import os
@@ -101,13 +101,13 @@ def main():
         scheme = "https"
 
     display_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
-    print(f"Dev server dang chay: {scheme}://{display_host}:{port}/  (Ctrl+C de tat)")
+    print(f"Dev server đang chạy: {scheme}://{display_host}:{port}/  (Ctrl+C để tắt)")
     if use_tls:
-        print("Trinh duyet bao dong chung chi tu ky -> bam 'Tiep tuc'/'Advanced' la vao duoc.")
+        print("Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được.")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nDa dung server.")
+        print("\nĐã dừng server.")
 
 
 if __name__ == "__main__":

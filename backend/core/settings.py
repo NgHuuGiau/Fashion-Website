@@ -182,7 +182,23 @@ LOGOUT_REDIRECT_URL = "products:product_list"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 _redis_url = os.getenv("REDIS_URL", "")
-if _redis_url:
+
+def _redis_available():
+    if not _redis_url:
+        return False
+    try:
+        import redis as _redis_lib
+
+        client = _redis_lib.from_url(
+            _redis_url, socket_connect_timeout=0.5, socket_timeout=0.5
+        )
+        return bool(client.ping())
+    except Exception:
+        return False
+
+_use_redis = _redis_available()
+
+if _use_redis:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -193,13 +209,14 @@ if _redis_url:
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 else:
     # WARNING: LocMemCache is per-process and NOT suitable for production with multiple workers.
-    # Set REDIS_URL in .env for production to enable cross-worker rate limiting and caching.
+    # Set REDIS_URL in .env (with Redis actually running) for database+cache sessions.
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "huugiau-cache",
         }
     }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", False)

@@ -1,14 +1,18 @@
 # HUUGIAU Atelier — Website thời trang
 
-![Python](https://img.shields.io/badge/Python_3.10%2B-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python_3.12%2B-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django_6.x-092E20?logo=django&logoColor=white)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES5-F7DF1E?logo=javascript&logoColor=black)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
+![VNPay](https://img.shields.io/badge/VNPay-006837)
 ![Pillow](https://img.shields.io/badge/Pillow-3776AB?logo=python&logoColor=white)
 ![Font Awesome](https://img.shields.io/badge/Font_Awesome_6.5-528DD7?logo=fontawesome&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows_11%2B-0078D4?logo=windows&logoColor=white)
+![CI](https://img.shields.io/github/actions/workflow/status/NgHuuGiau/Fashion-Website/test.yml?logo=githubactions&logoColor=white&label=CI)
+![Coverage](https://img.shields.io/badge/coverage-86%25-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 Website bán thời trang xây dựng bằng Django, giao diện editorial, quản trị đơn giản.
@@ -46,13 +50,14 @@ File `.env` ở thư mục gốc hỗ trợ:
 
 | Layer | Công nghệ |
 |-------|-----------|
-| Backend | Python 3.10+, Django 6.0 |
+| Backend | Python 3.12+ (CI chạy 3.12/3.13), Django 6.0 |
 | Database | SQL Server (local) |
-| Frontend | HTML5, CSS3 (3.8K dòng), JavaScript ES5 |
+| Frontend | HTML5, CSS3 (~5.4K dòng), JavaScript ES5 |
 | UI Icons | Font Awesome 6.5 (local + CDN dự phòng) |
 | Thanh toán | VietQR (23 ngân hàng), VNPay |
 | Email | SMTP (Gmail App Password) — xác nhận đơn, đã thanh toán, hủy, hoàn thành |
 | Testing | Django TestCase — 400 tests, coverage 86% |
+| CI/CD | GitHub Actions: test trên SQL Server 2022 (Docker, Python 3.12/3.13) + CodeQL |
 | Export | CSV, JSON |
 
 ## Tính năng chính
@@ -126,6 +131,7 @@ Fashion-Website/
 │   ├── products/          # Catalog, product detail, search
 │   ├── users/             # Auth, profiles, activity
 │   ├── certs/             # SSL certificates (dev)
+│   ├── run_local.py       # Dev server (HTTPS, thay manage.py runserver)
 │   └── manage.py
 ├── frontend/              # Static files & templates
 │   ├── static/            # CSS, JS, fonts, images
@@ -139,8 +145,10 @@ Fashion-Website/
 │   ├── run_local.ps1
 │   ├── dev_server.py
 │   └── local_smoke_test.ps1
+├── chay-web.bat           # Double-click rồi chạy — mở web tại https://127.0.0.1:8000/
 ├── backup-db.bat          # Backup DB tự động (giữ 7 ngày, lưu vào backups/)
 ├── backups/               # File backup .bak (đã gitignore, OneDrive tự đồng bộ cloud)
+├── .github/workflows/     # CI: test.yml (SQL Server 2022 Docker), codeql.yml
 ├── docs/                  # Documentation
 ├── .env
 └── requirements.txt
@@ -203,7 +211,8 @@ Database `HUUGIAU_Fashion` đã có sẵn 18 tài khoản (được `seed_all.py
 
 - Dùng SQL Server làm database chính (`DB_ENGINE=mssql`)
 - **Phân quyền đồng bộ 2 chiều:** đổi quyền trên web (Django admin) là SQL Server `[Users].role` đổi theo (signal tự động); đổi `[Users].role` trong SSMS là web đổi theo — chạy `python manage.py install_role_sync` một lần để cài trigger (chi tiết `docs/database-setup.md`)
-- **Cách chạy nhanh nhất:** `.\scripts\start.bat` — chạy là tự mở web `https://localhost:8000/`
+- **Cách chạy nhanh nhất:** double-click `chay-web.bat` (dùng `run_local.py` tại `https://127.0.0.1:8000/`) hoặc `.\scripts\start.bat` — chạy là tự mở web `https://localhost:8000/`
+- **CI:** mỗi commit push lên `main`/`develop` hoặc PR đều chạy 400 tests trên SQL Server 2022 (Docker) — xem trạng thái tại badge **CI** ở đầu README
 - Server dev chạy HTTPS bằng cert trong `backend/certs` — đã cài CA tin cậy nên Chrome/Edge hết cảnh báo (xem `docs/https-cert.md`)
 - Lỗi `403 CSRF — Origin checking failed` thường do thiếu `CSRF_TRUSTED_ORIGINS` — đã cấu hình sẵn trong `core/settings.py`
 - Nếu CSS/JS cũ, hard refresh (Ctrl+F5)

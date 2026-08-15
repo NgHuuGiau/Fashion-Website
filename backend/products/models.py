@@ -92,9 +92,9 @@ class Product(models.Model):
         if generated_cover:
             return generated_cover
 
-        first_gallery_image = self.gallery_images.order_by("sort_order", "id").first()
-        if first_gallery_image and self._media_file_exists(first_gallery_image.image.name):
-            return first_gallery_image.image.url
+        first_gallery_image = list(self.gallery_images.all()[:1])
+        if first_gallery_image and self._media_file_exists(first_gallery_image[0].image.name):
+            return first_gallery_image[0].image.url
         return self._build_placeholder_image()
 
     def _build_generated_asset_url(self, filename):
@@ -131,7 +131,7 @@ class Product(models.Model):
         primary_url = self.get_image() if include_primary else ""
         self._append_unique_image(images, seen_urls, primary_url, True)
 
-        for item in self.gallery_images.order_by("sort_order", "id"):
+        for item in self.gallery_images.all():
             if self._media_file_exists(item.image.name):
                 self._append_unique_image(images, seen_urls, item.image.url, False)
 

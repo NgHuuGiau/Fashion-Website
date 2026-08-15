@@ -203,20 +203,30 @@ def product_list(request: HttpRequest) -> HttpResponse:
     no_filter_mode = not any([category_slug, keyword, min_price_raw, max_price_raw]) and selected_sort == "newest"
     if no_filter_mode:
         is_random_home = True
-        featured_qs = base_products.filter(featured=True).order_by("id")
+        featured_qs = (
+            base_products.filter(featured=True)
+            .order_by("id")
+            .annotate(
+                rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
+                rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
+            )
+        )
         slider_products = list(featured_qs[:FEATURED_PRODUCT_LIMIT])
 
         if slider_products:
-            products_qs = featured_qs
+            # Ponytail: reuse the already-loaded (prefetched) list instead of
+            # re-evaluating featured_qs for the grid -> halves home page queries.
+            products_qs = slider_products
         else:
             products_qs = base_products.order_by("id")
     else:
         products_qs = products_qs.order_by(SORT_OPTIONS[selected_sort])
 
-    products_qs = products_qs.annotate(
-        rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
-        rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
-    )
+    if not isinstance(products_qs, list):
+        products_qs = products_qs.annotate(
+            rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
+            rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
+        )
     paginator = Paginator(products_qs, PRODUCTS_PER_PAGE)
     products = paginator.get_page(request.GET.get("page"))
 

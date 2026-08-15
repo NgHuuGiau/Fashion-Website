@@ -78,6 +78,27 @@ DB_ENGINE=mssql
 
 Sau khi đổi cấu hình, cần chạy lại `migrate` và `import_legacy`.
 
+## 6b. Chạy test trên CI (SQL Server Docker)
+
+GitHub Actions (`.github/workflows/test.yml`) chạy 400 tests trên SQL Server 2022 **trong Docker** (không dùng Windows Authentication):
+
+```
+DB_HOST=127.0.0.1
+DB_PORT=1433
+DB_USER=sa
+DB_PASSWORD=<pass tương tự>
+DB_TRUSTED_CONNECTION=false
+```
+
+Local muốn mô phỏng y hệt CI, chạy bên ngoài:
+
+```powershell
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<pass>" -e "MSSQL_PID=Express" `
+  -p 1433:1433 -d --name fash-sql mcr.microsoft.com/mssql/server:2022-latest
+```
+
+Rồi trỏ `.env` về `DB_HOST=127.0.0.1`, `DB_USER=sa`, `DB_PASSWORD=<pass>`, `DB_TRUSTED_CONNECTION=false`.
+
 ## 7. Đồng bộ phân quyền (role 0/1/2) giữa SQL Server và web
 
 Quyền của user nằm ở bảng `auth_user` (`is_staff`/`is_superuser`) trong khi bảng legacy `[Users]` lưu cột `role` (0 = admin, 1 = nhân viên, 2 = khách hàng). Hai chiều đồng bộ:
