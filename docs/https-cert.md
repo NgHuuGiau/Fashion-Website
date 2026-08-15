@@ -1,12 +1,12 @@
 # HTTPS cho Server Dev
 
-Server dev tự chạy **HTTPS** bằng cert trong `backend/certs/` (không cần cấu hình thêm — `manage.py runserver` đã override để bọc SSL). Trình duyệt của bạn vẫn ép sang `https://localhost:8000`, nên chạy HTTPS là cách duy nhất dùng được ngay; kèm CA tin cậy nên **không còn cảnh báo**.
+Server dev tự chạy **HTTPS** bằng cert trong `backend/certs/`. Cách chạy mặc định là `backend/run_local.py` (server WSGI trực tiếp — `manage.py runserver` bị reset mỗi kết nối `WinError 10054` trên máy này), gọi qua `chay-web.bat` ở gốc hoặc `scripts/start.bat`. `manage.py runserver` (override trong `core/management/commands/runserver.py`) cũng bọc SSL tự động nếu cần. Trình duyệt của bạn vẫn ép sang `https://localhost:8000`, nên chạy HTTPS là cách duy nhất dùng được ngay; kèm CA tin cậy nên **không còn cảnh báo**.
 
 Cert trong `backend/certs/`: `server.crt` + `server.key` (cho `localhost`, `127.0.0.1`, `::1`); `ca.crt` là CA `HUUGIAU Fashion Dev CA` đã cài vào Windows Trusted Root Store.
 
 ## Lưu ý về chạy HTTP
 
-Vì trình duyệt luôn ép sang `https://localhost:8000`, **không nên chuyển server sang HTTP** — sẽ bị lỗi `Bad request version` (browser gửi TLS vào cổng HTTP). Bọc SSL nằm trong `backend/core/management/commands/runserver.py`, và URL trong `scripts/start.ps1` / `scripts/run_local.ps1` phải để `https://`.
+Vì trình duyệt luôn ép sang `https://localhost:8000`, **không nên chuyển server sang HTTP** — sẽ bị lỗi `Bad request version` (browser gửi TLS vào cổng HTTP). Bọc SSL nằm trong `backend/run_local.py` (server chính) và `backend/core/management/commands/runserver.py`. Muốn chạy HTTP cho thật (test nội bộ), dùng `python run_local.py 127.0.0.1 8000 --http`. URL trong `scripts/start.ps1` / `scripts/run_local.ps1` phải để `https://`.
 
 ## Trạng thái hiện tại
 
