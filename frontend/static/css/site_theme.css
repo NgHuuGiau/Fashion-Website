@@ -2971,9 +2971,7 @@ button {
 }
 
 .card-media-editorial .tag {
-    position: absolute;
-    top: 12px;
-    left: 12px;
+    position: static;
     padding: 4px 10px;
     border-radius: 999px;
     background: rgba(255, 252, 248, 0.92);
@@ -2984,6 +2982,16 @@ button {
     color: var(--accent-strong);
     border: 1px solid var(--accent-glow);
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.card-tags {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     z-index: 2;
 }
 
@@ -5855,8 +5863,9 @@ textarea:focus-visible {
 
 .qv-btn {
     position: absolute;
-    bottom: 0.8rem; left: 50%;
-    transform: translateX(-50%) translateY(8px);
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     display: inline-flex; align-items: center; gap: 0.4rem;
     border: 0; cursor: pointer;
     background: rgba(18, 18, 18, 0.85); color: #fff;
@@ -5868,7 +5877,7 @@ textarea:focus-visible {
 }
 .product-card:hover .qv-btn {
     opacity: 1; pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
+    transform: translate(-50%, -50%);
 }
 .product-card-has-qv { position: relative; }
 

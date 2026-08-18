@@ -128,6 +128,7 @@
                 {% else %}
                 <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% endif %}
+                <div class="card-tags">
                 {% if product.featured %}
                 <span class="tag">NỔI BẬT</span>
                 {% endif %}
@@ -146,6 +147,7 @@
                 {% if product.low_stock %}
                 <span class="tag tag-low-stock">Sắp hết hàng</span>
                 {% endif %}
+                </div>
             </div>
             <div class="card-body card-body-editorial">
                 <p class="card-category">{{ product.category.name|repair_text }}</p>
@@ -163,7 +165,7 @@
                 </div>
             </div>
             </a>
-            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","img":"{{ product.get_image|escapejs }}","rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
+            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
                 <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem nhanh
             </button>
         </div>
@@ -249,6 +251,7 @@
                         {% else %}
                         <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                         {% endif %}
+                        <div class="card-tags">
                         {% if product.featured %}
                         <span class="tag">NỔI BẬT</span>
                         {% endif %}
@@ -267,6 +270,7 @@
                         {% if product.low_stock %}
                         <span class="tag tag-low-stock">Sắp hết hàng</span>
                         {% endif %}
+                        </div>
                     </div>
                     <div class="card-body card-body-editorial">
                         <p class="card-category">{{ product.category.name|repair_text }}</p>
@@ -738,7 +742,8 @@
             e.stopPropagation();
             var data;
             try { data = JSON.parse(btn.getAttribute('data-qv')); } catch (err) { return; }
-            img.src = data.img;
+            var cardImg = btn.closest('.product-card') && btn.closest('.product-card').querySelector('.card-media img');
+            img.src = cardImg ? cardImg.src : '';
             img.alt = data.name;
             nameEl.textContent = data.name;
             priceEl.textContent = data.price + 'đ';
