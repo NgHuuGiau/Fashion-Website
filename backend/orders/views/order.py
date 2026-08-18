@@ -1,4 +1,5 @@
 from datetime import timedelta
+import random
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -144,8 +145,37 @@ def _grant_order_points(order):
     Order.objects.filter(id=order.id).update(points_earned=earned)
 
 
+def pick_carrier(shipping_address):
+    """Chọn đơn vị vận chuyển theo khu vực giao hàng."""
+    normalized = normalize_shipping_address(shipping_address)
+    if any(keyword in normalized for keyword in HCMC_KEYWORDS + NEAR_HCMC_KEYWORDS):
+        return "ghn"
+    if any(keyword in normalized for keyword in NORTHERN_KEYWORDS):
+        return "ghtk"
+    return "vnpost"
+
+
+def generate_tracking_code(carrier, order_id):
+    prefix = {"ghn": "GHD", "ghtk": "GHTK", "vnpost": "VNPN"}[carrier]
+    return f"{prefix}{order_id:05d}{random.randint(100, 999)}"
+
+
+def mark_order_shipped(order):
+    """Gán đơn vị vận chuyển + mã vận đơn khi đơn sang 'Đang giao'. Idempotent."""
+    if order.status != "shipping" or order.carrier:
+        return order
+    order.carrier = pick_carrier(order.shipping_address)
+    order.tracking_code = generate_tracking_code(order.carrier, order.id)
+    order.save(update_fields=["carrier", "tracking_code", "updated_at"])
+    from ..services.order_email import send_order_email
+
+    send_order_email(order, event="shipping")
+    return order
+
+
 def decorate_order_tracking(order):
     auto_advance_order_status(order)
+    mark_order_shipped(order)
     eta = build_delivery_eta(order)
     order.eta_days = eta["eta_days"]
     order.eta_date = eta["eta_date"]

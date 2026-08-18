@@ -301,6 +301,12 @@
                 <img src="{{ review.image.url }}" alt="Ảnh đánh giá của {{ review.user.username }}" loading="lazy">
             </figure>
             {% endif %}
+            {% if review.shop_reply %}
+            <div class="review-shop-reply">
+                <strong class="review-shop-reply-title"><i class="fa-solid fa-shop"></i> Shop phản hồi</strong>
+                <p>{{ review.shop_reply|linebreaksbr }}</p>
+            </div>
+            {% endif %}
         </article>
         {% endfor %}
     </div>

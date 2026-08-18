@@ -31,6 +31,15 @@ COMMENTS = {
 
 USERNAMES = [f"user{i:02d}" for i in range(1, 51)]
 
+SHOP_REPLIES = [
+    "Cảm ơn anh/chị đã tin tưởng ủng hộ HUUGIAU. Rất vui vì sản phẩm làm hài lòng bạn!",
+    "Cảm ơn đánh giá chi tiết của bạn. Shop sẽ ghi nhận góp ý để ngày càng hoàn thiện hơn.",
+    "Cảm ơn bạn đã chọn HUUGIAU Studio. Hy vọng sớm gặp lại bạn ở những lần mua tiếp theo!",
+    "Cảm ơn bạn! Shop luôn cố gắng tư vấn tận tình để bạn chọn được đúng size và màu ưng ý nhất.",
+    "Cảm ơn bạn đã chia sẻ. Chất lượng luôn là ưu tiên số một của HUUGIAU.",
+    "Cảm ơn bạn. Chúc bạn luôn xinh đẹp với set đồ mới nhé!",
+]
+
 
 class Command(BaseCommand):
     help = "Tạo dữ liệu đánh giá mẫu cho các sản phẩm có sẵn (idempotent)."
@@ -67,4 +76,15 @@ class Command(BaseCommand):
                 )
                 created += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Đã tạo {created} đánh giá mẫu cho {len(products)} sản phẩm."))
+        backfilled = 0
+        for review in Review.objects.filter(shop_reply="").order_by("-created")[:300]:
+            if random.random() < 0.55:
+                review.shop_reply = random.choice(SHOP_REPLIES)
+                review.save(update_fields=["shop_reply"])
+                backfilled += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Đã tạo {created} đánh giá mẫu cho {len(products)} sản phẩm, shop phản hồi {backfilled} đánh giá."
+            )
+        )

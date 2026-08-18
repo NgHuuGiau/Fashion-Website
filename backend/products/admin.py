@@ -72,10 +72,10 @@ class SupportFAQAdmin(admin.ModelAdmin):
 @admin.register(Review)
 
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("product", "user", "rating", "verified_purchase", "is_published", "created")
+    list_display = ("product", "user", "rating", "shop_reply", "verified_purchase", "is_published", "created")
     list_filter = ("rating", "is_published", "verified_purchase", "created")
     list_editable = ("is_published", "rating")
-    search_fields = ("product__name", "user__username", "comment")
+    search_fields = ("product__name", "user__username", "comment", "shop_reply")
     raw_id_fields = ("product", "user")
 
 

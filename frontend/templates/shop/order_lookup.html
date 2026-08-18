@@ -35,6 +35,7 @@
             <div class="order-info-row"><span class="order-info-label">SĐT</span><strong>{{ looked_up_order.phone }}</strong></div>
             <div class="order-info-row"><span class="order-info-label">Địa chỉ</span><strong>{{ looked_up_order.shipping_address }}</strong></div>
             <div class="order-info-row"><span class="order-info-label">Trạng thái</span><strong class="status-badge status-{{ looked_up_order.status }}">{{ looked_up_order.get_status_display }}</strong></div>
+            {% if looked_up_order.carrier %}<div class="order-info-row"><span class="order-info-label">Vận chuyển</span><strong>{{ looked_up_order.carrier_label }} &middot; Mã vận đơn {{ looked_up_order.tracking_code }}{% if looked_up_order.tracking_url %} &middot; <a href="{{ looked_up_order.tracking_url }}" target="_blank" rel="noopener">Tra cứu</a>{% endif %}</strong></div>{% endif %}
             <div class="order-info-row"><span class="order-info-label">Thanh toán</span><strong>{{ looked_up_order.get_payment_method_display }}{% if looked_up_order.is_paid %} &bull; Đã thanh toán{% endif %}</strong></div>
             {% if looked_up_order.eta_label %}<div class="order-info-row"><span class="order-info-label">Dự kiến giao</span><strong>{{ looked_up_order.eta_label }}</strong></div>{% endif %}
             <div class="order-info-row"><span class="order-info-label">Tổng tiền</span><strong class="order-info-value">{{ looked_up_order.total_amount|vnd }}đ</strong></div>
