@@ -1,4 +1,4 @@
-Django>=6.0,<6.1
+Django>=6.1,<6.2
 pillow>=12.0
 django-compressor>=4.5,<5
 rcssmin>=1.1,<2
