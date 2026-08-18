@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
@@ -349,6 +349,45 @@ def build_admin_dashboard_context(
         growth_label = "Ổn định so với 7 ngày trước"
         growth_class = "is-flat"
 
+    monthly_revenue = []
+    month_agg = (
+        all_orders.filter(status="delivered")
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(total=Sum("total_amount"), orders_count=Count("id"))
+        .order_by("-month")[:12]
+    )
+    revenue_by_month = {}
+
+    for item in reversed(month_agg):
+        if item["month"] is None:
+            continue
+        revenue_by_month[item["month"].strftime("%Y-%m")] = {
+            "revenue": int(item["total"] or 0),
+            "orders_count": int(item["orders_count"] or 0),
+        }
+    month_labels = []
+    for offset in range(11, -1, -1):
+        cursor = (today.replace(day=1) - timedelta(days=offset * 31)).replace(day=1)
+        month_labels.append(cursor)
+
+    for month_date in month_labels:
+        key = month_date.strftime("%Y-%m")
+        row = revenue_by_month.get(key, {"revenue": 0, "orders_count": 0})
+        monthly_revenue.append(
+            {
+                "key": key,
+                "label": f"Tháng {month_date.month}/{month_date.year}",
+                "revenue": int(row["revenue"]),
+                "orders_count": int(row["orders_count"]),
+                "height": 8,
+            }
+        )
+    if monthly_revenue:
+        month_max = max((row["revenue"] for row in monthly_revenue), default=0) or 1
+        for row in monthly_revenue:
+            row["height"] = max(8, int((row["revenue"] / month_max) * 100)) if row["revenue"] else 8
+
     total_revenue = combined.pop("total_revenue") or 0
     month_revenue = combined.pop("month_revenue") or 0
     today_orders = combined.pop("today_orders") or 0
@@ -507,6 +546,7 @@ def build_admin_dashboard_context(
         "month_revenue": month_revenue,
         "daily_revenue": daily_revenue,
         "revenue_chart": revenue_chart,
+        "monthly_revenue": monthly_revenue,
         "orders_chart": orders_chart,
         "top_products": top_products,
         "category_revenue": category_revenue,

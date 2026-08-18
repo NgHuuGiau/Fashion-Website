@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Khuyến mãi — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Các mã giảm giá đang áp dụng tại HUUGIAU Atelier. Nhập mã khi thanh toán để nhận ưu đãi.{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container page-narrow">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>Khuyến mãi</span>
+        </nav>
+        <h1 class="page-title">Khuyến mãi đang áp dụng</h1>
+        <p class="page-lead">Nhập mã giảm giá tại bước thanh toán. Đơn từ {{ freeship_threshold|vnd }}đ được miễn phí vận chuyển toàn quốc.</p>
+
+        <div class="promo-list">
+            {% for c in coupons %}
+            <div class="promo-card panel">
+                <div class="promo-badge">{{ c.code }}</div>
+                <div class="promo-info">
+                    <h3>
+                        {% if c.discount_type == "freeship" %}
+                        Miễn phí vận chuyển
+                        {% elif c.discount_type == "percent" %}
+                        Giảm {{ c.value }}% đơn hàng
+                        {% else %}
+                        Giảm {{ c.value|vnd }}đ
+                        {% endif %}
+                    </h3>
+                    <p>Áp dụng cho đơn từ {{ c.min_order_amount|vnd }}đ{% if c.max_discount_amount %} (tối đa {{ c.max_discount_amount|vnd }}đ){% endif %}{% if c.ends_at %} · hết hạn {{ c.ends_at|date:"d/m/Y" }}{% endif %}.</p>
+                    <button type="button" class="btn btn-sm" data-copy-code="{{ c.code }}">Sao chép mã</button>
+                </div>
+            </div>
+            {% empty %}
+            <p class="muted">Hiện chưa có mã giảm giá nào. Ghé lại thường xuyên để không bỏ lỡ ưu đãi nhé!</p>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+
+<style>
+.promo-list { display: grid; gap: 0.75rem; }
+.promo-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.1rem 1.25rem; }
+.promo-badge {
+    flex: 0 0 auto; min-width: 96px; text-align: center;
+    padding: 0.9rem 0.5rem; border-radius: var(--radius-sm);
+    background: var(--accent-strong); color: #fff; font-weight: 800; font-size: 0.95rem;
+    letter-spacing: 0.06em;
+}
+.promo-info h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+.promo-info p { margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--text-soft); }
+@media (max-width: 520px) {
+    .promo-card { flex-direction: column; align-items: stretch; text-align: center; }
+    .promo-badge { min-width: 0; }
+}
+</style>
+
+<script>
+document.querySelectorAll('[data-copy-code]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-copy-code');
+        navigator.clipboard.writeText(code).then(function () {
+            btn.textContent = 'Đã sao chép ' + code;
+            setTimeout(function () { btn.textContent = 'Sao chép mã'; }, 1600);
+        });
+    });
+});
+</script>
+{% endblock %}

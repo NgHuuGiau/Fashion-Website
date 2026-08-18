@@ -1,6 +1,8 @@
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django import template
+from django.utils import timezone
 
 from products.constants import get_category_type_label
 from core.text_utils import normalize_vn_text, repair_mojibake_text
@@ -35,3 +37,12 @@ def normalize_vn(value):
 @register.filter
 def product_type_label(category_slug):
     return get_category_type_label(category_slug)
+
+
+@register.filter
+def is_new(product):
+    """Sản phẩm mới trong 14 ngày -> hiển thị badge MỚI."""
+    created = getattr(product, "created", None)
+    if not created:
+        return False
+    return timezone.now() - created <= timedelta(days=14)

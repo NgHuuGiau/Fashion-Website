@@ -55,10 +55,33 @@ class UserActivity(models.Model):
 
 
 
+class UserAddress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
+    label = models.CharField(max_length=40, blank=True, verbose_name="Nhãn (Nhà / Công ty)")
+    recipient_name = models.CharField(max_length=150, verbose_name="Người nhận")
+    phone = models.CharField(max_length=20, verbose_name="Số điện thoại")
+    address = models.TextField(verbose_name="Địa chỉ")
+    is_default = models.BooleanField(default=False, verbose_name="Mặc định", db_index=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Địa chỉ giao hàng"
+        verbose_name_plural = "Địa chỉ giao hàng"
+        ordering = ["-is_default", "-created"]
+
+    def __str__(self):
+        return f"{self.recipient_name} - {self.address[:40]}"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            self.__class__.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     phone_number = models.CharField(max_length=20, blank=True)
-
+    points = models.PositiveIntegerField(default=0, verbose_name="Điểm tích lũy", db_index=True)
 
     class Meta:
         verbose_name = "Hồ sơ người dùng"
@@ -66,3 +89,10 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.phone_number or 'No phone'}"
+
+    def tier_name(self):
+        if self.points >= 2000:
+            return "VIP"
+        if self.points >= 1000:
+            return "Thân thiết"
+        return "Thành viên"

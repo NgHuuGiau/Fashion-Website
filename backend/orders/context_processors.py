@@ -40,3 +40,15 @@ def cart_info(request):
         "cart_item_count": cart_count_cached(request),
         "wishlist_item_count": wishlist_count(request),
     }
+
+
+def shop_site_config(request):
+    from django.conf import settings
+
+    return {
+        "GA4_MEASUREMENT_ID": settings.GA4_MEASUREMENT_ID,
+        "ZALO_OA_ID": settings.ZALO_OA_ID,
+        "HOTLINE": settings.HOTLINE,
+        "STORE_ADDRESS": settings.STORE_ADDRESS,
+        "PROMO_BANNER": settings.PROMO_BANNER,
+    }

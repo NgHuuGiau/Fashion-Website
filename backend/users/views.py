@@ -9,11 +9,12 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from .activity import log_activity
 from .captcha import generate_captcha_code, generate_captcha_image
 from .forms import ForgotPasswordForm, CaptchaForm, ResetPasswordForm, ProfileForm, RegisterForm, ChangePasswordForm
-from .models import UserProfile
+from .models import UserAddress, UserProfile
 from core.ratelimit import rate_limit
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,8 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     else:
         form = ProfileForm(user=request.user)
 
+    addresses = list(UserAddress.objects.filter(user=request.user))
+
     return render(
         request,
         "account/profile.html",
@@ -169,8 +172,56 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "profile": profile,
             "display_name": display_name,
             "display_initials": display_initials,
+            "addresses": addresses,
         },
     )
+
+
+@login_required
+@require_POST
+def address_add(request: HttpRequest) -> HttpResponse:
+    recipient_name = (request.POST.get("recipient_name") or "").strip()
+    phone = (request.POST.get("phone") or "").strip()
+    address = (request.POST.get("address") or "").strip()
+    label = (request.POST.get("label") or "").strip()[:40]
+    is_default = request.POST.get("is_default") == "on"
+
+    if not recipient_name or not phone or not address:
+        messages.error(request, "Vui lòng điền đầy đủ tên người nhận, số điện thoại và địa chỉ.")
+        return redirect("users:profile")
+
+    if not UserAddress.objects.filter(user=request.user).exists():
+        is_default = True
+    UserAddress.objects.create(
+        user=request.user,
+        label=label,
+        recipient_name=recipient_name,
+        phone=phone,
+        address=address,
+        is_default=is_default,
+    )
+    messages.success(request, "Đã lưu địa chỉ giao hàng.")
+    return redirect("users:profile")
+
+
+@login_required
+@require_POST
+def address_delete(request: HttpRequest, address_id) -> HttpResponse:
+    address = get_object_or_404(UserAddress, id=address_id, user=request.user)
+    address.delete()
+    messages.success(request, "Đã xóa địa chỉ.")
+    return redirect("users:profile")
+
+
+@login_required
+@require_POST
+def address_set_default(request: HttpRequest, address_id) -> HttpResponse:
+    address = get_object_or_404(UserAddress, id=address_id, user=request.user)
+    UserAddress.objects.filter(user=request.user, is_default=True).update(is_default=False)
+    address.is_default = True
+    address.save(update_fields=["is_default"])
+    messages.success(request, "Đã đặt địa chỉ mặc định.")
+    return redirect("users:profile")
 
 
 @login_required

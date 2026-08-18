@@ -45,11 +45,35 @@
                         {{ form.phone }}
                         {{ form.phone.errors }}
                     </label>
+                    {% if saved_addresses %}
+                    <div class="field span-2 checkout-saved-addresses">
+                        <span class="checkout-saved-label">Chọn nhanh từ sổ địa chỉ:</span>
+                        <div class="checkout-saved-list">
+                            {% for addr in saved_addresses %}
+                            <button type="button" class="saved-addr-chip {% if addr.is_default %}is-default{% endif %}"
+                                    data-name="{{ addr.recipient_name }}" data-phone="{{ addr.phone }}" data-address="{{ addr.address }}">
+                                {% if addr.is_default %}<i class="fa-solid fa-star" aria-hidden="true"></i>{% endif %}
+                                {{ addr.recipient_name }} · {{ addr.phone }}<span>{{ addr.address }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <label class="field span-2">
                         <span>{{ form.shipping_address.label }}</span>
                         {{ form.shipping_address }}
                         {{ form.shipping_address.errors }}
                     </label>
+                    <div class="field span-2 checkout-map-wrap">
+                        <div class="checkout-map-tools">
+                            <input type="text" id="locate-search" class="checkout-map-search" placeholder="Tìm địa chỉ... ví dụ: 12 Nguyễn Hữu Thọ, Q7" aria-label="Tìm địa chỉ giao hàng">
+                            <button type="button" class="btn ghost" id="locate-btn"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Định vị</button>
+                            <a href="#" id="locate-google-link" class="checkout-map-google" target="_blank" rel="noopener">Mở Google Maps <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                        </div>
+                        <div id="checkout-map" class="checkout-map" aria-label="Bản đồ chọn vị trí giao hàng"></div>
+                        <p class="checkout-map-hint">Gõ địa chỉ rồi bấm Enter để tìm trên map, hoặc click trực tiếp lên map để chọn đúng vị trí giao hàng.</p>
+                        <p class="checkout-map-status" id="locate-status" hidden></p>
+                    </div>
                     <label class="field span-2">
                         <span>{{ form.payment_method.label }}</span>
                         {{ form.payment_method }}
@@ -105,6 +129,14 @@
                         {{ form.coupon_code.errors }}
                         {% if form.coupon_code.help_text %}<small class="help-text">{{ form.coupon_code.help_text }}</small>{% endif %}
                     </label>
+                    {% if user_points %}
+                    <label class="field span-2">
+                        <span>{{ form.points_to_use.label }} — bạn có <strong>{{ user_points }}</strong> điểm</span>
+                        {{ form.points_to_use }}
+                        {{ form.points_to_use.errors }}
+                        {% if form.points_to_use.help_text %}<small class="help-text">{{ form.points_to_use.help_text }}</small>{% endif %}
+                    </label>
+                    {% endif %}
                     <label class="field span-2">
                         <span>{{ form.note.label }}</span>
                         {{ form.note }}
@@ -322,6 +354,149 @@
     paymentSelect.addEventListener("change", updateDisplay);
     bankSelect.addEventListener("change", updateDisplay);
     updateDisplay();
+})();
+</script>
+
+<script>
+(function () {
+    var btn = document.getElementById('locate-btn');
+    var mapBox = document.getElementById('checkout-map');
+    var status = document.getElementById('locate-status');
+    var searchBox = document.getElementById('locate-search');
+    var googleLink = document.getElementById('locate-google-link');
+    var addressInput = document.getElementById('id_shipping_address');
+    if (!btn || !mapBox || !status || !searchBox || !addressInput) return;
+
+    function setStatus(text, isError) {
+        status.textContent = text;
+        status.hidden = false;
+        status.className = 'checkout-map-status ' + (isError ? 'is-error' : 'is-ok');
+    }
+
+    function reverseGeocode(lat, lng, cb) {
+        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&accept-language=vi')
+            .then(function (r) { return r.json(); })
+            .then(function (data) { cb(data && data.display_name || null); })
+            .catch(function () { cb(null); });
+    }
+
+    function initMap() {
+        if (typeof L === 'undefined') {
+            setStatus('Không tải được bản đồ. Bạn vui lòng kiểm tra kết nối mạng và tải lại trang.', true);
+            return;
+        }
+        L.Icon.Default.mergeOptions({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
+        });
+        var map = L.map(mapBox).setView([10.7294, 106.7060], 15);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        var marker = L.marker([10.7294, 106.7060]).addTo(map);
+
+        function setPos(lat, lng, fillAddress) {
+            map.setView([lat, lng], 16);
+            marker.setLatLng([lat, lng]);
+            if (fillAddress) {
+                reverseGeocode(lat, lng, function (name) {
+                    if (name) {
+                        addressInput.value = name;
+                        setStatus('Đã điền địa chỉ từ vị trí đã chọn.');
+                    } else {
+                        setStatus('Đã chọn vị trí, bạn tự điền địa chỉ nhé.');
+                    }
+                });
+            }
+        }
+
+        searchBox.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            var q = searchBox.value.trim();
+            if (!q) return;
+            setStatus('Đang tìm địa chỉ...');
+            fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q=' + encodeURIComponent(q) + '&limit=1&accept-language=vi')
+                .then(function (r) { return r.json(); })
+                .then(function (results) {
+                    if (!results || !results.length) {
+                        setStatus('Không tìm thấy địa chỉ "' + q + '". Bạn thử từ khoá khác hoặc click trên map.', true);
+                        return;
+                    }
+                    var r0 = results[0];
+                    setPos(parseFloat(r0.lat), parseFloat(r0.lon), true);
+                })
+                .catch(function () { setStatus('Lỗi tìm kiếm địa chỉ. Thử lại nhé.', true); });
+        });
+
+        map.on('click', function (e) {
+            setPos(e.latlng.lat, e.latlng.lng, true);
+        });
+
+        btn.addEventListener('click', function () {
+            if (!('geolocation' in navigator)) {
+                setStatus('Trình duyệt của bạn không hỗ trợ định vị.', true);
+                return;
+            }
+            btn.disabled = true;
+            setStatus('Đang xác định vị trí...');
+            navigator.geolocation.getCurrentPosition(
+                function (pos) { setPos(pos.coords.latitude, pos.coords.longitude, true); btn.disabled = false; },
+                function (err) {
+                    btn.disabled = false;
+                    var msg = 'Không xác định được vị trí. Bạn gõ địa chỉ hoặc click trên map nhé.';
+                    if (err && err.code === 1) msg = 'Bạn chưa cấp quyền định vị. Bật quyền vị trí rồi thử lại nhé.';
+                    setStatus(msg, true);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        googleLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            var q = searchBox.value.trim() || addressInput.value.trim() || 'Nguyễn Hữu Thọ Quận 7 TP.HCM';
+            window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank', 'noopener');
+        });
+
+        setStatus('Map đã sẵn sàng: gõ địa chỉ + Enter để tìm, hoặc click lên map.', false);
+    }
+
+    var loaded = false;
+    function boot() {
+        if (loaded) return;
+        loaded = true;
+        initMap();
+    }
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload = boot;
+    script.onerror = function () { boot(); };
+    document.head.appendChild(script);
+})();
+</script>
+
+<script>
+(function () {
+    var chips = document.querySelectorAll('.saved-addr-chip');
+    if (!chips.length) return;
+    var nameInput = document.getElementById('id_customer_name');
+    var phoneInput = document.getElementById('id_phone');
+    var addressInput = document.getElementById('id_shipping_address');
+    Array.prototype.forEach.call(chips, function (chip) {
+        chip.addEventListener('click', function () {
+            if (nameInput) nameInput.value = chip.getAttribute('data-name');
+            if (phoneInput) phoneInput.value = chip.getAttribute('data-phone');
+            if (addressInput) addressInput.value = chip.getAttribute('data-address');
+            Array.prototype.forEach.call(chips, function (c) { c.classList.remove('selected'); });
+            chip.classList.add('selected');
+        });
+    });
 })();
 </script>
 {% endblock %}

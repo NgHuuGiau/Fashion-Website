@@ -2,10 +2,10 @@
 """Dev server thay cho 'manage.py runserver'.
 
 Lý do: trên máy này 'manage.py runserver' bị reset mọi kết nối HTTP (WinError 10054),
-nhưng server WSGI trực tiếp vẫn chạy bình thường.
+nhưng chạy qua server uvicorn thì ổn định. Uvicorn xử lý HTTPS/TLS sạch, không bị
+lỗi cắt response lớn (ERR_RESPONSE_HEADERS_TRUNCATED) như wsgiref + ssl.
 
-Server này phục vụ HTTPS: các trình duyệt (Edge/Chrome) có cài đặt tự động chuyển
-sang https:// nên trước đây web không hiển thị (400, "only supports HTTP").
+Server phục vụ HTTPS: các trình duyệt (Edge/Chrome) tự động chuyển sang https://.
 Chứng chỉ tự ký được tạo tự động tại backend/certs/ khi chạy lần đầu.
 
 Cách dùng:
@@ -15,22 +15,15 @@ Cách dùng:
 """
 import ipaddress
 import os
-import socketserver
-import ssl
 import sys
-from datetime import datetime, timedelta, timezone
 
-import django
-from django.core.servers.basehttp import (
-    WSGIRequestHandler,
-    WSGIServer,
-    get_internal_wsgi_application,
-)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-
-django.setup()
 
 CERT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs")
 CERT_PATH = os.path.join(CERT_DIR, "dev-cert.pem")
@@ -82,14 +75,49 @@ def _ensure_cert():
     return CERT_PATH, KEY_PATH
 
 
-def main():
-    use_tls = "--http" not in sys.argv
-    args = [a for a in sys.argv[1:] if a != "--http"]
-    host = args[0] if len(args) > 0 else "127.0.0.1"
-    port = int(args[1]) if len(args) > 1 else 8000
+def _main_uvicorn(host, port, use_tls):
+    import django
+    from django.core.asgi import get_asgi_application
 
+    django.setup()
+    application = get_asgi_application()
+
+    import uvicorn
+
+    kwargs = {}
+    scheme = "http"
+    if use_tls:
+        cert, key = _ensure_cert()
+        kwargs = {"ssl_certfile": cert, "ssl_keyfile": key}
+        scheme = "https"
+    display_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
+    print(f"Dev server đang chạy: {scheme}://{display_host}:{port}/  (Ctrl+C để tắt)")
+    if use_tls:
+        print("Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được.")
+    uvicorn.run(application, host=host, port=port, log_level="warning", **kwargs)
+
+
+def _main_wsgiref(host, port, use_tls):
+    # Fallback khi chưa cài uvicorn (phục vụ kém ổn định hơn).
+    import socketserver
+    import ssl
+
+    import django
+    from django.core.servers.basehttp import (
+        WSGIRequestHandler,
+        WSGIServer,
+        get_internal_wsgi_application,
+    )
+
+    class _Handler(WSGIRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        protocol_version = "HTTP/1.1"
+
+    django.setup()
     httpd_cls = type("W", (socketserver.ThreadingMixIn, WSGIServer), {})
-    httpd = httpd_cls((host, port), WSGIRequestHandler, ipv6=False)
+    httpd = httpd_cls((host, port), _Handler, ipv6=False)
     httpd.daemon_threads = True
     httpd.set_app(get_internal_wsgi_application())
 
@@ -108,6 +136,20 @@ def main():
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("\nĐã dừng server.")
+
+
+def main():
+    use_tls = "--http" not in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--http"]
+    host = args[0] if len(args) > 0 else "127.0.0.1"
+    port = int(args[1]) if len(args) > 1 else 8000
+
+    try:
+        import uvicorn  # noqa: F401
+
+        _main_uvicorn(host, port, use_tls)
+    except ImportError:
+        _main_wsgiref(host, port, use_tls)
 
 
 if __name__ == "__main__":

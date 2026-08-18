@@ -15,6 +15,7 @@ from .cart import (
     build_vietqr_url,
     expire_bank_order_if_needed,
     _payment_token,
+    reserve_order_stock,
     restore_order_stock,
 )
 from .order import decorate_order_tracking
@@ -209,6 +210,8 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
         messages.info(request, "Đơn hàng đã được thanh toán trước đó.")
         return redirect("orders:order_success", order_id=order.id)
     if response_code == "00":
+        if order.status == "cancelled":
+            reserve_order_stock(order)
         order.is_paid = True
         order.status = "processing"
         order.save(update_fields=["is_paid", "status", "updated_at"])
@@ -247,6 +250,8 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     response_code = params.get("vnp_ResponseCode", "")
     transaction_status = params.get("vnp_TransactionStatus", "")
     if response_code == "00" and transaction_status == "00" and not order.is_paid:
+        if order.status == "cancelled":
+            reserve_order_stock(order)
         order.is_paid = True
         order.status = "processing"
         order.save(update_fields=["is_paid", "status", "updated_at"])
