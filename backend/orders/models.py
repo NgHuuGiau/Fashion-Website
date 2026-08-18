@@ -92,6 +92,18 @@ class Order(models.Model):
         ("vnpay", "Thanh toán VNPay"),
     ]
 
+    CARRIER_CHOICES = [
+        ("ghn", "GHN"),
+        ("ghtk", "GHTK"),
+        ("vnpost", "VNPost"),
+    ]
+    CARRIER_LABELS = dict(CARRIER_CHOICES)
+    TRACKING_BASE_URL = {
+        "ghn": "https://donhang.ghn.vn/?order_code={code}",
+        "ghtk": "https://i.giaohangtietkiem.vn/ma-don-hang?code={code}",
+        "vnpost": "https://www.vnpost.vn/vi-vn/tra-cuu/tra-cuu-hang",
+    }
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
     customer_name = models.CharField(max_length=150)
     customer_email = models.EmailField(blank=True)
@@ -102,6 +114,8 @@ class Order(models.Model):
     bank_code = models.CharField(max_length=20, blank=True)
     is_paid = models.BooleanField(default=False, db_index=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    carrier = models.CharField(max_length=20, choices=CARRIER_CHOICES, blank=True, verbose_name="Đơn vị vận chuyển")
+    tracking_code = models.CharField(max_length=40, blank=True, verbose_name="Mã vận đơn")
 
     subtotal_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
     shipping_fee = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
@@ -127,6 +141,17 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"
+
+    @property
+    def carrier_label(self):
+        return self.CARRIER_LABELS.get(self.carrier, "")
+
+    @property
+    def tracking_url(self):
+        if not self.tracking_code:
+            return ""
+        template = self.TRACKING_BASE_URL.get(self.carrier, "")
+        return template.format(code=self.tracking_code) if template else ""
 
 
 

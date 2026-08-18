@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 EVENT_TEMPLATES = {
     "created": ("emails/order_confirmation.html", "Xác nhận đơn hàng"),
     "paid": ("emails/order_paid.html", "Thanh toán thành công"),
+    "shipping": ("emails/order_shipping.html", "Đơn hàng đang giao"),
     "cancelled": ("emails/order_cancelled.html", "Đơn hàng đã hủy"),
     "delivered": ("emails/order_delivered.html", "Đơn hàng hoàn thành"),
 }

@@ -552,6 +552,49 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(order.status, "shipping")
 
 
+    def test_admin_mark_shipping_assigns_carrier_and_tracking(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "shipping"},
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.carrier, "ghn")
+        self.assertTrue(order.tracking_code.startswith("GHD"))
+        self.assertIn("donhang.ghn.vn", order.tracking_url)
+
+
+    def test_admin_mark_delivered_grants_points(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_black_l.id},
+        )
+        self.client.post(
+            reverse("orders:checkout"),
+            {"customer_name": "Test", "phone": "0900000000", "shipping_address": "HCM", "payment_method": "cod"},
+        )
+        order = Order.objects.first()
+        self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "update_order_status", "order_id": order.id, "new_status": "delivered", "is_paid": "on"},
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.status, "delivered")
+        self.assertGreater(order.points_earned, 0)
+        profile = order.user.profile
+        self.assertGreaterEqual(profile.points, order.points_earned)
+
+
     def test_user_cancel_order_requires_post(self):
         self.client.login(username="staff", password="StrongPass123!")
         self.client.post(

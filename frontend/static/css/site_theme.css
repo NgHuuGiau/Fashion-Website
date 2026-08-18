@@ -2487,6 +2487,38 @@ button {
     color: var(--accent);
 }
 
+.footer-legal {
+    padding: 0.75rem 0 1.25rem;
+    font-size: 0.7rem;
+    color: var(--muted-light);
+    text-align: center;
+    line-height: 1.6;
+}
+
+.review-shop-reply {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+}
+.review-shop-reply-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+    margin-bottom: 0.3rem;
+}
+.review-shop-reply p {
+    font-size: 0.84rem;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.6;
+}
+
 .footer-payments {
     display: flex;
     gap: 0.5rem;

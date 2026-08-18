@@ -228,6 +228,7 @@ class Review(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Số sao", db_index=True)
     comment = models.TextField(blank=True, verbose_name="Nội dung đánh giá")
+    shop_reply = models.TextField(blank=True, verbose_name="Shop phản hồi")
     image = models.ImageField(upload_to="reviews/%Y/%m/%d", blank=True, verbose_name="Ảnh kèm đánh giá")
     is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
     verified_purchase = models.BooleanField(default=False, verbose_name="Đã mua hàng", db_index=True)

@@ -42,6 +42,12 @@
                     <span>Đã giao</span>
                 </div>
             </div>
+            {% if order.carrier %}
+            <div class="order-shipping">
+                <span><i class="fa-solid fa-truck-fast"></i> {{ order.carrier_label }} &middot; Mã vận đơn <strong>{{ order.tracking_code }}</strong></span>
+                {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener">Tra cứu <i class="fa-solid fa-arrow-up-right-from-square"></i></a>{% endif %}
+            </div>
+            {% endif %}
             <div class="order-meta-grid">
                 <article><span>Thanh toán</span><strong>{{ order.get_payment_method_display }}</strong></article>
                 <article><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
@@ -176,6 +182,29 @@
     border-bottom: 1px solid var(--line);
 }
 .order-timeline.is-cancelled { opacity: 0.65; }
+.order-shipping {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: var(--accent-soft);
+    border-radius: var(--radius-md);
+    padding: 0.45rem 0.75rem;
+    margin: 0.6rem 0 0;
+    font-size: 0.78rem;
+    color: var(--accent-strong);
+}
+.order-shipping strong { color: var(--accent-deep); font-weight: 700; }
+.order-shipping a {
+    color: var(--accent-strong);
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.order-shipping a:hover { color: var(--accent-deep); }
 .timeline-step {
     display: flex;
     flex-direction: column;

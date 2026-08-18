@@ -58,6 +58,15 @@
                         <span class="review-info-label">Địa chỉ</span>
                         <span class="review-info-value">{{ order.shipping_address|repair_text }}</span>
                     </div>
+                    {% if order.carrier %}
+                    <div class="review-info-field">
+                        <span class="review-info-label">Vận chuyển</span>
+                        <span class="review-info-value">
+                            {{ order.carrier_label }} &middot; Mã vận đơn <strong>{{ order.tracking_code }}</strong>
+                            {% if order.tracking_url %}&middot; <a href="{{ order.tracking_url }}" target="_blank" rel="noopener">Tra cứu</a>{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
                     {% if order.note %}
                     <div class="review-info-field review-info-field-full">
                         <span class="review-info-label">Ghi chú</span>

@@ -139,6 +139,16 @@ def apply_order_status_change(order, new_status, is_paid=False):
         order.status = new_status
         order.is_paid = bool(is_paid)
         order.save(update_fields=["status", "is_paid", "updated_at"])
+    if new_status == "shipping":
+        from .order import mark_order_shipped
+
+        mark_order_shipped(order)
+    elif new_status == "delivered":
+        from ..services.order_email import send_order_email
+        from .order import _grant_order_points
+
+        send_order_email(order, event="delivered")
+        _grant_order_points(order)
     return order
 
 
