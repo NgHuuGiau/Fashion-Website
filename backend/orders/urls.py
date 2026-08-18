@@ -13,6 +13,7 @@ from .views import (
     cart_clear_all,
     cart_detail,
     cart_remove,
+    cart_summary,
     cart_update,
     checkout,
     my_orders,
@@ -34,6 +35,7 @@ app_name = "orders"
 urlpatterns = [
     path("admin-dashboard/", admin_dashboard, name="admin_dashboard"),
     path("gio-hang/", cart_detail, name="cart_detail"),
+    path("gio-hang/tom-tat/", cart_summary, name="cart_summary"),
     path("gio-hang/them/<int:product_id>/", cart_add, name="cart_add"),
     path("gio-hang/cap-nhat/", cart_update, name="cart_update"),
     path("gio-hang/xoa/", cart_remove, name="cart_remove"),
