@@ -65,6 +65,15 @@
 
         <aside class="cart-summary panel">
             <p class="eyebrow">Tóm tắt</p>
+            <div class="freeship-bar">
+                {% if shipping_fee == 0 %}
+                <p class="freeship-msg ok">Bạn đã được <strong>miễn phí vận chuyển</strong>! 🎉</p>
+                <div class="freeship-track"><span class="freeship-fill" style="width:100%"></span></div>
+                {% else %}
+                <p class="freeship-msg">Còn <strong>{{ freeship_remaining|vnd }}đ</strong> nữa để được freeship</p>
+                <div class="freeship-track"><span class="freeship-fill" style="width:{% widthratio subtotal freeship_threshold 100 %}%"></span></div>
+                {% endif %}
+            </div>
             <div class="summary-list">
                 <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
                 <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>

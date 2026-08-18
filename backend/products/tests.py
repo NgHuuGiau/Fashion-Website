@@ -914,6 +914,40 @@ class ReviewTest(TestCase):
         review = self.product.reviews.get(user=self.buyer)
         self.assertTrue(review.verified_purchase)
 
+    def test_webp_conversion(self):
+        import tempfile
+        from pathlib import Path
+
+        from PIL import Image
+
+        from .management.commands.optimize_images import _convert_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "anh.jpg"
+            Image.new("RGB", (40, 40), "red").save(src, "JPEG")
+            target = _convert_file(src, 80)
+            self.assertEqual(target.suffix, ".webp")
+            self.assertTrue(target.is_file())
+            self.assertFalse(src.exists())
+            with Image.open(target) as img:
+                self.assertEqual(img.format, "WEBP")
+
+    def test_ga4_snippet_injected_when_configured(self):
+        from django.test import override_settings
+
+        with override_settings(GA4_MEASUREMENT_ID="G-TEST123"):
+            response = self.client.get(reverse("products:product_list"))
+        self.assertContains(response, "G-TEST123")
+        self.assertContains(response, "googletagmanager.com/gtag/js")
+
+    def test_zalo_launcher_injected_when_configured(self):
+        from django.test import override_settings
+
+        with override_settings(ZALO_OA_ID="zalo_oa_test"):
+            response = self.client.get(reverse("products:product_list"))
+        self.assertContains(response, "class=\"zalo-launcher\"")
+        self.assertContains(response, "zalo.me/zalo_oa_test")
+
     def test_catalog_shows_rating_count(self):
         Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
         response = self.client.get(reverse("products:product_list"))

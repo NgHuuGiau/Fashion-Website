@@ -13,6 +13,8 @@ from core.ratelimit import rate_limit
 from ..admin_forms import OrderEditForm, OrderLookupForm
 from ..constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
 from ..models import Order
+
+from users.models import UserProfile
 from .cart import build_vietqr_url, expire_bank_order_if_needed, normalize_shipping_address, restore_order_stock
 
 HCMC_KEYWORDS = (
@@ -125,7 +127,21 @@ def auto_advance_order_status(order):
             from ..services.order_email import send_order_email
 
             send_order_email(order, event="delivered")
+            _grant_order_points(order)
     return order
+
+
+def _grant_order_points(order):
+    """Tích 1% giá trị đơn thành điểm (10đ = 1 điểm) khi giao thành công."""
+    if order.points_earned or not order.user_id:
+        return
+    earned = int(order.total_amount // 10)
+    if not earned:
+        return
+    profile, _ = UserProfile.objects.get_or_create(user=order.user)
+    profile.points += earned
+    profile.save(update_fields=["points"])
+    Order.objects.filter(id=order.id).update(points_earned=earned)
 
 
 def decorate_order_tracking(order):
@@ -242,10 +258,10 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
     order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
     expire_bank_order_if_needed(order)
     if order.status in ("pending", "processing") and not order.is_paid:
+        restore_order_stock(order)
         order.status = "cancelled"
         order.is_paid = False
         order.save(update_fields=["status", "is_paid"])
-        restore_order_stock(order)
         from ..services.order_email import send_order_email
 
         send_order_email(order, event="cancelled")

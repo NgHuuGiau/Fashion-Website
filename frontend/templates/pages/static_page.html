@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container page-narrow">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>{{ page_title }}</span>
+        </nav>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="page-body">{{ page_body|safe }}</div>
+    </div>
+</main>
+{% endblock %}

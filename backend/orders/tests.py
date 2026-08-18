@@ -1047,6 +1047,38 @@ class CartCheckoutAndAdminTest(TestCase):
         for product in response.context["inventory_products"]:
             self.assertEqual(product.stock, 0)
 
+    def test_admin_dashboard_monthly_revenue_context(self):
+        Order.objects.create(
+            user=self.user, customer_name="Buyer", phone="0909000000", shipping_address="HCM",
+            payment_method="cod", status="delivered", is_paid=True,
+            subtotal_amount=200000, total_amount=220000,
+        )
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertIn("monthly_revenue", response.context)
+        self.assertEqual(len(response.context["monthly_revenue"]), 12)
+        latest = response.context["monthly_revenue"][-1]
+        self.assertEqual(latest["revenue"], 220000)
+        self.assertEqual(latest["orders_count"], 1)
+
+    def test_admin_export_revenue_requires_staff(self):
+        response = self.client.get(reverse("orders:admin_export_revenue"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_admin_export_revenue_csv(self):
+        Order.objects.create(
+            user=self.user, customer_name="Buyer", phone="0909000000", shipping_address="HCM",
+            payment_method="cod", status="delivered", is_paid=True,
+            subtotal_amount=200000, total_amount=220000,
+        )
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_export_revenue"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/csv", response["Content-Type"])
+        body = response.content.decode("utf-8-sig")
+        self.assertIn("Tháng", body)
+        self.assertIn("220000", body)
+
     def test_admin_dashboard_chart_context(self):
         self.client.login(username="staff", password="StrongPass123!")
         response = self.client.get(reverse("orders:admin_dashboard"))

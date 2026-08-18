@@ -106,6 +106,8 @@ class Order(models.Model):
     subtotal_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
     shipping_fee = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
     discount_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
+    points_used = models.PositiveIntegerField(default=0, verbose_name="Điểm đã dùng")
+    points_earned = models.PositiveIntegerField(default=0, verbose_name="Điểm tích được")
     coupon = models.ForeignKey("orders.Coupon", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")
     coupon_code = models.CharField(max_length=30, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))

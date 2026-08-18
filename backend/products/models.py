@@ -3,6 +3,8 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Sum
+from django.utils import timezone
 
 from .constants import APPAREL_CATEGORY_SLUGS
 
@@ -32,6 +34,7 @@ class Product(models.Model):
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
     price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá tiền", db_index=True)
+    compare_price = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True, verbose_name="Giá gốc (trước khuyến mãi)")
     stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng kho", db_index=True)
     available = models.BooleanField(default=True, verbose_name="Đang bán", db_index=True)
     featured = models.BooleanField(default=False, verbose_name="Nổi bật", db_index=True)
@@ -97,6 +100,12 @@ class Product(models.Model):
             return first_gallery_image[0].image.url
         return self._build_placeholder_image()
 
+    @property
+    def discount_percent(self):
+        if self.compare_price and self.compare_price > self.price:
+            return int((self.compare_price - self.price) * 100 / self.compare_price)
+        return 0
+
     def _build_generated_asset_url(self, filename):
         if not self.slug:
             return ""
@@ -159,6 +168,12 @@ class Product(models.Model):
         base_count = 1 if (self.image_url or (self.image and self._media_file_exists(self.image.name))) else 0
         return min(MAX_PRODUCT_GALLERY_IMAGES, base_count + self.gallery_images.count())
 
+    def get_total_stock(self):
+        variant_stock = self.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"]
+        if variant_stock is not None:
+            return variant_stock
+        return self.stock
+
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
@@ -213,6 +228,7 @@ class Review(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Số sao", db_index=True)
     comment = models.TextField(blank=True, verbose_name="Nội dung đánh giá")
+    image = models.ImageField(upload_to="reviews/%Y/%m/%d", blank=True, verbose_name="Ảnh kèm đánh giá")
     is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
     verified_purchase = models.BooleanField(default=False, verbose_name="Đã mua hàng", db_index=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -251,3 +267,81 @@ class SupportFAQ(models.Model):
 
     def __str__(self):
         return self.question
+
+
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True, verbose_name="Email")
+    is_active = models.BooleanField(default=True, verbose_name="Đang nhận tin", db_index=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Đăng ký nhận tin"
+        verbose_name_plural = "Đăng ký nhận tin"
+        ordering = ["-created"]
+
+    def __str__(self):
+        return self.email
+
+
+class BlogPost(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Tiêu đề")
+    slug = models.SlugField(max_length=220, unique=True, db_index=True, verbose_name="Slug")
+    excerpt = models.CharField(max_length=300, blank=True, verbose_name="Mô tả ngắn")
+    body = models.TextField(verbose_name="Nội dung")
+    cover_image_url = models.URLField(blank=True, verbose_name="URL ảnh bìa")
+    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Bài viết / Lookbook"
+        verbose_name_plural = "Bài viết / Lookbook"
+        ordering = ["-created"]
+        indexes = [models.Index(fields=["is_published", "-created"])]
+
+    def __str__(self):
+        return self.title
+
+
+class ProductQuestion(models.Model):
+    product = models.ForeignKey(Product, related_name="questions", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="product_questions", on_delete=models.CASCADE)
+    question = models.TextField(verbose_name="Câu hỏi")
+    answer = models.TextField(blank=True, verbose_name="Trả lời")
+    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    answered_at = models.DateTimeField(null=True, blank=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Hỏi đáp sản phẩm"
+        verbose_name_plural = "Hỏi đáp sản phẩm"
+        ordering = ["-created"]
+        indexes = [models.Index(fields=["product", "is_published", "-created"])]
+
+    def __str__(self):
+        return f"{self.product.name} - {self.user.username}"
+
+    def save(self, *args, **kwargs):
+        if self.answer and not self.answered_at:
+            self.answered_at = timezone.now()
+        super().save(*args, **kwargs)
+
+
+class BackInStock(models.Model):
+    product = models.ForeignKey(Product, related_name="back_in_stock_requests", on_delete=models.CASCADE)
+    email = models.EmailField(max_length=254, verbose_name="Email")
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    notified = models.BooleanField(default=False, verbose_name="Đã gửi thông báo")
+
+    class Meta:
+        verbose_name = "Báo khi có hàng"
+        verbose_name_plural = "Báo khi có hàng"
+        ordering = ["-created"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "email"], name="unique_backinstock_product_email")
+        ]
+
+    def __str__(self):
+        return f"{self.email} - {self.product.name}"

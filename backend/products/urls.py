@@ -11,5 +11,10 @@ urlpatterns = [
     path("yeu-thich/", views.wishlist_list, name="wishlist_list"),
     path("yeu-thich/<int:product_id>/toggle/", views.wishlist_toggle, name="wishlist_toggle"),
     path("danh-gia/<int:product_id>/", views.review_submit, name="review_submit"),
+    path("hoi-dap/<int:product_id>/", views.question_submit, name="question_submit"),
+    path("bao-khi-co-hang/<int:product_id>/", views.back_in_stock_submit, name="back_in_stock_submit"),
+    path("nhan-tin/dang-ky/", views.newsletter_subscribe, name="newsletter_subscribe"),
+    path("lookbook/", views.blog_list, name="blog_list"),
+    path("lookbook/<slug:slug>/", views.blog_detail, name="blog_detail"),
     path("tim-kiem/goi-y/", views.search_suggest, name="search_suggest"),
 ]

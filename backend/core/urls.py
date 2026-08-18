@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.urls import include, path
 
 from . import api, views
-from .sitemaps import ProductSitemap, StaticSitemap
+from .sitemaps import BlogSitemap, ProductSitemap, StaticSitemap
 
 handler404 = views.handler404
 handler500 = views.handler500
@@ -14,6 +14,7 @@ handler500 = views.handler500
 sitemaps = {
     "static": StaticSitemap,
     "products": ProductSitemap,
+    "blog": BlogSitemap,
 }
 
 
@@ -62,6 +63,15 @@ urlpatterns = [
     path("", include("orders.urls", namespace="orders")),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
     path("robots.txt", robots_txt, name="robots_txt"),
+    path("ve-chung-toi/", views.static_page, {"slug": "ve-chung-toi"}, name="about"),
+    path("huong-dan-chon-size/", views.static_page, {"slug": "huong-dan-chon-size"}, name="size_guide"),
+    path("chinh-sach-doi-tra/", views.static_page, {"slug": "chinh-sach-doi-tra"}, name="return_policy"),
+    path("chat-lieu-bao-quan/", views.static_page, {"slug": "chat-lieu-bao-quan"}, name="care_guide"),
+    path("tuyen-dung/", views.static_page, {"slug": "tuyen-dung"}, name="careers"),
+    path("chinh-sach-bao-mat/", views.static_page, {"slug": "chinh-sach-bao-mat"}, name="privacy"),
+    path("dieu-khoan/", views.static_page, {"slug": "dieu-khoan"}, name="terms"),
+    path("lien-he/", views.static_page, {"slug": "lien-he"}, name="contact"),
+    path("hoi-dap-chung/", views.faq_page, name="faq"),
 ]
 
 if settings.DEBUG:

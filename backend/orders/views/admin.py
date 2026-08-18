@@ -1,8 +1,12 @@
 import csv
+from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncMonth
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
 from users.permissions import is_staff_member
 
@@ -46,4 +50,38 @@ def admin_export_orders(request: HttpRequest) -> HttpResponse:
             o.get_status_display(), o.subtotal_amount, o.shipping_fee, o.discount_amount,
             o.total_amount, o.note, o.created_at.strftime("%d/%m/%Y %H:%M"),
         ])
+    return response
+
+
+@login_required
+def admin_export_revenue(request: HttpRequest) -> HttpResponse:
+    if not is_staff_member(request.user):
+        raise Http404
+
+    today = timezone.localdate()
+    month_agg = (
+        Order.objects.filter(status="delivered")
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(revenue=Sum("total_amount"), orders_count=Count("id"))
+        .order_by("-month")
+    )
+    revenue_by_month = {}
+    for item in month_agg:
+        if item["month"] is None:
+            continue
+        revenue_by_month[item["month"].strftime("%Y-%m")] = {
+            "revenue": int(item["revenue"] or 0),
+            "orders_count": int(item["orders_count"] or 0),
+        }
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+    response["Content-Disposition"] = "attachment; filename=bao-cao-doanh-thu.csv"
+    writer = csv.writer(response)
+    writer.writerow(["Tháng", "Doanh thu (VND)", "Số đơn hoàn thành"])
+    for offset in range(11, -1, -1):
+        cursor = (today.replace(day=1) - timedelta(days=offset * 31)).replace(day=1)
+        key = cursor.strftime("%Y-%m")
+        row = revenue_by_month.get(key, {"revenue": 0, "orders_count": 0})
+        writer.writerow([f"{cursor.month}/{cursor.year}", row["revenue"], row["orders_count"]])
     return response

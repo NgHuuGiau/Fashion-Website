@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from core.text_utils import normalize_vn_text
 from products.models import Product, ProductVariant
 from users.activity import log_activity
+from users.models import UserAddress, UserProfile
 
 from ..cart import add_cart, clear_cart, iter_cart, remove_cart, safe_int
 from ..constants import (
@@ -91,6 +92,8 @@ def validate_coupon(coupon_code, subtotal, user=None):
 
 
 def restore_order_stock(order):
+    if order.status == "cancelled":
+        return
     with transaction.atomic():
         for item in order.items.select_related("product", "variant"):
             if item.variant:
@@ -263,6 +266,7 @@ def cart_detail(request: HttpRequest) -> HttpResponse:
             "shipping_fee": shipping_fee,
             "total": total,
             "freeship_threshold": FREESHIP_THRESHOLD,
+            "freeship_remaining": max(FREESHIP_THRESHOLD - subtotal, 0),
         },
     )
 
@@ -278,6 +282,14 @@ def checkout(request: HttpRequest) -> HttpResponse:
         "customer_name": f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
         "customer_email": request.user.email,
     }
+
+    default_address = UserAddress.objects.filter(user=request.user, is_default=True).first() or (
+        UserAddress.objects.filter(user=request.user).first()
+    )
+    if default_address:
+        initial["phone"] = default_address.phone
+        initial["shipping_address"] = default_address.address
+    saved_addresses = list(UserAddress.objects.filter(user=request.user))
 
     selected_coupon = None
     coupon_error = ""
@@ -297,6 +309,18 @@ def checkout(request: HttpRequest) -> HttpResponse:
             else:
                 discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
                 total_amount = max(Decimal("0"), subtotal + shipping_fee - discount_amount)
+
+                # ── Điểm tích lũy ──
+                points_to_use = 0
+                points_discount = Decimal("0")
+                profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                if profile.points and (form.cleaned_data.get("points_to_use") or 0) > 0:
+                    points_to_use = min(form.cleaned_data["points_to_use"], profile.points)
+                    points_discount = min(
+                        Decimal(points_to_use) * Decimal("100"),
+                        max(Decimal("0"), subtotal - discount_amount),
+                    )
+                    total_amount = max(Decimal("0"), total_amount - points_discount)
 
                 with transaction.atomic():
                     if selected_coupon:
@@ -318,6 +342,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "shop_account_name": SHOP_ACCOUNT_NAME,
                                     "demo_qr_url": build_vietqr_url(bank_code or "VCB", subtotal + shipping_fee, "DH-TAM"),
                                     "banks": BANKS,
+                                    "saved_addresses": saved_addresses,
                                 },
                             )
                         selected_coupon.used_count += 1
@@ -335,12 +360,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         subtotal_amount=subtotal,
                         shipping_fee=shipping_fee,
                         discount_amount=discount_amount,
+                        points_used=points_to_use,
                         coupon=selected_coupon,
                         coupon_code=selected_coupon.code if selected_coupon else "",
                         total_amount=total_amount,
                         is_paid=False,
                         status="processing" if payment_method in ("bank", "vnpay") else "pending",
                     )
+
+                    if points_to_use:
+                        profile.points -= points_to_use
+                        profile.save(update_fields=["points"])
 
                     if selected_coupon:
                         CouponRedemption.objects.create(
@@ -438,6 +468,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     total = max(Decimal("0"), subtotal + shipping_fee - discount_amount)
 
+    user_points = UserProfile.objects.get_or_create(user=request.user)[0].points
+
     return render(
         request,
         "shop/checkout.html",
@@ -453,5 +485,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "demo_qr_url": build_vietqr_url(demo_bank_code, total, "DH-TAM"),
             "freeship_threshold": FREESHIP_THRESHOLD,
             "banks": BANKS,
+            "user_points": user_points,
+            "saved_addresses": saved_addresses,
         },
     )
+
+
+def promo_page(request: HttpRequest) -> HttpResponse:
+    coupons = [c for c in Coupon.objects.filter(is_active=True) if c.is_usable_now()]
+    return render(request, "shop/promo.html", {"coupons": coupons, "freeship_threshold": FREESHIP_THRESHOLD})

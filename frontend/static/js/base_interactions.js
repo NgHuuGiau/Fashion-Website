@@ -155,4 +155,100 @@
             });
         })();
     });
+
+    // ─── Popup "Ai đó vừa đặt mua" ───
+    (function() {
+        var popup = document.getElementById('buy-popup');
+        var nameEl = document.getElementById('buy-popup-name');
+        var metaEl = document.getElementById('buy-popup-meta');
+        var thumbEl = document.getElementById('buy-popup-thumb');
+        var closeBtn = document.getElementById('buy-popup-close');
+        if (!popup || !nameEl || !metaEl) return;
+
+        var items = [
+            { name: 'Áo Tee Oversize Essential', thumb: 'TEE', price: '250.000', city: 'Hà Nội', t: '2 phút trước' },
+            { name: 'Quần Jeans Baggy Fade Blue', thumb: 'QUẦN', price: '520.000', city: 'TP. Hồ Chí Minh', t: '5 phút trước' },
+            { name: 'Hoodie Nỉ Cotton Local', thumb: 'ÁO', price: '590.000', city: 'Đà Nẵng', t: '8 phút trước' },
+            { name: 'Nón Bucket Côn Sơn', thumb: 'PHỤ KIỆN', price: '280.000', city: 'Hải Phòng', t: '12 phút trước' },
+            { name: 'Áo Polo Cotton Pique', thumb: 'ÁO', price: '320.000', city: 'Cần Thơ', t: '15 phút trước' },
+            { name: 'Quần Short Denim Cargo', thumb: 'QUẦN', price: '340.000', city: 'Huế', t: '18 phút trước' }
+        ];
+        var shown = {};
+        var hiding = false;
+
+        function show(item) {
+            if (hiding) return;
+            nameEl.textContent = item.name;
+            metaEl.textContent = 'Ai đó ở ' + item.city + ' vừa đặt ' + item.price + 'đ · ' + item.t;
+            thumbEl.textContent = item.thumb;
+            popup.classList.remove('hidden');
+            popup.classList.add('show');
+            setTimeout(function() {
+                popup.classList.remove('show');
+                popup.classList.add('hidden');
+            }, 4500);
+        }
+
+        function pick() {
+            var pool = items.filter(function(i) { return !shown[i.name]; });
+            if (!pool.length) return;
+            show(pool[Math.floor(Math.random() * pool.length)]);
+        }
+
+        var first = 3000 + Math.floor(Math.random() * 4000);
+        setTimeout(function() {
+            pick();
+            setInterval(function() {
+                if (Math.random() < 0.55) pick();
+            }, 16000);
+        }, first);
+
+        closeBtn.addEventListener('click', function() {
+            hiding = true;
+            popup.classList.remove('show');
+            popup.classList.add('hidden');
+        });
+    })();
+
+    // ─── Exit-intent promo popup ───
+    (function() {
+        var popup = document.getElementById('exit-popup');
+        if (!popup) return;
+        try { if (localStorage.getItem('exit_popup_seen')) return; } catch (e) {}
+
+        var dismissed = false;
+        function show() {
+            if (dismissed) return;
+            popup.classList.remove('hidden');
+            popup.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        function hide() {
+            dismissed = true;
+            popup.classList.remove('show');
+            popup.classList.add('hidden');
+            document.body.style.overflow = '';
+            try { localStorage.setItem('exit_popup_seen', '1'); } catch (e) {}
+        }
+
+        document.addEventListener('mouseout', function(e) {
+            if (e.relatedTarget !== null || e.clientY > 20) return;
+            show();
+        });
+
+        var close = document.getElementById('exit-popup-close');
+        if (close) close.addEventListener('click', hide);
+        popup.addEventListener('click', function(e) { if (e.target === popup) hide(); });
+
+        var form = document.getElementById('exit-popup-form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                try { localStorage.setItem('exit_popup_seen', '1'); } catch (e) {}
+                dismissed = true;
+                popup.classList.remove('show');
+                popup.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+        }
+    })();
 })();

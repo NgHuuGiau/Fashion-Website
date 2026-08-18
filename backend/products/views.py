@@ -4,7 +4,8 @@ from typing import Optional
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -16,10 +17,15 @@ from core.ratelimit import rate_limit
 from urllib.parse import quote
 
 from .constants import FEATURED_PRODUCT_LIMIT, get_category_type_label
+from orders.models import OrderItem
 from .models import (
+    BackInStock,
+    BlogPost,
     Category,
     MAX_PRODUCT_GALLERY_IMAGES,
+    NewsletterSubscriber,
     Product,
+    ProductQuestion,
     ProductVariant,
     Review,
     WishlistItem,
@@ -28,11 +34,58 @@ from .services.chat_service import (
     build_support_reply,
 )
 
+SOLD_STATUSES = ("delivered", "shipping", "processing")
+
+
+def build_sold_map(product_ids):
+    """{product_id: sold_count} — tách riêng khỏi queryset để tránh
+    subquery bên trong GROUP BY (SQL Server không hỗ trợ)."""
+    if not product_ids:
+        return {}
+    rows = (
+        OrderItem.objects.filter(
+            product_id__in=product_ids, order__status__in=SOLD_STATUSES
+        )
+        .values("product_id")
+        .annotate(total=Sum("quantity"))
+    )
+    return {row["product_id"]: row["total"] for row in rows}
+
+
+def attach_sold_counts(products):
+    sold_map = build_sold_map([p.id for p in products])
+    for product in products:
+        product.sold_count = sold_map.get(product.id, 0)
+    return products
+
+
+LOW_STOCK_THRESHOLD = 5
+
+
+def attach_low_stock(products, threshold=LOW_STOCK_THRESHOLD):
+    """Đánh dấu p.low_stock=True khi còn ≤ threshold (1 query cho cả trang)."""
+    product_ids = [p.id for p in products]
+    variant_map = {}
+    if product_ids:
+        rows = (
+            ProductVariant.objects.filter(product_id__in=product_ids, is_active=True)
+            .values("product_id")
+            .annotate(total=Sum("stock"))
+        )
+        variant_map = {row["product_id"]: row["total"] for row in rows}
+    for product in products:
+        total = variant_map.get(product.id)
+        stock = total if total is not None else product.stock
+        product.low_stock = 0 < stock <= threshold
+    return products
+
 
 SORT_OPTIONS = {
     "newest": "-created",
+    "bestseller": "-sold_total",
     "price_asc": "price",
     "price_desc": "-price",
+    "rating": "-rating_avg",
     "name_asc": "name",
 }
 PRODUCTS_PER_PAGE = 12
@@ -220,15 +273,40 @@ def product_list(request: HttpRequest) -> HttpResponse:
         else:
             products_qs = base_products.order_by("id")
     else:
-        products_qs = products_qs.order_by(SORT_OPTIONS[selected_sort])
+        if not isinstance(products_qs, list):
+            products_qs = products_qs.annotate(
+                rating_avg=Coalesce(Avg("reviews__rating", filter=Q(reviews__is_published=True)), 0.0),
+                rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
+            )
+        if selected_sort == "bestseller":
+            # Ponytail: python-sort to avoid JOIN multiplication between
+            # variant filters and the order_items aggregate (SQL Server).
+            page_all = list(products_qs)
+            sold_map = build_sold_map([p.id for p in page_all])
+            page_all.sort(key=lambda p: (-sold_map.get(p.id, 0), p.id))
+            products_qs = page_all
+        else:
+            products_qs = products_qs.order_by(SORT_OPTIONS[selected_sort])
 
     if not isinstance(products_qs, list):
         products_qs = products_qs.annotate(
-            rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
+            rating_avg=Coalesce(Avg("reviews__rating", filter=Q(reviews__is_published=True)), 0.0),
             rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
         )
     paginator = Paginator(products_qs, PRODUCTS_PER_PAGE)
     products = paginator.get_page(request.GET.get("page"))
+    attach_sold_counts(list(products))
+    attach_low_stock(list(products))
+
+    trust_stats = None
+    if is_random_home:
+        sold = OrderItem.objects.filter(order__status__in=SOLD_STATUSES).aggregate(total=Sum("quantity"))
+        review_agg = Review.objects.filter(is_published=True).aggregate(avg=Avg("rating"), count=Count("id"))
+        trust_stats = {
+            "sold_total": sold["total"] or 0,
+            "review_avg": round(review_agg["avg"] or 0, 1),
+            "review_count": review_agg["count"] or 0,
+        }
 
     def build_catalog_query(**overrides: str) -> str:
         params = request.GET.copy()
@@ -299,6 +377,7 @@ def product_list(request: HttpRequest) -> HttpResponse:
         "keyword": keyword,
         "slider_products": slider_products,
         "is_random_home": is_random_home,
+        "trust_stats": trust_stats,
         "selected_sort": selected_sort,
         "min_price": min_price_raw,
         "max_price": max_price_raw,
@@ -364,6 +443,13 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
     bucket_map = {item["rating"]: item["total"] for item in published_reviews.values("rating").annotate(total=Count("id"))}
     review_buckets = [{"rating": rating, "total": bucket_map.get(rating, 0)} for rating in range(5, 0, -1)]
 
+    from orders.models import OrderItem
+
+    sold_count = (
+        OrderItem.objects.filter(product=product, order__status__in=SOLD_STATUSES).aggregate(total=Sum("quantity"))["total"] or 0
+    )
+    total_stock = product.get_total_stock()
+
     user_review = None
     can_review = False
     purchased = False
@@ -371,8 +457,6 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
         user_review = product.reviews.filter(user=request.user).first()
         can_review = user_review is None
         if can_review:
-            from orders.models import OrderItem
-
             purchased = OrderItem.objects.filter(
                 order__user=request.user, order__status="delivered", product=product
             ).exists()
@@ -402,8 +486,40 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "user_review": user_review,
             "can_review": can_review,
             "purchased": purchased,
+            "questions": product.questions.filter(is_published=True).select_related("user")[:5],
+            "sold_count": sold_count,
+            "total_stock": total_stock,
+            "product_schema": _build_product_schema(request, product, rating_avg, rating_count),
         },
     )
+
+
+def _build_product_schema(request: HttpRequest, product, rating_avg, rating_count) -> dict:
+    host = request.get_host()
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.name,
+        "description": product.description or "Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh.",
+        "offers": {
+            "@type": "Offer",
+            "price": str(product.price),
+            "priceCurrency": "VND",
+            "availability": "https://schema.org/InStock" if product.stock > 0 else "https://schema.org/OutOfStock",
+            "url": request.build_absolute_uri(),
+        },
+    }
+    if product.image and product.image.url:
+        schema["image"] = f"{request.scheme}://{host}{product.image.url}"
+    elif product.image_url:
+        schema["image"] = product.image_url
+    if rating_count:
+        schema["aggregateRating"] = {
+            "@type": "AggregateRating",
+            "ratingValue": str(round(float(rating_avg), 1)),
+            "reviewCount": str(rating_count),
+        }
+    return schema
 
 
 @rate_limit("chat", max_requests=30, window=60, error_msg="Quá nhiều yêu cầu chat.")
@@ -472,6 +588,7 @@ def review_submit(request: HttpRequest, product_id: int) -> HttpResponse:
         user=request.user,
         rating=rating,
         comment=comment,
+        image=request.FILES.get("review_image"),
         verified_purchase=verified,
     )
     messages.success(request, "Cảm ơn bạn đã đánh giá sản phẩm!")
@@ -499,3 +616,61 @@ def search_suggest(request: HttpRequest) -> JsonResponse:
         for p in products
     ]
     return JsonResponse(results[:6], safe=False)
+
+
+@require_POST
+def newsletter_subscribe(request: HttpRequest) -> HttpResponse:
+    email = (request.POST.get("email") or "").strip()
+    if len(email) > 254 or "@" not in email or "." not in email.split("@")[-1]:
+        messages.error(request, "Email không hợp lệ. Vui lòng kiểm tra lại.")
+    else:
+        _, created = NewsletterSubscriber.objects.get_or_create(
+            email=email, defaults={"is_active": True}
+        )
+        messages.success(request, "Đăng ký thành công! Cảm ơn bạn đã theo dõi HUUGIAU.")
+    next_url = request.POST.get("next") or ""
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("products:product_list")
+
+
+@require_POST
+@login_required
+def question_submit(request: HttpRequest, product_id: int) -> HttpResponse:
+    product = get_object_or_404(Product, id=product_id, available=True)
+    question = (request.POST.get("question") or "").strip()
+    if not question:
+        messages.error(request, "Vui lòng nhập câu hỏi.")
+    elif len(question) < 10:
+        messages.error(request, "Câu hỏi quá ngắn. Hãy mô tả chi tiết hơn (tối thiểu 10 ký tự).")
+    else:
+        ProductQuestion.objects.create(product=product, user=request.user, question=question)
+        messages.success(request, "Câu hỏi đã được gửi. Shop sẽ trả lời sớm nhất có thể!")
+    return redirect("products:product_detail", pk=product.id, slug=product.slug)
+
+
+@require_POST
+def back_in_stock_submit(request: HttpRequest, product_id: int) -> HttpResponse:
+    product = get_object_or_404(Product, id=product_id, available=True)
+    email = (request.POST.get("email") or "").strip()
+    if len(email) > 254 or "@" not in email or "." not in email.split("@")[-1]:
+        messages.error(request, "Email không hợp lệ. Vui lòng kiểm tra lại.")
+    else:
+        _, created = BackInStock.objects.get_or_create(product=product, email=email)
+        if created:
+            messages.success(request, "Đã đăng ký. Shop sẽ báo ngay khi sản phẩm có hàng lại!")
+        else:
+            messages.info(request, "Email của bạn đã được đăng ký trước đó rồi.")
+    return redirect("products:product_detail", pk=product.id, slug=product.slug)
+
+
+def blog_list(request: HttpRequest) -> HttpResponse:
+    posts = BlogPost.objects.filter(is_published=True).defer("body")
+    paginator = Paginator(posts, 9)
+    page = paginator.get_page(request.GET.get("page"))
+    return render(request, "shop/blog_list.html", {"posts": page})
+
+
+def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+    return render(request, "shop/blog_detail.html", {"post": post})

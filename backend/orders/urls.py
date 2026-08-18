@@ -3,6 +3,7 @@
 from .admin_product_dashboard import admin_dashboard
 from .views import (
     admin_export_orders,
+    admin_export_revenue,
     bank_payment_cancel,
     bank_payment_confirm,
     bank_payment_mobile,
@@ -20,6 +21,7 @@ from .views import (
     order_review,
     order_success,
     print_invoice,
+    promo_page,
     reorder_order,
     user_cancel_order,
     vnpay_ipn,
@@ -50,8 +52,10 @@ urlpatterns = [
     path("thanh-toan-vnpay/ipn/", vnpay_ipn, name="vnpay_ipn"),
     path("don-hang-cua-toi/", my_orders, name="my_orders"),
     path("tra-cuu-don/", order_lookup, name="order_lookup"),
+    path("khuyen-mai/", promo_page, name="promo_page"),
     path("don-hang/<int:order_id>/huy/", user_cancel_order, name="user_cancel_order"),
     path("don-hang/<int:order_id>/mua-lai/", reorder_order, name="reorder_order"),
     path("admin-dashboard/xuat-don/", admin_export_orders, name="admin_export_orders"),
+    path("admin-dashboard/xuat-doanh-thu/", admin_export_revenue, name="admin_export_revenue"),
     path("admin-dashboard/in-hoa-don/<int:order_id>/", print_invoice, name="admin_print_invoice"),
 ]

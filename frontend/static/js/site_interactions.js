@@ -53,9 +53,11 @@
             const variant = findVariant(color, size);
             if (variant) {
                 variantInput.value = variant.id;
+                variantInput.setAttribute('data-variant-label', variant.color_name + ' / ' + variant.size);
                 if (stockText) stockText.textContent = 'Tồn kho: ' + variant.stock;
             } else {
                 variantInput.value = '';
+                variantInput.removeAttribute('data-variant-label');
                 if (stockText) stockText.textContent = 'Biến thể này hiện không khả dụng.';
             }
         }
@@ -118,6 +120,43 @@
         setTimeout(function() { main.src = url; main.alt = thumb.dataset.detailAlt || main.alt; main.style.opacity = '1'; }, 120);
         document.querySelectorAll('[data-detail-image]').forEach(function(t) { t.classList.remove('active'); });
         thumb.classList.add('active');
+    });
+
+    // ─── Gallery zoom (click ảnh chính mở lightbox) ───
+    document.addEventListener('click', function(e) {
+        var main = document.getElementById('detail-main-image');
+        if (!main || e.target !== main) return;
+        var src = main.currentSrc || main.src;
+        var overlay = document.getElementById('gallery-zoom');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'gallery-zoom';
+            overlay.className = 'gallery-zoom-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', 'Xem ảnh phóng to');
+            overlay.innerHTML = '<button type="button" class="gallery-zoom-close" aria-label="Đóng">&times;</button><img alt="" loading="lazy">';
+            document.body.appendChild(overlay);
+        }
+        overlay.querySelector('img').src = src;
+        overlay.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    });
+    document.addEventListener('click', function(e) {
+        var overlay = document.getElementById('gallery-zoom');
+        if (!overlay || !overlay.classList.contains('is-open')) return;
+        if (e.target === overlay || e.target.closest('.gallery-zoom-close')) {
+            overlay.classList.remove('is-open');
+            document.body.style.overflow = '';
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        var overlay = document.getElementById('gallery-zoom');
+        if (overlay && overlay.classList.contains('is-open')) {
+            overlay.classList.remove('is-open');
+            document.body.style.overflow = '';
+        }
     });
 
     // ─── Quantity stepper (delegation) ───
@@ -690,5 +729,108 @@
             }
         });
     });
+
+    // ─── Sticky buy bar (mobile) ───
+    (function() {
+        var sticky = document.getElementById('sticky-buy');
+        var mainForm = document.getElementById('detail-buy-form');
+        if (!sticky || !mainForm) return;
+        var qtyInput = mainForm.querySelector('[data-qty-input]');
+        var variantId = document.getElementById('variant-id-input');
+
+        var shown = false;
+        function maybeShow() {
+            var nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 480;
+            var shouldShow = window.innerWidth <= 900 && window.scrollY > 420 && !nearBottom;
+            if (shouldShow && !shown) { sticky.classList.add('is-visible'); sticky.setAttribute('aria-hidden', 'false'); shown = true; }
+            else if (!shouldShow && shown) { sticky.classList.remove('is-visible'); sticky.setAttribute('aria-hidden', 'true'); shown = false; }
+        }
+        window.addEventListener('scroll', maybeShow, { passive: true });
+        window.addEventListener('resize', maybeShow);
+        maybeShow();
+
+        function syncToSticky() {
+            if (variantId && variantId.value) {
+                var label = variantId.getAttribute('data-variant-label');
+                var text = sticky.querySelector('.sticky-buy-info span');
+                if (label && text) text.textContent = label;
+            }
+        }
+
+        sticky.querySelectorAll('[data-detail-buy-submit]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var next = btn.dataset.stickyNext || '';
+                mainForm.querySelectorAll('input[name="next"]').forEach(function(n) { n.remove(); });
+                if (next) {
+                    var nextInput = document.createElement('input');
+                    nextInput.type = 'hidden';
+                    nextInput.name = 'next';
+                    nextInput.value = next;
+                    mainForm.appendChild(nextInput);
+                }
+                if (variantId && variantId.value) {
+                    var existing = mainForm.querySelector('input[name="variant_id"]');
+                    if (existing) existing.value = variantId.value;
+                    else {
+                        var copy = document.createElement('input');
+                        copy.type = 'hidden';
+                        copy.name = 'variant_id';
+                        copy.value = variantId.value;
+                        mainForm.appendChild(copy);
+                    }
+                }
+                if (qtyInput) {
+                    var qtyCopy = mainForm.querySelector('[data-qty-input]');
+                    if (qtyCopy) qtyCopy.value = qtyInput.value;
+                }
+                mainForm.submit();
+            });
+        });
+
+        var picker = document.getElementById('variant-picker');
+        if (picker && variantId) {
+            picker.addEventListener('click', function() {
+                setTimeout(syncToSticky, 0);
+            });
+        }
+    })();
+
+    // ─── Social proof: "người đang xem" (detail) ───
+    (function() {
+        var el = document.querySelector('[data-viewers-count]');
+        if (!el) return;
+        var base = 9 + Math.floor(Math.random() * 14);
+        el.textContent = base;
+        setInterval(function() {
+            var drift = Math.floor(Math.random() * 3) - 1;
+            base = Math.max(6, Math.min(28, base + drift));
+            el.textContent = base;
+        }, 9000);
+    })();
+
+    // ─── Flash sale countdown (home) ───
+    (function() {
+        var timer = document.querySelector('[data-flash-sale]');
+        if (!timer) return;
+        var hEl = timer.querySelector('[data-flash-h]');
+        var mEl = timer.querySelector('[data-flash-m]');
+        var sEl = timer.querySelector('[data-flash-s]');
+        if (!hEl || !mEl || !sEl) return;
+        // ponytail: countdown đến cuối ngày — đơn giản, không cần cấu hình
+        function tick() {
+            var now = new Date();
+            var end = new Date(now);
+            end.setHours(23, 59, 59, 999);
+            var diff = Math.max(0, end - now);
+            var h = Math.floor(diff / 3600000);
+            var m = Math.floor((diff % 3600000) / 60000);
+            var s = Math.floor((diff % 60000) / 1000);
+            hEl.textContent = String(h).padStart(2, '0');
+            mEl.textContent = String(m).padStart(2, '0');
+            sEl.textContent = String(s).padStart(2, '0');
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
 
 })();

@@ -29,6 +29,9 @@
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-inventory">
         <i class="fa-solid fa-warehouse"></i> Kho hàng
       </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-reports">
+        <i class="fa-solid fa-chart-line"></i> Báo cáo
+      </button>
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-orders">
         <i class="fa-solid fa-receipt"></i> Đơn hàng
       </button>
@@ -899,6 +902,61 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ TAB: BÁO CÁO ════════════════ -->
+    <section class="admin-tab-content" id="admin-reports">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Báo cáo doanh thu theo tháng</h2>
+            <p>Doanh thu đơn hoàn thành 12 tháng gần nhất.</p>
+          </div>
+          <a href="{% url 'orders:admin_export_revenue' %}" class="btn small">
+            <i class="fa-solid fa-download"></i> Xuất CSV doanh thu
+          </a>
+        </div>
+        {% if monthly_revenue %}
+        <div class="week-chart week-chart-status">
+          {% for item in monthly_revenue %}
+          <div class="week-chart-item">
+            <div class="week-chart-bar-wrap">
+              <div class="week-chart-bar week-chart-bar-alt" style="height: {{ item.height }}%;"></div>
+            </div>
+            <strong>{{ item.revenue|vnd }}đ</strong>
+            <span>{{ item.label }} · {{ item.orders_count }} đơn</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="table-wrap" style="margin-top:1rem">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th>Tháng</th>
+                <th class="adm-num">Doanh thu</th>
+                <th class="adm-center">Số đơn hoàn thành</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in monthly_revenue|slice:":6" %}
+              <tr>
+                <td>{{ item.label }}</td>
+                <td class="adm-num">{{ item.revenue|vnd }}đ</td>
+                <td class="adm-center">{{ item.orders_count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="admin-empty-cell">Chưa có dữ liệu.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="admin-chart-empty">
+          <i class="fa-regular fa-chart-bar"></i>
+          <p>Chưa có đơn hoàn thành nên chưa có báo cáo doanh thu.</p>
+        </div>
+        {% endif %}
       </div>
     </section>
 

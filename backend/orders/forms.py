@@ -41,6 +41,12 @@ class CheckoutForm(forms.Form):
         label="Mã giảm giá",
         help_text="Ví dụ: GIAM10, FREESHIP",
     )
+    points_to_use = forms.IntegerField(
+        required=False,
+        min_value=0,
+        label="Dùng điểm tích lũy",
+        help_text="100 điểm = 10.000đ. Chỉ áp dụng cho tiền hàng.",
+    )
     note = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),

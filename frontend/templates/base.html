@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if GA4_MEASUREMENT_ID %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '{{ GA4_MEASUREMENT_ID }}');</script>
+    {% endif %}
     <meta name="description" content="{% block meta_description %}HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.{% endblock %}">
     <meta property="og:title" content="{% block og_title %}HUUGIAU Atelier — Streetwear Local{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.{% endblock %}">
@@ -28,7 +32,7 @@
 
 </head>
 <body class="{% block body_class %}{% endblock %}">
-    <div class="topline">Black / white editorial lookbook · ảnh lớn, chữ gọn, chốt đơn nhanh</div>
+    <div class="topline">Chào mùa mới — <strong>giảm thêm 10%</strong> cho đơn từ 800K, mã <strong>{{ PROMO_BANNER }}</strong> · Freeship toàn quốc từ 499K</div>
 
     <header class="site-header">
         <div class="container nav-wrap">
@@ -76,7 +80,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 9V3"/><path d="M12 21v-6"/><path d="M3 12h6"/><path d="M15 12h6"/></svg>
                         Phụ kiện
                     </a>
-                    <a href="{% url 'products:product_list' %}">
+                    <a href="{% url 'products:blog_list' %}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                         Lookbook
                     </a>
@@ -189,13 +193,16 @@
             <div class="footer-col">
                 <h3>HUUGIAU Atelier</h3>
                 <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
+                <p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>
                 <div class="footer-social">
-                    <a href="#" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
-                    <a href="#" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
-                    <a href="#" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
+                    <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
+                    <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
+                    <a href="https://www.tiktok.com/" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
                 </div>
-                <form class="footer-newsletter" method="get" action="{% url 'products:product_list' %}">
-                    <input type="text" name="q" placeholder="Tìm sản phẩm..." aria-label="Tìm sản phẩm">
+                <form class="footer-newsletter" method="post" action="{% url 'products:newsletter_subscribe' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="email" name="email" placeholder="Nhận tin khuyến mãi..." aria-label="Email nhận tin" required>
                     <button type="submit" class="btn"><i class="fa-solid fa-arrow-right"></i></button>
                 </form>
             </div>
@@ -204,11 +211,13 @@
                 <ul>
                     <li><a href="{% url 'orders:order_lookup' %}">Tra cứu đơn hàng</a></li>
                     <li><a href="{% url 'orders:my_orders' %}">Đơn hàng của tôi</a></li>
-                    <li><a href="{% url 'products:product_list' %}">Chính sách đổi trả</a></li>
-                    <li><a href="{% url 'products:product_list' %}">Hướng dẫn chọn size</a></li>
-                    <li><a href="mailto:hello@huugiau.com" class="footer-email">hello@huugiau.com</a></li>
+                    <li><a href="{% url 'return_policy' %}">Chính sách đổi trả</a></li>
+                    <li><a href="{% url 'size_guide' %}">Hướng dẫn chọn size</a></li>
+                    <li><a href="{% url 'care_guide' %}">Chất liệu &amp; bảo quản</a></li>
+                    <li><a href="{% url 'orders:promo_page' %}">Khuyến mãi</a></li>
+                    <li><a href="{% url 'faq' %}">Câu hỏi thường gặp</a></li>
                 </ul>
-                <p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hỗ trợ 9:00–21:30 mỗi ngày</p>
+                <p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hotline: <a href="tel:{{ HOTLINE }}" class="footer-email">{{ HOTLINE }}</a> · 9:00–21:30 mỗi ngày</p>
             </div>
             <div class="footer-col">
                 <h3>Danh mục</h3>
@@ -223,10 +232,11 @@
             <div class="footer-col">
                 <h3>Về HUUGIAU</h3>
                 <ul>
-                    <li><a href="{% url 'products:product_list' %}">Câu chuyện thương hiệu</a></li>
-                    <li><a href="{% url 'products:product_list' %}">Chất liệu &amp; bảo quản</a></li>
-                    <li><a href="{% url 'products:product_list' %}">Tuyển dụng</a></li>
-                    <li><a href="{% url 'products:product_list' %}">Liên hệ</a></li>
+                    <li><a href="{% url 'about' %}">Câu chuyện thương hiệu</a></li>
+                    <li><a href="{% url 'size_guide' %}">Hướng dẫn chọn size</a></li>
+                    <li><a href="{% url 'careers' %}">Tuyển dụng</a></li>
+                    <li><a href="{% url 'contact' %}">Liên hệ</a></li>
+                    <li><a href="{% url 'products:blog_list' %}">Lookbook</a></li>
                 </ul>
             </div>
         </div>
@@ -234,8 +244,8 @@
             <div class="footer-bottom">
                 <div class="footer-bottom-links">
                     <span>&copy; 2026 HUUGIAU Atelier</span>
-                    <a href="{% url 'products:product_list' %}">Chính sách bảo mật</a>
-                    <a href="{% url 'products:product_list' %}">Điều khoản</a>
+                    <a href="{% url 'privacy' %}">Chính sách bảo mật</a>
+                    <a href="{% url 'terms' %}">Điều khoản</a>
                 </div>
                 <div class="footer-payments">
                     <i class="fa-brands fa-cc-visa" title="Visa"></i>
@@ -251,6 +261,12 @@
     <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Mở hỗ trợ mua hàng">
         <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
     </button>
+
+    {% if ZALO_OA_ID %}
+    <a href="https://zalo.me/{{ ZALO_OA_ID }}" class="zalo-launcher" target="_blank" rel="noopener" aria-label="Chat qua Zalo">
+        <i class="fa-solid fa-comment"></i>
+    </a>
+    {% endif %}
 
     <div class="chatbox-backdrop hidden" id="chatbox-backdrop"></div>
 
@@ -278,6 +294,34 @@
             <button type="submit" class="btn small">Gửi</button>
         </form>
     </section>
+
+    <div id="buy-popup" class="buy-popup hidden" aria-live="polite">
+        <div class="buy-popup-body">
+            <span class="buy-popup-thumb" id="buy-popup-thumb"></span>
+            <div class="buy-popup-copy">
+                <p class="buy-popup-name" id="buy-popup-name"></p>
+                <p class="buy-popup-meta" id="buy-popup-meta"></p>
+            </div>
+        </div>
+        <button type="button" class="buy-popup-close" id="buy-popup-close" aria-label="Đóng thông báo">×</button>
+    </div>
+
+    <div id="exit-popup" class="exit-popup hidden" role="dialog" aria-modal="true" aria-label="Ưu đãi chớp nhoáng">
+        <div class="exit-popup-panel panel">
+            <button type="button" class="exit-popup-close" id="exit-popup-close" aria-label="Đóng">×</button>
+            <p class="eyebrow">Đừng vội rời đi!</p>
+            <h3>Nhận ngay 10% cho đơn đầu tiên</h3>
+            <p class="exit-popup-text">Để lại email, shop gửi mã <strong>HUUGIAU10</strong> giảm 10% (tối đa 100K) cho đơn từ 500K, kèm tin mới sản phẩm mỗi tuần.</p>
+            <form method="post" action="{% url 'products:newsletter_subscribe' %}" id="exit-popup-form" class="exit-popup-form">
+                {% csrf_token %}
+                <input type="hidden" name="source" value="exit_popup">
+                <label class="sr-only" for="exit-popup-email">Email</label>
+                <input type="email" name="email" id="exit-popup-email" placeholder="Email của bạn" required>
+                <button type="submit" class="btn">Nhận mã ưu đãi</button>
+            </form>
+            <small class="exit-popup-note">Không spam. Huỷ bất cứ lúc nào.</small>
+        </div>
+    </div>
 
     {% compress js %}
     <script defer src="{% static 'js/base_interactions.js' %}"></script>

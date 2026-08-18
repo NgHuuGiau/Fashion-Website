@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}{{ post.excerpt|default:post.title }}{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container page-narrow">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span>
+            <a href="{% url 'products:blog_list' %}">Lookbook</a><span aria-hidden="true">/</span>
+            <span>{{ post.title|truncatechars:40 }}</span>
+        </nav>
+        <article class="blog-article">
+            <header class="blog-article-head">
+                <time>{{ post.created|date:"d/m/Y" }}</time>
+                <h1 class="page-title">{{ post.title }}</h1>
+                {% if post.cover_image_url %}
+                <img class="blog-article-cover" src="{{ post.cover_image_url }}" alt="{{ post.title }}">
+                {% endif %}
+            </header>
+            <div class="page-body">{{ post.body|linebreaks }}</div>
+        </article>
+        <p style="margin-top:2rem"><a href="{% url 'products:blog_list' %}" class="btn ghost">← Về trang Lookbook</a></p>
+    </div>
+</main>
+{% endblock %}

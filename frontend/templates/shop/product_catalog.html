@@ -22,6 +22,74 @@
         </article>
     </div>
 </section>
+
+<div class="trust-strip" aria-label="Cam kết của shop">
+    <div class="trust-item">
+        <i class="fa-solid fa-truck-fast" aria-hidden="true"></i>
+        <div><strong>Freeship từ 499K</strong><span>Toàn quốc, giao nhanh 2-4 ngày</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+        <div><strong>Đổi size 7 ngày</strong><span>Miễn phí, sản phẩm nguyên trạng</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+        <div><strong>Kiểm tra hàng</strong><span>Trước khi thanh toán khi nhận</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+        <div><strong>Hỗ trợ 9:00-21:30</strong><span>Chat tư vấn size &amp; phối đồ</span></div>
+    </div>
+</div>
+
+{% if trust_stats %}
+<div class="stats-strip" aria-label="Số liệu cửa hàng">
+    <div class="stats-item"><strong>{{ trust_stats.sold_total|floatformat:0 }}<span>+</span></strong><span>sản phẩm đã bán</span></div>
+    <div class="stats-item"><strong>{{ trust_stats.review_avg|floatformat:1 }}/5</strong><span>từ {{ trust_stats.review_count }} đánh giá</span></div>
+    <div class="stats-item"><strong>{{ site_total_products }}</strong><span>thiết kế đang bán</span></div>
+</div>
+{% endif %}
+
+<div class="flash-sale" data-flash-sale aria-label="Flash sale">
+    <div class="flash-sale-info">
+        <span class="flash-sale-tag"><i class="fa-solid fa-bolt" aria-hidden="true"></i> FLASH SALE</span>
+        <span class="flash-sale-text">Deal trong ngày — giảm thêm 10% trên vài mẫu chọn lọc</span>
+    </div>
+    <div class="flash-sale-timer" data-flash-timer aria-live="off">
+        <span class="flash-sale-end">Kết thúc trong</span>
+        <span class="flash-sale-clock"><span data-flash-h>00</span>:<span data-flash-m>00</span>:<span data-flash-s>00</span></span>
+    </div>
+</div>
+
+<section class="collection-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">BỘ SƯU TẬP</p>
+            <h2>Mua theo danh mục</h2>
+            <p>Chọn đúng khoản cần, lên đồ nhanh, ít chọn nhầm.</p>
+        </div>
+    </div>
+    <div class="collection-grid">
+        <a href="{% url 'products:product_list' %}?category=ao" class="collection-card collection-card-ao">
+            <span class="collection-index">01</span>
+            <h3>Áo</h3>
+            <p>Tee, sweatshirt, hoodie — lớp nền cho mọi outfit.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="{% url 'products:product_list' %}?category=quan" class="collection-card collection-card-quan">
+            <span class="collection-index">02</span>
+            <h3>Quần</h3>
+            <p>Denim, cargo, short — form gọn, dễ phối giày.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="{% url 'products:product_list' %}?category=phu-kien" class="collection-card collection-card-pk">
+            <span class="collection-index">03</span>
+            <h3>Phụ kiện</h3>
+            <p>Nón, túi, tất — điểm nhấn cuối cho bộ đồ.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+    </div>
+</section>
 {% else %}
 <nav class="breadcrumb" aria-label="Bạn đang ở">
     <a href="{% url 'products:product_list' %}">Trang chủ</a>
@@ -39,8 +107,10 @@
         </div>
         <div class="catalog-controls">
             <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="chip {% if selected_sort == 'newest' %}active{% endif %}">Mới nhất</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.bestseller }}" class="chip {% if selected_sort == 'bestseller' %}active{% endif %}">Bán chạy</a>
             <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_asc }}" class="chip {% if selected_sort == 'price_asc' %}active{% endif %}">Giá thấp</a>
             <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_desc }}" class="chip {% if selected_sort == 'price_desc' %}active{% endif %}">Giá cao</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.rating }}" class="chip {% if selected_sort == 'rating' %}active{% endif %}">Đánh giá cao</a>
             {% if not is_random_home %}
             <button type="button" class="chip filter-toggle" data-filters-toggle aria-expanded="false">Bộ lọc</button>
             {% endif %}
@@ -50,7 +120,8 @@
     {% if is_random_home %}
     <div class="product-grid product-grid-editorial">
         {% for product in products %}
-        <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
+        <div class="product-card product-card-editorial product-card-has-qv">
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card-main" aria-label="{{ product.name|repair_text }}">
             <div class="card-media card-media-editorial">
                 {% if product.get_image %}
                 <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
@@ -60,11 +131,20 @@
                 {% if product.featured %}
                 <span class="tag">NỔI BẬT</span>
                 {% endif %}
+                {% if product|is_new %}
+                <span class="tag tag-new">MỚI</span>
+                {% endif %}
                 {% if not product.available %}
                 <span class="tag tag-soldout">HẾT HÀNG</span>
                 {% endif %}
                 {% if product.stock <= 0 and product.available %}
                 <span class="tag tag-soldout">HẾT HÀNG</span>
+                {% endif %}
+                {% if product.discount_percent %}
+                <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
+                {% endif %}
+                {% if product.low_stock %}
+                <span class="tag tag-low-stock">Sắp hết hàng</span>
                 {% endif %}
             </div>
             <div class="card-body card-body-editorial">
@@ -77,11 +157,16 @@
                 </div>
                 {% endif %}
                 <div class="card-footer">
-                    <strong class="price">{{ product.price|vnd }}đ</strong>
+                    <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
+                    {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
                     <span>Xem chi tiết</span>
                 </div>
             </div>
-        </a>
+            </a>
+            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","img":"{{ product.get_image|escapejs }}","rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem nhanh
+            </button>
+        </div>
         {% empty %}
         <div class="empty-state panel">
             <h2>Chưa có sản phẩm phù hợp</h2>
@@ -167,11 +252,20 @@
                         {% if product.featured %}
                         <span class="tag">NỔI BẬT</span>
                         {% endif %}
+                        {% if product|is_new %}
+                        <span class="tag tag-new">MỚI</span>
+                        {% endif %}
                         {% if not product.available %}
                         <span class="tag tag-soldout">HẾT HÀNG</span>
                         {% endif %}
                         {% if product.stock <= 0 and product.available %}
                         <span class="tag tag-soldout">HẾT HÀNG</span>
+                        {% endif %}
+                        {% if product.discount_percent %}
+                        <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
+                        {% endif %}
+                        {% if product.low_stock %}
+                        <span class="tag tag-low-stock">Sắp hết hàng</span>
                         {% endif %}
                     </div>
                     <div class="card-body card-body-editorial">
@@ -184,7 +278,8 @@
                         </div>
                         {% endif %}
                         <div class="card-footer">
-                            <strong class="price">{{ product.price|vnd }}đ</strong>
+                            <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
+                            {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
                             <span>Xem chi tiết</span>
                         </div>
                     </div>
@@ -229,6 +324,25 @@
     </div>
     {% endif %}
 </section>
+
+{% if is_random_home %}
+<section class="section-shell social-strip">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">@huugiau.atelier</p>
+            <h2>Khoảnh khắc cùng HUUGIAU</h2>
+            <p>Gắn thẻ <strong>#huugiau</strong> để xuất hiện trên trang của shop nhé.</p>
+        </div>
+        <a href="https://www.instagram.com" target="_blank" rel="noopener" class="btn ghost">Theo dõi chúng tôi</a>
+    </div>
+    <div class="social-grid" id="social-grid" data-social-grid></div>
+<script type="application/json" id="social-data">[
+    {% for item in products|slice:":6" %}
+    {"name": "{{ item.name|repair_text|escapejs }}", "img": "{{ item.get_image|escapejs }}", "url": "{% url 'products:product_detail' item.id item.slug %}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]</script>
+</section>
+{% endif %}
 
 <style>
 .catalog-layout {
@@ -502,7 +616,59 @@
     .pagination-pages a,
     .pagination-current { width: 28px; height: 28px; font-size: 0.72rem; }
 }
+.social-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+}
+.social-tile {
+    position: relative;
+    display: block;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-soft);
+}
+.social-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+.social-tile:hover img { transform: scale(1.05); }
+.social-tile .social-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.social-tile:hover .social-overlay { opacity: 1; }
+@media (max-width: 760px) {
+    .social-grid { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
+<div id="qv-modal" class="qv-modal" role="dialog" aria-modal="true" aria-label="Xem nhanh sản phẩm">
+    <div class="qv-panel panel">
+        <button type="button" class="qv-close" aria-label="Đóng">×</button>
+        <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="">
+        <div class="qv-copy">
+            <h3></h3>
+            <p class="qv-rating"></p>
+            <strong class="price qv-price"></strong>
+            <div class="qv-actions">
+                <a href="#" class="btn qv-view-link">Xem chi tiết</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     var toggle = document.querySelector('[data-filters-toggle]');
@@ -525,6 +691,67 @@
         }
     });
     window.addEventListener('resize', applyState);
+})();
+
+(function () {
+    var grid = document.getElementById('social-grid');
+    if (!grid) return;
+    var dataEl = document.getElementById('social-data');
+    var items = [];
+    try { items = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    items.forEach(function (item) {
+        var a = document.createElement('a');
+        a.className = 'social-tile';
+        a.href = item.url;
+        a.setAttribute('aria-label', 'Mặc thử ' + item.name);
+        var img = document.createElement('img');
+        img.src = item.img;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        var overlay = document.createElement('span');
+        overlay.className = 'social-overlay';
+        overlay.textContent = 'Mặc thử';
+        a.appendChild(img);
+        a.appendChild(overlay);
+        grid.appendChild(a);
+    });
+})();
+
+(function () {
+    var modal = document.getElementById('qv-modal');
+    if (!modal) return;
+    var img = modal.querySelector('.qv-panel img');
+    var nameEl = modal.querySelector('.qv-copy h3');
+    var priceEl = modal.querySelector('.qv-price');
+    var ratingEl = modal.querySelector('.qv-rating');
+    var link = modal.querySelector('.qv-view-link');
+    var close = modal.querySelector('.qv-close');
+
+    function hide() {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('[data-qv]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var data;
+            try { data = JSON.parse(btn.getAttribute('data-qv')); } catch (err) { return; }
+            img.src = data.img;
+            img.alt = data.name;
+            nameEl.textContent = data.name;
+            priceEl.textContent = data.price + 'đ';
+            ratingEl.textContent = data.rating ? data.rating + ' / 5 sao' : 'Chưa có đánh giá';
+            link.href = data.url;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    close.addEventListener('click', hide);
+    modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
 })();
 </script>
 {% endblock %}

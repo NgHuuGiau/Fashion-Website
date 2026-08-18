@@ -99,6 +99,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "orders.context_processors.cart_info",
+                "orders.context_processors.shop_site_config",
             ],
         },
     },
@@ -157,6 +158,13 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@h
 VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
+
+# GA4 + Zalo OA (để trống = tắt trên shop)
+GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
+ZALO_OA_ID = os.getenv("ZALO_OA_ID", "")
+HOTLINE = os.getenv("HOTLINE", "0932047365")
+STORE_ADDRESS = os.getenv("STORE_ADDRESS", "Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh")
+PROMO_BANNER = os.getenv("PROMO_BANNER", "FREESHIP20K")
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "frontend/static"]

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Hỏi đáp — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Các câu hỏi thường gặp về size, chất liệu, giao hàng và đổi trả tại HUUGIAU Atelier.{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container page-narrow">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>Hỏi đáp</span>
+        </nav>
+        <h1 class="page-title">Câu hỏi thường gặp</h1>
+        <p class="page-lead">Chưa tìm thấy câu trả lời? Liên hệ hotline <a href="tel:{{ HOTLINE }}">{{ HOTLINE }}</a> hoặc gửi câu hỏi ngay trên trang sản phẩm để được tư vấn nhanh nhất.</p>
+
+        <div class="faq-list">
+            {% for faq in faqs %}
+            <details class="faq-item panel">
+                <summary>{{ faq.question }}<span class="faq-toggle" aria-hidden="true">+</span></summary>
+                <p>{{ faq.answer }}</p>
+            </details>
+            {% empty %}
+            <p class="muted">Chưa có câu hỏi nào. Hãy liên hệ với shop qua hotline {{ HOTLINE }}.</p>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+
+<style>
+.faq-list { display: grid; gap: 0.6rem; }
+.faq-item { padding: 0; overflow: hidden; }
+.faq-item summary {
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem; cursor: pointer; font-weight: 700; font-size: 0.92rem; color: var(--text);
+    list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-toggle { color: var(--accent-strong); font-size: 1.1rem; transition: transform 0.2s ease; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); }
+.faq-item p { padding: 0 1.25rem 1.25rem; margin: 0; font-size: 0.88rem; color: var(--text-soft); line-height: 1.7; }
+</style>
+{% endblock %}

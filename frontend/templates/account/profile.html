@@ -21,6 +21,11 @@
                 <h2>{{ display_name }}</h2>
                 <p class="muted">{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
             </div>
+            <div class="account-points">
+                <div class="account-points-badge" title="Tích điểm khi nhận hàng thành công, đổi điểm tại thanh toán"><i class="fa-solid fa-gem" aria-hidden="true"></i> {{ profile.points }} điểm</div>
+                <p class="account-points-tier">{{ profile.tier_name }}</p>
+                <p class="account-points-hint">100 điểm = 10.000đ khi thanh toán</p>
+            </div>
             <nav class="account-nav">
                 <a href="{% url 'users:profile' %}" class="account-nav-item active">
                     <i class="fa-regular fa-user"></i> Hồ sơ
@@ -70,9 +75,84 @@
                     <a href="{% url 'orders:my_orders' %}" class="btn ghost">Xem đơn hàng</a>
                 </div>
             </form>
+
+            <div class="address-book">
+                <div class="address-book-head">
+                    <h2>Sổ địa chỉ giao hàng</h2>
+                    <button type="button" class="btn small ghost" id="addr-toggle">+ Thêm địa chỉ mới</button>
+                </div>
+
+                {% if addresses %}
+                <div class="address-grid">
+                    {% for addr in addresses %}
+                    <div class="address-card {% if addr.is_default %}is-default{% endif %}">
+                        {% if addr.is_default %}<span class="address-badge">Mặc định</span>{% endif %}
+                        {% if addr.label %}<span class="address-label">{{ addr.label }}</span>{% endif %}
+                        <p class="address-name">{{ addr.recipient_name }}</p>
+                        <p class="address-phone">{{ addr.phone }}</p>
+                        <p class="address-text">{{ addr.address }}</p>
+                        <div class="address-actions">
+                            {% if not addr.is_default %}
+                            <form method="post" action="{% url 'users:address_set_default' addr.id %}">{% csrf_token %}<button type="submit" class="link-btn">Đặt mặc định</button></form>
+                            {% endif %}
+                            <form method="post" action="{% url 'users:address_delete' addr.id %}" onsubmit="return confirm('Xóa địa chỉ này?');">{% csrf_token %}<button type="submit" class="link-btn danger">Xóa</button></form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="muted">Bạn chưa lưu địa chỉ nào. Thêm địa chỉ để thanh toán nhanh hơn.</p>
+                {% endif %}
+
+                <form method="post" action="{% url 'users:address_add' %}" class="address-form hidden" id="addr-form">
+                    {% csrf_token %}
+                    <div class="profile-grid">
+                        <label class="profile-field">
+                            <span>Người nhận *</span>
+                            <input type="text" name="recipient_name" required placeholder="Tên người nhận">
+                        </label>
+                        <label class="profile-field">
+                            <span>Số điện thoại *</span>
+                            <input type="text" name="phone" required placeholder="Số điện thoại">
+                        </label>
+                        <label class="profile-field">
+                            <span>Nhãn</span>
+                            <input type="text" name="label" placeholder="Ví dụ: Nhà riêng, Công ty">
+                        </label>
+                        <label class="profile-field">
+                            <span>Địa chỉ *</span>
+                            <input type="text" name="address" required placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
+                        </label>
+                    </div>
+                    <label class="profile-field addr-default-check">
+                        <input type="checkbox" name="is_default"> Đặt làm địa chỉ mặc định
+                    </label>
+                    <div class="profile-actions">
+                        <button type="submit" class="btn">Lưu địa chỉ</button>
+                        <button type="button" class="btn ghost" id="addr-cancel">Hủy</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </section>
+
+<script>
+(function () {
+    var toggle = document.getElementById('addr-toggle');
+    var form = document.getElementById('addr-form');
+    var cancel = document.getElementById('addr-cancel');
+    if (!toggle || !form) return;
+    toggle.addEventListener('click', function () {
+        form.classList.toggle('hidden');
+        toggle.textContent = form.classList.contains('hidden') ? '+ Thêm địa chỉ mới' : 'Đóng';
+    });
+    if (cancel) cancel.addEventListener('click', function () {
+        form.classList.add('hidden');
+        toggle.textContent = '+ Thêm địa chỉ mới';
+    });
+})();
+</script>
 
 <style>
 .account-layout {
@@ -96,6 +176,36 @@
 }
 .account-avatar-box .muted {
     font-size: 0.82rem;
+}
+.account-points {
+    text-align: center;
+    padding: 0.8rem;
+    margin: 0 0 1rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg-soft);
+}
+.account-points-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent-strong);
+}
+.account-points-badge i {
+    color: #e5b80b;
+}
+.account-points-tier {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 0.3rem;
+}
+.account-points-hint {
+    font-size: 0.72rem;
+    color: var(--text-soft);
+    margin-top: 0.15rem;
 }
 .account-nav {
     display: grid;
@@ -165,6 +275,88 @@
     margin-top: 1.25rem;
     padding-top: 1rem;
     border-top: 1px solid var(--line);
+}
+.address-book {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+}
+.address-book-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+}
+.address-book-head h2 {
+    font-size: 1.05rem;
+}
+.address-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+}
+.address-card {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.8rem 0.9rem;
+    background: var(--bg-soft);
+}
+.address-card.is-default { border-color: var(--accent); background: var(--accent-soft); }
+.address-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    padding: 0.1rem 0.45rem;
+    background: var(--surface);
+}
+.address-label {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-bottom: 0.25rem;
+}
+.address-name { font-weight: 700; font-size: 0.9rem; }
+.address-phone { font-size: 0.82rem; color: var(--text-soft); margin-top: 0.15rem; }
+.address-text { font-size: 0.82rem; color: var(--text-soft); margin-top: 0.3rem; line-height: 1.45; }
+.address-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 0.55rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--line);
+}
+.link-btn {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--accent-strong);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.link-btn.danger { color: #b42318; }
+.addr-default-check {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+}
+.addr-default-check input { width: auto; }
+@media (max-width: 700px) {
+    .address-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
     .account-layout { grid-template-columns: 1fr; }

@@ -1,6 +1,21 @@
-﻿from django.contrib import admin
+﻿from django.conf import settings
+from django.contrib import admin
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.urls import reverse
 
-from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
+from .models import (
+    BackInStock,
+    BlogPost,
+    Category,
+    NewsletterSubscriber,
+    Product,
+    ProductQuestion,
+    ProductVariant,
+    Review,
+    SupportFAQ,
+    WishlistItem,
+)
 
 
 @admin.register(Category)
@@ -62,3 +77,71 @@ class ReviewAdmin(admin.ModelAdmin):
     list_editable = ("is_published", "rating")
     search_fields = ("product__name", "user__username", "comment")
     raw_id_fields = ("product", "user")
+
+
+@admin.register(BlogPost)
+
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_published", "created", "updated")
+    list_filter = ("is_published", "created")
+    list_editable = ("is_published",)
+    prepopulated_fields = {"slug": ("title",)}
+    search_fields = ("title", "excerpt", "body")
+
+
+@admin.register(NewsletterSubscriber)
+
+class NewsletterSubscriberAdmin(admin.ModelAdmin):
+    list_display = ("email", "is_active", "created")
+    list_filter = ("is_active", "created")
+    list_editable = ("is_active",)
+    search_fields = ("email",)
+
+
+@admin.register(ProductQuestion)
+
+class ProductQuestionAdmin(admin.ModelAdmin):
+    list_display = ("product", "user", "question", "is_published", "answered_at", "created")
+    list_filter = ("is_published", "created")
+    list_editable = ("is_published",)
+    search_fields = ("question", "answer", "product__name", "user__username")
+    raw_id_fields = ("product", "user")
+    fieldsets = (
+        (None, {"fields": ("product", "user", "question", "is_published")}),
+        ("Trả lời", {"fields": ("answer", "answered_at")}),
+    )
+    readonly_fields = ("answered_at",)
+
+
+@admin.register(BackInStock)
+
+class BackInStockAdmin(admin.ModelAdmin):
+    list_display = ("product", "email", "notified", "created")
+    list_filter = ("notified", "created")
+    list_editable = ("notified",)
+    search_fields = ("email", "product__name")
+    raw_id_fields = ("product",)
+    actions = ("notify_restocked",)
+
+    @admin.action(description="Gửi email báo có hàng (chỉ sản phẩm đã nhập kho)")
+    def notify_restocked(self, request, queryset):
+        sent = 0
+        for sub in queryset.select_related("product").filter(notified=False):
+            if sub.product.stock <= 0 or not settings.EMAIL_HOST:
+                continue
+            url = request.build_absolute_uri(
+                reverse("products:product_detail", kwargs={"pk": sub.product.id, "slug": sub.product.slug})
+            )
+            html = render_to_string("emails/back_in_stock.html", {"product": sub.product, "product_url": url})
+            msg = EmailMultiAlternatives(
+                subject=f"Hàng đã về — {sub.product.name} — HUUGIAU Studio",
+                body=f"Hàng đã về: {sub.product.name}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[sub.email],
+            )
+            msg.attach_alternative(html, "text/html")
+            msg.send(fail_silently=True)
+            sub.notified = True
+            sub.save(update_fields=["notified"])
+            sent += 1
+        self.message_user(request, f"Đã gửi {sent} email thông báo.")

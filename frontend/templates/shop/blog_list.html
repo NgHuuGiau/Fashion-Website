@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Lookbook — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Lookbook và cẩm nang mặc đẹp từ HUUGIAU Atelier — cách phối đồ streetwear gọn, dễ mặc, đủ điểm nhấn.{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>Lookbook</span>
+        </nav>
+        <h1 class="page-title">Lookbook</h1>
+        <p class="page-sub">Cẩm nang mặc đẹp mỗi ngày — gọn, dễ mặc, đủ điểm nhấn.</p>
+        <div class="blog-grid">
+            {% for post in posts %}
+            <article class="blog-card panel">
+                <a href="{% url 'products:blog_detail' post.slug %}" class="blog-card-link">
+                    {% if post.cover_image_url %}
+                    <img class="blog-card-img" src="{{ post.cover_image_url }}" alt="{{ post.title }}" loading="lazy">
+                    {% else %}
+                    <div class="blog-card-img blog-card-img-placeholder">{{ post.title|truncatechars:60 }}</div>
+                    {% endif %}
+                    <div class="blog-card-body">
+                        <time>{{ post.created|date:"d/m/Y" }}</time>
+                        <h2 class="blog-card-title">{{ post.title }}</h2>
+                        {% if post.excerpt %}<p class="blog-card-excerpt">{{ post.excerpt }}</p>{% endif %}
+                        <span class="blog-card-more">Đọc tiếp <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </div>
+                </a>
+            </article>
+            {% empty %}
+            <p>Chưa có bài viết.</p>
+            {% endfor %}
+        </div>
+        {% if posts.has_other_pages %}
+        <nav class="pagination" aria-label="Phân trang">
+            {% if posts.has_previous %}
+            <a href="?page={{ posts.previous_page_number }}" class="page-link">← Trước</a>
+            {% endif %}
+            <span class="page-current">Trang {{ posts.number }}/{{ posts.paginator.num_pages }}</span>
+            {% if posts.has_next %}
+            <a href="?page={{ posts.next_page_number }}" class="page-link">Sau →</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
