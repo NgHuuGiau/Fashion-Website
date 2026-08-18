@@ -8,6 +8,6 @@ mssql-django>=1.7,<2
 pyodbc>=5.3,<6
 django-extensions>=4.1,<5
 Werkzeug>=3.1,<4
-pyOpenSSL>=26.3,<27
+pyOpenSSL>=26.4.0,<27
 cryptography>=49.0,<50
 uvicorn>=0.34,<1
