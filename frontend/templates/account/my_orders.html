@@ -26,6 +26,22 @@
                 </div>
                 <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
             </div>
+            <div class="order-timeline {% if order.status == 'cancelled' %}is-cancelled{% endif %}" aria-hidden="true">
+                <div class="timeline-step is-active">
+                    <span class="timeline-dot"><i class="fa-solid {% if order.status == 'cancelled' %}fa-xmark{% else %}fa-check{% endif %}"></i></span>
+                    <span>{% if order.status == 'cancelled' %}Đã huỷ{% else %}Xác nhận{% endif %}</span>
+                </div>
+                <div class="timeline-line {% if order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}"></div>
+                <div class="timeline-step {% if order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}">
+                    <span class="timeline-dot"></span>
+                    <span>Đang giao</span>
+                </div>
+                <div class="timeline-line {% if order.status == 'delivered' %}is-active{% endif %}"></div>
+                <div class="timeline-step {% if order.status == 'delivered' %}is-active{% endif %}">
+                    <span class="timeline-dot"></span>
+                    <span>Đã giao</span>
+                </div>
+            </div>
             <div class="order-meta-grid">
                 <article><span>Thanh toán</span><strong>{{ order.get_payment_method_display }}</strong></article>
                 <article><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
@@ -152,6 +168,59 @@
     overflow-wrap: anywhere;
     word-break: break-word;
 }
+.order-timeline {
+    display: flex;
+    align-items: flex-start;
+    margin: 0.9rem 0 0.4rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--line);
+}
+.order-timeline.is-cancelled { opacity: 0.65; }
+.timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+    min-width: 68px;
+}
+.timeline-step > span:last-child {
+    font-size: 0.66rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+.timeline-step.is-active > span:last-child { color: var(--accent-strong); }
+.timeline-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--bg-soft);
+    border: 2px solid var(--line);
+    color: var(--muted);
+    font-size: 0.62rem;
+    transition: background 0.3s var(--ease-out), border-color 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+.timeline-step.is-active .timeline-dot {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: #fff;
+}
+.order-timeline.is-cancelled .timeline-step.is-active .timeline-dot {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+.timeline-line {
+    flex: 1;
+    height: 2px;
+    background: var(--line);
+    margin-top: 12px;
+    min-width: 14px;
+}
+.timeline-line.is-active { background: var(--accent-strong); }
 .order-actions {
     display: flex;
     flex-wrap: wrap;

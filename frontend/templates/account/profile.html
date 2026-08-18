@@ -23,8 +23,14 @@
             </div>
             <div class="account-points">
                 <div class="account-points-badge" title="Tích điểm khi nhận hàng thành công, đổi điểm tại thanh toán"><i class="fa-solid fa-gem" aria-hidden="true"></i> {{ profile.points }} điểm</div>
-                <p class="account-points-tier">{{ profile.tier_name }}</p>
-                <p class="account-points-hint">100 điểm = 10.000đ khi thanh toán</p>
+                <p class="account-points-tier"><span class="tier-pill tier-{{ profile.tier.badge }}">{{ profile.tier.name }}</span></p>
+                <p class="account-points-hint">{{ profile.tier.benefit }}</p>
+                {% if profile.tier.next %}
+                <div class="tier-progress">
+                    <div class="tier-progress-track"><div class="tier-progress-fill" style="width: {{ profile.tier.progress }}%;"></div></div>
+                    <p>Còn <strong>{{ profile.tier.remaining }}</strong> điểm để lên <strong>{{ profile.tier.next.name }}</strong></p>
+                </div>
+                {% endif %}
             </div>
             <nav class="account-nav">
                 <a href="{% url 'users:profile' %}" class="account-nav-item active">

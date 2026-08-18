@@ -9,8 +9,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F, Sum
 from django.db.models.functions import Greatest
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -169,6 +170,17 @@ def _payment_token(order_id):
 
 @require_POST
 def cart_add(request: HttpRequest, product_id) -> HttpResponse:
+    is_ajax = request.headers.get("x-requested-with", "").lower() == "xmlhttprequest"
+
+    def finish(message: str, is_error: bool = False, url: str | None = None) -> HttpResponse:
+        if is_ajax:
+            return JsonResponse({"ok": not is_error, "message": message})
+        if is_error:
+            messages.error(request, message)
+        else:
+            messages.success(request, message)
+        return redirect(url or "orders:cart_detail")
+
     product = get_object_or_404(Product, id=product_id, available=True)
     variant_id = request.POST.get("variant_id")
     selected_variant = None
@@ -178,19 +190,16 @@ def cart_add(request: HttpRequest, product_id) -> HttpResponse:
         selected_variant = ProductVariant.objects.filter(id=variant_id, product=product, is_active=True).first()
 
     if requires_variant and not selected_variant:
-        messages.error(request, "Vui lòng chọn màu và size trước khi thêm vào giỏ.")
-        return redirect("products:product_detail", pk=product.id, slug=product.slug)
+        return finish("Vui lòng chọn màu và size trước khi thêm vào giỏ.", True, product.get_absolute_url())
 
     stock = selected_variant.stock if selected_variant else product.stock
     if stock <= 0:
-        messages.error(request, "Sản phẩm đã hết hàng.")
-        return redirect(request.POST.get("next") or "products:product_list")
+        return finish("Sản phẩm đã hết hàng.", True, request.POST.get("next") or "products:product_list")
 
     quantity = safe_int(request.POST.get("quantity", 1), default=1, minimum=1)
     success, msg = add_cart(request, product.id, quantity=quantity, variant_id=selected_variant.id if selected_variant else None)
     if not success:
-        messages.error(request, msg)
-        return redirect(request.POST.get("next") or "products:product_list")
+        return finish(msg, True, request.POST.get("next") or "products:product_list")
     log_activity(
         request,
         event_type="cart_add",
@@ -200,8 +209,33 @@ def cart_add(request: HttpRequest, product_id) -> HttpResponse:
             "quantity": quantity,
         },
     )
-    messages.success(request, msg)
-    return redirect(request.POST.get("next") or "orders:cart_detail")
+    return finish(msg)
+
+
+def cart_summary(request: HttpRequest) -> JsonResponse:
+    items, subtotal = iter_cart(request)
+    payload = {
+        "count": sum(item["quantity"] for item in items),
+        "subtotal": str(subtotal),
+        "items": [
+            {
+                "name": row["product"].name,
+                "quantity": row["quantity"],
+                "price": str(row["price"]),
+                "line_total": str(row["subtotal"]),
+                "variant_label": (
+                    f"{row['variant'].color_name} / {row['variant'].size}" if row["variant"] else ""
+                ),
+                "image": row["product"].get_image(),
+                "url": reverse(
+                    "products:product_detail",
+                    kwargs={"pk": row["product"].id, "slug": row["product"].slug},
+                ),
+            }
+            for row in items[:10]
+        ],
+    }
+    return JsonResponse(payload)
 
 
 @require_POST

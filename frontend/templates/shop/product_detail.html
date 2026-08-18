@@ -51,7 +51,7 @@
                 <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
                 <div class="detail-social-proof">
                     {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
-                    <span><i class="fa-solid fa-eye" aria-hidden="true"></i> <span data-viewers-count>12</span> người đang xem</span>
+                    <span><i class="fa-solid fa-eye" aria-hidden="true"></i> <span data-viewers-count>{{ viewing_now }}</span> người đang xem</span>
                     {% if total_stock and total_stock <= 15 %}<span class="low-stock"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Chỉ còn {{ total_stock }} sản phẩm</span>{% endif %}
                 </div>
             </div>
@@ -138,7 +138,7 @@
             </div>
 
             <div class="buy-actions">
-                <button type="submit" name="next" value="{% url 'orders:cart_detail' %}" class="btn ghost" data-detail-buy-submit>Thêm vào giỏ</button>
+                <button type="submit" name="next" value="{% url 'orders:cart_detail' %}" class="btn ghost" data-detail-buy-submit data-ajax-add>Thêm vào giỏ</button>
                 <button type="submit" name="next" value="{% url 'orders:checkout' %}" class="btn" data-detail-buy-submit>Mua ngay</button>
             </div>
         </form>
@@ -269,6 +269,17 @@
             </div>
             {% endfor %}
         </div>
+    </div>
+
+    <div class="review-filter-bar">
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=&rsort={{ review_sort }}" class="chip {% if review_filter == '' %}active{% endif %}">Tất cả ({{ rating_count }})</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=5&rsort={{ review_sort }}" class="chip {% if review_filter == '5' %}active{% endif %}">5 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=4&rsort={{ review_sort }}" class="chip {% if review_filter == '4' %}active{% endif %}">4 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=3&rsort={{ review_sort }}" class="chip {% if review_filter == '3' %}active{% endif %}">3 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=photo&rsort={{ review_sort }}" class="chip {% if review_filter == 'photo' %}active{% endif %}"><i class="fa-solid fa-image" aria-hidden="true"></i> Có ảnh</a>
+        <span class="chip-spacer" aria-hidden="true"></span>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rsort=new&rfilter={{ review_filter }}" class="chip {% if review_sort == 'new' %}active{% endif %}">Mới nhất</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rsort=old&rfilter={{ review_filter }}" class="chip {% if review_sort == 'old' %}active{% endif %}">Cũ nhất</a>
     </div>
 
     <div class="review-list">

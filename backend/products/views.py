@@ -443,12 +443,23 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
     bucket_map = {item["rating"]: item["total"] for item in published_reviews.values("rating").annotate(total=Count("id"))}
     review_buckets = [{"rating": rating, "total": bucket_map.get(rating, 0)} for rating in range(5, 0, -1)]
 
+    review_filter = request.GET.get("rfilter", "").strip()
+    review_sort = request.GET.get("rsort", "new").strip()
+    reviews_qs = published_reviews
+    if review_filter == "photo":
+        reviews_qs = reviews_qs.exclude(image="")
+    elif review_filter in ("5", "4", "3", "2", "1"):
+        reviews_qs = reviews_qs.filter(rating=int(review_filter))
+    reviews_qs = reviews_qs.order_by("created" if review_sort == "old" else "-created")
+    reviews = list(reviews_qs)
+
     from orders.models import OrderItem
 
     sold_count = (
         OrderItem.objects.filter(product=product, order__status__in=SOLD_STATUSES).aggregate(total=Sum("quantity"))["total"] or 0
     )
     total_stock = product.get_total_stock()
+    viewing_now = (pk * 7 + 13) % 34 + 8
 
     user_review = None
     can_review = False
@@ -479,7 +490,9 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "size_options": size_options,
             "variant_data_json": json.dumps(variant_data, ensure_ascii=False),
             "is_in_wishlist": is_in_wishlist,
-            "reviews": published_reviews,
+            "reviews": reviews,
+            "review_filter": review_filter,
+            "review_sort": review_sort,
             "rating_avg": rating_avg,
             "rating_count": rating_count,
             "review_buckets": review_buckets,
@@ -489,6 +502,7 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "questions": product.questions.filter(is_published=True).select_related("user")[:5],
             "sold_count": sold_count,
             "total_stock": total_stock,
+            "viewing_now": viewing_now,
             "product_schema": _build_product_schema(request, product, rating_avg, rating_count),
         },
     )

@@ -251,4 +251,125 @@
             });
         }
     })();
+
+    // ─── Mini-cart drawer ───
+    (function () {
+        var drawer = document.getElementById('cart-drawer');
+        var overlay = document.getElementById('cart-drawer-overlay');
+        var itemsEl = document.getElementById('cart-drawer-items');
+        var countEl = document.getElementById('cart-drawer-count');
+        var subtotalEl = document.getElementById('cart-drawer-subtotal');
+        if (!drawer || !overlay) return;
+
+        function fmt(n) {
+            return Number(n).toLocaleString('vi-VN') + 'đ';
+        }
+
+        function refreshCartBadges(count) {
+            var badges = document.querySelectorAll('.site-nav-cart-count, .icon-count');
+            Array.prototype.forEach.call(badges, function (b) { b.textContent = count; b.hidden = count <= 0; });
+        }
+
+        function render(data) {
+            if (countEl) countEl.textContent = data.count;
+            if (subtotalEl) subtotalEl.textContent = fmt(data.subtotal);
+            refreshCartBadges(data.count);
+            if (!itemsEl) return;
+            itemsEl.innerHTML = '';
+            if (!data.items || !data.items.length) {
+                itemsEl.innerHTML = '<p class="cart-drawer-empty">Giỏ hàng đang trống.</p>';
+                return;
+            }
+            data.items.forEach(function (it) {
+                var row = document.createElement('div');
+                row.className = 'cart-drawer-item';
+                var img = document.createElement('img');
+                img.src = it.image;
+                img.alt = '';
+                img.loading = 'lazy';
+                var info = document.createElement('div');
+                var link = document.createElement('a');
+                link.href = it.url;
+                link.textContent = it.name;
+                info.appendChild(link);
+                if (it.variant_label) {
+                    var v = document.createElement('span');
+                    v.className = 'cart-drawer-variant';
+                    v.textContent = it.variant_label;
+                    info.appendChild(v);
+                }
+                var q = document.createElement('span');
+                q.textContent = it.quantity + ' × ' + fmt(it.price);
+                info.appendChild(q);
+                var total = document.createElement('strong');
+                total.textContent = fmt(it.line_total);
+                row.appendChild(img);
+                row.appendChild(info);
+                row.appendChild(total);
+                itemsEl.appendChild(row);
+            });
+        }
+
+        window.openCartDrawer = function () {
+            fetch('/gio-hang/tom-tat/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    render(data);
+                    drawer.classList.add('is-open');
+                    overlay.hidden = false;
+                    document.body.classList.add('drawer-open');
+                    drawer.setAttribute('aria-hidden', 'false');
+                })
+                .catch(function () {});
+        };
+
+        function closeDrawer() {
+            drawer.classList.remove('is-open');
+            overlay.hidden = true;
+            document.body.classList.remove('drawer-open');
+            drawer.setAttribute('aria-hidden', 'true');
+        }
+
+        var closeBtn = document.getElementById('cart-drawer-close');
+        if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && drawer.classList.contains('is-open')) closeDrawer();
+        });
+    })();
+
+    // ─── Add-to-cart opens drawer (AJAX) ───
+    (function () {
+        var form = document.getElementById('detail-buy-form');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+            var btn = document.activeElement;
+            if (!btn || !btn.hasAttribute('data-ajax-add')) return;
+            e.preventDefault();
+            var spinner = document.createElement('span');
+            spinner.className = 'detail-buy-spinner';
+            btn.appendChild(spinner);
+            btn.disabled = true;
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.ok) {
+                        window.location.href = btn.value;
+                        return;
+                    }
+                    if (window.openCartDrawer) window.openCartDrawer();
+                })
+                .catch(function () {
+                    window.location.href = btn.value;
+                })
+                .then(function () {
+                    btn.disabled = false;
+                    if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+                });
+        });
+    })();
 })();

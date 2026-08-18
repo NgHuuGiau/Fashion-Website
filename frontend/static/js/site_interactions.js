@@ -799,7 +799,7 @@
     (function() {
         var el = document.querySelector('[data-viewers-count]');
         if (!el) return;
-        var base = 9 + Math.floor(Math.random() * 14);
+        var base = parseInt(el.textContent, 10) || 12;
         el.textContent = base;
         setInterval(function() {
             var drift = Math.floor(Math.random() * 3) - 1;

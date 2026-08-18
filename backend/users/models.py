@@ -96,3 +96,36 @@ class UserProfile(models.Model):
         if self.points >= 1000:
             return "Thân thiết"
         return "Thành viên"
+
+    def tier(self):
+        tiers = [
+            {"threshold": 2000, "name": "VIP", "badge": "gold", "benefit": "Freeship mọi đơn · hỗ trợ ưu tiên · quà tặng sinh nhật"},
+            {"threshold": 1000, "name": "Thân thiết", "badge": "silver", "benefit": "Freeship từ 299K · ưu đãi riêng hằng tháng"},
+            {"threshold": 0, "name": "Thành viên", "badge": "bronze", "benefit": "Tích 1K = 1 điểm, đổi voucher mỗi đơn"},
+        ]
+        current = tiers[-1]
+        for tier in tiers:
+            if self.points >= tier["threshold"]:
+                current = tier
+                break
+        nxt = None
+        for tier in tiers:
+            if tier["threshold"] > self.points:
+                nxt = tier
+                break
+        progress = 0
+        remaining = 0
+        if nxt:
+            prev = current["threshold"]
+            span = nxt["threshold"] - prev
+            progress = min(int((self.points - prev) / span * 100), 100) if span else 100
+            remaining = nxt["threshold"] - self.points
+        return {
+            "name": current["name"],
+            "badge": current["badge"],
+            "benefit": current["benefit"],
+            "points": self.points,
+            "next": nxt,
+            "progress": progress,
+            "remaining": remaining,
+        }
