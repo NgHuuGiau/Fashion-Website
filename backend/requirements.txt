@@ -37,5 +37,5 @@ django-user-agents>=0.4,<0.5
 django-countries-field>=1.0,<1.1
 
 # Security
-cryptography>=41.0,<42
+cryptography>=50.0.0,<51
 bcrypt>=4.0,<4.1
