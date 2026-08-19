@@ -24,7 +24,7 @@ gunicorn>=21.0,<22
 whitenoise>=6.6,<6.7
 
 # Utils
-django-countries>=7.5,<7.6
+django-countries>=7.5,<9.1
 phonenumbers>=8.13,<9
 django-phonenumber-field>=7.2,<7.3
 qrcode>=7.4,<7.5
