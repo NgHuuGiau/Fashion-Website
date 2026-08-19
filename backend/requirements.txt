@@ -1,0 +1,41 @@
+# Core Django
+django>=4.2,<5.1
+djangorestframework>=3.14,<3.15
+django-environ>=0.11,<0.12
+django-cors-headers>=4.3,<4.4
+django-allauth>=0.57,<0.58
+django-crispy-forms>=2.1,<2.2
+crispy-bootstrap5>=2024.2,<2025
+Pillow>=10.0,<11
+django-imagekit>=5.0,<5.1
+django-compressor>=4.2,<4.3
+django-debug-toolbar>=4.2,<4.3
+django-extensions>=3.2,<3.3
+
+# Database
+psycopg2-binary>=2.9,<2.10
+
+# Async/Task Queue
+celery>=5.3,<5.4
+redis>=5.0,<5.1
+
+# Production
+gunicorn>=21.0,<22
+whitenoise>=6.6,<6.7
+
+# Utils
+django-countries>=7.5,<7.6
+phonenumbers>=8.13,<9
+django-phonenumber-field>=7.2,<7.3
+qrcode>=7.4,<7.5
+reportlab>=4.0,<4.1
+weasyprint>=60.0,<61
+django-simple-captcha>=0.5.15,<0.6
+django-ratelimit>=4.1,<4.2
+django-axes>=5.5,<5.6
+django-user-agents>=0.4,<0.5
+django-countries-field>=1.0,<1.1
+
+# Security
+cryptography>=41.0,<42
+bcrypt>=4.0,<4.1

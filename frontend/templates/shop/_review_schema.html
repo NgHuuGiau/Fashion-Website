@@ -1,0 +1,28 @@
+{# JSON-LD Review Schema #}
+{% if reviews %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "review": [
+    {% for r in reviews %}
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": "{{ r.user.get_full_name|default:r.user.username|repair_text }}"
+      },
+      "datePublished": "{{ r.created_at|date:'Y-m-d' }}",
+      "reviewBody": "{{ r.comment|repair_text }}",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "{{ r.rating }}",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+      {% if r.verified_purchase %},"publisher": {"@type": "Organization", "name": "HUUGIAU Atelier"}{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>

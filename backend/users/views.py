@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from .activity import log_activity
 from .captcha import generate_captcha_code, generate_captcha_image
 from .forms import ForgotPasswordForm, CaptchaForm, ResetPasswordForm, ProfileForm, RegisterForm, ChangePasswordForm
+from .models_referral import ReferralCode, ReferralReward
 from .models import UserAddress, UserProfile
 from core.ratelimit import rate_limit
 
@@ -183,6 +184,27 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "addresses": addresses,
             "hbd_active": hbd_active,
             "expiry_warning": expiry_warning,
+        },
+    )
+
+
+@login_required
+def referral_view(request: HttpRequest) -> HttpResponse:
+    referral_code, _ = ReferralCode.objects.get_or_create(user=request.user)
+    rewards = ReferralReward.objects.filter(referral_code=referral_code).select_related("referred_user", "order")
+    total_earned = sum(r.amount for r in rewards if r.reward_type == "referrer" and r.is_claimed)
+    total_referred = rewards.filter(reward_type="referred").count()
+    share_url = request.build_absolute_uri(f"/?ref={referral_code.code}")
+
+    return render(
+        request,
+        "account/referral.html",
+        {
+            "referral_code": referral_code,
+            "rewards": rewards,
+            "total_earned": total_earned,
+            "total_referred": total_referred,
+            "share_url": share_url,
         },
     )
 

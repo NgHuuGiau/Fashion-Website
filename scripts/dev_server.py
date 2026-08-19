@@ -1,20 +1,19 @@
 """Django dev server with HTTPS. Drop-in replacement for runserver."""
 import os
-import sys
 import ssl
-import threading
-from wsgiref.simple_server import make_server, WSGIServer
-from wsgiref import simple_server
+import sys
+from wsgiref.simple_server import make_server
+
+import django
+from django.conf import settings
+from django.core.handlers.wsgi import WSGIHandler
 
 # Setup Django
 backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")
 sys.path.insert(0, backend_dir)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
-import django
 django.setup()
-from django.core.handlers.wsgi import WSGIHandler
-from django.conf import settings
 
 app = WSGIHandler()
 host = "0.0.0.0"
@@ -34,7 +33,7 @@ try:
     ctx.load_cert_chain(cert_file, key_file)
     httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
     protocol = "HTTPS"
-except Exception as e:
+except ssl.SSLError as e:
     print(f"SSL error: {e}")
     protocol = "HTTP"
 

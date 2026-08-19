@@ -1,0 +1,175 @@
+# GitHub Repository Settings
+# https://github.com/probot/settings
+
+repository:
+  name: fashion-website
+  description: "HUUGIAU Fashion Website - Django E-commerce Platform"
+  homepage: https://huugiau.com
+  topics:
+    - django
+    - ecommerce
+    - fashion
+    - python
+    - postgresql
+    - redis
+    - celery
+    - vnpay
+  private: true
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  allow_auto_merge: true
+  delete_branch_on_merge: true
+  allow_update_branch: true
+  allow_merge_commit: false
+  squash_merge_commit_title: "PR_TITLE"
+  squash_merge_commit_message: "PR_BODY"
+
+# Branch Protection Rules
+branches:
+  - name: main
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+        require_last_push_approval: true
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Lint (Ruff)"
+          - "Type Check (mypy)"
+          - "Security Scan"
+          - "CodeQL Analysis"
+          - "Tests (Python 3.12)"
+          - "Frontend Lint"
+          - "Build Verification"
+      enforce_admins: true
+      restrictions: null
+      required_linear_history: true
+      allow_force_pushes: false
+      allow_deletions: false
+      required_conversation_resolution: true
+      lock_branch: false
+      allow_fork_syncing: true
+
+  - name: develop
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Lint (Ruff)"
+          - "Type Check (mypy)"
+          - "Security Scan"
+          - "Tests (Python 3.12)"
+      restrictions: null
+      required_linear_history: false
+      allow_force_pushes: false
+      allow_deletions: false
+
+# Labels
+labels:
+  - name: "bug"
+    color: "d73a4a"
+    description: "Something isn't working"
+  - name: "enhancement"
+    color: "a2eeef"
+    description: "New feature or request"
+  - name: "documentation"
+    color: "0075ca"
+    description: "Improvements or additions to documentation"
+  - name: "good first issue"
+    color: "7057ff"
+    description: "Good for newcomers"
+  - name: "help wanted"
+    color: "008672"
+    description: "Extra attention is needed"
+  - name: "security"
+    color: "ee0701"
+    description: "Security related issue or fix"
+  - name: "dependencies"
+    color: "0366d6"
+    description: "Dependency updates"
+  - name: "triage"
+    color: "fbca04"
+    description: "Needs triage"
+  - name: "blocked"
+    color: "b60205"
+    description: "Blocked by external dependency"
+  - name: "refactoring"
+    color: "6f42c1"
+    description: "Code refactoring"
+  - name: "performance"
+    color: "e99695"
+    description: "Performance improvements"
+  - name: "ci/cd"
+    color: "1d76db"
+    description: "CI/CD pipeline changes"
+  - name: "frontend"
+    color: "e4a5f7"
+    description: "Frontend related"
+  - name: "backend"
+    color: "0052cc"
+    description: "Backend related"
+  - name: "database"
+    color: "3d3d3d"
+    description: "Database related"
+  - name: "breaking change"
+    color: "b60205"
+    description: "Breaking change"
+
+# Automated Labels for PRs
+autolabel:
+  - pattern: "^deps\("
+    labels: ["dependencies"]
+  - pattern: "^security"
+    labels: ["security"]
+  - pattern: "^fix\("
+    labels: ["bug"]
+  - pattern: "^feat\("
+    labels: ["enhancement"]
+  - pattern: "^refactor\("
+    labels: ["refactoring"]
+  - pattern: "^perf\("
+    labels: ["performance"]
+  - pattern: "^docs\("
+    labels: ["documentation"]
+  - pattern: "^test\("
+    labels: ["help wanted"]
+  - pattern: "^ci\("
+    labels: ["ci/cd"]
+  - pattern: "^frontend\("
+    labels: ["frontend"]
+  - pattern: "^backend\("
+    labels: ["backend"]
+
+# Auto-assign reviewers
+autoassign:
+  enabled: true
+  strategy: "round-robin"
+  reviewers:
+    - huugiau-backend
+    - huugiau-frontend
+  skip_keywords: ["wip", "draft", "do not merge"]
+
+# Merge queue (if enabled)
+merge_queue:
+  enabled: true
+  merge_method: squash
+  max_entries: 20
+  timeout: 3600
+
+# Notifications
+notifications:
+  pull_request_reviews: true
+  issue_comments: true
+  push: false
+  status: true

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chương trình giới thiệu — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Giới thiệu bạn bè mua sắm tại HUUGIAU, cả hai cùng nhận 50.000đ.{% endblock %}
+
+{% block content %}
+<div class="section-shell">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Chương trình giới thiệu</p>
+      <h1>Giới thiệu bạn bè - Cùng nhận 50K</h1>
+      <p>Chia sẻ mã giới thiệu của bạn. Bạn bè được giảm 50K cho đơn đầu tiên, bạn nhận 50K khi họ hoàn tất đơn hàng.</p>
+    </div>
+  </div>
+
+  <div class="referral-grid">
+    <!-- Mã giới thiệu -->
+    <div class="referral-card panel">
+      <h2>Mã giới thiệu của bạn</h2>
+      <div class="referral-code-display">
+        <span class="code">{{ referral_code.code }}</span>
+        <button type="button" class="btn ghost copy-btn" data-copy="{{ referral_code.code }}" aria-label="Sao chép mã">
+          <i class="fa-regular fa-copy"></i> Sao chép
+        </button>
+      </div>
+      <p class="code-desc">Bạn bè nhập mã này khi thanh toán để được giảm <strong>50.000đ</strong></p>
+
+      <div class="referral-share">
+        <p>Link mời bạn bè:</p>
+        <div class="share-url-row">
+          <input type="text" class="share-url" value="{{ share_url }}" readonly>
+          <button type="button" class="btn ghost copy-btn" data-copy="{{ share_url }}" aria-label="Sao chép link">Sao chép</button>
+        </div>
+        <div class="social-share">
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" target="_blank" rel="noopener" class="btn ghost social-btn" aria-label="Chia sẻ Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="https://zalo.me/share?url={{ share_url|urlencode }}" target="_blank" rel="noopener" class="btn ghost social-btn" aria-label="Chia sẻ Zalo"><i class="fa-solid fa-paper-plane"></i></a>
+          <a href="https://twitter.com/intent/tweet?text=M%E1%BB%9Di%20b%E1%BA%A1n%20mua%20s%E1%BA%AFm%20t%E1%BA%A1i%20HUUGIAU%20nh%E1%BA%ADn%2050K%20ngay%20{{ share_url|urlencode }}" target="_blank" rel="noopener" class="btn ghost social-btn" aria-label="Chia sẻ Twitter"><i class="fa-brands fa-twitter"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="referral-stats panel">
+      <div class="stat-row">
+        <div class="stat-item">
+          <span class="stat-value">{{ total_referred }}</span>
+          <span class="stat-label">Đã mời</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{{ total_earned|vnd }}đ</span>
+          <span class="stat-label">Đã kiếm được</span>
+        </div>
+      </div>
+      <p class="stat-note">Bạn nhận 50.000đ cho mỗi đơn hàng hoàn tất của người được giới thiệu</p>
+    </div>
+  </div>
+
+  <!-- Lịch sử thưởng -->
+  <div class="referral-history panel">
+    <h2>Lịch sử thưởng</h2>
+    {% if rewards %}
+    <div class="table-wrapper">
+      <table class="referral-table">
+        <thead>
+          <tr>
+            <th>Người được giới thiệu</th>
+            <th>Loại thưởng</th>
+            <th>Số tiền</th>
+            <th>Đơn hàng</th>
+            <th>Trạng thái</th>
+            <th>Ngày</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rewards %}
+          <tr>
+            <td>{{ r.referred_user.get_full_name|default:r.referred_user.username }}</td>
+            <td>{% if r.reward_type == "referrer" %}<span class="badge referrer">Người giới thiệu</span>{% else %}<span class="badge referred">Người được giới thiệu</span>{% endif %}</td>
+            <td>{{ r.amount|vnd }}đ</td>
+            <td>{% if r.order %}<a href="{% url 'orders:order_review' r.order.id %}">#{{ r.order.id }}</a>{% else %}—{% endif %}</td>
+            <td>{% if r.is_claimed %}<span class="status claimed">Đã nhận</span>{% else %}<span class="status pending">Chờ đơn hoàn tất</span>{% endif %}</td>
+            <td>{{ r.created_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-state">Chưa có lịch sử giới thiệu. Hãy chia sẻ mã của bạn ngay!</p>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.referral-grid { display: grid; grid-template-columns: 1fr 350px; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media (max-width: 900px) { .referral-grid { grid-template-columns: 1fr; } }
+.referral-card { padding: 1.5rem; }
+.referral-code-display { display: flex; gap: 0.75rem; align-items: center; margin: 1rem 0; flex-wrap: wrap; }
+.referral-code-display .code { font-family: 'Archivo Expanded', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.15em; background: var(--panel-alt); padding: 0.75rem 1.5rem; border-radius: var(--radius); border: 2px dashed var(--accent); color: var(--accent-deep); }
+.referral-share { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.share-url-row { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
+.share-url { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: monospace; font-size: 0.85rem; }
+.social-share { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+.social-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.referral-stats { padding: 1.5rem; }
+.stat-row { display: flex; gap: 1rem; }
+.stat-item { flex: 1; text-align: center; padding: 1rem; background: var(--panel-alt); border-radius: var(--radius); }
+.stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--accent-deep); }
+.stat-label { font-size: 0.8rem; color: var(--muted); }
+.stat-note { margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted); text-align: center; }
+.referral-history { margin-top: 1.5rem; }
+.referral-table { width: 100%; border-collapse: collapse; }
+.referral-table th, .referral-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.referral-table th { background: var(--panel-alt); font-weight: 600; }
+.badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+.badge.referrer { background: var(--accent-soft); color: var(--accent-deep); }
+.badge.referred { background: var(--info-soft, #dbeafe); color: var(--info, #1d4ed8); }
+.status { padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 500; }
+.status.claimed { background: var(--success-soft, #dcfce7); color: var(--success, #16a34a); }
+.status.pending { background: var(--warn-soft, #fef3c7); color: var(--warn, #b8860b); }
+.empty-state { text-align: center; padding: 2rem; color: var(--muted); }
+.table-wrapper { overflow-x: auto; }
+</style>
+{% endblock %}

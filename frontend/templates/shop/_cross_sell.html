@@ -1,0 +1,34 @@
+{% load shop_format %}
+{% if cross_sell_products %}
+<section class="section-shell" aria-labelledby="cross-sell-heading">
+  <div class="section-head">
+    <h2 id="cross-sell-heading" class="section-title">Khách hàng cũng mua</h2>
+  </div>
+  <div class="product-grid" id="cross-sell-grid">
+    {% for p in cross_sell_products %}
+    <article class="product-card">
+      <a href="{% url 'products:product_detail' p.id p.slug %}" class="product-card-link">
+        <div class="product-card-media">
+          <img src="{{ p.image.url|default:p.image_url }}" alt="{{ p.name }}" loading="lazy">
+          {% if p.discount_percent %}
+          <span class="product-card-badge">-{{ p.discount_percent }}%</span>
+          {% endif %}
+        </div>
+        <div class="product-card-info">
+          <p class="product-card-name">{{ p.name|truncatechars:30 }}</p>
+          <div class="product-card-price">
+            {% if p.discount_percent %}
+              <s class="price-old">{{ p.price|vnd }}đ</s>
+              <span class="price-new">{{ p.price|mul:p.discount_percent|div:100|sub:p.price|abs|vnd }}đ</span>
+              <span class="sale-tag">-{{ p.discount_percent }}%</span>
+            {% else %}
+              <span class="price">{{ p.price|vnd }}đ</span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

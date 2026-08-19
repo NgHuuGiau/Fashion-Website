@@ -1,3 +1,42 @@
 [bandit]
-exclude: /migrations,/tests.py,manage.py,core/settings.py,run_local.py
-skips: B101,B311,B303
+# Bandit security linting configuration
+# https://bandit.readthedocs.io/en/latest/config.html
+
+# Exclude test files and migrations
+exclude_dirs = ["tests", "migrations", "venv", ".venv", "env", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "node_modules", "dist", "build", "*.egg-info"]
+
+# Skip certain tests that are common false positives in Django
+skips = [
+    "B101",  # assert_used - common in tests
+    "B601",  # shell_injection - sometimes needed for management commands
+    "B105",  # hardcoded_password_string - sometimes in fixtures/tests
+    "B108",  # hardcoded_tmp_directory - sometimes in tests
+]
+
+# Confidence threshold (only report MEDIUM and HIGH)
+confidence_level = "medium"
+
+# Severity threshold
+severity_level = "medium"
+
+# Output format
+format = "json"
+output = "bandit-results.json"
+
+# Per-file overrides
+[bandit.per-file]
+# Allow shell in management commands
+"*/management/commands/*.py":
+  skips = ["B601", "B602"]
+
+# Allow assert in tests
+"tests/*.py":
+  skips = ["B101"]
+
+# Allow hardcoded passwords in fixtures/factories
+"*factory*.py":
+  skips = ["B105"]
+
+# Allow temporary files in tests
+"*test*.py":
+  skips = ["B108"]

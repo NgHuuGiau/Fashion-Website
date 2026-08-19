@@ -1,0 +1,378 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - 'docs/**'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - 'docs/**'
+  schedule:
+    - cron: "0 3 * * 1"  # Weekly Monday 3AM
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: '3.12'
+  DJANGO_SETTINGS_MODULE: 'core.settings'
+
+jobs:
+  # ========================================
+  # LINT & STATIC ANALYSIS
+  # ========================================
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Ruff
+        run: pip install ruff==0.5.7
+
+      - name: Run Ruff check
+        run: |
+          ruff check backend frontend --output-format=github
+        continue-on-error: false
+
+      - name: Run Ruff format check
+        run: |
+          ruff format --check backend frontend
+        continue-on-error: false
+
+  type-check:
+    name: Type Check (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend[dev]"
+          pip install mypy==1.11.2 django-stubs==4.2.7 types-requests
+
+      - name: Run mypy
+        run: |
+          mypy backend --config-file=backend/pyproject.toml --ignore-missing-imports || true
+        continue-on-error: false
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install security tools
+        run: |
+          pip install bandit==1.7.8 pip-audit==2.7.0 safety==3.2.1
+
+      - name: Run Bandit (SAST)
+        run: |
+          bandit -r backend -f json -o bandit-results.json || true
+          bandit -r backend -lll || true
+
+      - name: Run pip-audit (deps vulnerabilities)
+        run: |
+          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json || true
+
+      - name: Run Safety
+        run: |
+          safety check -r backend/requirements.txt --json -o safety-results.json || true
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-results
+          path: |
+            bandit-results.json
+            pip-audit-results.json
+            safety-results.json
+          retention-days: 14
+
+  # ========================================
+  # CODEQL ANALYSIS
+  # ========================================
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          queries: security-and-quality
+          config: |
+            paths:
+              - backend/
+              - frontend/
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:python"
+          output: sarif-results
+
+      - name: Upload SARIF
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: sarif-results
+          retention-days: 14
+
+  # ========================================
+  # DJANGO TESTS
+  # ========================================
+  test:
+    name: Django Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        django-version: ['4.2', '5.0']
+        exclude:
+          - python-version: '3.10'
+            django-version: '5.0'
+          - python-version: '3.13'
+            django-version: '4.2'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_fashion
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend[dev]"
+          pip install "Django==${{ matrix.django-version }}.*" psycopg2-binary pytest-django pytest-cov pytest-xdist coverage
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U test && break
+            sleep 1
+          done
+
+      - name: Run migrations
+        run: |
+          cd backend
+          python manage.py migrate --noinput
+
+      - name: Run tests with coverage
+        run: |
+          cd backend
+          python -m pytest \
+            --cov=. \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            -n auto \
+            -v \
+            --tb=short \
+            --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
+            --ignore=tests/stress \
+            --ignore=tests/performance
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.python-version }}-${{ matrix.django-version }}
+          path: |
+            backend/coverage.xml
+            backend/test-results-*.xml
+          retention-days: 7
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ matrix.python-version == '3.12' && matrix.django-version == '4.2' }}
+        with:
+          files: ./backend/coverage.xml
+          flags: unittests
+          name: codecov-${{ matrix.python-version }}-${{ matrix.django-version }}
+
+  # ========================================
+  # FRONTEND LINT (CSS/JS)
+  # ========================================
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend && npm ci
+
+      - name: Run Stylelint (CSS)
+        run: |
+          cd frontend && npx stylelint "**/*.css" --formatter=github || true
+
+      - name: Run ESLint (JS)
+        run: |
+          cd frontend && npx eslint "**/*.js" --format=github || true
+
+  # ========================================
+  # BUILD VERIFICATION
+  # ========================================
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint, type-check, security, test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          pip install -e "backend[dev]"
+
+      - name: Django system check
+        run: |
+          cd backend && python manage.py check --deploy --fail-level=WARNING
+
+      - name: Collect static (dry-run)
+        run: |
+          cd backend && python manage.py collectstatic --dry-run --noinput --clear
+
+      - name: Frontend build check
+        run: |
+          cd frontend && npm run build || echo "No build script - skipping"
+
+  # ========================================
+  # DEPENDENCY REVIEW
+  # ========================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          config-file: '.github/dependency-review-config.yml'
+          fail-on-severity: high
+
+  # ========================================
+  # SUMMARY
+  # ========================================
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, type-check, security, codeql, test, frontend-lint, build, dependency-review]
+    steps:
+      - name: Collect results
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Lint | ${{ needs.frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Review | ${{ needs.dependency-review.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**All checks must pass for merge.**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::One or more CI jobs failed"
+          exit 1

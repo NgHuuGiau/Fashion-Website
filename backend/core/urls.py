@@ -3,10 +3,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.http import HttpResponse
-from django.urls import include, path
+from django.urls import include, path, reverse
 
 from . import api, views
-from .sitemaps import BlogSitemap, ProductSitemap, StaticSitemap
+from .sitemaps import BlogSitemap, CategorySitemap, ProductSitemap, StaticSitemap
 
 handler404 = views.handler404
 handler500 = views.handler500
@@ -14,18 +14,20 @@ handler500 = views.handler500
 sitemaps = {
     "static": StaticSitemap,
     "products": ProductSitemap,
+    "categories": CategorySitemap,
     "blog": BlogSitemap,
 }
 
 
 def robots_txt(request):
+    sitemap_url = request.build_absolute_uri(reverse("django.contrib.sitemaps.views.sitemap"))
     return HttpResponse(
         "User-agent: *\n"
         "Disallow: /gio-hang/\n"
         "Disallow: /thanh-toan/\n"
         "Disallow: /tra-cuu-don/\n"
         "Disallow: /admin-dashboard/\n"
-        "Sitemap: https://localhost:8000/sitemap.xml\n",
+        f"Sitemap: {sitemap_url}\n",
         content_type="text/plain",
     )
 

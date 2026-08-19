@@ -1,0 +1,122 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the form below with as much detail as possible.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest version of the codebase
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of the application is affected?
+      options:
+        - "Backend (Django/API)"
+        - "Frontend (CSS/JS/Templates)"
+        - "Database/Migrations"
+        - "Authentication/Authorization"
+        - "Orders/Checkout"
+        - "Products/Catalog"
+        - "Users/Accounts"
+        - "Admin Dashboard"
+        - "Email/Notifications"
+        - "Payment (VNPay/Bank/COD)"
+        - "Static Files/Media"
+        - "Docker/Deployment"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version/Commit
+      description: What version or commit hash are you using?
+      placeholder: "e.g., main branch, commit abc1234, or v1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear and concise description of the bug
+      placeholder: "When I do X, Y happens but I expected Z"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the bug
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: "The page should load without errors"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens?
+      placeholder: "Page throws 500 error with traceback..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs / Traceback
+      description: Paste any relevant error messages, stack traces, or logs
+      render: shell
+      placeholder: |
+        Traceback (most recent call last):
+          File "...", line X, in ...
+            ...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your development/production environment details
+      placeholder: |
+        - OS: Ubuntu 22.04 / Windows 11 / macOS
+        - Python: 3.12.x
+        - Django: 4.2.x / 5.0.x
+        - Database: PostgreSQL 16 / SQL Server 2022
+        - Browser: Chrome 120 / Firefox 121
+        - Deployment: Docker / Bare metal / VPS
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information, screenshots, or context
+      placeholder: "Screenshots, related PRs, etc."

@@ -1,0 +1,39 @@
+{# JSON-LD Product Schema #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|repair_text }}",
+  "description": "{{ product.description|default:''|repair_text|truncatechars:300 }}",
+  "sku": "HUUGIAU-{{ product.id }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "HUUGIAU Atelier"
+  },
+  {% if product.image and product.image.url %}
+  "image": "{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}",
+  {% elif product.image_url %}
+  "image": "{{ product.image_url }}",
+  {% endif %}
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.build_absolute_uri }}",
+    "priceCurrency": "VND",
+    "price": "{{ product.price|floatformat:0 }}",
+    "priceValidUntil": "{{ 'now'|date:'Y-m-d'|add:'30 days' }}",
+    "availability": "{% if product.available and product.get_total_stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "seller": {
+      "@type": "Organization",
+      "name": "HUUGIAU Atelier"
+    }
+  },
+  {% if product.discount_percent %}
+  "priceValidUntil": "{{ 'now'|date:'Y-m-d'|add:'7 days' }}",
+  {% endif %}
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ product.reviews.aggregate|default:0 }}",
+    "reviewCount": "{{ product.reviews.count|default:0 }}"
+  }
+}
+</script>

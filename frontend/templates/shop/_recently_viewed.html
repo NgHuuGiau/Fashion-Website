@@ -1,0 +1,31 @@
+{% load shop_format %}
+{% if recently_viewed %}
+<section class="section-shell" aria-labelledby="recently-viewed-heading">
+  <div class="section-head">
+    <h2 id="recently-viewed-heading" class="section-title">Sản phẩm bạn vừa xem</h2>
+  </div>
+  <div class="product-grid" id="recently-viewed-grid">
+    {% for p in recently_viewed %}
+    <article class="product-card">
+      <a href="{% url 'products:product_detail' p.id p.slug %}" class="product-card-link">
+        <div class="product-card-media">
+          <img src="{{ p.image_url }}" alt="{{ p.name }}" loading="lazy">
+        </div>
+        <div class="product-card-info">
+          <p class="product-card-name">{{ p.name|truncatechars:30 }}</p>
+          <div class="product-card-price">
+            {% if p.discount_percent %}
+              <s class="price-old">{{ p.price|vnd }}đ</s>
+              <span class="price-new">{{ p.price|mul:p.discount_percent|div:100|sub:p.price|abs|vnd }}đ</span>
+              <span class="sale-tag">-{{ p.discount_percent }}%</span>
+            {% else %}
+              <span class="price">{{ p.price|vnd }}đ</span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
