@@ -24,10 +24,14 @@ from ..cart import add_cart, clear_cart, iter_cart, remove_cart, safe_int
 from ..constants import (
     BANKS,
     FREESHIP_THRESHOLD,
+    HCMC_KEYWORDS,
+    NORTHERN_KEYWORDS,
     PAYMENT_TIMEOUT_MINUTES,
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
+    SHIPPING_FEE_ZONES,
     STANDARD_SHIPPING_FEE,
+    TIER_DISCOUNTS,
 )
 from ..forms import CheckoutForm
 from ..models import Coupon, CouponRedemption, Order, OrderItem
@@ -47,10 +51,19 @@ def normalize_shipping_address(value):
     return normalize_vn_text(value)
 
 
-def calculate_shipping_fee(subtotal):
+def shipping_zone(address):
+    text = normalize_shipping_address(address or "").lower()
+    if any(k in text for k in HCMC_KEYWORDS):
+        return "near"
+    if any(k in text for k in NORTHERN_KEYWORDS):
+        return "north"
+    return "standard"
+
+
+def calculate_shipping_fee(subtotal, address=""):
     if subtotal >= FREESHIP_THRESHOLD:
         return Decimal("0")
-    return STANDARD_SHIPPING_FEE
+    return SHIPPING_FEE_ZONES.get(shipping_zone(address), STANDARD_SHIPPING_FEE)
 
 
 def calculate_coupon_discount(coupon, subtotal, shipping_fee):
@@ -337,8 +350,15 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     selected_coupon = None
     coupon_error = ""
-    shipping_fee = calculate_shipping_fee(subtotal)
+    shipping_fee = calculate_shipping_fee(subtotal, default_address.address if default_address else "")
     discount_amount = Decimal("0")
+    tier_name = ""
+    tier_discount_pct_value = 0
+    tier_discount_amount = Decimal("0")
+
+    if request.user.is_authenticated:
+        tier_name = UserProfile.objects.get_or_create(user=request.user)[0].tier_name()
+        tier_discount_pct_value = TIER_DISCOUNTS.get(tier_name, 0)
 
     if request.method == "POST":
         form = CheckoutForm(request.POST)
@@ -346,13 +366,15 @@ def checkout(request: HttpRequest) -> HttpResponse:
             payment_method = form.cleaned_data["payment_method"]
             bank_code = form.cleaned_data.get("bank_code", "") if payment_method == "bank" else ""
             coupon_code = form.cleaned_data.get("coupon_code", "")
+            shipping_fee = calculate_shipping_fee(subtotal, form.cleaned_data["shipping_address"])
+            tier_discount_amount = subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
 
             selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal, user=request.user)
             if coupon_error:
                 form.add_error("coupon_code", coupon_error)
             else:
                 discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
-                total_amount = max(Decimal("0"), subtotal + shipping_fee - discount_amount)
+                total_amount = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
 
                 # ── Điểm tích lũy ──
                 points_to_use = 0
@@ -399,11 +421,14 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         phone=form.cleaned_data["phone"],
                         shipping_address=form.cleaned_data["shipping_address"],
                         note=form.cleaned_data["note"],
+                        delivery_time_slot=form.cleaned_data.get("delivery_time_slot", ""),
+                        gift_wrap=form.cleaned_data.get("gift_wrap", False),
+                        gift_note=form.cleaned_data.get("gift_note", ""),
                         payment_method=payment_method,
                         bank_code=bank_code,
                         subtotal_amount=subtotal,
                         shipping_fee=shipping_fee,
-                        discount_amount=discount_amount,
+                        discount_amount=discount_amount + tier_discount_amount,
                         points_used=points_to_use,
                         coupon=selected_coupon,
                         coupon_code=selected_coupon.code if selected_coupon else "",
@@ -510,7 +535,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
     if request.method == "POST" and form.is_valid() and not coupon_error:
         discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
 
-    total = max(Decimal("0"), subtotal + shipping_fee - discount_amount)
+    total = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
 
     user_points = UserProfile.objects.get_or_create(user=request.user)[0].points
 
@@ -522,6 +547,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "subtotal": subtotal,
             "shipping_fee": shipping_fee,
             "discount_amount": discount_amount,
+            "tier_name": tier_name,
+            "tier_discount_pct": tier_discount_pct_value,
+            "tier_discount_amount": tier_discount_amount,
+            "shipping_zone": shipping_zone(form.cleaned_data["shipping_address"]) if request.method == "POST" and form.is_valid() else shipping_zone(default_address.address if default_address else ""),
             "total": total,
             "form": form,
             "shop_bank_account": SHOP_BANK_ACCOUNT,

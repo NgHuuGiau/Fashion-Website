@@ -48,11 +48,16 @@
             <div>
                 <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
                 <h1>{{ product.name|repair_text }}</h1>
-                <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
+                <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %} <span class="price-usd-hint">≈ ${{ product.price|div:25000|floatformat:0 }}</span></p>
                 <div class="detail-social-proof">
                     {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
                     <span><i class="fa-solid fa-eye" aria-hidden="true"></i> <span data-viewers-count>{{ viewing_now }}</span> người đang xem</span>
                     {% if total_stock and total_stock <= 15 %}<span class="low-stock"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Chỉ còn {{ total_stock }} sản phẩm</span>{% endif %}
+                </div>
+                <div class="detail-share">
+                    <span>Chia sẻ:</span>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener" aria-label="Chia sẻ lên Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://zalo.me/share?url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener" aria-label="Chia sẻ qua Zalo"><i class="fa-solid fa-paper-plane"></i></a>
                 </div>
             </div>
             {% if request.user.is_authenticated %}
@@ -64,6 +69,8 @@
                 </button>
             </form>
             {% endif %}
+            <p class="wishlist-note">❤️ Lưu vào yêu thích để xem sau và nhận thông báo khi sản phẩm giảm giá.</p>
+        </div>
         </div>
 
         <p class="detail-copy">{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
@@ -305,6 +312,18 @@
             <div class="review-shop-reply">
                 <strong class="review-shop-reply-title"><i class="fa-solid fa-shop"></i> Shop phản hồi</strong>
                 <p>{{ review.shop_reply|linebreaksbr }}</p>
+                {% if review.customer_reply %}
+                <div class="review-customer-reply">
+                    <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                    <p>{{ review.customer_reply|linebreaksbr }}</p>
+                </div>
+                {% elif request.user.is_authenticated and request.user == review.user %}
+                <form method="post" action="{% url 'products:review_customer_reply' product.id %}" class="review-reply-form">
+                    {% csrf_token %}
+                    <input type="text" name="customer_reply" placeholder="Phản hồi của bạn..." required maxlength="500">
+                    <button type="submit" class="btn ghost">Gửi</button>
+                </form>
+                {% endif %}
             </div>
             {% endif %}
         </article>

@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .activity import log_activity
@@ -163,6 +164,13 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         form = ProfileForm(user=request.user)
 
     addresses = list(UserAddress.objects.filter(user=request.user))
+    hbd_active = bool(profile.birthday and profile.is_birthday_month())
+    expiry_warning = (
+        profile.points_expire_at
+        and profile.points > 0
+        and profile.points_expire_at
+        and profile.points_expire_at >= timezone.localdate()
+    )
 
     return render(
         request,
@@ -173,6 +181,8 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "display_name": display_name,
             "display_initials": display_initials,
             "addresses": addresses,
+            "hbd_active": hbd_active,
+            "expiry_warning": expiry_warning,
         },
     )
 

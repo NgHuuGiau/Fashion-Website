@@ -8,6 +8,32 @@ PAYMENT_TIMEOUT_MINUTES = 15
 STANDARD_SHIPPING_FEE = Decimal("30000")
 FREESHIP_THRESHOLD = Decimal("499000")
 
+# Phí giao nội thành (HCM + vùng phụ cận) rẻ hơn, miền Bắc xa hơn.
+SHIPPING_FEE_ZONES = {
+    "near": Decimal("25000"),
+    "standard": Decimal("30000"),
+    "north": Decimal("35000"),
+}
+TIER_DISCOUNTS = {
+    "VIP": 5,
+    "Thân thiết": 3,
+    "Thành viên": 0,
+}
+
+HCMC_KEYWORDS = (
+    "ho chi minh", "hcm", "tp hcm", "tphcm", "sai gon", "quan 1", "quan 2", "quan 3",
+    "quan 4", "quan 5", "quan 6", "quan 7", "quan 8", "quan 9", "quan 10", "quan 11",
+    "quan 12", "thu duc", "go vap", "binh thanh", "tan binh", "tan phu", "phu nhuan", "binh tan",
+)
+NEAR_HCMC_KEYWORDS = (
+    "binh duong", "dong nai", "tay ninh", "ba ria", "vung tau", "long an", "tien giang", "ben tre",
+)
+NORTHERN_KEYWORDS = (
+    "ha noi", "hanoi", "hai phong", "bac ninh", "hung yen", "hai duong", "vinh phuc",
+    "bac giang", "thai nguyen", "quang ninh", "son la", "hue", "da nang", "nha trang",
+    "viet tri", "thai binh", "nam dinh", "ninh binh", "thanh hoa", "nghe an", "ha tinh",
+)
+
 BANKS = {
     "VCB": {"name": "Vietcombank", "bin": "970436"},
     "TCB": {"name": "Techcombank", "bin": "970407"},

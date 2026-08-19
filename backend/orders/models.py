@@ -86,6 +86,12 @@ class Order(models.Model):
         ("cancelled", "Đã hủy"),
     ]
 
+    DELIVERY_SLOT_CHOICES = [
+        ("morning", "8:00 – 11:00"),
+        ("afternoon", "13:00 – 17:00"),
+        ("evening", "18:00 – 21:00"),
+    ]
+
     PAYMENT_METHOD_CHOICES = [
         ("cod", "Thanh toán khi nhận hàng"),
         ("bank", "Chuyển khoản ngân hàng"),
@@ -110,6 +116,9 @@ class Order(models.Model):
     phone = models.CharField(max_length=20, db_index=True)
     shipping_address = models.TextField()
     note = models.TextField(blank=True)
+    delivery_time_slot = models.CharField(max_length=20, blank=True, verbose_name="Khung giờ nhận hàng")
+    gift_wrap = models.BooleanField(default=False, verbose_name="Đóng gói quà tặng")
+    gift_note = models.CharField(max_length=255, blank=True, verbose_name="Thiệp chúc kèm quà")
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod", db_index=True)
     bank_code = models.CharField(max_length=20, blank=True)
     is_paid = models.BooleanField(default=False, db_index=True)
@@ -160,6 +169,9 @@ class Order(models.Model):
         if self.return_requests.filter(status__in=["pending", "approved"]).exists():
             return False
         return True
+
+    def get_delivery_slot_display(self):
+        return dict(self.DELIVERY_SLOT_CHOICES).get(self.delivery_time_slot, "")
 
 
 class ReturnRequest(models.Model):

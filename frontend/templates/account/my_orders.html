@@ -48,6 +48,12 @@
                 {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener">Tra cứu <i class="fa-solid fa-arrow-up-right-from-square"></i></a>{% endif %}
             </div>
             {% endif %}
+            {% if order.delivery_time_slot or order.gift_wrap %}
+            <div class="order-shipping order-shipping-sub">
+                {% if order.delivery_time_slot %}<span><i class="fa-regular fa-clock"></i> Nhận lúc {{ order.get_delivery_slot_display }}</span>{% endif %}
+                {% if order.gift_wrap %}<span><i class="fa-solid fa-gift"></i> Đóng gói quà tặng{% if order.gift_note %} · "{{ order.gift_note|repair_text }}"{% endif %}</span>{% endif %}
+            </div>
+            {% endif %}
             <div class="order-meta-grid">
                 <article><span>Thanh toán</span><strong>{{ order.get_payment_method_display }}</strong></article>
                 <article><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
@@ -203,6 +209,8 @@
     color: var(--accent-strong);
 }
 .order-shipping strong { color: var(--accent-deep); font-weight: 700; }
+.order-shipping-sub { margin-top: 0.25rem; font-size: 0.82rem; }
+.order-shipping-sub span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .order-shipping a {
     color: var(--accent-strong);
     font-weight: 700;

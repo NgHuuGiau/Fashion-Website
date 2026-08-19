@@ -52,6 +52,18 @@ class CheckoutForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 3}),
         label="Ghi chú",
     )
+    delivery_time_slot = forms.ChoiceField(
+        required=False,
+        choices=[("", "-- Chọn khung giờ --"), ("morning", "8:00 – 11:00"), ("afternoon", "13:00 – 17:00"), ("evening", "18:00 – 21:00")],
+        label="Khung giờ nhận hàng",
+    )
+    gift_wrap = forms.BooleanField(required=False, label="Đóng gói quà tặng (miễn phí)")
+    gift_note = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={"placeholder": "Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"}),
+        label="Thiệp chúc",
+    )
 
     def clean(self):
         cleaned_data = super().clean()

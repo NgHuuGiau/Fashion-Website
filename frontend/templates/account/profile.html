@@ -25,10 +25,22 @@
                 <div class="account-points-badge" title="Tích điểm khi nhận hàng thành công, đổi điểm tại thanh toán"><i class="fa-solid fa-gem" aria-hidden="true"></i> {{ profile.points }} điểm</div>
                 <p class="account-points-tier"><span class="tier-pill tier-{{ profile.tier.badge }}">{{ profile.tier.name }}</span></p>
                 <p class="account-points-hint">{{ profile.tier.benefit }}</p>
+                {% if expiry_warning %}
+                <p class="points-expiry-warning"><i class="fa-regular fa-clock"></i> {{ profile.points }} điểm sẽ hết hạn ngày {{ profile.points_expire_at|date:"d/m/Y" }}</p>
+                {% endif %}
                 {% if profile.tier.next %}
                 <div class="tier-progress">
                     <div class="tier-progress-track"><div class="tier-progress-fill" style="width: {{ profile.tier.progress }}%;"></div></div>
                     <p>Còn <strong>{{ profile.tier.remaining }}</strong> điểm để lên <strong>{{ profile.tier.next.name }}</strong></p>
+                </div>
+                {% endif %}
+                {% if hbd_active %}
+                <div class="hbd-banner">
+                    <span class="hbd-banner-icon">🎂</span>
+                    <div>
+                        <strong>Chúc mừng sinh nhật!</strong>
+                        <p>Nhập mã <code>HBD</code> để được giảm 20% trong tháng này.</p>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -69,6 +81,12 @@
                         <span>Email</span>
                         {{ form.email }}
                         {% if form.email.errors %}<small class="error-text">{{ form.email.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>{{ form.birthday.label }}</span>
+                        {{ form.birthday }}
+                        {% if form.birthday.errors %}<small class="error-text">{{ form.birthday.errors|striptags }}</small>{% endif %}
+                        {% if form.birthday.help_text %}<small class="help-text">{{ form.birthday.help_text }}</small>{% endif %}
                     </label>
                     <label class="profile-field">
                         <span>Số điện thoại</span>
@@ -209,9 +227,38 @@
     margin-top: 0.3rem;
 }
 .account-points-hint {
-    font-size: 0.72rem;
-    color: var(--text-soft);
-    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+}
+.points-expiry-warning {
+    font-size: 0.78rem;
+    color: var(--warn, #b8860b);
+    margin: 0.25rem 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.hbd-banner {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.7rem;
+    background: linear-gradient(135deg, #fff3e0, #ffe0e6);
+    border: 1px dashed #e8a0a8;
+    border-radius: var(--radius-sm);
+}
+.hbd-banner-icon { font-size: 1.3rem; }
+.hbd-banner strong { font-size: 0.85rem; }
+.hbd-banner p { font-size: 0.78rem; margin: 0.1rem 0 0; color: var(--muted-strong); }
+.hbd-banner code {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 700;
+    color: #c0392b;
 }
 .account-nav {
     display: grid;

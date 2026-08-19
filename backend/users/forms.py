@@ -115,6 +115,12 @@ class ProfileForm(forms.Form):
             }
         ),
     )
+    birthday = forms.DateField(
+        label="Ngày sinh",
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Để trống nếu không muốn nhận ưu đãi sinh nhật. Bạn có thể nhận mã giảm 20% vào đúng tháng sinh nhật.",
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
@@ -124,6 +130,7 @@ class ProfileForm(forms.Form):
             kwargs["initial"].setdefault("last_name", user.last_name)
             kwargs["initial"].setdefault("email", user.email)
             kwargs["initial"].setdefault("phone_number", getattr(getattr(user, "profile", None), "phone_number", ""))
+            kwargs["initial"].setdefault("birthday", getattr(getattr(user, "profile", None), "birthday", None))
         super().__init__(*args, **kwargs)
 
     def clean_phone_number(self):
@@ -150,7 +157,10 @@ class ProfileForm(forms.Form):
 
         UserProfile.objects.update_or_create(
             user=user,
-            defaults={"phone_number": (self.cleaned_data.get("phone_number") or "").strip()},
+            defaults={
+                "phone_number": (self.cleaned_data.get("phone_number") or "").strip(),
+                "birthday": self.cleaned_data.get("birthday") or None,
+            },
         )
         return user
 

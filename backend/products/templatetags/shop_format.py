@@ -46,3 +46,11 @@ def is_new(product):
     if not created:
         return False
     return timezone.now() - created <= timedelta(days=14)
+
+
+@register.filter
+def div(value, arg):
+    try:
+        return float(value) / float(arg)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return 0

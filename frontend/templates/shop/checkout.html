@@ -142,6 +142,30 @@
                         {{ form.note }}
                         {{ form.note.errors }}
                     </label>
+                    <label class="field span-2">
+                        <span>{{ form.delivery_time_slot.label }}</span>
+                        {{ form.delivery_time_slot }}
+                        {{ form.delivery_time_slot.errors }}
+                    </label>
+                    <label class="field span-2 checkout-gift-field">
+                        <span class="checkout-gift-trigger">
+                            <input type="checkbox" name="gift_wrap" id="id_gift_wrap" {% if form.gift_wrap.value %}checked{% endif %}>
+                            🎁 {{ form.gift_wrap.label }}
+                        </span>
+                        <input type="text" name="gift_note" id="id_gift_note" class="checkout-gift-note"
+                               placeholder="Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"
+                               {% if not form.gift_wrap.value %}disabled{% endif %}>
+                    </label>
+                    <script>
+                    (function() {
+                        var chk = document.getElementById('id_gift_wrap');
+                        var note = document.getElementById('id_gift_note');
+                        if (!chk || !note) return;
+                        function sync() { note.disabled = !chk.checked; }
+                        chk.addEventListener('change', sync);
+                        sync();
+                    })();
+                    </script>
                 </div>
 
                 <button type="submit" class="btn">Xác nhận đặt hàng</button>
@@ -162,6 +186,9 @@
             <div class="summary-list totals">
                 <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
                 <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>
+                {% if tier_discount_amount %}
+                <div class="summary-line discount"><span>Ưu đãi thành viên {{ tier_name }} ({{ tier_discount_pct }}%)</span><strong>-{{ tier_discount_amount|vnd }}đ</strong></div>
+                {% endif %}
                 {% if discount_amount %}
                 <div class="summary-line discount"><span>Giảm giá</span><strong>-{{ discount_amount|vnd }}đ</strong></div>
                 {% endif %}
