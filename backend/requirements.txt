@@ -9,7 +9,7 @@ crispy-bootstrap5>=2024.2,<2025
 Pillow>=10.0,<11
 django-imagekit>=5.0,<5.1
 django-compressor>=4.2,<4.3
-django-debug-toolbar>=4.2,<4.3
+django-debug-toolbar>=4.2,<7.2
 django-extensions>=3.2,<3.3
 
 # Database
