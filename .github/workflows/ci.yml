@@ -113,7 +113,7 @@ jobs:
           safety check -r backend/requirements.txt --json -o safety-results.json || true
 
       - name: Upload security artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-results
@@ -154,7 +154,7 @@ jobs:
           output: sarif-results
 
       - name: Upload SARIF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-sarif
           path: sarif-results
@@ -243,7 +243,7 @@ jobs:
             --ignore=tests/performance
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-${{ matrix.python-version }}-${{ matrix.django-version }}
