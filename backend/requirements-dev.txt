@@ -5,7 +5,7 @@
 pytest>=7.4,<7.5
 pytest-django>=4.5,<4.6
 pytest-cov>=4.1,<4.2
-pytest-xdist>=3.3,<3.4
+pytest-xdist>=3.3,<3.9
 pytest-mock>=3.12,<3.13
 factory-boy>=3.3,<3.4
 faker>=24.0,<25
