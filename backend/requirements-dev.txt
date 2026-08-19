@@ -8,7 +8,7 @@ pytest-cov>=4.1,<4.2
 pytest-xdist>=3.3,<3.4
 pytest-mock>=3.12,<3.13
 factory-boy>=3.3,<3.4
-faker>=24.0,<25
+faker>=24.0,<41
 
 # Linting & Formatting
 ruff>=0.5.7,<0.6
