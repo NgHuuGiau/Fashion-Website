@@ -153,6 +153,52 @@ class Order(models.Model):
         template = self.TRACKING_BASE_URL.get(self.carrier, "")
         return template.format(code=self.tracking_code) if template else ""
 
+    @property
+    def can_request_return(self):
+        if self.status != "delivered":
+            return False
+        if self.return_requests.filter(status__in=["pending", "approved"]).exists():
+            return False
+        return True
+
+
+class ReturnRequest(models.Model):
+    RETURN_TYPE_CHOICES = [
+        ("refund", "Hoàn tiền"),
+        ("exchange", "Đổi hàng / đổi size"),
+    ]
+    REASON_CHOICES = [
+        ("wrong_size", "Sai size, không vừa"),
+        ("not_like", "Không ưng kiểu dáng"),
+        ("defective", "Lỗi sản phẩm"),
+        ("wrong_item", "Giao nhầm sản phẩm"),
+        ("other", "Lý do khác"),
+    ]
+    STATUS_CHOICES = [
+        ("pending", "Chờ duyệt"),
+        ("approved", "Đã duyệt"),
+        ("rejected", "Từ chối"),
+        ("refunded", "Đã hoàn tiền"),
+    ]
+    STATUS_LABELS = dict(STATUS_CHOICES)
+    REASON_LABELS = dict(REASON_CHOICES)
+    RETURN_TYPE_LABELS = dict(RETURN_TYPE_CHOICES)
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="return_requests")
+    return_type = models.CharField(max_length=20, choices=RETURN_TYPE_CHOICES, default="refund")
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    items = models.JSONField(default=list)
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
+    note = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Đổi trả #{self.id} - {self.order}"
 
 
 class OrderItem(models.Model):

@@ -81,6 +81,13 @@
                   {% csrf_token %}
                   <button type="submit" class="btn">Mua lại</button>
                 </form>
+                {% with return_req=order.return_requests.first %}
+                {% if return_req %}
+                <span class="status-badge status-{{ return_req.status }}">Đổi trả: {{ return_req.get_status_display }}</span>
+                {% else %}
+                <a href="{% url 'orders:create_return' order.id %}" class="btn ghost">Yêu cầu đổi trả</a>
+                {% endif %}
+                {% endwith %}
                 {% endif %}
             </div>
         </article>

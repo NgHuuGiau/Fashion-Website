@@ -166,45 +166,60 @@
         if (!popup || !nameEl || !metaEl) return;
 
         var items = [
-            { name: 'Áo Tee Oversize Essential', thumb: 'TEE', price: '250.000', city: 'Hà Nội', t: '2 phút trước' },
-            { name: 'Quần Jeans Baggy Fade Blue', thumb: 'QUẦN', price: '520.000', city: 'TP. Hồ Chí Minh', t: '5 phút trước' },
-            { name: 'Hoodie Nỉ Cotton Local', thumb: 'ÁO', price: '590.000', city: 'Đà Nẵng', t: '8 phút trước' },
-            { name: 'Nón Bucket Côn Sơn', thumb: 'PHỤ KIỆN', price: '280.000', city: 'Hải Phòng', t: '12 phút trước' },
-            { name: 'Áo Polo Cotton Pique', thumb: 'ÁO', price: '320.000', city: 'Cần Thơ', t: '15 phút trước' },
-            { name: 'Quần Short Denim Cargo', thumb: 'QUẦN', price: '340.000', city: 'Huế', t: '18 phút trước' }
+            { name: 'Áo Tee Oversize Essential', thumb: 'TEE', price: '250.000', city: 'Hà Nội' },
+            { name: 'Quần Jeans Baggy Fade Blue', thumb: 'QUẦN', price: '520.000', city: 'TP. Hồ Chí Minh' },
+            { name: 'Hoodie Nỉ Cotton Local', thumb: 'ÁO', price: '590.000', city: 'Đà Nẵng' },
+            { name: 'Nón Bucket Côn Sơn', thumb: 'PHỤ KIỆN', price: '280.000', city: 'Hải Phòng' },
+            { name: 'Áo Polo Cotton Pique', thumb: 'ÁO', price: '320.000', city: 'Cần Thơ' },
+            { name: 'Quần Short Denim Cargo', thumb: 'QUẦN', price: '340.000', city: 'Huế' },
+            { name: 'Áo Khoác Denim Varsity', thumb: 'ÁO', price: '780.000', city: 'Biên Hòa' },
+            { name: 'Áo Sơ Mi Oversize Canvas', thumb: 'ÁO', price: '390.000', city: 'Vũng Tàu' },
+            { name: 'Quần Jogger 2-Tone', thumb: 'QUẦN', price: '430.000', city: 'Long Xuyên' },
+            { name: 'Áo Thun Graphic No.01', thumb: 'ÁO', price: '290.000', city: 'Đà Lạt' },
+            { name: 'Váy Denim Cargo Mini', thumb: 'VÁY', price: '460.000', city: 'Hà Nội' },
+            { name: 'Áo Hoodie Zip Local', thumb: 'ÁO', price: '620.000', city: 'TP. Hồ Chí Minh' },
+            { name: 'Quần Ống Rộng Wide Denim', thumb: 'QUẦN', price: '550.000', city: 'Nha Trang' },
+            { name: 'Túi Tote Canvas Local', thumb: 'TÚI', price: '210.000', city: 'Bắc Ninh' },
+            { name: 'Áo Cardigan Len Loose', thumb: 'ÁO', price: '680.000', city: 'Buôn Ma Thuột' },
+            { name: 'Nón Lưỡi Trai Embroidery', thumb: 'NÓN', price: '180.000', city: 'Thanh Hóa' }
         ];
-        var shown = {};
         var hiding = false;
+        var timer = null;
 
         function show(item) {
             if (hiding) return;
+            var mins = 2 + Math.floor(Math.random() * 38);
             nameEl.textContent = item.name;
-            metaEl.textContent = 'Ai đó ở ' + item.city + ' vừa đặt ' + item.price + 'đ · ' + item.t;
+            metaEl.textContent = 'Ai đó ở ' + item.city + ' vừa đặt ' + item.price + 'đ · ' + mins + ' phút trước';
             thumbEl.textContent = item.thumb;
             popup.classList.remove('hidden');
             popup.classList.add('show');
-            setTimeout(function() {
+            timer = setTimeout(function() {
                 popup.classList.remove('show');
                 popup.classList.add('hidden');
-            }, 4500);
+            }, 4000 + Math.floor(Math.random() * 2500));
         }
 
         function pick() {
-            var pool = items.filter(function(i) { return !shown[i.name]; });
-            if (!pool.length) return;
-            show(pool[Math.floor(Math.random() * pool.length)]);
+            show(items[Math.floor(Math.random() * items.length)]);
         }
 
-        var first = 3000 + Math.floor(Math.random() * 4000);
+        function schedule() {
+            timer = setTimeout(function() {
+                if (!hiding) pick();
+                schedule();
+            }, 22000 + Math.floor(Math.random() * 26000));
+        }
+
         setTimeout(function() {
+            if (hiding) return;
             pick();
-            setInterval(function() {
-                if (Math.random() < 0.55) pick();
-            }, 16000);
-        }, first);
+            schedule();
+        }, 4000 + Math.floor(Math.random() * 5000));
 
         closeBtn.addEventListener('click', function() {
             hiding = true;
+            if (timer) clearTimeout(timer);
             popup.classList.remove('show');
             popup.classList.add('hidden');
         });

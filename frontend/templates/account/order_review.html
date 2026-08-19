@@ -67,6 +67,25 @@
                         </span>
                     </div>
                     {% endif %}
+                    {% with return_req=order.return_requests.first %}
+                    {% if return_req %}
+                    <div class="review-info-field">
+                        <span class="review-info-label">Đổi trả</span>
+                        <span class="review-info-value">
+                            <strong class="status-badge status-{{ return_req.status }}">{{ return_req.get_status_display }}</strong>
+                            &middot; {{ return_req.get_return_type_display }} &middot; {{ return_req.refund_amount|vnd }}đ
+                            {% if return_req.status == "refunded" %} &middot; Đã hoàn tiền vào tài khoản của bạn{% endif %}
+                        </span>
+                    </div>
+                    {% elif order.can_request_return %}
+                    <div class="review-info-field">
+                        <span class="review-info-label">Đổi trả</span>
+                        <span class="review-info-value">
+                            Sản phẩm không vừa ý? <a href="{% url 'orders:create_return' order.id %}">Tạo yêu cầu đổi trả</a>
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
                     {% if order.note %}
                     <div class="review-info-field review-info-field-full">
                         <span class="review-info-label">Ghi chú</span>

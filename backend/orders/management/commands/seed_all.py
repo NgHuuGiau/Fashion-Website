@@ -39,22 +39,24 @@ class Command(BaseCommand):
 
     def _create_users(self):
         users_data = [
-            ("admin", "admin@example.com", "admin123", True, True),
-            ("codexstaff", "staff@codex.com", "staff123", False, True),
-            ("readmestaff", "readme@staff.com", "readme123", False, True),
-            ("nguyenvanA", "nguyenvana@email.com", "user123", False, False),
-            ("tranthib", "tranthib@email.com", "user123", False, False),
-            ("lethic", "lethic@email.com", "user123", False, False),
-            ("phamvand", "phamvand@email.com", "user123", False, False),
-            ("hoangthie", "hoangthie@email.com", "user123", False, False),
+            ("admin", "admin@example.com", "admin123", True, True, "Quản Trị", "Viên"),
+            ("codexstaff", "staff@codex.com", "staff123", False, True, "Nhân", "Viên"),
+            ("readmestaff", "readme@staff.com", "readme123", False, True, "Điều Phối", "Đơn Hàng"),
+            ("nguyenvanA", "nguyenvana@email.com", "user123", False, False, "Nguyễn Văn", "An"),
+            ("tranthib", "tranthib@email.com", "user123", False, False, "Trần Thị", "Bích"),
+            ("lethic", "lethic@email.com", "user123", False, False, "Lê Thị", "Cẩm"),
+            ("phamvand", "phamvand@email.com", "user123", False, False, "Phạm Văn", "Dũng"),
+            ("hoangthie", "hoangthie@email.com", "user123", False, False, "Hoàng Thị", "Em"),
         ]
-        for username, email, pw, is_super, is_staff in users_data:
+        for username, email, pw, is_super, is_staff, first, last in users_data:
             user, created = User.objects.get_or_create(
                 username=username,
                 defaults=dict(email=email, is_superuser=is_super, is_staff=is_staff),
             )
             if created:
                 user.set_password(pw)
+                user.first_name = first
+                user.last_name = last
                 user.save()
                 UserProfile.objects.get_or_create(user=user)
         self.stdout.write(f"  -> {User.objects.count()} users")

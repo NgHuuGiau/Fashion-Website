@@ -68,3 +68,41 @@ class CheckoutForm(forms.Form):
         if phone and not re.fullmatch(r"[0-9]{9,15}", phone):
             raise forms.ValidationError("Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số.")
         return phone
+
+
+class ReturnRequestForm(forms.Form):
+    return_type = forms.ChoiceField(
+        choices=[("refund", "Hoàn tiền"), ("exchange", "Đổi hàng / đổi size")],
+        label="Hình thức",
+    )
+    reason = forms.ChoiceField(
+        choices=[
+            ("wrong_size", "Sai size, không vừa"),
+            ("not_like", "Không ưng kiểu dáng"),
+            ("defective", "Lỗi sản phẩm"),
+            ("wrong_item", "Giao nhầm sản phẩm"),
+            ("other", "Lý do khác"),
+        ],
+        label="Lý do",
+    )
+    item_ids = forms.MultipleChoiceField(required=False, label="Sản phẩm trả lại")
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Mô tả thêm (tình trạng sản phẩm, mong muốn của bạn...)"}),
+        label="Ghi chú",
+    )
+
+    def __init__(self, *args, order=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order = order
+        if order:
+            self.fields["item_ids"].choices = [
+                (str(i.id), f"{i.product.name} · {i.selected_size or ''} · x{i.quantity}") for i in order.items.all()
+            ]
+
+    def clean_item_ids(self):
+        item_ids = self.cleaned_data.get("item_ids") or []
+        if not self.order:
+            return item_ids
+        valid = {str(i.id) for i in self.order.items.all()}
+        return [int(i) for i in item_ids if i in valid]

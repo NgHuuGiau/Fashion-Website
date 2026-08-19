@@ -1,6 +1,6 @@
 ﻿from django.contrib import admin
 
-from .models import Coupon, CouponRedemption, Order, OrderItem
+from .models import Coupon, CouponRedemption, Order, OrderItem, ReturnRequest
 
 
 
@@ -68,3 +68,11 @@ class CouponRedemptionAdmin(admin.ModelAdmin):
     list_display = ("coupon", "user", "order", "used_at")
     list_filter = ("used_at",)
     search_fields = ("coupon__code", "user__username", "order__id")
+
+
+@admin.register(ReturnRequest)
+class ReturnRequestAdmin(admin.ModelAdmin):
+    list_display = ("id", "order", "return_type", "reason", "refund_amount", "status", "created_at")
+    list_filter = ("status", "return_type", "reason")
+    search_fields = ("order__id", "order__customer_name", "order__phone")
+    list_editable = ("status",)
