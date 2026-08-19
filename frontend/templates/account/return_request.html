@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Yêu cầu đổi trả #{{ order.id }}{% endblock %}
+{% block body_class %}account-page{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đổi trả</p>
+            <h1>Yêu cầu đổi trả đơn #{{ order.id }}</h1>
+            <p>Đơn đã giao thành công ngày {{ order.created_at|date:"d/m/Y" }}. Chọn sản phẩm và lý do, shop sẽ liên hệ xác nhận.</p>
+        </div>
+    </div>
+
+    <div class="panel" style="max-width:640px">
+        <h3 style="margin-bottom:0.5rem">Sản phẩm trong đơn</h3>
+        <ul class="order-product-list">
+            {% for item in order.items.all %}
+            <li class="order-product-item">
+                <span>{{ item.product.name|repair_text }} {% if item.selected_color %} - {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %} x{{ item.quantity }}</span>
+                <strong>{{ item.subtotal|vnd }}đ</strong>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <form method="post" class="panel return-form" style="max-width:640px">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label>Hình thức</label>
+            {% for value, label in form.fields.return_type.choices %}
+            <label class="radio-line">
+                <input type="radio" name="return_type" value="{{ value }}" {% if value == 'refund' %}checked{% endif %}> {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_reason">Lý do</label>
+            <select name="reason" id="id_reason" required>
+                {% for value, label in form.fields.reason.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Sản phẩm trả lại (bỏ trống = trả toàn bộ)</label>
+            {% for value, label in form.fields.item_ids.choices %}
+            <label class="checkbox-line">
+                <input type="checkbox" name="item_ids" value="{{ value }}"> {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_note">Ghi chú</label>
+            <textarea name="note" id="id_note" rows="3" placeholder="Mô tả thêm (tình trạng sản phẩm, mong muốn của bạn...)"></textarea>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+            <button type="submit" class="btn">Gửi yêu cầu</button>
+            <a href="{% url 'orders:order_review' order.id %}" class="btn ghost">Quay lại</a>
+        </div>
+    </form>
+</section>
+
+<style>
+.return-form .form-group { margin-bottom: 1.25rem; }
+.radio-line, .checkbox-line { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; cursor: pointer; }
+.radio-line input, .checkbox-line input { width: auto; }
+</style>
+{% endblock %}

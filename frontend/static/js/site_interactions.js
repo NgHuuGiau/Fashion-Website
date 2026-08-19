@@ -801,11 +801,17 @@
         if (!el) return;
         var base = parseInt(el.textContent, 10) || 12;
         el.textContent = base;
-        setInterval(function() {
-            var drift = Math.floor(Math.random() * 3) - 1;
-            base = Math.max(6, Math.min(28, base + drift));
+        function drift() {
+            var step;
+            var roll = Math.random();
+            if (roll < 0.12) step = Math.floor(Math.random() * 4) + 2;
+            else if (roll > 0.88) step = -(Math.floor(Math.random() * 4) + 2);
+            else step = Math.floor(Math.random() * 3) - 1;
+            base = Math.max(6, Math.min(32, base + step));
             el.textContent = base;
-        }, 9000);
+            setTimeout(drift, 5000 + Math.floor(Math.random() * 9000));
+        }
+        setTimeout(drift, 5000 + Math.floor(Math.random() * 4000));
     })();
 
     // ─── Flash sale countdown (home) ───

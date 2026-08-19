@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from products.models import Category, Product, ProductVariant
 from .admin_forms import CouponForm, OrderEditForm, OrderLookupForm, OrderSearchForm, OrderStatusForm, ProductForm
-from .models import Coupon, Order, OrderItem
+from .models import Coupon, Order, OrderItem, ReturnRequest
 from .vnpay import _secure_hash
 
 
@@ -2502,3 +2502,54 @@ class VNPayTest(TestCase):
         self.assertEqual(self.order.status, "cancelled")
         self.variant.refresh_from_db()
         self.assertEqual(self.variant.stock, 5)
+
+
+class ReturnRequestTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="returner", password="StrongPass123!")
+        self.client.login(username="returner", password="StrongPass123!")
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category, name="Ao tra hang", slug="ao-tra-hang",
+            price=300000, stock=5, available=True,
+        )
+        self.order = Order.objects.create(
+            user=self.user, customer_name="T", phone="0909", shipping_address="HCM",
+            payment_method="cod", total_amount=600000, status="delivered", is_paid=True,
+        )
+        OrderItem.objects.create(order=self.order, product=self.product, quantity=2, price=300000)
+
+    def test_can_request_return_only_when_delivered_and_once(self):
+        self.assertTrue(self.order.can_request_return)
+        ReturnRequest.objects.create(order=self.order, return_type="refund", reason="wrong_size")
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.can_request_return)
+
+    def test_create_return_request_sums_selected_items(self):
+        url = reverse("orders:create_return", kwargs={"order_id": self.order.id})
+        response = self.client.post(url, {"return_type": "refund", "reason": "wrong_size", "note": "Ao bi rong"})
+        self.assertRedirects(response, reverse("orders:order_review", kwargs={"order_id": self.order.id}))
+        rr = ReturnRequest.objects.get(order=self.order)
+        self.assertEqual(rr.refund_amount, Decimal("600000"))
+        self.assertEqual(rr.status, "pending")
+        self.assertEqual(len(rr.items), 1)
+
+    def test_create_return_rejected_for_non_delivered(self):
+        self.order.status = "shipping"
+        self.order.save(update_fields=["status"])
+        response = self.client.post(
+            reverse("orders:create_return", kwargs={"order_id": self.order.id}),
+            {"return_type": "refund", "reason": "wrong_size"},
+        )
+        self.assertRedirects(response, reverse("orders:order_review", kwargs={"order_id": self.order.id}))
+        self.assertEqual(ReturnRequest.objects.count(), 0)
+
+    def test_admin_approves_and_refunds(self):
+        url = reverse("orders:create_return", kwargs={"order_id": self.order.id})
+        self.client.post(url, {"return_type": "refund", "reason": "defective"})
+        rr = ReturnRequest.objects.get(order=self.order)
+        rr.status = "refunded"
+        rr.save(update_fields=["status"])
+        rr.refresh_from_db()
+        self.assertEqual(rr.status, "refunded")

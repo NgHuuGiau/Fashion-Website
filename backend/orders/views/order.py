@@ -13,7 +13,8 @@ from core.ratelimit import rate_limit
 
 from ..admin_forms import OrderEditForm, OrderLookupForm
 from ..constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
-from ..models import Order
+from ..forms import ReturnRequestForm
+from ..models import Order, ReturnRequest
 
 from users.models import UserProfile
 from .cart import build_vietqr_url, expire_bank_order_if_needed, normalize_shipping_address, restore_order_stock
@@ -260,6 +261,61 @@ def my_orders(request: HttpRequest) -> HttpResponse:
         "account/my_orders.html",
         {
             "orders": orders,
+        },
+    )
+
+
+@login_required
+def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
+    lookup = {"id": order_id}
+    if not request.user.is_staff:
+        lookup["user"] = request.user
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product", "items__variant"),
+        **lookup,
+    )
+
+    if not order.can_request_return:
+        messages.error(request, "Đơn hàng này không đủ điều kiện tạo yêu cầu đổi trả.")
+        return redirect("orders:order_review", order_id=order.id)
+
+    if request.method == "POST":
+        form = ReturnRequestForm(request.POST, order=order)
+        if form.is_valid():
+            item_ids = form.cleaned_data["item_ids"]
+            chosen_items = order.items.filter(id__in=item_ids) if item_ids else order.items.all()
+            refund_amount = sum(
+                item.price * item.quantity for item in chosen_items
+            )
+            ReturnRequest.objects.create(
+                order=order,
+                return_type=form.cleaned_data["return_type"],
+                reason=form.cleaned_data["reason"],
+                note=form.cleaned_data["note"],
+                refund_amount=refund_amount,
+                items=[
+                    {
+                        "product": item.product.name,
+                        "variant": item.selected_size,
+                        "qty": item.quantity,
+                        "price": str(item.price),
+                    }
+                    for item in chosen_items
+                ],
+            )
+            messages.success(request, "Đã gửi yêu cầu đổi trả. Shop sẽ liên hệ xác nhận trong 1–2 ngày làm việc.")
+            return redirect("orders:order_review", order_id=order.id)
+        for field, field_errors in form.errors.items():
+            for err in field_errors:
+                messages.error(request, err)
+
+    return render(
+        request,
+        "account/return_request.html",
+        {
+            "order": order,
+            "form": ReturnRequestForm(order=order),
+            "return_reasons": dict(ReturnRequest.REASON_CHOICES),
         },
     )
 
