@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }} — HUUGIAU Atelier{% endblock %}
 {% block meta_description %}{{ post.excerpt|default:post.title }}{% endblock %}
+{% block og_title %}{{ post.title }} — HUUGIAU Atelier{% endblock %}
+{% block og_description %}{{ post.excerpt|default:post.title }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% if post.image %}{% block og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ post.image.url }}">{% endblock %}{% endif %}
 {% block content %}
 <main class="page-shell">
     <div class="container page-narrow">

@@ -67,6 +67,18 @@
                         </span>
                     </div>
                     {% endif %}
+                    {% if order.delivery_time_slot %}
+                    <div class="review-info-field">
+                        <span class="review-info-label">Khung giờ nhận</span>
+                        <span class="review-info-value">{{ order.get_delivery_slot_display }}</span>
+                    </div>
+                    {% endif %}
+                    {% if order.gift_wrap %}
+                    <div class="review-info-field">
+                        <span class="review-info-label">Quà tặng</span>
+                        <span class="review-info-value">Đóng gói quà tặng{% if order.gift_note %} · Thiệp: "{{ order.gift_note|repair_text }}"{% endif %}</span>
+                    </div>
+                    {% endif %}
                     {% with return_req=order.return_requests.first %}
                     {% if return_req %}
                     <div class="review-info-field">

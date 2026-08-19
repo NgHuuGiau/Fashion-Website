@@ -2518,6 +2518,37 @@ button {
     margin: 0;
     line-height: 1.6;
 }
+.review-customer-reply {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--panel-alt, rgba(0, 0, 0, 0.04));
+    border-left: 3px solid var(--muted);
+    border-radius: var(--radius-sm);
+}
+.review-customer-reply strong {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted-strong);
+    margin-bottom: 0.2rem;
+}
+.review-customer-reply p {
+    font-size: 0.84rem;
+    margin: 0;
+}
+.review-reply-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+.review-reply-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+}
+.review-reply-form .btn { white-space: nowrap; }
 
 .footer-payments {
     display: flex;
@@ -5793,6 +5824,17 @@ textarea:focus-visible {
 .detail-social-proof { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0.7rem 0 0.2rem; font-size: 0.82rem; color: var(--muted); }
 .detail-social-proof span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .detail-social-proof .fa-fire, .detail-social-proof .fa-eye { color: var(--accent); }
+.price-usd-hint { font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
+.detail-share { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.6rem; font-size: 0.82rem; color: var(--muted); }
+.detail-share a {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--panel);
+    color: var(--muted-strong); font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+.detail-share a:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.wishlist-note { margin: 0.2rem 0 0; font-size: 0.75rem; color: var(--muted); }
 .detail-social-proof .low-stock { color: #c0392b; font-weight: 600; }
 .card-sold { font-size: 0.78rem; color: var(--muted-light); display: block; margin-top: 0.2rem; }
 .card-sold .fa-fire { color: var(--accent); }

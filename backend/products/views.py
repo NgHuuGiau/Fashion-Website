@@ -609,6 +609,21 @@ def review_submit(request: HttpRequest, product_id: int) -> HttpResponse:
     return redirect("products:product_detail", pk=product.id, slug=product.slug)
 
 
+@login_required
+def review_customer_reply(request: HttpRequest, product_id: int) -> HttpResponse:
+    product = get_object_or_404(Product, id=product_id, available=True)
+    reply_text = (request.POST.get("customer_reply", "") or "").strip()
+    review = Review.objects.filter(product=product, user=request.user).first()
+    if not review or not review.shop_reply:
+        messages.error(request, "Không thể phản hồi lúc này.")
+        return redirect("products:product_detail", pk=product.id, slug=product.slug)
+    if reply_text:
+        review.customer_reply = reply_text
+        review.save(update_fields=["customer_reply"])
+        messages.success(request, "Đã gửi phản hồi của bạn. Cảm ơn đã đồng hành cùng HUUGIAU!")
+    return redirect("products:product_detail", pk=product.id, slug=product.slug)
+
+
 def search_suggest(request: HttpRequest) -> JsonResponse:
     q = request.GET.get("q", "").strip()
     if not q or len(q) < 1 or len(q) > 50:

@@ -2553,3 +2553,88 @@ class ReturnRequestTest(TestCase):
         rr.save(update_fields=["status"])
         rr.refresh_from_db()
         self.assertEqual(rr.status, "refunded")
+
+
+class RealismBatchBTests(TestCase):
+    def setUp(self):
+        from users.models import UserProfile
+
+        self.user = User.objects.create_user(username="vip_buyer", password="StrongPass123!")
+        self.profile = UserProfile.objects.create(user=self.user, points=2000)
+        self.cat = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.cat, name="Ao test", slug="ao-test", price=400000, stock=10, available=True
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product, color_name="Den", color_code="#111", size="M", stock=5, is_active=True
+        )
+        self.client.login(username="vip_buyer", password="StrongPass123!")
+
+    def _checkout(self, **overrides):
+        payload = {
+            "customer_name": "VIP Buyer",
+            "customer_email": "vip@test.com",
+            "phone": "0909000000",
+            "shipping_address": "12 Nguyen Huu Tho, Quan 7, TP HCM",
+            "payment_method": "cod",
+            "coupon_code": "",
+            "note": "",
+            "delivery_time_slot": "evening",
+            "gift_wrap": "on",
+            "gift_note": "Chuc mung sinh nhat",
+        }
+        payload.update(overrides)
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        return self.client.post(reverse("orders:checkout"), payload)
+
+    def test_region_shipping_fee_near_hcm(self):
+        response = self._checkout(shipping_address="12 Nguyen Huu Tho, Quan 7, TP HCM")
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.first()
+        self.assertEqual(order.shipping_fee, Decimal("25000"))
+
+    def test_region_shipping_fee_standard(self):
+        self._checkout(shipping_address="Ninh Kieu, Can Tho")
+        self.assertEqual(Order.objects.first().shipping_fee, Decimal("30000"))
+
+    def test_region_shipping_fee_north(self):
+        self._checkout(shipping_address="Hoan Kiem, Ha Noi")
+        self.assertEqual(Order.objects.first().shipping_fee, Decimal("35000"))
+
+    def test_vip_tier_discount_applied(self):
+        self._checkout()
+        order = Order.objects.first()
+        self.assertEqual(order.discount_amount, Decimal("20000"))  # 5% of 400000
+        self.assertEqual(order.total_amount, Decimal("25000") + Decimal("400000") - Decimal("20000"))
+
+    def test_delivery_slot_and_gift_saved(self):
+        self._checkout()
+        order = Order.objects.first()
+        self.assertEqual(order.delivery_time_slot, "evening")
+        self.assertEqual(order.get_delivery_slot_display(), "18:00 – 21:00")
+        self.assertTrue(order.gift_wrap)
+        self.assertEqual(order.gift_note, "Chuc mung sinh nhat")
+
+    def test_customer_reply_after_shop_reply(self):
+        from products.models import Review
+
+        review = Review.objects.create(
+            product=self.product, user=self.user, rating=5, comment="Dep", shop_reply="Cam on ban"
+        )
+        url = reverse("products:review_customer_reply", kwargs={"product_id": self.product.id})
+        response = self.client.post(url, {"customer_reply": "Rat hai long"})
+        self.assertEqual(response.status_code, 302)
+        review.refresh_from_db()
+        self.assertEqual(review.customer_reply, "Rat hai long")
+
+    def test_customer_reply_requires_shop_reply(self):
+        from products.models import Review
+
+        review = Review.objects.create(product=self.product, user=self.user, rating=5, comment="Dep")
+        url = reverse("products:review_customer_reply", kwargs={"product_id": self.product.id})
+        self.client.post(url, {"customer_reply": "Noi dung"})
+        review.refresh_from_db()
+        self.assertEqual(review.customer_reply, "")

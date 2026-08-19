@@ -1,5 +1,6 @@
 ﻿from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 
@@ -82,6 +83,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     phone_number = models.CharField(max_length=20, blank=True)
     points = models.PositiveIntegerField(default=0, verbose_name="Điểm tích lũy", db_index=True)
+    birthday = models.DateField(null=True, blank=True, verbose_name="Ngày sinh")
+    points_expire_at = models.DateField(null=True, blank=True, verbose_name="Điểm hết hạn")
 
     class Meta:
         verbose_name = "Hồ sơ người dùng"
@@ -96,6 +99,13 @@ class UserProfile(models.Model):
         if self.points >= 1000:
             return "Thân thiết"
         return "Thành viên"
+
+    def birthday_month(self):
+        return self.birthday.month if self.birthday else None
+
+    def is_birthday_month(self, today=None):
+        month = self.birthday_month()
+        return month is not None and month == (today or timezone.localdate()).month
 
     def tier(self):
         tiers = [

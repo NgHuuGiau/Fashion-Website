@@ -59,7 +59,11 @@ class Command(BaseCommand):
                 user.last_name = last
                 user.save()
                 UserProfile.objects.get_or_create(user=user)
-        self.stdout.write(f"  -> {User.objects.count()} users")
+        expiry = timezone.localdate() + timedelta(days=365)
+        updated_expiry = UserProfile.objects.filter(points__gt=0, points_expire_at__isnull=True).update(
+            points_expire_at=expiry
+        )
+        self.stdout.write(f"  -> {User.objects.count()} users, {updated_expiry} profiles có hạn điểm")
 
     def _create_coupons(self):
         coupons = [
@@ -67,6 +71,7 @@ class Command(BaseCommand):
             Coupon(code="SALE10", discount_type="percent", value=10, is_active=True, min_order_amount=100000, max_discount_amount=50000),
             Coupon(code="GIAM50K", discount_type="fixed", value=50000, is_active=True, min_order_amount=300000),
             Coupon(code="WELCOME", discount_type="percent", value=15, is_active=True, min_order_amount=0, max_discount_amount=100000, usage_limit=100),
+            Coupon(code="HBD", discount_type="percent", value=20, is_active=True, min_order_amount=0, max_discount_amount=200000, usage_limit=500, ends_at=timezone.now() + timedelta(days=3650)),
             Coupon(code="BLACKFRI", discount_type="percent", value=30, is_active=False, max_discount_amount=200000),
         ]
         for c in coupons:
