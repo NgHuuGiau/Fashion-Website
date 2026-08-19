@@ -1,9 +1,43 @@
 {% extends "base.html" %}
-{% block title %}404 — Không tìm thấy{% endblock %}
+{% load static %}
+
+{% block title %}Không tìm thấy trang — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.{% endblock %}
+
 {% block content %}
-<section class="error-page">
-  <h1 class="error-code">404</h1>
-  <p class="error-message">Trang bạn tìm không tồn tại hoặc đã bị di dời.</p>
-  <a href="{% url 'products:product_list' %}" class="btn">Về trang chủ</a>
-</section>
+<div class="error-page">
+  <div class="error-container">
+    <div class="error-code">404</div>
+    <h1>Trang không tồn tại</h1>
+    <p>Xin lỗi, trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.</p>
+    <div class="error-actions">
+      <a href="/" class="btn">Về trang chủ</a>
+      <a href="{% url 'products:product_list' %}" class="btn ghost">Xem sản phẩm</a>
+    </div>
+    <div class="error-suggestions">
+      <p>Hoặc bạn có thể:</p>
+      <ul>
+        <li><a href="{% url 'products:product_list' %}?filter=new">Xem bộ sưu tập mới</a></li>
+        <li><a href="{% url 'products:blog_list' %}">Đọc lookbook</a></li>
+        <li><a href="{% url 'contact' %}">Liên hệ hỗ trợ</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+.error-page { min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 3rem 1rem; }
+.error-container { text-align: center; max-width: 400px; }
+.error-code { font-size: 8rem; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 1rem; font-family: 'Archivo Expanded', sans-serif; }
+.error-container h1 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text); }
+.error-container p { color: var(--muted); margin-bottom: 2rem; }
+.error-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.error-suggestions { text-align: left; padding: 1.5rem; background: var(--panel-alt); border-radius: var(--radius); border: 1px solid var(--border); }
+.error-suggestions p { margin: 0 0 0.75rem; font-weight: 600; color: var(--text); }
+.error-suggestions ul { margin: 0; padding-left: 1.25rem; }
+.error-suggestions li { margin-bottom: 0.5rem; }
+.error-suggestions a { color: var(--accent); text-decoration: none; }
+.error-suggestions a:hover { text-decoration: underline; }
+@media (max-width: 480px) { .error-code { font-size: 5rem; } }
+</style>
 {% endblock %}

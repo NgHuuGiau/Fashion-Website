@@ -1,0 +1,42 @@
+{# JSON-LD Breadcrumb Schema #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Trang chủ",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Sản phẩm",
+      "item": "{{ request.scheme }}://{{ request.get_host }}{% url 'products:product_list' %}"
+    },
+    {% if product.category %}
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ product.category.name|repair_text }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}{% url 'products:product_list' %}?category={{ product.category.slug }}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "name": "{{ product.name|repair_text|truncatechars:40 }}",
+      "item": "{{ request.build_absolute_uri }}"
+    }
+    {% else %}
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ product.name|repair_text|truncatechars:40 }}",
+      "item": "{{ request.build_absolute_uri }}"
+    }
+    {% endif %}
+  ]
+}
+</script>

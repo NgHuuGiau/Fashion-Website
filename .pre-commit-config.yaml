@@ -1,13 +1,72 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
 repos:
+  # Ruff - Fast Python linter & formatter (replaces black, isort, flake8)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # MyPy - Static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: [--config-file=backend/pyproject.toml, --ignore-missing-imports]
+        additional_dependencies: [django-stubs==4.2.7, types-requests==2.31.0]
+        files: ^backend/
+
+  # Bandit - Security linting
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-r, backend, -lll]
+        additional_dependencies: ["bandit==1.7.8"]
+
+  # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-logger
+      - id: detect-private-key
       - id: check-added-large-files
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
+        args: [--maxkb=1000]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Django-specific checks
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
     hooks:
-      - id: flake8
-        args: [--max-line-length=120, --ignore=E203,W503]
+      - id: black
+        args: [--line-length=100]
+        files: ^backend/
+
+  # Requirements.txt sorting
+  - repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.13.0
+    hooks:
+      - id: reorder-python-imports
+        args: [--py310-plus, --separate-relative, --add-import=os, --add-import=sys]
+        files: ^backend/
+
+# CI configuration
+ci:
+  autofix_commit_msg: "style: pre-commit auto-fixes"
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "chore: pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

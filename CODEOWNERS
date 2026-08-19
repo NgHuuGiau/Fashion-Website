@@ -1,0 +1,41 @@
+# CODEOWNERS
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - all files
+* @huugiau-team
+
+# Backend (Django)
+/backend/ @huugiau-backend
+/backend/orders/ @huugiau-backend @huugiau-orders
+/backend/products/ @huugiau-backend @huugiau-products
+/backend/users/ @huugiau-backend @huugiau-auth
+/backend/core/ @huugiau-backend @huugiau-core
+
+# Frontend
+/frontend/ @huugiau-frontend
+/frontend/static/css/ @huugiau-frontend @huugiau-ui
+/frontend/static/js/ @huugiau-frontend @huugiau-ui
+/frontend/templates/ @huugiau-frontend @huugiau-backend
+
+# CI/CD & Infrastructure
+/.github/ @huugiau-devops
+/.github/workflows/ @huugiau-devops @huugiau-backend
+/Dockerfile* @huugiau-devops
+/docker-compose* @huugiau-devops
+/docker/ @huugiau-devops
+
+# Documentation
+/*.md @huugiau-docs
+/docs/ @huugiau-docs
+
+# Configuration
+/pyproject.toml @huugiau-backend @huugiau-devops
+/requirements*.txt @huugiau-backend @huugiau-devops
+/backend/.env.example @huugiau-devops
+/frontend/package.json @huugiau-frontend @huugiau-devops
+/frontend/package-lock.json @huugiau-devops
+
+# Security-sensitive files (require 2 approvals)
+/backend/.env* @huugiau-security
+/backend/core/settings*.py @huugiau-security @huugiau-backend
+/.github/dependabot.yml @huugiau-security @huugiau-devops

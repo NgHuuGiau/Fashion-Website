@@ -10,6 +10,7 @@ urlpatterns = [
     path("dang-nhap/<slug:provider>/", views.social_login_view, name="social_login"),
     path("dang-xuat/", views.logout_view, name="logout"),
     path("tai-khoan/", views.profile_view, name="profile"),
+    path("tai-khoan/gioi-thieu/", views.referral_view, name="referral"),
     path("tai-khoan/doi-mat-khau/", views.change_password_view, name="change_password"),
     path("tai-khoan/dia-chi/them/", views.address_add, name="address_add"),
     path("tai-khoan/dia-chi/<int:address_id>/xoa/", views.address_delete, name="address_delete"),

@@ -174,6 +174,27 @@ class Product(models.Model):
             return variant_stock
         return self.stock
 
+    def get_cross_sell_products(self, limit=4):
+        """Sản phẩm thường được mua cùng (cross-sell) dựa trên lịch sử đơn hàng."""
+        from orders.models import OrderItem
+
+        # Tìm các đơn hàng chứa sản phẩm này
+        order_ids = OrderItem.objects.filter(product=self).values_list("order_id", flat=True).distinct()
+
+        # Tìm sản phẩm khác trong cùng đơn hàng
+        cross_sell_ids = (
+            OrderItem.objects.filter(order_id__in=order_ids)
+            .exclude(product=self)
+            .values("product_id")
+            .annotate(cnt=models.Count("product_id"))
+            .order_by("-cnt")[:limit]
+        )
+
+        ids = [item["product_id"] for item in cross_sell_ids]
+        return Product.objects.filter(id__in=ids, available=True).only(
+            "id", "name", "slug", "price", "discount_percent", "image", "image_url"
+        )
+
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)

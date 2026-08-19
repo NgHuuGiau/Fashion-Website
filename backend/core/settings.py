@@ -93,13 +93,14 @@ TEMPLATES = [
             "builtins": [
                 "products.templatetags.shop_format",
             ],
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                "orders.context_processors.cart_info",
-                "orders.context_processors.shop_site_config",
+"context_processors": [
+            "django.template.context_processors.debug",
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.contrib.messages.context_processors.messages",
+            "orders.context_processors.cart_info",
+            "orders.context_processors.shop_site_config",
+            "core.context_processors.recently_viewed",
             ],
         },
     },

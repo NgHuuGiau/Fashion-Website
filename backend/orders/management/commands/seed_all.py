@@ -6,9 +6,10 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from orders.models import Coupon, Order, OrderItem
+from orders.models import Coupon, GiftCard, Order, OrderItem
 from products.models import Product, SupportFAQ, WishlistItem
 from users.models import UserActivity, UserProfile, VisitorSession
+from users.models_referral import ReferralCode
 
 
 class Command(BaseCommand):
@@ -31,6 +32,11 @@ class Command(BaseCommand):
         self._create_orders()
 
         self.stdout.write("[6/6] Creating FAQs & wishlist...")
+        self._create_faqs_wishlist()
+
+        self.stdout.write("[7/7] Creating referral codes & gift cards...")
+        self._create_referral_codes()
+        self._create_gift_cards()
         self._create_faqs()
         self._create_wishlists()
         self._create_activities()
@@ -199,3 +205,32 @@ class Command(BaseCommand):
                 )
                 count += 1
         self.stdout.write(f"  -> {count} activity logs")
+
+    def _create_referral_codes(self):
+        users = list(User.objects.all())
+        count = 0
+        for user in users:
+            ReferralCode.objects.get_or_create(user=user)
+            count += 1
+        self.stdout.write(f"  -> {count} referral codes")
+
+    def _create_gift_cards(self):
+        from decimal import Decimal
+        users = list(User.objects.all())
+        count = 0
+        for user in users:
+            if random.random() < 0.3:  # 30% users mua gift card
+                amount = random.choice([100000, 200000, 300000, 500000])
+                GiftCard.objects.get_or_create(
+                    purchaser=user,
+                    defaults=dict(
+                        initial_balance=Decimal(str(amount)),
+                        current_balance=Decimal(str(amount)),
+                        purchaser_email=user.email,
+                        recipient_email=f"friend{random.randint(1,99)}@example.com",
+                        recipient_name="Bạn bè",
+                        message="Chúc mừng sinh nhật! Mua sắm thoải mái nhé.",
+                    )
+                )
+                count += 1
+        self.stdout.write(f"  -> {count} gift cards")

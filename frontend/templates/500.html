@@ -1,9 +1,43 @@
 {% extends "base.html" %}
-{% block title %}500 — Lỗi máy chủ{% endblock %}
+{% load static %}
+
+{% block title %}Lỗi máy chủ — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}Đã có lỗi xảy ra. Vui lòng thử lại sau.{% endblock %}
+
 {% block content %}
-<section class="error-page">
-  <h1 class="error-code">500</h1>
-  <p class="error-message">Máy chủ gặp sự cố. Vui lòng thử lại sau.</p>
-  <a href="{% url 'products:product_list' %}" class="btn">Về trang chủ</a>
-</section>
+<div class="error-page">
+  <div class="error-container">
+    <div class="error-code">500</div>
+    <h1>Lỗi máy chủ</h1>
+    <p>Đã có lỗi xảy ra ở phía máy chủ. Chúng tôi đang khắc phục.</p>
+    <div class="error-actions">
+      <a href="/" class="btn">Về trang chủ</a>
+      <button class="btn ghost" onclick="location.reload()">Thử lại</button>
+    </div>
+    <div class="error-suggestions">
+      <p>Trong lúc chờ đợi, bạn có thể:</p>
+      <ul>
+        <li>Kiểm tra kết nối mạng</li>
+        <li>Làm mới trang sau vài giây</li>
+        <li><a href="{% url 'contact' %}">Báo lỗi cho chúng tôi</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+.error-page { min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 3rem 1rem; }
+.error-container { text-align: center; max-width: 400px; }
+.error-code { font-size: 8rem; font-weight: 800; color: var(--warn, #b8860b); line-height: 1; margin-bottom: 1rem; font-family: 'Archivo Expanded', sans-serif; }
+.error-container h1 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text); }
+.error-container p { color: var(--muted); margin-bottom: 2rem; }
+.error-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.error-suggestions { text-align: left; padding: 1.5rem; background: var(--panel-alt); border-radius: var(--radius); border: 1px solid var(--border); }
+.error-suggestions p { margin: 0 0 0.75rem; font-weight: 600; color: var(--text); }
+.error-suggestions ul { margin: 0; padding-left: 1.25rem; }
+.error-suggestions li { margin-bottom: 0.5rem; }
+.error-suggestions a { color: var(--accent); text-decoration: none; }
+.error-suggestions a:hover { text-decoration: underline; }
+@media (max-width: 480px) { .error-code { font-size: 5rem; } }
+</style>
 {% endblock %}

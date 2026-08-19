@@ -1,0 +1,40 @@
+{
+  "extends": [
+    "stylelint-config-standard",
+    "stylelint-config-recess-order"
+  ],
+  "plugins": ["stylelint-scss"],
+  "rules": {
+    "color-hex-case": "lower",
+    "color-hex-length": "short",
+    "selector-class-pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$",
+    "custom-property-pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+    "selector-pseudo-class-no-unknown": [true, {
+      "ignorePseudoClasses": ["global", "local", "deep"]
+    }],
+    "selector-pseudo-element-no-unknown": true,
+    "media-feature-name-no-unknown": true,
+    "at-rule-no-unknown": [true, {
+      "ignoreAtRules": ["tailwind", "apply", "layer", "variants", "responsive", "screen"]
+    }],
+    "property-no-unknown": [true, {
+      "ignoreProperties": ["-webkit-*", "-moz-*", "-ms-*", "-o-*"]
+    }],
+    "declaration-block-no-duplicate-properties": true,
+    "declaration-empty-line-before": "never",
+    "no-descending-specificity": null,
+    "selector-max-compound-selectors": 4,
+    "selector-max-id": 0,
+    "color-no-invalid-hex": true,
+    "function-no-unknown": [true, {
+      "ignoreFunctions": ["clamp", "min", "max", "env", "var"]
+    }]
+  },
+  "ignoreFiles": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/*.min.css",
+    "**/vendor/**"
+  ]
+}

@@ -1,0 +1,15 @@
+{# Product Card Skeleton Loader #}
+<article class="product-card skeleton-card">
+  <a class="product-card-link" aria-hidden="true" tabindex="-1">
+    <div class="product-card-media skeleton skeleton-image"></div>
+    {% if show_sale_badge %}
+    <span class="product-card-badge skeleton">Sale</span>
+    {% endif %}
+  </a>
+  <div class="product-card-info">
+    <p class="product-card-name skeleton skeleton-title"></p>
+    <div class="product-card-price">
+      <span class="skeleton skeleton-price"></span>
+    </div>
+  </div>
+</article>

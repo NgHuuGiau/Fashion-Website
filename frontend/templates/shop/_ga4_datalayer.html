@@ -1,0 +1,137 @@
+{# GA4 Enhanced Ecommerce DataLayer #}
+<script>
+window.dataLayer = window.dataLayer || [];
+
+// Push product view on product detail
+{% if product %}
+dataLayer.push({
+  event: 'view_item',
+  ecommerce: {
+    items: [{
+      item_id: 'HUUGIAU-{{ product.id }}',
+      item_name: '{{ product.name|repair_text|escapejs }}',
+      item_brand: 'HUUGIAU Atelier',
+      item_category: '{{ product.category.name|repair_text }}',
+      price: {{ product.price|floatformat:0 }},
+      currency: 'VND',
+      discount: {{ product.discount_percent|default:0 }},
+      item_variant: '{{ product.id }}',
+      quantity: 1
+    }]
+  }
+});
+{% endif %}
+
+// Push cart events
+{% if cart_items %}
+dataLayer.push({
+  event: 'view_cart',
+  ecommerce: {
+    items: [
+      {% for item in cart_items %}
+      {
+        item_id: 'HUUGIAU-{{ item.product.id }}',
+        item_name: '{{ item.product.name|repair_text|escapejs }}',
+        item_brand: 'HUUGIAU Atelier',
+        item_category: '{{ item.product.category.name|repair_text }}',
+        price: {{ item.price|floatformat:0 }},
+        currency: 'VND',
+        quantity: {{ item.quantity }}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    value: {{ subtotal|floatformat:0 }},
+    currency: 'VND'
+  }
+});
+{% endif %}
+
+// Push checkout steps
+{% if checkout_step %}
+dataLayer.push({
+  event: 'begin_checkout',
+  ecommerce: {
+    items: [
+      {% for item in checkout_items %}
+      {
+        item_id: 'HUUGIAU-{{ item.product.id }}',
+        item_name: '{{ item.product.name|repair_text|escapejs }}',
+        item_brand: 'HUUGIAU Atelier',
+        item_category: '{{ item.product.category.name|repair_text }}',
+        price: {{ item.price|floatformat:0 }},
+        currency: 'VND',
+        quantity: {{ item.quantity }}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    value: {{ subtotal|floatformat:0 }},
+    currency: 'VND',
+    coupon: '{{ coupon_code|default:"" }}'
+  }
+});
+{% endif %}
+
+// Purchase event (on order success page)
+{% if purchase_order %}
+dataLayer.push({
+  event: 'purchase',
+  ecommerce: {
+    transaction_id: 'DH-{{ purchase_order.id }}',
+    value: {{ purchase_order.total_amount|floatformat:0 }},
+    currency: 'VND',
+    tax: {{ purchase_order.shipping_fee|floatformat:0 }},
+    shipping: {{ purchase_order.shipping_fee|floatformat:0 }},
+    coupon: '{{ purchase_order.coupon_code|default:"" }}',
+    items: [
+      {% for item in purchase_order.items.all %}
+      {
+        item_id: 'HUUGIAU-{{ item.product.id }}',
+        item_name: '{{ item.product.name|repair_text|escapejs }}',
+        item_brand: 'HUUGIAU Atelier',
+        item_category: '{{ item.product.category.name|repair_text }}',
+        price: {{ item.price|floatformat:0 }},
+        currency: 'VND',
+        quantity: {{ item.quantity }}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+});
+{% endif %}
+
+// Add to cart event (triggered via JS)
+window.ga4AddToCart = function(product, quantity) {
+  dataLayer.push({
+    event: 'add_to_cart',
+    ecommerce: {
+      items: [{
+        item_id: 'HUUGIAU-' + product.id,
+        item_name: product.name,
+        item_brand: 'HUUGIAU Atelier',
+        item_category: product.category,
+        price: product.price,
+        currency: 'VND',
+        quantity: quantity
+      }]
+    }
+  });
+};
+
+// Remove from cart
+window.ga4RemoveFromCart = function(product, quantity) {
+  dataLayer.push({
+    event: 'remove_from_cart',
+    ecommerce: {
+      items: [{
+        item_id: 'HUUGIAU-' + product.id,
+        item_name: product.name,
+        item_brand: 'HUUGIAU Atelier',
+        item_category: product.category,
+        price: product.price,
+        currency: 'VND',
+        quantity: quantity
+      }]
+    }
+  });
+};
+</script>

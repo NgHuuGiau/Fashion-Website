@@ -5,7 +5,6 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F, Sum
 from django.db.models.functions import Greatest
@@ -328,37 +327,40 @@ def cart_detail(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
 def checkout(request: HttpRequest) -> HttpResponse:
     items, subtotal = iter_cart(request)
     if not items:
         messages.warning(request, "Giỏ hàng đang trống.")
         return redirect("products:product_list")
 
-    initial = {
-        "customer_name": f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
-        "customer_email": request.user.email,
-    }
+    is_guest = not request.user.is_authenticated
 
-    default_address = UserAddress.objects.filter(user=request.user, is_default=True).first() or (
-        UserAddress.objects.filter(user=request.user).first()
-    )
-    if default_address:
-        initial["phone"] = default_address.phone
-        initial["shipping_address"] = default_address.address
-    saved_addresses = list(UserAddress.objects.filter(user=request.user))
-
-    selected_coupon = None
-    coupon_error = ""
-    shipping_fee = calculate_shipping_fee(subtotal, default_address.address if default_address else "")
-    discount_amount = Decimal("0")
-    tier_name = ""
-    tier_discount_pct_value = 0
-    tier_discount_amount = Decimal("0")
-
-    if request.user.is_authenticated:
+    if is_guest:
+        initial = {}
+        default_address = None
+        saved_addresses = []
+        tier_name = ""
+        tier_discount_pct_value = 0
+        profile = None
+    else:
+        initial = {
+            "customer_name": f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
+            "customer_email": request.user.email,
+        }
+        default_address = UserAddress.objects.filter(user=request.user, is_default=True).first() or (
+            UserAddress.objects.filter(user=request.user).first()
+        )
+        if default_address:
+            initial["phone"] = default_address.phone
+            initial["shipping_address"] = default_address.address
+        saved_addresses = list(UserAddress.objects.filter(user=request.user))
         tier_name = UserProfile.objects.get_or_create(user=request.user)[0].tier_name()
         tier_discount_pct_value = TIER_DISCOUNTS.get(tier_name, 0)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    shipping_fee = calculate_shipping_fee(subtotal, default_address.address if default_address else "")
+    discount_amount = Decimal("0")
+    tier_discount_amount = Decimal("0")
 
     if request.method == "POST":
         form = CheckoutForm(request.POST)
@@ -369,18 +371,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
             shipping_fee = calculate_shipping_fee(subtotal, form.cleaned_data["shipping_address"])
             tier_discount_amount = subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
 
-            selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal, user=request.user)
+            coupon_user = None if is_guest else request.user
+            selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal, user=coupon_user)
             if coupon_error:
                 form.add_error("coupon_code", coupon_error)
             else:
                 discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
                 total_amount = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
 
-                # ── Điểm tích lũy ──
                 points_to_use = 0
                 points_discount = Decimal("0")
-                profile, _ = UserProfile.objects.get_or_create(user=request.user)
-                if profile.points and (form.cleaned_data.get("points_to_use") or 0) > 0:
+                if not is_guest and profile.points and (form.cleaned_data.get("points_to_use") or 0) > 0:
                     points_to_use = min(form.cleaned_data["points_to_use"], profile.points)
                     points_discount = min(
                         Decimal(points_to_use) * Decimal("100"),
@@ -391,7 +392,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 with transaction.atomic():
                     if selected_coupon:
                         selected_coupon = Coupon.objects.select_for_update().get(id=selected_coupon.id)
-                        if not selected_coupon.is_usable_now() or not selected_coupon.is_usable_by_user(request.user):
+                        if not selected_coupon.is_usable_now() or (not is_guest and not selected_coupon.is_usable_by_user(request.user)):
                             form.add_error("coupon_code", "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.")
                             transaction.set_rollback(True)
                             return render(
@@ -409,13 +410,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "demo_qr_url": build_vietqr_url(bank_code or "VCB", subtotal + shipping_fee, "DH-TAM"),
                                     "banks": BANKS,
                                     "saved_addresses": saved_addresses,
+                                    "tier_name": tier_name,
+                                    "tier_discount_pct": tier_discount_pct_value,
+                                    "tier_discount_amount": tier_discount_amount,
+                                    "shipping_zone": shipping_fee,
                                 },
                             )
                         selected_coupon.used_count += 1
                         selected_coupon.save(update_fields=["used_count", "updated_at"])
 
                     order = Order.objects.create(
-                        user=request.user,
+                        user=None if is_guest else request.user,
                         customer_name=form.cleaned_data["customer_name"],
                         customer_email=form.cleaned_data["customer_email"],
                         phone=form.cleaned_data["phone"],
@@ -437,14 +442,14 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         status="processing" if payment_method in ("bank", "vnpay") else "pending",
                     )
 
-                    if points_to_use:
+                    if points_to_use and not is_guest:
                         profile.points -= points_to_use
                         profile.save(update_fields=["points"])
 
                     if selected_coupon:
                         CouponRedemption.objects.create(
                             coupon=selected_coupon,
-                            user=request.user,
+                            user=None if is_guest else request.user,
                             order=order,
                         )
 
@@ -537,7 +542,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     total = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
 
-    user_points = UserProfile.objects.get_or_create(user=request.user)[0].points
+    if is_guest:
+        user_points = 0
+    else:
+        user_points = UserProfile.objects.get_or_create(user=request.user)[0].points
 
     return render(
         request,
@@ -560,6 +568,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "banks": BANKS,
             "user_points": user_points,
             "saved_addresses": saved_addresses,
+            "is_guest": is_guest,
         },
     )
 

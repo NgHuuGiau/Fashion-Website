@@ -110,7 +110,7 @@ class Order(models.Model):
         "vnpost": "https://www.vnpost.vn/vi-vn/tra-cuu/tra-cuu-hang",
     }
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
     customer_name = models.CharField(max_length=150)
     customer_email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, db_index=True)
@@ -228,3 +228,125 @@ class OrderItem(models.Model):
 
     def subtotal(self):
         return self.price * self.quantity
+
+
+class GiftCard(models.Model):
+    """Thẻ quà tặng - mua tặng người khác, có mã duy nhất, hạn sử dụng 1 năm"""
+    code = models.CharField(max_length=16, unique=True, db_index=True, verbose_name="Mã thẻ")
+    initial_balance = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá trị ban đầu")
+    current_balance = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="Số dư hiện tại")
+    currency = models.CharField(max_length=3, default="VND", verbose_name="Đơn vị tiền tệ")
+
+    purchaser = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="gift_cards_purchased",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Người mua"
+    )
+    purchaser_email = models.EmailField(blank=True, verbose_name="Email người mua")
+    recipient_email = models.EmailField(blank=True, verbose_name="Email người nhận")
+    recipient_name = models.CharField(max_length=150, blank=True, verbose_name="Tên người nhận")
+    message = models.TextField(blank=True, verbose_name="Lời nhắn")
+
+    STATUS_CHOICES = [
+        ("active", "Đang hoạt động"),
+        ("redeemed", "Đã dùng hết"),
+        ("expired", "Hết hạn"),
+        ("cancelled", "Đã hủy"),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", db_index=True)
+
+    purchased_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(verbose_name="Hạn sử dụng")
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Thẻ quà tặng"
+        verbose_name_plural = "Thẻ quà tặng"
+        ordering = ["-purchased_at"]
+
+    def __str__(self):
+        return f"Gift Card {self.code} - {self.initial_balance:,.0f}đ"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.generate_unique_code()
+        if not self.current_balance:
+            self.current_balance = self.initial_balance
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(days=365)
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_unique_code():
+        """Tạo mã 12 ký tự: GC + 10 random"""
+        import random
+        import string
+        while True:
+            code = "GC" + "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            if not GiftCard.objects.filter(code=code).exists():
+                return code
+
+    def is_valid(self):
+        """Kiểm tra thẻ còn hợp lệ"""
+        if self.status != "active":
+            return False
+        if self.current_balance <= 0:
+            return False
+        if self.expires_at < timezone.now():
+            return False
+        return True
+
+    def redeem(self, amount, order=None):
+        """Trừ số dư khi dùng"""
+        if not self.is_valid():
+            return False, "Thẻ không hợp lệ hoặc đã hết hạn"
+        if amount > self.current_balance:
+            return False, "Số dư không đủ"
+        self.current_balance -= amount
+        if self.current_balance == 0:
+            self.status = "redeemed"
+            self.redeemed_at = timezone.now()
+        self.save(update_fields=["current_balance", "status", "redeemed_at"])
+        GiftCardUsage.objects.create(
+            gift_card=self,
+            order=order,
+            amount=amount,
+            balance_after=self.current_balance,
+        )
+        return True, "Thành công"
+
+    @property
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+
+class GiftCardUsage(models.Model):
+    """Lịch sử sử dụng thẻ quà tặng"""
+    gift_card = models.ForeignKey(
+        GiftCard,
+        related_name="usages",
+        on_delete=models.CASCADE,
+        verbose_name="Thẻ quà tặng"
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="gift_card_usages",
+        verbose_name="Đơn hàng"
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Số tiền đã dùng")
+    balance_after = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Số dư còn lại")
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Lịch sử sử dụng thẻ"
+        verbose_name_plural = "Lịch sử sử dụng thẻ"
+        ordering = ["-used_at"]
+
+    def __str__(self):
+        return f"{self.gift_card.code} - {self.amount:,.0f}đ"

@@ -1,0 +1,64 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:import/recommended",
+    "standard"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": ["import", "n", "promise"],
+  "rules": {
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "double", { "avoidEscape": true }],
+    "semi": ["error", "always"],
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "prefer-arrow-callback": "error",
+    "prefer-template": "error",
+    "object-shorthand": "error",
+    "prefer-destructuring": ["error", { "array": true, "object": true }],
+    "no-duplicate-imports": "error",
+    "import/order": ["error", {
+      "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
+      "pathGroups": [
+        { "pattern": "@/**", "group": "internal" },
+        { "pattern": "./**", "group": "sibling" }
+      ],
+      "pathGroupsExcludedImportTypes": ["builtin"],
+      "alphabetize": { "order": "asc", "caseInsensitive": true }
+    }],
+    "n/no-unpublished-import": "off",
+    "n/no-extraneous-import": "off",
+    "promise/always-return": "error",
+    "promise/no-return-wrap": "error",
+    "promise/param-names": "error",
+    "promise/catch-or-return": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "*.min.js",
+    "vendor/",
+    "*.map"
+  ],
+  "overrides": [
+    {
+      "files": ["*.config.js", "*.config.mjs"],
+      "env": { "node": true },
+      "rules": {
+        "n/no-unpublished-import": "off"
+      }
+    }
+  ]
+}

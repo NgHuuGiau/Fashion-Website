@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend[dev]"
+
+      - name: Run tests
+        run: |
+          cd backend
+          python -m pytest -x -v --cov=. --cov-fail-under=70
+
+      - name: Lint
+        run: |
+          ruff check backend frontend
+          ruff format --check backend frontend
+
+      - name: Type check
+        run: |
+          cd backend
+          mypy . --config-file=pyproject.toml --ignore-missing-imports
+
+      - name: Security scan
+        run: |
+          bandit -r backend -ll
+          pip-audit -r requirements.txt
+          safety check -r requirements.txt
+
+      - name: Build frontend
+        run: |
+          cd frontend && npm ci && npm run build || echo "No build script"
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Extract changelog for this version
+          VERSION="${{ steps.version.outputs.version }}"
+          # Extract from CHANGELOG.md between this version and next
+          # Simplified - just use the tag
+          echo "changelog=Release ${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify
+        run: |
+          echo "Release ${{ steps.version.outputs.version }} created successfully!"

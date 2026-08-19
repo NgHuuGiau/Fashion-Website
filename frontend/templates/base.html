@@ -7,16 +7,28 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
     <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '{{ GA4_MEASUREMENT_ID }}');</script>
     {% endif %}
+    {% include "shop/_ga4_datalayer.html" %}
     <meta name="description" content="{% block meta_description %}HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.{% endblock %}">
     <meta property="og:title" content="{% block og_title %}HUUGIAU Atelier — Streetwear Local{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.{% endblock %}">
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     {% block og_image %}{% endblock %}
+    {% if not og_image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-default.jpg' %}">
+    {% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@huugiau">
+    <meta name="twitter:creator" content="@huugiau">
+    {% block twitter_title %}{% endblock %}
+    {% block twitter_description %}{% endblock %}
+    {% block twitter_image %}{% endblock %}
     {% block canonical %}
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     {% endblock %}
     <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#8b6914">
     <title>{% block title %}HUUGIAU Studio{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +36,8 @@
     {% compress css %}
     <link rel="stylesheet" href="{% static 'css/fontawesome-all.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/site_theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cookie_consent.css' %}">
+    <link rel="stylesheet" href="{% static 'css/skeleton.css' %}">
     {% endcompress %}
     <script>!function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';l.onerror=function(){this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css'};document.head.appendChild(l)}()</script>
     {% compress js %}
@@ -370,5 +384,14 @@
     {% compress js %}
     <script defer src="{% static 'js/base_interactions.js' %}"></script>
     {% endcompress %}
+    <script defer src="{% static 'js/cookie_consent.js' %}"></script>
+    <script defer src="{% static 'js/recently_viewed.js' %}"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "sw.js" %}').catch(() => {});
+      });
+    }
+    </script>
 </body>
 </html>

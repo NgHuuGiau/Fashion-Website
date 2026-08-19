@@ -1,0 +1,31 @@
+{
+  "name": "fashion-website-frontend",
+  "version": "1.0.0",
+  "description": "HUUGIAU Fashion Website Frontend",
+  "private": true,
+  "scripts": {
+    "lint:css": "stylelint \"**/*.css\" --formatter=github",
+    "lint:js": "eslint \"**/*.js\" --format=github",
+    "lint": "npm run lint:css && npm run lint:js",
+    "format:css": "stylelint \"**/*.css\" --fix",
+    "format:js": "eslint \"**/*.js\" --fix",
+    "format": "npm run format:css && npm run format:js",
+    "build": "echo \"No build step configured\" && exit 0"
+  },
+  "devDependencies": {
+    "stylelint": "^16.3.0",
+    "stylelint-config-standard": "^36.0.0",
+    "stylelint-config-recess-order": "^5.0.0",
+    "stylelint-scss": "^6.2.0",
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.1.1",
+    "@eslint/js": "^8.57.0",
+    "globals": "^15.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

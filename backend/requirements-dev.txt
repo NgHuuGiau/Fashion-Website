@@ -1,0 +1,31 @@
+# Development dependencies
+-r requirements.txt
+
+# Testing
+pytest>=7.4,<7.5
+pytest-django>=4.5,<4.6
+pytest-cov>=4.1,<4.2
+pytest-xdist>=3.3,<3.4
+pytest-mock>=3.12,<3.13
+factory-boy>=3.3,<3.4
+faker>=24.0,<25
+
+# Linting & Formatting
+ruff>=0.5.7,<0.6
+mypy>=1.11,<1.12
+django-stubs>=4.2,<4.3
+types-requests>=2.31,<2.32
+black>=24.0,<25
+isort>=5.13,<5.14
+
+# Security
+bandit>=1.7,<1.8
+pip-audit>=2.7,<2.8
+safety>=3.2,<3.3
+
+# Pre-commit
+pre-commit>=3.6,<3.7
+
+# Coverage
+coverage>=7.3,<7.4
+codecov>=2.1,<2.2
