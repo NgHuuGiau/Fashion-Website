@@ -16,7 +16,13 @@ def get_client_ip(request):
 
 
 class RateLimiter:
-    def __init__(self, key_prefix, max_requests=10, window=60, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau."):
+    def __init__(
+        self,
+        key_prefix,
+        max_requests=10,
+        window=60,
+        error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+    ):
         self.key_prefix = key_prefix
         self.max_requests = max_requests
         self.window = window
@@ -59,7 +65,9 @@ class RateLimiter:
     def get_response(self, request):
         retry_after = self.get_retry_after(request)
         if request.headers.get("Accept", "").startswith("application/json"):
-            resp = JsonResponse({"error": self.error_msg, "retry_after": retry_after}, status=429)
+            resp = JsonResponse(
+                {"error": self.error_msg, "retry_after": retry_after}, status=429
+            )
         else:
             resp = HttpResponseForbidden(self.error_msg)
         resp["Retry-After"] = str(retry_after)
@@ -74,9 +82,15 @@ class RateLimiter:
                 return self.get_response(request)
             self._record_hit(request)
             return view(request, *args, **kwargs)
+
         return _wrapped
 
 
-def rate_limit(key_prefix, max_requests=10, window=60, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau."):
+def rate_limit(
+    key_prefix,
+    max_requests=10,
+    window=60,
+    error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+):
     limiter = RateLimiter(key_prefix, max_requests, window, error_msg)
     return limiter.__call__

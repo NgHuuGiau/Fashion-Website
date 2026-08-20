@@ -4,24 +4,23 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0014_gift_card'),
+        ("orders", "0014_gift_card"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='giftcardusage',
-            name='gift_card',
+            model_name="giftcardusage",
+            name="gift_card",
         ),
         migrations.RemoveField(
-            model_name='giftcardusage',
-            name='order',
+            model_name="giftcardusage",
+            name="order",
         ),
         migrations.DeleteModel(
-            name='GiftCard',
+            name="GiftCard",
         ),
         migrations.DeleteModel(
-            name='GiftCardUsage',
+            name="GiftCardUsage",
         ),
     ]

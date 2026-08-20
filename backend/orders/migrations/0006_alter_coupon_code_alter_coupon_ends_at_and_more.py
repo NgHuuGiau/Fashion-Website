@@ -5,44 +5,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0005_alter_order_created_at'),
+        ("orders", "0005_alter_order_created_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='coupon',
-            name='code',
+            model_name="coupon",
+            name="code",
             field=models.CharField(db_index=True, max_length=30, unique=True),
         ),
         migrations.AlterField(
-            model_name='coupon',
-            name='ends_at',
+            model_name="coupon",
+            name="ends_at",
             field=models.DateTimeField(blank=True, db_index=True, null=True),
         ),
         migrations.AlterField(
-            model_name='coupon',
-            name='is_active',
+            model_name="coupon",
+            name="is_active",
             field=models.BooleanField(db_index=True, default=True),
         ),
         migrations.AlterField(
-            model_name='coupon',
-            name='starts_at',
+            model_name="coupon",
+            name="starts_at",
             field=models.DateTimeField(blank=True, db_index=True, null=True),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(choices=[('pending', 'Chờ xử lý'), ('processing', 'Đang xử lý'), ('shipping', 'Đang giao'), ('delivered', 'Hoàn thành'), ('cancelled', 'Đã hủy')], db_index=True, default='pending', max_length=20),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("pending", "Chờ xử lý"),
+                    ("processing", "Đang xử lý"),
+                    ("shipping", "Đang giao"),
+                    ("delivered", "Hoàn thành"),
+                    ("cancelled", "Đã hủy"),
+                ],
+                db_index=True,
+                default="pending",
+                max_length=20,
+            ),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['user', 'status', '-created_at'], name='orders_orde_user_id_aab4c7_idx'),
+            model_name="order",
+            index=models.Index(
+                fields=["user", "status", "-created_at"],
+                name="orders_orde_user_id_aab4c7_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['status', '-created_at'], name='orders_orde_status_079368_idx'),
+            model_name="order",
+            index=models.Index(
+                fields=["status", "-created_at"], name="orders_orde_status_079368_idx"
+            ),
         ),
     ]

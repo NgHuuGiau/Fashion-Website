@@ -5,39 +5,49 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0006_alter_coupon_code_alter_coupon_ends_at_and_more'),
+        ("orders", "0006_alter_coupon_code_alter_coupon_ends_at_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='coupon',
-            name='created_at',
+            model_name="coupon",
+            name="created_at",
             field=models.DateTimeField(auto_now_add=True, db_index=True),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='is_paid',
+            model_name="order",
+            name="is_paid",
             field=models.BooleanField(db_index=True, default=False),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='payment_method',
-            field=models.CharField(choices=[('cod', 'Thanh toán khi nhận hàng'), ('bank', 'Chuyển khoản ngân hàng')], db_index=True, default='cod', max_length=20),
+            model_name="order",
+            name="payment_method",
+            field=models.CharField(
+                choices=[
+                    ("cod", "Thanh toán khi nhận hàng"),
+                    ("bank", "Chuyển khoản ngân hàng"),
+                ],
+                db_index=True,
+                default="cod",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='phone',
+            model_name="order",
+            name="phone",
             field=models.CharField(db_index=True, max_length=20),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['payment_method', 'is_paid', 'status'], name='orders_orde_payment_316b0b_idx'),
+            model_name="order",
+            index=models.Index(
+                fields=["payment_method", "is_paid", "status"],
+                name="orders_orde_payment_316b0b_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['phone'], name='orders_orde_phone_7bc88b_idx'),
+            model_name="order",
+            index=models.Index(fields=["phone"], name="orders_orde_phone_7bc88b_idx"),
         ),
     ]

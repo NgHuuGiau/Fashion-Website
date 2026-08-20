@@ -4,20 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0009_order_points_earned_order_points_used_and_more'),
+        ("orders", "0009_order_points_earned_order_points_used_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='carrier',
-            field=models.CharField(blank=True, choices=[('ghn', 'GHN'), ('ghtk', 'GHTK'), ('vnpost', 'VNPost')], max_length=20, verbose_name='Đơn vị vận chuyển'),
+            model_name="order",
+            name="carrier",
+            field=models.CharField(
+                blank=True,
+                choices=[("ghn", "GHN"), ("ghtk", "GHTK"), ("vnpost", "VNPost")],
+                max_length=20,
+                verbose_name="Đơn vị vận chuyển",
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='tracking_code',
-            field=models.CharField(blank=True, max_length=40, verbose_name='Mã vận đơn'),
+            model_name="order",
+            name="tracking_code",
+            field=models.CharField(
+                blank=True, max_length=40, verbose_name="Mã vận đơn"
+            ),
         ),
     ]

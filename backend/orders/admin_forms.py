@@ -12,8 +12,15 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            "name", "category", "slug", "description",
-            "price", "available", "featured", "image", "image_url",
+            "name",
+            "category",
+            "slug",
+            "description",
+            "price",
+            "available",
+            "featured",
+            "image",
+            "image_url",
         ]
 
     def clean_price(self):
@@ -40,14 +47,22 @@ class ProductVariantFormSet:
         active_keys = set(data.getlist("variant_is_active[]"))
 
         max_rows = max(
-            len(row_keys), len(color_names), len(color_codes), len(sizes), len(stocks),
+            len(row_keys),
+            len(color_names),
+            len(color_codes),
+            len(sizes),
+            len(stocks),
         )
         cleaned = []
         errors = []
 
         for index in range(max_rows):
-            color_name = (color_names[index] if index < len(color_names) else "").strip()
-            color_code = (color_codes[index] if index < len(color_codes) else "").strip()
+            color_name = (
+                color_names[index] if index < len(color_names) else ""
+            ).strip()
+            color_code = (
+                color_codes[index] if index < len(color_codes) else ""
+            ).strip()
             size = (sizes[index] if index < len(sizes) else "").strip()
             stock_raw = (stocks[index] if index < len(stocks) else "").strip()
             row_key = row_keys[index] if index < len(row_keys) else f"row-{index + 1}"
@@ -68,13 +83,15 @@ class ProductVariantFormSet:
                 errors.append(f"Tồn kho biến thể ở dòng {index + 1} không hợp lệ.")
                 continue
 
-            cleaned.append({
-                "color_name": color_name,
-                "color_code": color_code or "#111111",
-                "size": size,
-                "stock": stock,
-                "is_active": row_key in active_keys,
-            })
+            cleaned.append(
+                {
+                    "color_name": color_name,
+                    "color_code": color_code or "#111111",
+                    "size": size,
+                    "stock": stock,
+                    "is_active": row_key in active_keys,
+                }
+            )
 
         if errors:
             raise forms.ValidationError(errors)
@@ -86,8 +103,14 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = [
-            "code", "discount_type", "value", "min_order_amount",
-            "max_discount_amount", "starts_at", "ends_at", "usage_limit",
+            "code",
+            "discount_type",
+            "value",
+            "min_order_amount",
+            "max_discount_amount",
+            "starts_at",
+            "ends_at",
+            "usage_limit",
             "max_uses_per_user",
         ]
 
@@ -97,7 +120,9 @@ class CouponForm(forms.ModelForm):
         ends_at = cleaned_data.get("ends_at")
 
         if starts_at and ends_at and starts_at >= ends_at:
-            raise forms.ValidationError("Thời gian bắt đầu phải trước thời gian kết thúc.")
+            raise forms.ValidationError(
+                "Thời gian bắt đầu phải trước thời gian kết thúc."
+            )
 
         return cleaned_data
 
@@ -118,7 +143,9 @@ class OrderStatusForm(forms.Form):
         is_paid = cleaned_data.get("is_paid")
 
         if status == "delivered" and not is_paid:
-            raise forms.ValidationError("Đơn hàng hoàn thành phải được đánh dấu là đã thanh toán.")
+            raise forms.ValidationError(
+                "Đơn hàng hoàn thành phải được đánh dấu là đã thanh toán."
+            )
 
         return cleaned_data
 
@@ -129,8 +156,12 @@ class OrderSearchForm(forms.Form):
         required=False,
         choices=[("", "Tất cả trạng thái")] + Order.STATUS_CHOICES,
     )
-    date_from = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
-    date_to = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    date_from = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    date_to = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
 
     def clean_date_from(self):
         value = self.cleaned_data.get("date_from")
@@ -155,14 +186,20 @@ class OrderEditForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = [
-            "customer_name", "customer_email", "phone",
-            "shipping_address", "note", "bank_code",
+            "customer_name",
+            "customer_email",
+            "phone",
+            "shipping_address",
+            "note",
+            "bank_code",
         ]
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "")
         if phone and not re.fullmatch(r"[0-9]{9,15}", phone):
-            raise forms.ValidationError("Số điện thoại không hợp lệ, vui lòng chỉ nhập số từ 9 đến 15 chữ số.")
+            raise forms.ValidationError(
+                "Số điện thoại không hợp lệ, vui lòng chỉ nhập số từ 9 đến 15 chữ số."
+            )
         return phone
 
     def clean(self):

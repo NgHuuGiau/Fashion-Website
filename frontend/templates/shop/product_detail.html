@@ -19,7 +19,7 @@
   "name": {{ product.name|repair_text|json_script:"" }},
   "slug": {{ product.slug|json_script:"" }},
   "price": {{ product.price }},
-  "image_url": "{{ product.image.url|default:product.image_url|default:'' }}",
+  "image_url": "{% if product.image %}{{ product.image.url }}{% else %}{{ product.image_url }}{% endif %}",
   "discount_percent": {{ product.discount_percent|default:0 }}
 }</script>
 <nav class="breadcrumb" aria-label="Bạn đang ở">

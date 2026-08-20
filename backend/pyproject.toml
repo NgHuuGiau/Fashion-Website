@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "fashion-website"
 version = "1.0.0"
 description = "HUUGIAU Fashion Website - Django E-commerce"
-readme = "README.md"
+readme = "../README.md"
 requires-python = ">=3.10"
 dependencies = [
     "django>=4.2,<5.1",
@@ -123,7 +123,6 @@ quote-style = "double"
 indent-style = "space"
 indent-width = 4
 line-ending = "lf"
-docstring-code-format = true
 
 [tool.ruff.lint.isort]
 known-first-party = ["orders", "products", "users", "core"]
@@ -160,7 +159,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config --ds=core.settings"
-testpaths = ["backend"]
+testpaths = ["."]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -187,7 +186,7 @@ omit = [
 ]
 branch = true
 parallel = true
-concurrency = "multiprocessing"
+concurrency = ["multiprocessing"]
 
 [tool.coverage.report]
 exclude_lines = [

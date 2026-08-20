@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 
 from products.models import Product, ProductVariant
 
@@ -6,15 +6,12 @@ from products.models import Product, ProductVariant
 CART_SESSION_ID = "cart"
 
 
-
 def _get_cart(session):
     return session.setdefault(CART_SESSION_ID, {})
 
 
-
 def _item_key(product_id, variant_id=None):
     return f"{product_id}:{variant_id or 0}"
-
 
 
 def _parse_item_key(item_key):
@@ -39,14 +36,12 @@ def _collect_cart_ids(cart):
     return product_ids, variant_ids
 
 
-
 def safe_int(value, default=1, minimum=1):
     try:
         parsed = int(value)
     except (TypeError, ValueError):
         parsed = default
     return max(minimum, parsed)
-
 
 
 def add_cart(request, product_id, quantity=1, override_quantity=False, variant_id=None):
@@ -57,7 +52,9 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
 
     variant = None
     if variant_id:
-        variant = ProductVariant.objects.filter(id=variant_id, product=product, is_active=True).first()
+        variant = ProductVariant.objects.filter(
+            id=variant_id, product=product, is_active=True
+        ).first()
         if not variant:
             return False, "Biến thể sản phẩm không tồn tại hoặc đã ngừng bán."
 
@@ -87,7 +84,6 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
     return True, f"Đã thêm '{product.name}' vào giỏ hàng."
 
 
-
 def remove_cart(request, item_key=None):
     cart = _get_cart(request.session)
 
@@ -96,23 +92,27 @@ def remove_cart(request, item_key=None):
         request.session.modified = True
 
 
-
 def clear_cart(request):
     if CART_SESSION_ID in request.session:
         del request.session[CART_SESSION_ID]
         request.session.modified = True
 
 
-
 def iter_cart(request):
     cart = _get_cart(request.session)
     product_ids, variant_ids = _collect_cart_ids(cart)
 
-    products = Product.objects.filter(id__in=product_ids, available=True).select_related("category").prefetch_related("gallery_images")
+    products = (
+        Product.objects.filter(id__in=product_ids, available=True)
+        .select_related("category")
+        .prefetch_related("gallery_images")
+    )
     products_by_id = {product.id: product for product in products}
     variants_by_id = {
         variant.id: variant
-        for variant in ProductVariant.objects.filter(id__in=variant_ids, is_active=True, product_id__in=product_ids)
+        for variant in ProductVariant.objects.filter(
+            id__in=variant_ids, is_active=True, product_id__in=product_ids
+        )
     }
 
     rows = []
@@ -147,7 +147,9 @@ def iter_cart(request):
     return rows, total
 
 
-
 def cart_count(request):
     cart = _get_cart(request.session)
-    return sum(safe_int(item.get("quantity", 0), default=0, minimum=0) for item in cart.values())
+    return sum(
+        safe_int(item.get("quantity", 0), default=0, minimum=0)
+        for item in cart.values()
+    )

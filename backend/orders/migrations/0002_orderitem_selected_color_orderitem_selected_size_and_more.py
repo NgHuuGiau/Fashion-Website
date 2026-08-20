@@ -1,29 +1,32 @@
-﻿
 import django.db.models.deletion
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0001_initial'),
-        ('products', '0003_productvariant'),
+        ("orders", "0001_initial"),
+        ("products", "0003_productvariant"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='orderitem',
-            name='selected_color',
+            model_name="orderitem",
+            name="selected_color",
             field=models.CharField(blank=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='orderitem',
-            name='selected_size',
+            model_name="orderitem",
+            name="selected_size",
             field=models.CharField(blank=True, max_length=20),
         ),
         migrations.AddField(
-            model_name='orderitem',
-            name='variant',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='products.productvariant'),
+            model_name="orderitem",
+            name="variant",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="products.productvariant",
+            ),
         ),
     ]

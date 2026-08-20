@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0007_productimage'),
+        ("products", "0007_productimage"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
-            name='created',
+            model_name="product",
+            name="created",
             field=models.DateTimeField(auto_now_add=True, db_index=True),
         ),
     ]

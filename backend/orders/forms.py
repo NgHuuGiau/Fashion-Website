@@ -54,21 +54,32 @@ class CheckoutForm(forms.Form):
     )
     delivery_time_slot = forms.ChoiceField(
         required=False,
-        choices=[("", "-- Chọn khung giờ --"), ("morning", "8:00 – 11:00"), ("afternoon", "13:00 – 17:00"), ("evening", "18:00 – 21:00")],
+        choices=[
+            ("", "-- Chọn khung giờ --"),
+            ("morning", "8:00 – 11:00"),
+            ("afternoon", "13:00 – 17:00"),
+            ("evening", "18:00 – 21:00"),
+        ],
         label="Khung giờ nhận hàng",
     )
     gift_wrap = forms.BooleanField(required=False, label="Đóng gói quà tặng (miễn phí)")
     gift_note = forms.CharField(
         required=False,
         max_length=255,
-        widget=forms.TextInput(attrs={"placeholder": "Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"}),
+        widget=forms.TextInput(
+            attrs={"placeholder": "Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"}
+        ),
         label="Thiệp chúc",
     )
 
     def clean(self):
         cleaned_data = super().clean()
-        if cleaned_data.get("payment_method") == "bank" and not cleaned_data.get("bank_code"):
-            self.add_error("bank_code", "Vui lòng chọn ngân hàng để quét mã chuyển khoản.")
+        if cleaned_data.get("payment_method") == "bank" and not cleaned_data.get(
+            "bank_code"
+        ):
+            self.add_error(
+                "bank_code", "Vui lòng chọn ngân hàng để quét mã chuyển khoản."
+            )
 
         if cleaned_data.get("coupon_code"):
             cleaned_data["coupon_code"] = cleaned_data["coupon_code"].strip().upper()
@@ -78,7 +89,9 @@ class CheckoutForm(forms.Form):
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "").strip()
         if phone and not re.fullmatch(r"[0-9]{9,15}", phone):
-            raise forms.ValidationError("Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số.")
+            raise forms.ValidationError(
+                "Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số."
+            )
         return phone
 
 
@@ -100,7 +113,12 @@ class ReturnRequestForm(forms.Form):
     item_ids = forms.MultipleChoiceField(required=False, label="Sản phẩm trả lại")
     note = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Mô tả thêm (tình trạng sản phẩm, mong muốn của bạn...)"}),
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Mô tả thêm (tình trạng sản phẩm, mong muốn của bạn...)",
+            }
+        ),
         label="Ghi chú",
     )
 
@@ -109,7 +127,11 @@ class ReturnRequestForm(forms.Form):
         self.order = order
         if order:
             self.fields["item_ids"].choices = [
-                (str(i.id), f"{i.product.name} · {i.selected_size or ''} · x{i.quantity}") for i in order.items.all()
+                (
+                    str(i.id),
+                    f"{i.product.name} · {i.selected_size or ''} · x{i.quantity}",
+                )
+                for i in order.items.all()
             ]
 
     def clean_item_ids(self):

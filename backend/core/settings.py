@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -16,13 +16,11 @@ def load_env_file(env_path):
         os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 
-
 def env_bool(name, default=False):
     value = os.getenv(name)
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
-
 
 
 def env_list(name, default=None):
@@ -93,14 +91,14 @@ TEMPLATES = [
             "builtins": [
                 "products.templatetags.shop_format",
             ],
-"context_processors": [
-            "django.template.context_processors.debug",
-            "django.template.context_processors.request",
-            "django.contrib.auth.context_processors.auth",
-            "django.contrib.messages.context_processors.messages",
-            "orders.context_processors.cart_info",
-            "orders.context_processors.shop_site_config",
-            "core.context_processors.recently_viewed",
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "orders.context_processors.cart_info",
+                "orders.context_processors.shop_site_config",
+                "core.context_processors.recently_viewed",
             ],
         },
     },
@@ -110,31 +108,38 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 DB_ENGINE = os.getenv("DB_ENGINE", "mssql").lower()
 
-# SQL Server is the only supported database. Do not silently fall back.
-if DB_ENGINE not in {"mssql", "sqlserver"}:
+# SQL Server is the primary supported database. PostgreSQL is supported
+# explicitly for CI/testing (set DB_ENGINE=postgres).
+if DB_ENGINE in {"mssql", "sqlserver"}:
+    _DB_BACKEND = "mssql"
+elif DB_ENGINE == "postgres":
+    _DB_BACKEND = "django.db.backends.postgresql"
+else:
     from django.core.exceptions import ImproperlyConfigured
 
     raise ImproperlyConfigured(
-        "Only SQL Server is supported (set DB_ENGINE=mssql)."
+        "Unsupported DB_ENGINE=%r. Use mssql (default) or postgres (CI)." % DB_ENGINE
     )
 
-_db_options = {
-    "driver": os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
-    "trusted_connection": env_bool("DB_TRUSTED_CONNECTION", True),
-    "extra_params": os.getenv(
-        "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=yes"
+_db_config = {
+    "ENGINE": _DB_BACKEND,
+    "NAME": os.getenv(
+        "DB_NAME", "HUUGIAU_Fashion" if _DB_BACKEND == "mssql" else "test_fashion"
     ),
+    "HOST": os.getenv("DB_HOST", "." if _DB_BACKEND == "mssql" else "localhost"),
+    "PORT": os.getenv("DB_PORT", ""),
 }
 
-DATABASES = {
-    "default": {
-        "ENGINE": "mssql",
-        "NAME": os.getenv("DB_NAME", "HUUGIAU_Fashion"),
-        "HOST": os.getenv("DB_HOST", "."),
-        "PORT": os.getenv("DB_PORT", ""),
-        "OPTIONS": _db_options,
+if _DB_BACKEND == "mssql":
+    _db_config["OPTIONS"] = {
+        "driver": os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
+        "trusted_connection": env_bool("DB_TRUSTED_CONNECTION", True),
+        "extra_params": os.getenv(
+            "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=yes"
+        ),
     }
-}
+
+DATABASES = {"default": _db_config}
 
 if os.getenv("DB_USER"):
     # SQL auth (e.g. CI). Leave unset for Windows/trusted auth locally.
@@ -147,13 +152,17 @@ USE_I18N = True
 USE_TZ = True
 
 # Email (SMTP). Để trống EMAIL_HOST = tắt gửi mail (dev).
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+)
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@huugiau.local>")
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@huugiau.local>"
+)
 
 # VNPay (sandbox mặc định)
 VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
@@ -192,6 +201,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 _redis_url = os.getenv("REDIS_URL", "")
 
+
 def _redis_available():
     if not _redis_url:
         return False
@@ -204,6 +214,7 @@ def _redis_available():
         return bool(client.ping())
     except Exception:
         return False
+
 
 _use_redis = _redis_available()
 
@@ -238,7 +249,10 @@ SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 if not DEBUG:
     if os.getenv("ALLOWED_HOSTS", "").strip() in ("", "*"):
         import warnings
-        warnings.warn("ALLOWED_HOSTS không được để trống hoặc '*' khi DEBUG=False. Đặt giá trị cụ thể trong .env")
+
+        warnings.warn(
+            "ALLOWED_HOSTS không được để trống hoặc '*' khi DEBUG=False. Đặt giá trị cụ thể trong .env"
+        )
 
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
@@ -246,25 +260,29 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
     SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
-    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    STATICFILES_STORAGE = (
+        "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    )
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': 'INFO',
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
         },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if (DEBUG and env_bool("ENABLE_SQL_LOGGING", False)) else 'WARNING',
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG"
+            if (DEBUG and env_bool("ENABLE_SQL_LOGGING", False))
+            else "WARNING",
         },
     },
 }

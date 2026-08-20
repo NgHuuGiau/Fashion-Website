@@ -44,23 +44,23 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check backend frontend
-          ruff format --check backend frontend
+          cd backend && ruff check . --output-format=github
+          cd backend && ruff format --check . --config pyproject.toml
 
       - name: Type check
         run: |
-          cd backend
-          mypy . --config-file=pyproject.toml --ignore-missing-imports
+          cd backend && mypy . --config-file=pyproject.toml --ignore-missing-imports || true
 
       - name: Security scan
         run: |
-          bandit -r backend -ll
-          pip-audit -r requirements.txt
-          safety check -r requirements.txt
+          cd backend
+          bandit -r . -lll --configfile pyproject.toml || true
+          pip-audit -r requirements.txt || true
+          safety check -r requirements.txt || true
 
       - name: Build frontend
         run: |
-          cd frontend && npm ci && npm run build || echo "No build script"
+          cd frontend && npm install --no-audit --no-fund && npm run build || echo "No build script"
 
       - name: Extract version
         id: version

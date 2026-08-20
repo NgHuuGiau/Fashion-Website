@@ -17,7 +17,9 @@ def generate_captcha_code(length=CAPTCHA_LENGTH):
     return "".join(random.choice(_CHARS) for _ in range(length))
 
 
-def generate_captcha_image(code, width=CAPTCHA_WIDTH, height=CAPTCHA_HEIGHT, font_size=CAPTCHA_FONT_SIZE):
+def generate_captcha_image(
+    code, width=CAPTCHA_WIDTH, height=CAPTCHA_HEIGHT, font_size=CAPTCHA_FONT_SIZE
+):
     img = Image.new("RGB", (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
@@ -27,7 +29,11 @@ def generate_captcha_image(code, width=CAPTCHA_WIDTH, height=CAPTCHA_HEIGHT, fon
         y1 = random.randint(0, height)
         x2 = random.randint(0, width)
         y2 = random.randint(0, height)
-        draw.line([(x1, y1), (x2, y2)], fill=_random_color(150, 220), width=random.randint(1, 2))
+        draw.line(
+            [(x1, y1), (x2, y2)],
+            fill=_random_color(150, 220),
+            width=random.randint(1, 2),
+        )
 
     # Noise dots
     for _ in range(random.randint(30, 60)):
@@ -50,7 +56,9 @@ def generate_captcha_image(code, width=CAPTCHA_WIDTH, height=CAPTCHA_HEIGHT, fon
         x = x_start + sum(draw.textlength(c, font=font) for c in code[:i])
         y = y_start + random.randint(-3, 3)
         # Random rotation per char
-        char_img = Image.new("RGBA", (font_size + 10, font_size + 10), (255, 255, 255, 0))
+        char_img = Image.new(
+            "RGBA", (font_size + 10, font_size + 10), (255, 255, 255, 0)
+        )
         char_draw = ImageDraw.Draw(char_img)
         char_draw.text((5, 0), ch, font=font, fill=_random_color(0, 80))
         char_img = char_img.rotate(random.randint(-15, 15), expand=1)

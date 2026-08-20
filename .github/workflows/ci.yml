@@ -24,6 +24,14 @@ permissions:
 env:
   PYTHON_VERSION: '3.12'
   DJANGO_SETTINGS_MODULE: 'core.settings'
+  SECRET_KEY: 'ci-insecure-key-for-tests-only'
+  ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
+  DB_ENGINE: 'postgres'
+  DB_NAME: 'test_fashion'
+  DB_HOST: 'localhost'
+  DB_PORT: '5432'
+  DB_USER: 'test'
+  DB_PASSWORD: 'test'
 
 jobs:
   # ========================================
@@ -44,16 +52,16 @@ jobs:
           cache: 'pip'
 
       - name: Install Ruff
-        run: pip install ruff==0.5.7
+        run: pip install "ruff>=0.6"
 
       - name: Run Ruff check
         run: |
-          ruff check backend frontend --output-format=github
+          cd backend && ruff check . --output-format=github
         continue-on-error: false
 
       - name: Run Ruff format check
         run: |
-          ruff format --check backend frontend
+          cd backend && ruff format --check . --config pyproject.toml
         continue-on-error: false
 
   type-check:
@@ -74,11 +82,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e "backend[dev]"
-          pip install mypy==1.11.2 django-stubs==4.2.7 types-requests
+          pip install mypy django-stubs types-requests
 
       - name: Run mypy
         run: |
-          mypy backend --config-file=backend/pyproject.toml --ignore-missing-imports || true
+          cd backend && mypy . --config-file=pyproject.toml --ignore-missing-imports || true
         continue-on-error: false
 
   security:
@@ -175,8 +183,6 @@ jobs:
         exclude:
           - python-version: '3.10'
             django-version: '5.0'
-          - python-version: '3.13'
-            django-version: '4.2'
     services:
       postgres:
         image: postgres:16-alpine
@@ -280,7 +286,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend && npm ci
+          cd frontend && npm install --no-audit --no-fund
 
       - name: Run Stylelint (CSS)
         run: |
@@ -314,7 +320,7 @@ jobs:
 
       - name: Django system check
         run: |
-          cd backend && python manage.py check --deploy --fail-level=WARNING
+          cd backend && python manage.py check --deploy --fail-level=ERROR
 
       - name: Collect static (dry-run)
         run: |

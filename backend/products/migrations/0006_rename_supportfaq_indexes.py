@@ -1,9 +1,7 @@
-﻿
 from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("products", "0005_supportfaq_and_alter_wishlistitem_options"),
     ]

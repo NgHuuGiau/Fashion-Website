@@ -79,7 +79,9 @@ class Command(BaseCommand):
     help = "Tạo dữ liệu lookbook mẫu (idempotent)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--force", action="store_true", help="Xóa bài cũ trước khi seed.")
+        parser.add_argument(
+            "--force", action="store_true", help="Xóa bài cũ trước khi seed."
+        )
 
     def handle(self, *args, **options):
         if options["force"]:

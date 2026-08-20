@@ -61,7 +61,9 @@ class RegisterForm(forms.ModelForm):
             return ""
 
         if not re.fullmatch(r"[0-9]{9,15}", phone):
-            raise forms.ValidationError("Số điện thoại không hợp lệ. Chỉ gồm ký tự số từ 9 đến 15 số.")
+            raise forms.ValidationError(
+                "Số điện thoại không hợp lệ. Chỉ gồm ký tự số từ 9 đến 15 số."
+            )
         return phone
 
     def clean_password1(self):
@@ -74,7 +76,9 @@ class RegisterForm(forms.ModelForm):
         if not any(ch.isdigit() for ch in password):
             raise forms.ValidationError("Mật khẩu phải có ít nhất 1 chữ số.")
         if not any(not ch.isalnum() for ch in password):
-            raise forms.ValidationError("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...).")
+            raise forms.ValidationError(
+                "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
+            )
 
         return password
 
@@ -95,7 +99,9 @@ class RegisterForm(forms.ModelForm):
             user.save()
             UserProfile.objects.update_or_create(
                 user=user,
-                defaults={"phone_number": self.cleaned_data.get("phone_number", "").strip()},
+                defaults={
+                    "phone_number": self.cleaned_data.get("phone_number", "").strip()
+                },
             )
         return user
 
@@ -129,8 +135,13 @@ class ProfileForm(forms.Form):
             kwargs["initial"].setdefault("first_name", user.first_name)
             kwargs["initial"].setdefault("last_name", user.last_name)
             kwargs["initial"].setdefault("email", user.email)
-            kwargs["initial"].setdefault("phone_number", getattr(getattr(user, "profile", None), "phone_number", ""))
-            kwargs["initial"].setdefault("birthday", getattr(getattr(user, "profile", None), "birthday", None))
+            kwargs["initial"].setdefault(
+                "phone_number",
+                getattr(getattr(user, "profile", None), "phone_number", ""),
+            )
+            kwargs["initial"].setdefault(
+                "birthday", getattr(getattr(user, "profile", None), "birthday", None)
+            )
         super().__init__(*args, **kwargs)
 
     def clean_phone_number(self):
@@ -138,7 +149,9 @@ class ProfileForm(forms.Form):
         if not phone:
             return ""
         if not re.fullmatch(r"[0-9]{9,15}", phone):
-            raise forms.ValidationError("Số điện thoại không hợp lệ. Chỉ gồm 9 đến 15 chữ số.")
+            raise forms.ValidationError(
+                "Số điện thoại không hợp lệ. Chỉ gồm 9 đến 15 chữ số."
+            )
         return phone
 
     def clean(self):
@@ -169,7 +182,9 @@ class ForgotPasswordForm(forms.Form):
     identifier = forms.CharField(
         label="Tài khoản / Email / Số điện thoại",
         max_length=150,
-        widget=forms.TextInput(attrs={"placeholder": "Nhập tên đăng nhập, email hoặc số điện thoại"}),
+        widget=forms.TextInput(
+            attrs={"placeholder": "Nhập tên đăng nhập, email hoặc số điện thoại"}
+        ),
         help_text="Hệ thống sẽ kiểm tra tài khoản có tồn tại không.",
     )
 
@@ -177,6 +192,7 @@ class ForgotPasswordForm(forms.Form):
         identifier = self.cleaned_data["identifier"].strip()
         from django.contrib.auth.models import User
         from .models import UserProfile
+
         matched = (
             User.objects.filter(username__iexact=identifier).exists()
             or User.objects.filter(email__iexact=identifier).exists()
@@ -190,6 +206,7 @@ class ForgotPasswordForm(forms.Form):
     def _find_user(self, identifier):
         from django.contrib.auth.models import User
         from .models import UserProfile
+
         user = User.objects.filter(username__iexact=identifier).first()
         if user:
             return user
@@ -207,11 +224,13 @@ class CaptchaForm(forms.Form):
         label="Mã xác thực",
         max_length=6,
         min_length=6,
-        widget=forms.TextInput(attrs={
-            "placeholder": "Nhập 6 ký tự",
-            "style": "text-transform: uppercase; letter-spacing: 0.3em;",
-            "autocomplete": "off",
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Nhập 6 ký tự",
+                "style": "text-transform: uppercase; letter-spacing: 0.3em;",
+                "autocomplete": "off",
+            }
+        ),
         help_text="Nhập đúng mã trong hình (không phân biệt chữ hoa/thường).",
     )
 
@@ -221,7 +240,9 @@ class CaptchaForm(forms.Form):
 
     def clean_captcha(self):
         value = self.cleaned_data["captcha"].strip().upper()
-        expected = self.request.session.get("captcha_code", "").upper() if self.request else ""
+        expected = (
+            self.request.session.get("captcha_code", "").upper() if self.request else ""
+        )
         if not expected or value != expected:
             raise forms.ValidationError("Mã xác thực không đúng. Vui lòng thử lại.")
         return value
@@ -233,7 +254,10 @@ class ResetPasswordForm(forms.Form):
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text="Ít nhất 8 ký tự, có chữ hoa, chữ số, ký tự đặc biệt.",
     )
-    password2 = forms.CharField(label="Nhập lại mật khẩu mới", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
+    password2 = forms.CharField(
+        label="Nhập lại mật khẩu mới",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
 
     def clean_password1(self):
         password = self.cleaned_data.get("password1", "")
@@ -244,7 +268,9 @@ class ResetPasswordForm(forms.Form):
         if not any(ch.isdigit() for ch in password):
             raise forms.ValidationError("Mật khẩu phải có ít nhất 1 chữ số.")
         if not any(not ch.isalnum() for ch in password):
-            raise forms.ValidationError("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...).")
+            raise forms.ValidationError(
+                "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
+            )
         return password
 
     def clean(self):
@@ -261,16 +287,28 @@ class ChangePasswordForm(forms.Form):
 
     current_password = forms.CharField(
         label="Mật khẩu hiện tại",
-        widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "placeholder": "Nhập mật khẩu hiện tại"}),
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "current-password",
+                "placeholder": "Nhập mật khẩu hiện tại",
+            }
+        ),
     )
     new_password1 = forms.CharField(
         label="Mật khẩu mới",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "placeholder": "Nhập mật khẩu mới"}),
+        widget=forms.PasswordInput(
+            attrs={"autocomplete": "new-password", "placeholder": "Nhập mật khẩu mới"}
+        ),
         help_text="Ít nhất 8 ký tự, có chữ hoa, chữ số, ký tự đặc biệt.",
     )
     new_password2 = forms.CharField(
         label="Nhập lại mật khẩu mới",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "placeholder": "Nhập lại mật khẩu mới"}),
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "new-password",
+                "placeholder": "Nhập lại mật khẩu mới",
+            }
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -292,9 +330,13 @@ class ChangePasswordForm(forms.Form):
         if not any(ch.isdigit() for ch in password):
             raise forms.ValidationError("Mật khẩu phải có ít nhất 1 chữ số.")
         if not any(not ch.isalnum() for ch in password):
-            raise forms.ValidationError("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...).")
+            raise forms.ValidationError(
+                "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
+            )
         if self.user is not None and self.user.check_password(password):
-            raise forms.ValidationError("Mật khẩu mới không được trùng với mật khẩu hiện tại.")
+            raise forms.ValidationError(
+                "Mật khẩu mới không được trùng với mật khẩu hiện tại."
+            )
         return password
 
     def clean(self):

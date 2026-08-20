@@ -3,6 +3,7 @@
 Toàn bộ endpoint trả về JsonResponse, không phụ thuộc DRF/third-party.
 Mount tại /api/ trong core/urls.py.
 """
+
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
@@ -68,7 +69,9 @@ def _serialize_product_summary(product):
         "category_slug": product.category.slug,
         "stock": product.stock,
         "available": product.available,
-        "rating_avg": round(product.rating_avg, 1) if getattr(product, "rating_avg", None) is not None else 0,
+        "rating_avg": round(product.rating_avg, 1)
+        if getattr(product, "rating_avg", None) is not None
+        else 0,
         "rating_count": getattr(product, "rating_count", 0) or 0,
         "url": product.get_absolute_url(),
     }
@@ -125,7 +128,11 @@ def _serialize_order(order, include_items=False):
 
 @require_GET
 def api_product_list(request: HttpRequest) -> JsonResponse:
-    qs = Product.objects.filter(available=True).select_related("category").prefetch_related("variants", "gallery_images")
+    qs = (
+        Product.objects.filter(available=True)
+        .select_related("category")
+        .prefetch_related("variants", "gallery_images")
+    )
 
     category_slug = request.GET.get("category", "").strip()
     keyword = request.GET.get("q", "").strip()
@@ -160,7 +167,9 @@ def api_product_list(request: HttpRequest) -> JsonResponse:
             "page": current_page.number,
             "num_pages": paginator.num_pages,
             "page_size": page_size,
-            "results": [_serialize_product_summary(p) for p in current_page.object_list],
+            "results": [
+                _serialize_product_summary(p) for p in current_page.object_list
+            ],
         }
     )
 
@@ -168,24 +177,32 @@ def api_product_list(request: HttpRequest) -> JsonResponse:
 @require_GET
 def api_product_detail(request: HttpRequest, pk: int) -> JsonResponse:
     product = get_object_or_404(
-        Product.objects.select_related("category").prefetch_related("variants", "gallery_images", "reviews__user"),
+        Product.objects.select_related("category").prefetch_related(
+            "variants", "gallery_images", "reviews__user"
+        ),
         id=pk,
         available=True,
     )
     published_reviews = product.reviews.filter(is_published=True)
-    review_stats = published_reviews.aggregate(rating_avg=Avg("rating"), rating_count=Count("id"))
+    review_stats = published_reviews.aggregate(
+        rating_avg=Avg("rating"), rating_count=Count("id")
+    )
     rating_avg = review_stats["rating_avg"] or 0
     bucket_map = {
         item["rating"]: item["total"]
         for item in published_reviews.values("rating").annotate(total=Count("id"))
     }
-    review_buckets = [{"rating": r, "total": bucket_map.get(r, 0)} for r in range(5, 0, -1)]
+    review_buckets = [
+        {"rating": r, "total": bucket_map.get(r, 0)} for r in range(5, 0, -1)
+    ]
 
     data = _serialize_product_summary(product)
     data["description"] = repair_mojibake_text(product.description)
     data["featured"] = product.featured
     data["requires_variants"] = product.requires_variants
-    data["variants"] = [_serialize_variant(v) for v in product.variants.filter(is_active=True)]
+    data["variants"] = [
+        _serialize_variant(v) for v in product.variants.filter(is_active=True)
+    ]
     data["gallery"] = [
         {"url": item["url"], "is_placeholder": item.get("is_placeholder", False)}
         for item in product.get_detail_gallery_images()
@@ -199,7 +216,9 @@ def api_product_detail(request: HttpRequest, pk: int) -> JsonResponse:
 
 @require_GET
 def api_product_reviews(request: HttpRequest, pk: int) -> JsonResponse:
-    product = get_object_or_404(Product.objects.only("id", "name"), id=pk, available=True)
+    product = get_object_or_404(
+        Product.objects.only("id", "name"), id=pk, available=True
+    )
     reviews = product.reviews.filter(is_published=True).select_related("user")[:50]
     return api_json(
         {
@@ -213,7 +232,9 @@ def api_product_reviews(request: HttpRequest, pk: int) -> JsonResponse:
 @login_required
 @require_POST
 def api_review_submit(request: HttpRequest, pk: int) -> JsonResponse:
-    product = get_object_or_404(Product.objects.only("id", "name"), id=pk, available=True)
+    product = get_object_or_404(
+        Product.objects.only("id", "name"), id=pk, available=True
+    )
     try:
         rating = int(request.POST.get("rating", request.GET.get("rating", "")))
     except (TypeError, ValueError):
@@ -242,13 +263,17 @@ def api_review_submit(request: HttpRequest, pk: int) -> JsonResponse:
 
 @require_GET
 def api_categories(request: HttpRequest) -> JsonResponse:
-    categories = (
-        Category.objects.annotate(product_count=Count("products", filter=Q(products__available=True)))
-        .order_by("name")
-    )
+    categories = Category.objects.annotate(
+        product_count=Count("products", filter=Q(products__available=True))
+    ).order_by("name")
     return api_json(
         [
-            {"id": c.id, "name": repair_mojibake_text(c.name), "slug": c.slug, "product_count": c.product_count}
+            {
+                "id": c.id,
+                "name": repair_mojibake_text(c.name),
+                "slug": c.slug,
+                "product_count": c.product_count,
+            }
             for c in categories
         ]
     )
@@ -257,7 +282,11 @@ def api_categories(request: HttpRequest) -> JsonResponse:
 @login_required
 @require_GET
 def api_my_orders(request: HttpRequest) -> JsonResponse:
-    qs = Order.objects.all() if is_staff_member(request.user) else Order.objects.filter(user=request.user)
+    qs = (
+        Order.objects.all()
+        if is_staff_member(request.user)
+        else Order.objects.filter(user=request.user)
+    )
     orders = list(qs.prefetch_related("items__product").order_by("-created_at")[:200])
     for order in orders:
         expire_bank_order_if_needed(order)
@@ -270,13 +299,20 @@ def api_order_detail(request: HttpRequest, pk: int) -> JsonResponse:
     lookup = {"id": pk}
     if not is_staff_member(request.user):
         lookup["user"] = request.user
-    order = get_object_or_404(Order.objects.prefetch_related("items__product"), **lookup)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"), **lookup
+    )
     expire_bank_order_if_needed(order)
     data = _serialize_order(order, include_items=True)
     if order.payment_method == "bank":
-        data["bank"] = {"code": order.bank_code, "name": (BANKS.get(order.bank_code) or {}).get("name", "")}
+        data["bank"] = {
+            "code": order.bank_code,
+            "name": (BANKS.get(order.bank_code) or {}).get("name", ""),
+        }
         if not order.is_paid and order.status != "cancelled":
-            data["qr_url"] = build_vietqr_url(order.bank_code or "VCB", order.total_amount, f"DH{order.id}")
+            data["qr_url"] = build_vietqr_url(
+                order.bank_code or "VCB", order.total_amount, f"DH{order.id}"
+            )
     eta = build_delivery_eta(order)
     data["eta_label"] = eta["eta_label"]
     data["eta_date"] = eta["eta_date"].isoformat()
@@ -292,7 +328,9 @@ def api_order_lookup(request: HttpRequest) -> JsonResponse:
     try:
         order = Order.objects.get(id=order_id, phone=phone)
     except Order.DoesNotExist:
-        return api_error("Không tìm thấy đơn hàng với mã và số điện thoại này.", status=404)
+        return api_error(
+            "Không tìm thấy đơn hàng với mã và số điện thoại này.", status=404
+        )
     expire_bank_order_if_needed(order)
     return api_json(_serialize_order(order, include_items=True))
 
@@ -316,7 +354,9 @@ def api_coupon_check(request: HttpRequest) -> JsonResponse:
             "discount_type": coupon.discount_type,
             "value": int(coupon.value),
             "min_order_amount": int(coupon.min_order_amount),
-            "max_discount_amount": int(coupon.max_discount_amount) if coupon.max_discount_amount is not None else None,
+            "max_discount_amount": int(coupon.max_discount_amount)
+            if coupon.max_discount_amount is not None
+            else None,
             "label": coupon.get_discount_type_display(),
         }
     )
@@ -363,7 +403,12 @@ def api_admin_stats(request: HttpRequest) -> JsonResponse:
         "category_revenue": context["category_revenue"],
         "inventory_stats": context["inventory_stats"],
         "low_stock_products": [
-            {"id": p.id, "name": repair_mojibake_text(p.name), "stock": p.stock, "available": p.available}
+            {
+                "id": p.id,
+                "name": repair_mojibake_text(p.name),
+                "stock": p.stock,
+                "available": p.available,
+            }
             for p in context["low_stock_products"]
         ],
     }
@@ -383,7 +428,9 @@ def api_admin_orders(request: HttpRequest) -> JsonResponse:
         qs = qs.filter(status=status)
     q = request.GET.get("q", "").strip()
     if q:
-        qs = qs.filter(Q(id__icontains=q) | Q(customer_name__icontains=q) | Q(phone__icontains=q))
+        qs = qs.filter(
+            Q(id__icontains=q) | Q(customer_name__icontains=q) | Q(phone__icontains=q)
+        )
     page = int_param(request, "page", 1)
     page_size = int_param(request, "page_size", 20)
     page_size = min(max(page_size or 20, 1), 100)
@@ -409,7 +456,10 @@ def api_admin_order_detail(request: HttpRequest, pk: int) -> JsonResponse:
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), id=pk)
     data = _serialize_admin_order(order)
     if order.payment_method == "bank":
-        data["bank"] = {"code": order.bank_code, "name": (BANKS.get(order.bank_code) or {}).get("name", "")}
+        data["bank"] = {
+            "code": order.bank_code,
+            "name": (BANKS.get(order.bank_code) or {}).get("name", ""),
+        }
     return api_json(data)
 
 
@@ -448,7 +498,9 @@ def api_admin_order_refund(request: HttpRequest, pk: int) -> JsonResponse:
     was_paid = order.is_paid
     amount = int(order.total_amount)
     apply_order_status_change(order, "cancelled", is_paid=False)
-    refund_note = f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
+    refund_note = (
+        f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
+    )
     order.note = f"{order.note}\n{refund_note}".strip() if order.note else refund_note
     order.save(update_fields=["note", "updated_at"])
     return api_json(
@@ -498,7 +550,11 @@ def api_admin_products(request: HttpRequest) -> JsonResponse:
     denied = _staff_required(request)
     if denied:
         return denied
-    qs = Product.objects.select_related("category").prefetch_related("variants").order_by("-created")
+    qs = (
+        Product.objects.select_related("category")
+        .prefetch_related("variants")
+        .order_by("-created")
+    )
     q = request.GET.get("q", "").strip()
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(category__name__icontains=q))
@@ -529,10 +585,10 @@ def api_admin_users(request: HttpRequest) -> JsonResponse:
     from django.contrib.auth import get_user_model
 
     UserModel = get_user_model()
-    users = (
-        UserModel.objects.annotate(order_count=Count("orders", distinct=True), review_count=Count("reviews", distinct=True))
-        .order_by("-is_superuser", "-is_staff", "-date_joined")
-    )
+    users = UserModel.objects.annotate(
+        order_count=Count("orders", distinct=True),
+        review_count=Count("reviews", distinct=True),
+    ).order_by("-is_superuser", "-is_staff", "-date_joined")
     return api_json(
         [
             {
@@ -541,7 +597,9 @@ def api_admin_users(request: HttpRequest) -> JsonResponse:
                 "email": u.email,
                 "is_staff": u.is_staff,
                 "is_superuser": u.is_superuser,
-                "role": ("admin" if u.is_superuser else ("staff" if u.is_staff else "user")),
+                "role": (
+                    "admin" if u.is_superuser else ("staff" if u.is_staff else "user")
+                ),
                 "order_count": u.order_count,
                 "review_count": u.review_count,
                 "date_joined": u.date_joined.isoformat(),
@@ -557,7 +615,9 @@ def api_admin_coupons(request: HttpRequest) -> JsonResponse:
     denied = _staff_required(request)
     if denied:
         return denied
-    coupons = Coupon.objects.annotate(redemption_count=Count("redemptions", distinct=True)).order_by("-created_at")
+    coupons = Coupon.objects.annotate(
+        redemption_count=Count("redemptions", distinct=True)
+    ).order_by("-created_at")
     return api_json(
         [
             {
@@ -567,7 +627,9 @@ def api_admin_coupons(request: HttpRequest) -> JsonResponse:
                 "discount_label": c.get_discount_type_display(),
                 "value": int(c.value),
                 "min_order_amount": int(c.min_order_amount),
-                "max_discount_amount": int(c.max_discount_amount) if c.max_discount_amount is not None else None,
+                "max_discount_amount": int(c.max_discount_amount)
+                if c.max_discount_amount is not None
+                else None,
                 "is_active": c.is_active,
                 "usage_limit": c.usage_limit,
                 "max_uses_per_user": c.max_uses_per_user,
@@ -595,12 +657,11 @@ def api_admin_reviews(request: HttpRequest) -> JsonResponse:
         elif publish_raw in ("0", "false", "off"):
             review.is_published = False
         review.save(update_fields=["is_published"])
-        return api_json({"success": True, "id": review.id, "is_published": review.is_published})
+        return api_json(
+            {"success": True, "id": review.id, "is_published": review.is_published}
+        )
 
-    reviews = (
-        Review.objects.select_related("product", "user")
-        .order_by("-created")
-    )
+    reviews = Review.objects.select_related("product", "user").order_by("-created")
     status = request.GET.get("status", "").strip()
     if status in ("published", "hidden"):
         show = status == "published"
@@ -652,4 +713,6 @@ def api_root(request: HttpRequest) -> JsonResponse:
             "reviews": "/api/admin/reviews/",
         },
     }
-    return api_json({"name": "HUUGIAU Fashion API", "version": "1.0", "endpoints": endpoints})
+    return api_json(
+        {"name": "HUUGIAU Fashion API", "version": "1.0", "endpoints": endpoints}
+    )

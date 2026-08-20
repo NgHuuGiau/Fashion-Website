@@ -14,7 +14,14 @@ from django.views.decorators.http import require_POST
 
 from .activity import log_activity
 from .captcha import generate_captcha_code, generate_captcha_image
-from .forms import ForgotPasswordForm, CaptchaForm, ResetPasswordForm, ProfileForm, RegisterForm, ChangePasswordForm
+from .forms import (
+    ForgotPasswordForm,
+    CaptchaForm,
+    ResetPasswordForm,
+    ProfileForm,
+    RegisterForm,
+    ChangePasswordForm,
+)
 from .models_referral import ReferralCode, ReferralReward
 from .models import UserAddress, UserProfile
 from core.ratelimit import rate_limit
@@ -36,9 +43,15 @@ def _build_login_candidates(identifier: str) -> list:
         return []
 
     login_candidates = [identifier]
-    matched_usernames = list(User.objects.filter(email__iexact=identifier).values_list("username", flat=True)[:5])
+    matched_usernames = list(
+        User.objects.filter(email__iexact=identifier).values_list(
+            "username", flat=True
+        )[:5]
+    )
     matched_usernames.extend(
-        UserProfile.objects.filter(phone_number=identifier).values_list("user__username", flat=True)[:5]
+        UserProfile.objects.filter(phone_number=identifier).values_list(
+            "user__username", flat=True
+        )[:5]
     )
     for candidate in matched_usernames:
         if candidate and candidate not in login_candidates:
@@ -46,7 +59,12 @@ def _build_login_candidates(identifier: str) -> list:
     return login_candidates
 
 
-@rate_limit("register", max_requests=5, window=300, error_msg="Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 5 phút.")
+@rate_limit(
+    "register",
+    max_requests=5,
+    window=300,
+    error_msg="Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 5 phút.",
+)
 def register_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -75,7 +93,12 @@ def register_view(request: HttpRequest) -> HttpResponse:
     return render(request, "auth/register.html", {"form": form})
 
 
-@rate_limit("login", max_requests=10, window=300, error_msg="Quá nhiều lần đăng nhập. Vui lòng thử lại sau 5 phút.")
+@rate_limit(
+    "login",
+    max_requests=10,
+    window=300,
+    error_msg="Quá nhiều lần đăng nhập. Vui lòng thử lại sau 5 phút.",
+)
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("products:product_list")
@@ -94,10 +117,18 @@ def login_view(request: HttpRequest) -> HttpResponse:
         if user is not None:
             login(request, user)
             _sync_visitor_auth_state(request, user)
-            log_activity(request, event_type="login", metadata={"username": user.username})
+            log_activity(
+                request, event_type="login", metadata={"username": user.username}
+            )
             messages.success(request, "Đăng nhập thành công.")
-            next_url = request.GET.get("next") or request.POST.get("next") or "products:product_list"
-            if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            next_url = (
+                request.GET.get("next")
+                or request.POST.get("next")
+                or "products:product_list"
+            )
+            if not url_has_allowed_host_and_scheme(
+                next_url, allowed_hosts={request.get_host()}
+            ):
                 next_url = reverse("products:product_list")
             return redirect(next_url)
 
@@ -106,7 +137,9 @@ def login_view(request: HttpRequest) -> HttpResponse:
             identifier[:20] if identifier else "(empty)",
             request.META.get("REMOTE_ADDR"),
         )
-        messages.error(request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu.")
+        messages.error(
+            request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu."
+        )
 
     return render(request, "auth/login.html")
 
@@ -126,14 +159,20 @@ def social_login_view(request: HttpRequest, provider: str) -> HttpResponse:
 
     login_url = os.getenv(SOCIAL_LOGIN_PROVIDERS[provider_key], "").strip()
     if not login_url:
-        messages.info(request, f"Đăng nhập {provider_key} chưa được bật trong cấu hình.")
+        messages.info(
+            request, f"Đăng nhập {provider_key} chưa được bật trong cấu hình."
+        )
         fallback = request.GET.get("next") or ""
-        if not url_has_allowed_host_and_scheme(fallback, allowed_hosts={request.get_host()}):
+        if not url_has_allowed_host_and_scheme(
+            fallback, allowed_hosts={request.get_host()}
+        ):
             fallback = reverse("users:login")
         return redirect(fallback)
 
     next_url = request.GET.get("next") or request.POST.get("next") or ""
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         joiner = "&" if "?" in login_url else "?"
         login_url = f"{login_url}{joiner}next={next_url}"
     return redirect(login_url)
@@ -141,7 +180,9 @@ def social_login_view(request: HttpRequest, provider: str) -> HttpResponse:
 
 @login_required
 def logout_view(request: HttpRequest) -> HttpResponse:
-    log_activity(request, event_type="logout", metadata={"username": request.user.username})
+    log_activity(
+        request, event_type="logout", metadata={"username": request.user.username}
+    )
     _sync_visitor_auth_state(request, None)
     logout(request)
     messages.info(request, "Bạn đã đăng xuất.")
@@ -151,9 +192,15 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    display_name = (request.user.get_full_name() or request.user.username).strip() or request.user.username
+    display_name = (
+        request.user.get_full_name() or request.user.username
+    ).strip() or request.user.username
     name_parts = [part for part in display_name.split() if part]
-    display_initials = "".join(part[0] for part in name_parts[:2]).upper() if name_parts else request.user.username[:2].upper()
+    display_initials = (
+        "".join(part[0] for part in name_parts[:2]).upper()
+        if name_parts
+        else request.user.username[:2].upper()
+    )
 
     if request.method == "POST":
         form = ProfileForm(request.POST, user=request.user)
@@ -191,8 +238,12 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def referral_view(request: HttpRequest) -> HttpResponse:
     referral_code, _ = ReferralCode.objects.get_or_create(user=request.user)
-    rewards = ReferralReward.objects.filter(referral_code=referral_code).select_related("referred_user", "order")
-    total_earned = sum(r.amount for r in rewards if r.reward_type == "referrer" and r.is_claimed)
+    rewards = ReferralReward.objects.filter(referral_code=referral_code).select_related(
+        "referred_user", "order"
+    )
+    total_earned = sum(
+        r.amount for r in rewards if r.reward_type == "referrer" and r.is_claimed
+    )
     total_referred = rewards.filter(reward_type="referred").count()
     share_url = request.build_absolute_uri(f"/?ref={referral_code.code}")
 
@@ -219,7 +270,9 @@ def address_add(request: HttpRequest) -> HttpResponse:
     is_default = request.POST.get("is_default") == "on"
 
     if not recipient_name or not phone or not address:
-        messages.error(request, "Vui lòng điền đầy đủ tên người nhận, số điện thoại và địa chỉ.")
+        messages.error(
+            request, "Vui lòng điền đầy đủ tên người nhận, số điện thoại và địa chỉ."
+        )
         return redirect("users:profile")
 
     if not UserAddress.objects.filter(user=request.user).exists():
@@ -249,7 +302,9 @@ def address_delete(request: HttpRequest, address_id) -> HttpResponse:
 @require_POST
 def address_set_default(request: HttpRequest, address_id) -> HttpResponse:
     address = get_object_or_404(UserAddress, id=address_id, user=request.user)
-    UserAddress.objects.filter(user=request.user, is_default=True).update(is_default=False)
+    UserAddress.objects.filter(user=request.user, is_default=True).update(
+        is_default=False
+    )
     address.is_default = True
     address.save(update_fields=["is_default"])
     messages.success(request, "Đã đặt địa chỉ mặc định.")
@@ -263,7 +318,11 @@ def change_password_view(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             form.save()
             update_session_auth_hash(request, request.user)
-            log_activity(request, event_type="change_password", metadata={"username": request.user.username})
+            log_activity(
+                request,
+                event_type="change_password",
+                metadata={"username": request.user.username},
+            )
             messages.success(request, "Đổi mật khẩu thành công.")
             return redirect("users:profile")
     else:
@@ -272,7 +331,12 @@ def change_password_view(request: HttpRequest) -> HttpResponse:
     return render(request, "account/change_password.html", {"password_form": form})
 
 
-@rate_limit("forgot_password", max_requests=50, window=300, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.")
+@rate_limit(
+    "forgot_password",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.",
+)
 def forgot_password_view(request: HttpRequest) -> HttpResponse:
     """Bước 1: Nhập tài khoản (username/email/phone) để kiểm tra tồn tại."""
     if request.user.is_authenticated:
@@ -298,7 +362,12 @@ def captcha_image_view(request: HttpRequest) -> HttpResponse:
     return HttpResponse(img_data, content_type="image/png")
 
 
-@rate_limit("forgot_password_captcha", max_requests=50, window=300, error_msg="Quá nhiều lần thử. Vui lòng thử lại sau 5 phút.")
+@rate_limit(
+    "forgot_password_captcha",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều lần thử. Vui lòng thử lại sau 5 phút.",
+)
 def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
     """Bước 2: Xác thực CAPTCHA."""
     if "reset_user_id" not in request.session:
@@ -315,7 +384,12 @@ def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
     return render(request, "auth/forgot_password_captcha.html", {"form": form})
 
 
-@rate_limit("reset_password", max_requests=50, window=300, error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.")
+@rate_limit(
+    "reset_password",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.",
+)
 def reset_password_view(request: HttpRequest) -> HttpResponse:
     """Bước 3: Đặt mật khẩu mới."""
     if "reset_user_id" not in request.session:
@@ -323,6 +397,7 @@ def reset_password_view(request: HttpRequest) -> HttpResponse:
 
     user_id = request.session["reset_user_id"]
     from django.contrib.auth.models import User
+
     user = get_object_or_404(User, id=user_id)
 
     if request.method == "POST":
@@ -338,4 +413,6 @@ def reset_password_view(request: HttpRequest) -> HttpResponse:
     else:
         form = ResetPasswordForm()
 
-    return render(request, "auth/reset_password.html", {"form": form, "username": user.username})
+    return render(
+        request, "auth/reset_password.html", {"form": form, "username": user.username}
+    )

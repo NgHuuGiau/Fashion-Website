@@ -9,7 +9,7 @@
     <article class="product-card">
       <a href="{% url 'products:product_detail' p.id p.slug %}" class="product-card-link">
         <div class="product-card-media">
-          <img src="{{ p.image.url|default:p.image_url }}" alt="{{ p.name }}" loading="lazy">
+          <img src="{% if p.image %}{{ p.image.url }}{% else %}{{ p.image_url }}{% endif %}" alt="{{ p.name }}" loading="lazy">
           {% if p.discount_percent %}
           <span class="product-card-badge">-{{ p.discount_percent }}%</span>
           {% endif %}
@@ -18,8 +18,8 @@
           <p class="product-card-name">{{ p.name|truncatechars:30 }}</p>
           <div class="product-card-price">
             {% if p.discount_percent %}
-              <s class="price-old">{{ p.price|vnd }}đ</s>
-              <span class="price-new">{{ p.price|mul:p.discount_percent|div:100|sub:p.price|abs|vnd }}đ</span>
+              <s class="price-old">{{ p.compare_price|default:p.price|vnd }}đ</s>
+              <span class="price-new">{{ p.price|vnd }}đ</span>
               <span class="sale-tag">-{{ p.discount_percent }}%</span>
             {% else %}
               <span class="price">{{ p.price|vnd }}đ</span>

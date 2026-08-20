@@ -6,28 +6,82 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0010_order_carrier_order_tracking_code'),
+        ("orders", "0010_order_carrier_order_tracking_code"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ReturnRequest',
+            name="ReturnRequest",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('return_type', models.CharField(choices=[('refund', 'Hoàn tiền'), ('exchange', 'Đổi hàng / đổi size')], default='refund', max_length=20)),
-                ('reason', models.CharField(choices=[('wrong_size', 'Sai size, không vừa'), ('not_like', 'Không ưng kiểu dáng'), ('defective', 'Lỗi sản phẩm'), ('wrong_item', 'Giao nhầm sản phẩm'), ('other', 'Lý do khác')], max_length=20)),
-                ('items', models.JSONField(default=list)),
-                ('refund_amount', models.DecimalField(decimal_places=0, default=Decimal('0'), max_digits=12)),
-                ('note', models.TextField(blank=True)),
-                ('status', models.CharField(choices=[('pending', 'Chờ duyệt'), ('approved', 'Đã duyệt'), ('rejected', 'Từ chối'), ('refunded', 'Đã hoàn tiền')], db_index=True, default='pending', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='return_requests', to='orders.order')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "return_type",
+                    models.CharField(
+                        choices=[
+                            ("refund", "Hoàn tiền"),
+                            ("exchange", "Đổi hàng / đổi size"),
+                        ],
+                        default="refund",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "reason",
+                    models.CharField(
+                        choices=[
+                            ("wrong_size", "Sai size, không vừa"),
+                            ("not_like", "Không ưng kiểu dáng"),
+                            ("defective", "Lỗi sản phẩm"),
+                            ("wrong_item", "Giao nhầm sản phẩm"),
+                            ("other", "Lý do khác"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("items", models.JSONField(default=list)),
+                (
+                    "refund_amount",
+                    models.DecimalField(
+                        decimal_places=0, default=Decimal("0"), max_digits=12
+                    ),
+                ),
+                ("note", models.TextField(blank=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Chờ duyệt"),
+                            ("approved", "Đã duyệt"),
+                            ("rejected", "Từ chối"),
+                            ("refunded", "Đã hoàn tiền"),
+                        ],
+                        db_index=True,
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="return_requests",
+                        to="orders.order",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]

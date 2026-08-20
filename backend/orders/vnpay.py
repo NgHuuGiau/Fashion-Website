@@ -3,6 +3,7 @@
 Cấu hình qua .env: VNPAY_URL, VNPAY_TMN_CODE, VNPAY_HASH_SECRET.
 Sandbox mặc định; chỉ hoạt động khi VNPAY_TMN_CODE + VNPAY_HASH_SECRET được điền.
 """
+
 import hashlib
 import hmac
 import logging
@@ -20,9 +21,7 @@ VNPAY_CURRENCY = "VND"
 
 def is_configured():
     return bool(
-        settings.VNPAY_TMN_CODE
-        and settings.VNPAY_HASH_SECRET
-        and settings.VNPAY_URL
+        settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET and settings.VNPAY_URL
     )
 
 

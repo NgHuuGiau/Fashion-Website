@@ -1,4 +1,4 @@
-﻿import re
+import re
 from datetime import timedelta
 
 from django import forms
@@ -13,7 +13,13 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from products.constants import APPAREL_CATEGORY_SLUGS
-from products.models import Category, MAX_PRODUCT_GALLERY_IMAGES, Product, ProductImage, ProductVariant
+from products.models import (
+    Category,
+    MAX_PRODUCT_GALLERY_IMAGES,
+    Product,
+    ProductImage,
+    ProductVariant,
+)
 from users.permissions import (
     can_delete_product,
     can_manage_coupons,
@@ -46,10 +52,12 @@ def _validate_uploaded_file(uploaded_file, errors, label):
     try:
         from PIL import Image
         import io
+
         Image.open(io.BytesIO(uploaded_file.read()))
         uploaded_file.seek(0)
     except Exception:
         errors.append(f"{label}: File không phải là ảnh hợp lệ.")
+
 
 RECENT_ORDER_LIMIT = 200
 LOW_STOCK_LIMIT = 10
@@ -62,7 +70,9 @@ def build_gallery_slot_rows(product=None):
     if product:
         images_by_sort_order = {
             item.sort_order: item
-            for item in product.gallery_images.order_by("sort_order", "id")[:MAX_PRODUCT_GALLERY_IMAGES]
+            for item in product.gallery_images.order_by("sort_order", "id")[
+                :MAX_PRODUCT_GALLERY_IMAGES
+            ]
         }
 
     for index in range(MAX_PRODUCT_GALLERY_IMAGES):
@@ -81,10 +91,18 @@ def _size_token(size: str) -> str:
 
 
 def _matrix_post_to_arrays(post_data):
-    sizes = [size.strip() for size in post_data.getlist("matrix_sizes") if size and size.strip()]
+    sizes = [
+        size.strip()
+        for size in post_data.getlist("matrix_sizes")
+        if size and size.strip()
+    ]
     color_names = post_data.getlist("matrix_color_name[]")
     color_codes = post_data.getlist("matrix_color_code[]")
-    active_indexes = {value.strip() for value in post_data.getlist("matrix_color_active[]") if value.strip()}
+    active_indexes = {
+        value.strip()
+        for value in post_data.getlist("matrix_color_active[]")
+        if value.strip()
+    }
 
     row_keys, names, codes, size_list, stocks, active_keys = [], [], [], [], [], []
     for index, color_name in enumerate(color_names):
@@ -125,12 +143,18 @@ def build_admin_product_form_data(request=None):
             "gallery_count": 0,
             "available": True,
             "featured": False,
-            "variant_row_key": [f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))],
-            "variant_color_name": [DEFAULT_MATRIX_COLORS[0]["name"]] * len(DEFAULT_MATRIX_SIZES),
-            "variant_color_code": [DEFAULT_MATRIX_COLORS[0]["code"]] * len(DEFAULT_MATRIX_SIZES),
+            "variant_row_key": [
+                f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))
+            ],
+            "variant_color_name": [DEFAULT_MATRIX_COLORS[0]["name"]]
+            * len(DEFAULT_MATRIX_SIZES),
+            "variant_color_code": [DEFAULT_MATRIX_COLORS[0]["code"]]
+            * len(DEFAULT_MATRIX_SIZES),
             "variant_size": list(DEFAULT_MATRIX_SIZES),
             "variant_stock": ["0"] * len(DEFAULT_MATRIX_SIZES),
-            "variant_is_active": [f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))],
+            "variant_is_active": [
+                f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))
+            ],
         }
 
     variant_arrays = (
@@ -154,7 +178,9 @@ def build_admin_product_form_data(request=None):
         "stock": request.POST.get("stock", "").strip(),
         "description": request.POST.get("description", "").strip(),
         "image_url": request.POST.get("image_url", "").strip(),
-        "gallery_count": safe_int(request.POST.get("gallery_count", "0"), default=0, minimum=0),
+        "gallery_count": safe_int(
+            request.POST.get("gallery_count", "0"), default=0, minimum=0
+        ),
         "remove_gallery_image_ids": request.POST.getlist("remove_gallery_image_ids"),
         "available": request.POST.get("available") == "on",
         "featured": request.POST.get("featured") == "on",
@@ -191,7 +217,9 @@ def build_admin_product_form_from_instance(product):
         row_key = f"row-{index}"
         form_data["variant_row_key"].append(row_key)
         form_data["variant_color_name"].append(variant.color_name if variant else "Đen")
-        form_data["variant_color_code"].append(variant.color_code if variant else "#111111")
+        form_data["variant_color_code"].append(
+            variant.color_code if variant else "#111111"
+        )
         form_data["variant_size"].append(variant.size if variant else "M")
         form_data["variant_stock"].append(str(variant.stock) if variant else "0")
         if variant is None or variant.is_active:
@@ -212,14 +240,26 @@ def build_variant_rows(form_data):
     )
     active_keys = set(form_data["variant_is_active"])
     for index in range(max_rows):
-        row_key = form_data["variant_row_key"][index] if index < len(form_data["variant_row_key"]) else f"row-{index + 1}"
+        row_key = (
+            form_data["variant_row_key"][index]
+            if index < len(form_data["variant_row_key"])
+            else f"row-{index + 1}"
+        )
         variant_rows.append(
             {
                 "row_key": row_key,
-                "color_name": form_data["variant_color_name"][index] if index < len(form_data["variant_color_name"]) else "",
-                "color_code": form_data["variant_color_code"][index] if index < len(form_data["variant_color_code"]) else "#111111",
-                "size": form_data["variant_size"][index] if index < len(form_data["variant_size"]) else "",
-                "stock": form_data["variant_stock"][index] if index < len(form_data["variant_stock"]) else "0",
+                "color_name": form_data["variant_color_name"][index]
+                if index < len(form_data["variant_color_name"])
+                else "",
+                "color_code": form_data["variant_color_code"][index]
+                if index < len(form_data["variant_color_code"])
+                else "#111111",
+                "size": form_data["variant_size"][index]
+                if index < len(form_data["variant_size"])
+                else "",
+                "stock": form_data["variant_stock"][index]
+                if index < len(form_data["variant_stock"])
+                else "0",
                 "is_active": row_key in active_keys,
             }
         )
@@ -255,11 +295,17 @@ def build_variant_matrix(form_data):
             size_index_by_key[size] = len(sizes)
             sizes.append(size)
         if size:
-            cell_stock[(color_index_by_key[color_key], size_index_by_key[size])] = str(row["stock"])
+            cell_stock[(color_index_by_key[color_key], size_index_by_key[size])] = str(
+                row["stock"]
+            )
 
     for color in color_rows:
         color["stocks"] = [
-            {"size": size, "token": _size_token(size), "stock": cell_stock.get((color["index"], index), "0")}
+            {
+                "size": size,
+                "token": _size_token(size),
+                "stock": cell_stock.get((color["index"], index), "0"),
+            }
             for index, size in enumerate(sizes)
         ]
 
@@ -283,7 +329,9 @@ def build_admin_dashboard_context(
         orders_qs = orders_qs.filter(status=order_status)
     if order_q:
         orders_qs = orders_qs.filter(
-            Q(id__icontains=order_q) | Q(customer_name__icontains=order_q) | Q(phone__icontains=order_q)
+            Q(id__icontains=order_q)
+            | Q(customer_name__icontains=order_q)
+            | Q(phone__icontains=order_q)
         )
     orders = orders_qs
     from .views import decorate_order_tracking
@@ -299,9 +347,13 @@ def build_admin_dashboard_context(
         delivered=Count("id", filter=Q(status="delivered")),
         cancelled=Count("id", filter=Q(status="cancelled")),
         total_revenue=Sum("total_amount", filter=Q(status="delivered")),
-        month_revenue=Sum("total_amount", filter=Q(status="delivered", created_at__gte=month_start)),
+        month_revenue=Sum(
+            "total_amount", filter=Q(status="delivered", created_at__gte=month_start)
+        ),
         today_orders=Count("id", filter=Q(created_at__date=today)),
-        today_revenue=Sum("total_amount", filter=Q(status="delivered", created_at__date=today)),
+        today_revenue=Sum(
+            "total_amount", filter=Q(status="delivered", created_at__date=today)
+        ),
     )
     daily_revenue = (
         all_orders.filter(status="delivered")
@@ -316,7 +368,11 @@ def build_admin_dashboard_context(
     previous_days = [today - timedelta(days=offset) for offset in range(13, 6, -1)]
     current_total = sum(revenue_by_day.get(day, 0) for day in chart_days)
     previous_total = sum(revenue_by_day.get(day, 0) for day in previous_days)
-    growth_pct = ((current_total - previous_total) / previous_total * 100) if previous_total else 0
+    growth_pct = (
+        ((current_total - previous_total) / previous_total * 100)
+        if previous_total
+        else 0
+    )
     chart_max = max([revenue_by_day.get(day, 0) for day in chart_days] or [0]) or 1
     weekday_labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
     revenue_chart = [
@@ -326,10 +382,16 @@ def build_admin_dashboard_context(
             "date_label": day.strftime("%d/%m"),
             "total": revenue_by_day.get(day, 0),
             "orders_count": next(
-                (int(item["orders_count"] or 0) for item in daily_revenue if item["day"] == day),
+                (
+                    int(item["orders_count"] or 0)
+                    for item in daily_revenue
+                    if item["day"] == day
+                ),
                 0,
             ),
-            "height": max(8, int((revenue_by_day.get(day, 0) / chart_max) * 100)) if revenue_by_day.get(day, 0) else 8,
+            "height": max(8, int((revenue_by_day.get(day, 0) / chart_max) * 100))
+            if revenue_by_day.get(day, 0)
+            else 8,
         }
         for day in chart_days
     ]
@@ -386,7 +448,9 @@ def build_admin_dashboard_context(
     if monthly_revenue:
         month_max = max((row["revenue"] for row in monthly_revenue), default=0) or 1
         for row in monthly_revenue:
-            row["height"] = max(8, int((row["revenue"] / month_max) * 100)) if row["revenue"] else 8
+            row["height"] = (
+                max(8, int((row["revenue"] / month_max) * 100)) if row["revenue"] else 8
+            )
 
     total_revenue = combined.pop("total_revenue") or 0
     month_revenue = combined.pop("month_revenue") or 0
@@ -402,7 +466,9 @@ def build_admin_dashboard_context(
         .annotate(orders_count=Count("id"))
         .order_by("-day")[:REVENUE_DAYS_LIMIT]
     )
-    orders_by_day = {item["day"]: int(item["orders_count"] or 0) for item in daily_orders}
+    orders_by_day = {
+        item["day"]: int(item["orders_count"] or 0) for item in daily_orders
+    }
     orders_max = max([orders_by_day.get(day, 0) for day in chart_days] or [0]) or 1
     orders_chart = [
         {
@@ -410,7 +476,9 @@ def build_admin_dashboard_context(
             "label": weekday_labels[day.weekday()],
             "date_label": day.strftime("%d/%m"),
             "total": orders_by_day.get(day, 0),
-            "height": max(8, int((orders_by_day.get(day, 0) / orders_max) * 100)) if orders_by_day.get(day, 0) else 8,
+            "height": max(8, int((orders_by_day.get(day, 0) / orders_max) * 100))
+            if orders_by_day.get(day, 0)
+            else 8,
         }
         for day in chart_days
     ]
@@ -445,11 +513,17 @@ def build_admin_dashboard_context(
     ]
     category_max = max([item["revenue"] for item in category_revenue] or [0]) or 1
     for item in category_revenue:
-        item["height"] = max(8, int((item["revenue"] / category_max) * 100)) if item["revenue"] else 8
+        item["height"] = (
+            max(8, int((item["revenue"] / category_max) * 100))
+            if item["revenue"]
+            else 8
+        )
 
     top_max = max([item["quantity"] for item in top_products] or [0]) or 1
     for item in top_products:
-        item["height"] = max(8, int((item["quantity"] / top_max) * 100)) if item["quantity"] else 8
+        item["height"] = (
+            max(8, int((item["quantity"] / top_max) * 100)) if item["quantity"] else 8
+        )
 
     status_chart = [
         {
@@ -480,7 +554,9 @@ def build_admin_dashboard_context(
     ]
     status_max = max([item["total"] for item in status_chart] or [0]) or 1
     for item in status_chart:
-        item["height"] = max(8, int((item["total"] / status_max) * 100)) if item["total"] else 8
+        item["height"] = (
+            max(8, int((item["total"] / status_max) * 100)) if item["total"] else 8
+        )
 
     status_color_map = {
         "pending": "#d97706",
@@ -501,14 +577,20 @@ def build_admin_dashboard_context(
     if inventory_status == "out":
         inventory_product_qs = inventory_product_qs.filter(stock=0)
     elif inventory_status == "low":
-        inventory_product_qs = inventory_product_qs.filter(available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT)
+        inventory_product_qs = inventory_product_qs.filter(
+            available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT
+        )
     elif inventory_status == "hidden":
-        inventory_product_qs = inventory_product_qs.filter(available=False, stock__gte=1)
+        inventory_product_qs = inventory_product_qs.filter(
+            available=False, stock__gte=1
+        )
     if inventory_q:
         inventory_product_qs = inventory_product_qs.filter(
             Q(name__icontains=inventory_q) | Q(category__name__icontains=inventory_q)
         )
-    inventory_products = list(inventory_product_qs.prefetch_related("variants").order_by("stock", "name"))
+    inventory_products = list(
+        inventory_product_qs.prefetch_related("variants").order_by("stock", "name")
+    )
 
     inventory_totals = Product.objects.aggregate(
         total_units=Sum("stock"),
@@ -519,8 +601,12 @@ def build_admin_dashboard_context(
         "total_units": inventory_totals["total_units"] or 0,
         "stock_value": int(inventory_totals["stock_value"] or 0),
         "out_of_stock": Product.objects.filter(stock=0).count(),
-        "low_stock": Product.objects.filter(available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT).count(),
-        "hidden_products": Product.objects.filter(available=False, stock__gte=1).count(),
+        "low_stock": Product.objects.filter(
+            available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT
+        ).count(),
+        "hidden_products": Product.objects.filter(
+            available=False, stock__gte=1
+        ).count(),
     }
 
     current_user = current_user or UserModel()
@@ -559,19 +645,28 @@ def build_admin_dashboard_context(
         "today_orders": today_orders,
         "today_revenue": today_revenue,
         "today_new_accounts": today_new_accounts,
-        "recent_orders": [decorate_order_tracking(order) for order in orders.order_by("-created_at")[:RECENT_ORDER_LIMIT]],
-        "low_stock_products": Product.objects.filter(available=True, stock__lte=5).order_by("stock", "name")[:LOW_STOCK_LIMIT],
+        "recent_orders": [
+            decorate_order_tracking(order)
+            for order in orders.order_by("-created_at")[:RECENT_ORDER_LIMIT]
+        ],
+        "low_stock_products": Product.objects.filter(
+            available=True, stock__lte=5
+        ).order_by("stock", "name")[:LOW_STOCK_LIMIT],
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),
         "coupons": Coupon.objects.all().order_by("-created_at"),
-        "recent_products": Product.objects.select_related("category").order_by("-created"),
+        "recent_products": Product.objects.select_related("category").order_by(
+            "-created"
+        ),
         "product_form": effective_form_data,
         "product_form_variant_rows": build_variant_rows(effective_form_data),
         "variant_matrix": build_variant_matrix(effective_form_data),
         "product_form_errors": form_errors or [],
         "editing_product": editing_product,
         "editing_product_gallery": (
-            editing_product.gallery_images.all()[:MAX_PRODUCT_GALLERY_IMAGES] if editing_product else []
+            editing_product.gallery_images.all()[:MAX_PRODUCT_GALLERY_IMAGES]
+            if editing_product
+            else []
         ),
         "editing_product_gallery_slots": build_gallery_slot_rows(editing_product),
         "inventory_stats": inventory_stats,
@@ -580,7 +675,9 @@ def build_admin_dashboard_context(
         "inventory_q": inventory_q or "",
         "low_stock_limit": LOW_STOCK_LIMIT,
         "permissions": permissions,
-        "manage_users": UserModel.objects.all().order_by("-is_superuser", "-is_staff", "username"),
+        "manage_users": UserModel.objects.all().order_by(
+            "-is_superuser", "-is_staff", "username"
+        ),
         "staff_count": UserModel.objects.filter(is_staff=True).count(),
     }
 
@@ -604,7 +701,14 @@ def save_admin_product(request, product=None):
         errors = []
         for field, field_errors in form.errors.items():
             for err in field_errors:
-                label = {"category": "Danh mục", "name": "Tên sản phẩm", "price": "Giá bán", "image": "Ảnh đại diện", "image_url": "URL ảnh đại diện", "description": "Mô tả"}.get(field, field)
+                label = {
+                    "category": "Danh mục",
+                    "name": "Tên sản phẩm",
+                    "price": "Giá bán",
+                    "image": "Ảnh đại diện",
+                    "image_url": "URL ảnh đại diện",
+                    "description": "Mô tả",
+                }.get(field, field)
                 errors.append(f"{label}: {err}")
         form_data = build_admin_product_form_data(request)
         return None, form_data, errors, None
@@ -628,7 +732,11 @@ def save_admin_product(request, product=None):
             _validate_uploaded_file(item, errors, "Ảnh gallery")
             uploaded_gallery_images.append(item)
 
-    remove_gallery_image_ids = {str(item).strip() for item in request.POST.getlist("remove_gallery_image_ids") if str(item).strip()}
+    remove_gallery_image_ids = {
+        str(item).strip()
+        for item in request.POST.getlist("remove_gallery_image_ids")
+        if str(item).strip()
+    }
     slot_uploads = []
     slot_remove_indexes = set()
 
@@ -651,9 +759,13 @@ def save_admin_product(request, product=None):
     if product:
         existing_base_count = 1 if (product.image or product.image_url) else 0
         existing_gallery_count = (
-            product.gallery_images.exclude(id__in=remove_gallery_image_ids).exclude(sort_order__in=slot_remove_indexes).count()
+            product.gallery_images.exclude(id__in=remove_gallery_image_ids)
+            .exclude(sort_order__in=slot_remove_indexes)
+            .count()
         )
-        existing_gallery_count = min(existing_gallery_count + len(slot_uploads), MAX_PRODUCT_GALLERY_IMAGES)
+        existing_gallery_count = min(
+            existing_gallery_count + len(slot_uploads), MAX_PRODUCT_GALLERY_IMAGES
+        )
 
     new_base_count = 1 if (request.FILES.get("image") or cd.get("image_url")) else 0
     if not new_base_count and product:
@@ -677,7 +789,9 @@ def save_admin_product(request, product=None):
     for row in variant_rows:
         key = (row["color_name"].casefold(), row["size"].casefold())
         if key in seen_variants:
-            errors.append(f"Biến thể {row['color_name']} / {row['size']} đang bị trùng.")
+            errors.append(
+                f"Biến thể {row['color_name']} / {row['size']} đang bị trùng."
+            )
             break
         seen_variants.add(key)
 
@@ -688,7 +802,9 @@ def save_admin_product(request, product=None):
     if requires_variant or variant_rows:
         stock = sum(item["stock"] for item in variant_rows if item["is_active"])
 
-    slug_base = slugify(cd["name"]) or f"san-pham-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+    slug_base = (
+        slugify(cd["name"]) or f"san-pham-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+    )
     slug = product.slug if product else slug_base
     if product is None or product.name != cd["name"]:
         slug = slug_base
@@ -731,7 +847,9 @@ def save_admin_product(request, product=None):
             if remove_gallery_image_ids:
                 product.gallery_images.filter(id__in=remove_gallery_image_ids).delete()
             if slot_remove_indexes:
-                product.gallery_images.filter(sort_order__in=slot_remove_indexes).delete()
+                product.gallery_images.filter(
+                    sort_order__in=slot_remove_indexes
+                ).delete()
 
         for row in variant_rows:
             ProductVariant.objects.create(
@@ -745,7 +863,9 @@ def save_admin_product(request, product=None):
 
         existing_images_by_sort = {
             item.sort_order: item
-            for item in product.gallery_images.order_by("sort_order", "id")[:MAX_PRODUCT_GALLERY_IMAGES]
+            for item in product.gallery_images.order_by("sort_order", "id")[
+                :MAX_PRODUCT_GALLERY_IMAGES
+            ]
         }
         for slot_index, image_file in slot_uploads:
             existing_image = existing_images_by_sort.get(slot_index)
@@ -754,14 +874,22 @@ def save_admin_product(request, product=None):
                 existing_image.sort_order = slot_index
                 existing_image.save(update_fields=["image", "sort_order"])
             else:
-                ProductImage.objects.create(product=product, image=image_file, sort_order=slot_index)
+                ProductImage.objects.create(
+                    product=product, image=image_file, sort_order=slot_index
+                )
 
         current_gallery_count = product.gallery_images.count()
-        for offset, image_file in enumerate(uploaded_gallery_images, start=current_gallery_count):
+        for offset, image_file in enumerate(
+            uploaded_gallery_images, start=current_gallery_count
+        ):
             if offset >= MAX_PRODUCT_GALLERY_IMAGES:
                 break
-            ProductImage.objects.create(product=product, image=image_file, sort_order=offset)
-        for index, item in enumerate(product.gallery_images.order_by("sort_order", "id")):
+            ProductImage.objects.create(
+                product=product, image=image_file, sort_order=offset
+            )
+        for index, item in enumerate(
+            product.gallery_images.order_by("sort_order", "id")
+        ):
             if index >= MAX_PRODUCT_GALLERY_IMAGES:
                 item.delete()
                 continue
@@ -812,9 +940,14 @@ def admin_dashboard(request):
                     order_status_form.cleaned_data["status"],
                     order_status_form.cleaned_data.get("is_paid", False),
                 )
-                messages.success(request, f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(order.status)}'.")
+                messages.success(
+                    request,
+                    f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(order.status)}'.",
+                )
             else:
-                for err in order_status_form.errors.get("__all__", order_status_form.errors.get("status", [])):
+                for err in order_status_form.errors.get(
+                    "__all__", order_status_form.errors.get("status", [])
+                ):
                     messages.error(request, err)
             return redirect("orders:admin_dashboard")
 
@@ -824,16 +957,22 @@ def admin_dashboard(request):
                 return redirect("orders:admin_dashboard")
             order = get_object_or_404(Order, id=request.POST.get("order_id"))
             if order.status == "cancelled":
-                messages.error(request, f"Đơn #{order.id} đã được hủy/hoàn tiền trước đó.")
+                messages.error(
+                    request, f"Đơn #{order.id} đã được hủy/hoàn tiền trước đó."
+                )
                 return redirect("orders:admin_dashboard")
             was_paid = order.is_paid
             amount = int(order.total_amount)
             apply_order_status_change(order, "cancelled", is_paid=False)
             refund_note = f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
-            order.note = f"{order.note}\n{refund_note}".strip() if order.note else refund_note
+            order.note = (
+                f"{order.note}\n{refund_note}".strip() if order.note else refund_note
+            )
             order.save(update_fields=["note", "updated_at"])
             if was_paid:
-                messages.success(request, f"Đã hoàn tiền {amount:,}đ cho đơn #{order.id}.")
+                messages.success(
+                    request, f"Đã hoàn tiền {amount:,}đ cho đơn #{order.id}."
+                )
             else:
                 messages.success(request, f"Đã hủy đơn #{order.id} và trả hàng về kho.")
             return redirect("orders:admin_dashboard")
@@ -894,15 +1033,23 @@ def admin_dashboard(request):
             if UserModel.objects.filter(username=username).exists():
                 messages.error(request, f"Tên đăng nhập '{username}' đã tồn tại.")
                 return redirect("orders:admin_dashboard")
-            new_user = UserModel.objects.create_user(username=username, password=password, email=email)
+            new_user = UserModel.objects.create_user(
+                username=username, password=password, email=email
+            )
             if new_role == "admin":
                 new_user.is_staff = True
                 new_user.is_superuser = True
             elif new_role == "staff":
                 new_user.is_staff = True
             new_user.save(update_fields=["is_staff", "is_superuser"])
-            role_labels = {"admin": "quản trị viên", "staff": "nhân viên", "user": "khách hàng"}
-            messages.success(request, f"Đã tạo tài khoản '{username}' ({role_labels[new_role]}).")
+            role_labels = {
+                "admin": "quản trị viên",
+                "staff": "nhân viên",
+                "user": "khách hàng",
+            }
+            messages.success(
+                request, f"Đã tạo tài khoản '{username}' ({role_labels[new_role]})."
+            )
             return redirect("orders:admin_dashboard")
 
         if action == "delete_user":
@@ -915,7 +1062,11 @@ def admin_dashboard(request):
                 messages.error(request, "Không thể xóa tài khoản của chính bạn.")
                 return redirect("orders:admin_dashboard")
             if target.is_superuser:
-                remaining_admins = UserModel.objects.filter(is_superuser=True).exclude(id=target.id).count()
+                remaining_admins = (
+                    UserModel.objects.filter(is_superuser=True)
+                    .exclude(id=target.id)
+                    .count()
+                )
                 if remaining_admins == 0:
                     messages.error(request, "Không thể xóa quản trị viên cuối cùng.")
                     return redirect("orders:admin_dashboard")
@@ -935,9 +1086,16 @@ def admin_dashboard(request):
                 return redirect("orders:admin_dashboard")
 
             if target_role != "admin":
-                remaining_admins = get_user_model().objects.filter(is_superuser=True).exclude(id=target.id).count()
+                remaining_admins = (
+                    get_user_model()
+                    .objects.filter(is_superuser=True)
+                    .exclude(id=target.id)
+                    .count()
+                )
                 if target.is_superuser and remaining_admins == 0:
-                    messages.error(request, "Không thể gỡ quyền quản trị viên cuối cùng.")
+                    messages.error(
+                        request, "Không thể gỡ quyền quản trị viên cuối cùng."
+                    )
                     return redirect("orders:admin_dashboard")
 
             if target_role == "admin":
@@ -955,7 +1113,10 @@ def admin_dashboard(request):
                 "staff": "nhân viên",
                 "user": "khách hàng",
             }
-            messages.success(request, f"Đã đặt vai trò '{labels[target_role]}' cho '{target.username}'.")
+            messages.success(
+                request,
+                f"Đã đặt vai trò '{labels[target_role]}' cho '{target.username}'.",
+            )
             return redirect("orders:admin_dashboard")
 
         if action == "bulk_toggle_available":
@@ -966,7 +1127,9 @@ def admin_dashboard(request):
             make_available = request.POST.get("make_available") == "1"
             ids = [pid for pid in product_ids.split(",") if pid.strip().isdigit()]
             if ids:
-                count = Product.objects.filter(id__in=ids).update(available=make_available)
+                count = Product.objects.filter(id__in=ids).update(
+                    available=make_available
+                )
                 label = "hiện" if make_available else "ẩn"
                 messages.success(request, f"Đã {label} {count} sản phẩm.")
             return redirect("orders:admin_dashboard")
@@ -991,10 +1154,16 @@ def admin_dashboard(request):
             return redirect("orders:admin_dashboard")
 
         product_id = request.POST.get("product_id", "").strip()
-        editing_product = Product.objects.filter(id=product_id).first() if product_id else None
-        product, form_data, errors, action_label = save_admin_product(request, product=editing_product)
+        editing_product = (
+            Product.objects.filter(id=product_id).first() if product_id else None
+        )
+        product, form_data, errors, action_label = save_admin_product(
+            request, product=editing_product
+        )
         if product:
-            messages.success(request, f"Đã {action_label} sản phẩm '{product.name}' thành công.")
+            messages.success(
+                request, f"Đã {action_label} sản phẩm '{product.name}' thành công."
+            )
             return redirect("orders:admin_dashboard")
 
         return render(
@@ -1016,7 +1185,9 @@ def admin_dashboard(request):
     form_data = None
     edit_id = request.GET.get("edit", "").strip()
     if edit_id:
-        editing_product = get_object_or_404(Product.objects.prefetch_related("variants"), id=edit_id)
+        editing_product = get_object_or_404(
+            Product.objects.prefetch_related("variants"), id=edit_id
+        )
         form_data = build_admin_product_form_from_instance(editing_product)
 
     return render(

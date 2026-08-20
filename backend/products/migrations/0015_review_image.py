@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0014_productquestion'),
+        ("products", "0014_productquestion"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='review',
-            name='image',
-            field=models.ImageField(blank=True, upload_to='reviews/%Y/%m/%d', verbose_name='Ảnh kèm đánh giá'),
+            model_name="review",
+            name="image",
+            field=models.ImageField(
+                blank=True,
+                upload_to="reviews/%Y/%m/%d",
+                verbose_name="Ảnh kèm đánh giá",
+            ),
         ),
     ]

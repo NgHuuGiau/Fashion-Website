@@ -6,31 +6,62 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0013_newslettersubscriber_blogpost'),
+        ("products", "0013_newslettersubscriber_blogpost"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ProductQuestion',
+            name="ProductQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('question', models.TextField(verbose_name='Câu hỏi')),
-                ('answer', models.TextField(blank=True, verbose_name='Trả lời')),
-                ('is_published', models.BooleanField(db_index=True, default=True, verbose_name='Hiển thị')),
-                ('created', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('answered_at', models.DateTimeField(blank=True, null=True)),
-                ('updated', models.DateTimeField(auto_now=True)),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='questions', to='products.product')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='product_questions', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("question", models.TextField(verbose_name="Câu hỏi")),
+                ("answer", models.TextField(blank=True, verbose_name="Trả lời")),
+                (
+                    "is_published",
+                    models.BooleanField(
+                        db_index=True, default=True, verbose_name="Hiển thị"
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("answered_at", models.DateTimeField(blank=True, null=True)),
+                ("updated", models.DateTimeField(auto_now=True)),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="questions",
+                        to="products.product",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="product_questions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Hỏi đáp sản phẩm',
-                'verbose_name_plural': 'Hỏi đáp sản phẩm',
-                'ordering': ['-created'],
-                'indexes': [models.Index(fields=['product', 'is_published', '-created'], name='products_pr_product_08ba7c_idx')],
+                "verbose_name": "Hỏi đáp sản phẩm",
+                "verbose_name_plural": "Hỏi đáp sản phẩm",
+                "ordering": ["-created"],
+                "indexes": [
+                    models.Index(
+                        fields=["product", "is_published", "-created"],
+                        name="products_pr_product_08ba7c_idx",
+                    )
+                ],
             },
         ),
     ]

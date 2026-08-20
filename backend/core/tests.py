@@ -5,7 +5,6 @@ from core.ratelimit import rate_limit
 
 
 class ErrorPageTest(TestCase):
-
     def test_404_page_renders(self):
         response = self.client.get("/khong-ton-tai/")
         self.assertEqual(response.status_code, 404)
@@ -13,13 +12,13 @@ class ErrorPageTest(TestCase):
 
     def test_500_page_renders(self):
         from django.template.loader import render_to_string
+
         rendered = render_to_string("500.html")
         self.assertIn("500", rendered)
         self.assertIn("HUUGIAU", rendered)
 
 
 class SeoTest(TestCase):
-
     def test_robots_txt(self):
         response = self.client.get(reverse("robots_txt"))
         self.assertEqual(response.status_code, 200)
@@ -37,10 +36,20 @@ class SeoTest(TestCase):
 
         category = Category.objects.create(name="Áo", slug="ao")
         Product.objects.create(
-            category=category, name="SP sitemap", slug="sp-sitemap", price=100000, stock=5, available=True
+            category=category,
+            name="SP sitemap",
+            slug="sp-sitemap",
+            price=100000,
+            stock=5,
+            available=True,
         )
         Product.objects.create(
-            category=category, name="SP ẩn", slug="sp-an", price=100000, stock=0, available=False
+            category=category,
+            name="SP ẩn",
+            slug="sp-an",
+            price=100000,
+            stock=0,
+            available=False,
         )
         response = self.client.get("/sitemap.xml")
         self.assertIn(b"sp-sitemap", response.content)
@@ -48,7 +57,6 @@ class SeoTest(TestCase):
 
 
 class CSPMiddlewareTest(TestCase):
-
     @override_settings(DEBUG=False, ALLOWED_HOSTS=["testserver"])
     def test_csp_header_added_in_production(self):
         response = self.client.get(reverse("products:product_list"))
@@ -65,7 +73,6 @@ class CSPMiddlewareTest(TestCase):
 
 
 class RateLimitTest(TestCase):
-
     def test_rate_limit_decorator_applies(self):
         self.assertTrue(callable(rate_limit))
 
@@ -104,14 +111,15 @@ class RateLimitTest(TestCase):
 
 
 class CacheSystemTest(TestCase):
-
     def test_locmem_cache_works(self):
         from django.core.cache import cache
+
         cache.set("test_key", "test_value", 10)
         self.assertEqual(cache.get("test_key"), "test_value")
 
     def test_cache_key_expires(self):
         from django.core.cache import cache
+
         cache.set("expire_key", "value", 1)
         self.assertEqual(cache.get("expire_key"), "value")
 
@@ -119,41 +127,61 @@ class CacheSystemTest(TestCase):
 class LoginRateLimitIntegrationTest(TestCase):
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()
         from django.contrib.auth.models import User
+
         User.objects.create_user(username="testuser", password="StrongPass123!")
 
     def test_login_rate_limit_blocks_after_10_failures(self):
         from django.core.cache import cache
+
         cache.clear()
         for _ in range(10):
-            response = self.client.post("/dang-nhap/", {"username": "testuser", "password": "wrong"})
+            response = self.client.post(
+                "/dang-nhap/", {"username": "testuser", "password": "wrong"}
+            )
             self.assertEqual(response.status_code, 200)
-        response = self.client.post("/dang-nhap/", {"username": "testuser", "password": "wrong"})
+        response = self.client.post(
+            "/dang-nhap/", {"username": "testuser", "password": "wrong"}
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_login_rate_limit_resets_after_success(self):
         from django.core.cache import cache
+
         cache.clear()
         for _ in range(5):
-            self.client.post("/dang-nhap/", {"username": "testuser", "password": "wrong"})
-        response = self.client.post("/dang-nhap/", {"username": "testuser", "password": "StrongPass123!"})
+            self.client.post(
+                "/dang-nhap/", {"username": "testuser", "password": "wrong"}
+            )
+        response = self.client.post(
+            "/dang-nhap/", {"username": "testuser", "password": "StrongPass123!"}
+        )
         self.assertEqual(response.status_code, 302)
 
     def test_login_rate_limit_blocks_same_ip_after_limit(self):
         from django.core.cache import cache
+
         cache.clear()
         for _ in range(10):
-            self.client.post("/dang-nhap/", {"username": "testuser", "password": "wrong"})
-        response = self.client.post("/dang-nhap/", {"username": "testuser", "password": "StrongPass123!"})
+            self.client.post(
+                "/dang-nhap/", {"username": "testuser", "password": "wrong"}
+            )
+        response = self.client.post(
+            "/dang-nhap/", {"username": "testuser", "password": "StrongPass123!"}
+        )
         self.assertEqual(response.status_code, 403)
 
     @override_settings(TRUSTED_PROXY=True)
     def test_login_allows_different_ip_after_rate_limit(self):
         from django.core.cache import cache
+
         cache.clear()
         for _ in range(10):
-            self.client.post("/dang-nhap/", {"username": "testuser", "password": "wrong"})
+            self.client.post(
+                "/dang-nhap/", {"username": "testuser", "password": "wrong"}
+            )
         response = self.client.post(
             "/dang-nhap/",
             {"username": "testuser", "password": "StrongPass123!"},
@@ -166,8 +194,12 @@ class ApiTest(TestCase):
     def setUp(self):
         from django.contrib.auth.models import User
 
-        self.user = User.objects.create_user(username="buyer", password="StrongPass123!")
-        self.staff = User.objects.create_user(username="adminstaff", password="StrongPass123!", is_staff=True)
+        self.user = User.objects.create_user(
+            username="buyer", password="StrongPass123!"
+        )
+        self.staff = User.objects.create_user(
+            username="adminstaff", password="StrongPass123!", is_staff=True
+        )
 
         from products.models import Category, Product
 
@@ -182,8 +214,16 @@ class ApiTest(TestCase):
         )
         from products.models import Review
 
-        self.review = Review.objects.create(product=self.product, user=self.user, rating=5, comment="Dep qua")
-        Review.objects.create(product=self.product, user=self.staff, rating=2, comment="Kem", is_published=False)
+        self.review = Review.objects.create(
+            product=self.product, user=self.user, rating=5, comment="Dep qua"
+        )
+        Review.objects.create(
+            product=self.product,
+            user=self.staff,
+            rating=2,
+            comment="Kem",
+            is_published=False,
+        )
 
         from orders.models import Coupon, Order, OrderItem
 
@@ -205,7 +245,9 @@ class ApiTest(TestCase):
             discount_amount=0,
             total_amount=530000,
         )
-        OrderItem.objects.create(order=self.order, product=self.product, quantity=1, price=500000)
+        OrderItem.objects.create(
+            order=self.order, product=self.product, quantity=1, price=500000
+        )
 
     def test_api_root(self):
         response = self.client.get(reverse("api:api_root"))
@@ -221,7 +263,9 @@ class ApiTest(TestCase):
         self.assertEqual(payload["results"][0]["rating_avg"], 5.0)
 
     def test_api_products_filter_invalid_category_returns_empty(self):
-        response = self.client.get(reverse("api:api_product_list"), {"category": "khong-co"})
+        response = self.client.get(
+            reverse("api:api_product_list"), {"category": "khong-co"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 0)
 
@@ -230,7 +274,9 @@ class ApiTest(TestCase):
         self.assertEqual(response.json()["count"], 1)
 
     def test_api_product_detail(self):
-        response = self.client.get(reverse("api:api_product_detail", kwargs={"pk": self.product.id}))
+        response = self.client.get(
+            reverse("api:api_product_detail", kwargs={"pk": self.product.id})
+        )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["rating_count"], 1)
@@ -238,7 +284,9 @@ class ApiTest(TestCase):
         self.assertEqual(payload["reviews"][0]["rating"], 5)
 
     def test_api_product_reviews_only_published(self):
-        response = self.client.get(reverse("api:api_product_reviews", kwargs={"pk": self.product.id}))
+        response = self.client.get(
+            reverse("api:api_product_reviews", kwargs={"pk": self.product.id})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 1)
 
@@ -253,14 +301,18 @@ class ApiTest(TestCase):
         from django.contrib.auth.models import User
         from products.models import Review
 
-        fresh = User.objects.create_user(username="freshbuyer", password="StrongPass123!")
+        fresh = User.objects.create_user(
+            username="freshbuyer", password="StrongPass123!"
+        )
         self.client.login(username="freshbuyer", password="StrongPass123!")
 
         url = reverse("api:api_review_submit", kwargs={"pk": self.product.id})
         response = self.client.post(url, {"rating": 4, "comment": "Moi"})
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["review"]["rating"], 4)
-        self.assertEqual(Review.objects.filter(product=self.product, user=fresh).count(), 1)
+        self.assertEqual(
+            Review.objects.filter(product=self.product, user=fresh).count(), 1
+        )
 
         duplicate = self.client.post(url, {"rating": 3, "comment": "Lan nua"})
         self.assertEqual(duplicate.status_code, 409)
@@ -295,12 +347,16 @@ class ApiTest(TestCase):
 
         User.objects.create_user(username="stranger", password="StrongPass123!")
         self.client.login(username="stranger", password="StrongPass123!")
-        response = self.client.get(reverse("api:api_order_detail", kwargs={"pk": self.order.id}))
+        response = self.client.get(
+            reverse("api:api_order_detail", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_api_order_detail_staff_can_view(self):
         self.client.login(username="adminstaff", password="StrongPass123!")
-        response = self.client.get(reverse("api:api_order_detail", kwargs={"pk": self.order.id}))
+        response = self.client.get(
+            reverse("api:api_order_detail", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["items"]), 1)
 
@@ -320,11 +376,15 @@ class ApiTest(TestCase):
 
     def test_api_coupon_check(self):
         self.client.login(username="buyer", password="StrongPass123!")
-        response = self.client.post(reverse("api:api_coupon_check"), {"code": "APISALE"})
+        response = self.client.post(
+            reverse("api:api_coupon_check"), {"code": "APISALE"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["discount_type"], "percent")
 
-        response = self.client.post(reverse("api:api_coupon_check"), {"code": "KHONGTONTAI"})
+        response = self.client.post(
+            reverse("api:api_coupon_check"), {"code": "KHONGTONTAI"}
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_api_admin_requires_staff(self):
@@ -346,7 +406,9 @@ class ApiTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 1)
 
-        response = self.client.get(reverse("api:api_admin_order_detail", kwargs={"pk": self.order.id}))
+        response = self.client.get(
+            reverse("api:api_admin_order_detail", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["items"]), 1)
 
@@ -364,7 +426,9 @@ class ApiTest(TestCase):
         self.order.status = "delivered"
         self.order.is_paid = True
         self.order.save()
-        response = self.client.post(reverse("api:api_admin_order_refund", kwargs={"pk": self.order.id}))
+        response = self.client.post(
+            reverse("api:api_admin_order_refund", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["refunded"])
@@ -372,7 +436,9 @@ class ApiTest(TestCase):
 
     def test_api_admin_invoice(self):
         self.client.login(username="adminstaff", password="StrongPass123!")
-        response = self.client.get(reverse("api:api_admin_invoice", kwargs={"pk": self.order.id}))
+        response = self.client.get(
+            reverse("api:api_admin_invoice", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("shop", payload)
@@ -386,8 +452,12 @@ class ApiTest(TestCase):
 
     def test_api_admin_products_users_coupons(self):
         self.client.login(username="adminstaff", password="StrongPass123!")
-        self.assertEqual(self.client.get(reverse("api:api_admin_products")).status_code, 200)
-        self.assertEqual(self.client.get(reverse("api:api_admin_users")).status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse("api:api_admin_products")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.get(reverse("api:api_admin_users")).status_code, 200
+        )
         response = self.client.get(reverse("api:api_admin_coupons"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()[0]["code"], "APISALE")
@@ -399,11 +469,15 @@ class ApiTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 2)
 
-        response = self.client.post(url, {"review_id": self.review.id, "is_published": "0"})
+        response = self.client.post(
+            url, {"review_id": self.review.id, "is_published": "0"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["is_published"])
 
-        response = self.client.get(reverse("api:api_product_reviews", kwargs={"pk": self.product.id}))
+        response = self.client.get(
+            reverse("api:api_product_reviews", kwargs={"pk": self.product.id})
+        )
         self.assertEqual(response.json()["count"], 0)
 
 
@@ -411,14 +485,23 @@ class InvoicePrintTest(TestCase):
     def setUp(self):
         from django.contrib.auth.models import User
 
-        self.staff = User.objects.create_user(username="boss", password="StrongPass123!", is_staff=True)
-        self.user = User.objects.create_user(username="nobody", password="StrongPass123!")
+        self.staff = User.objects.create_user(
+            username="boss", password="StrongPass123!", is_staff=True
+        )
+        self.user = User.objects.create_user(
+            username="nobody", password="StrongPass123!"
+        )
 
         from products.models import Category, Product
 
         category = Category.objects.create(name="Phu kien", slug="phu-kien")
         product = Product.objects.create(
-            category=category, name="Non", slug="non", price=200000, stock=5, available=True
+            category=category,
+            name="Non",
+            slug="non",
+            price=200000,
+            stock=5,
+            available=True,
         )
         from orders.models import Order, OrderItem
 
@@ -433,16 +516,22 @@ class InvoicePrintTest(TestCase):
             discount_amount=0,
             total_amount=230000,
         )
-        OrderItem.objects.create(order=self.order, product=product, quantity=1, price=200000)
+        OrderItem.objects.create(
+            order=self.order, product=product, quantity=1, price=200000
+        )
 
     def test_print_invoice_requires_staff(self):
         self.client.login(username="nobody", password="StrongPass123!")
-        response = self.client.get(reverse("orders:admin_print_invoice", kwargs={"order_id": self.order.id}))
+        response = self.client.get(
+            reverse("orders:admin_print_invoice", kwargs={"order_id": self.order.id})
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_print_invoice_renders_for_staff(self):
         self.client.login(username="boss", password="StrongPass123!")
-        response = self.client.get(reverse("orders:admin_print_invoice", kwargs={"order_id": self.order.id}))
+        response = self.client.get(
+            reverse("orders:admin_print_invoice", kwargs={"order_id": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "HOÁ ĐƠN")
         self.assertContains(response, "230.000")

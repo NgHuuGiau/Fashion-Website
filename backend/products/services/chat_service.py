@@ -34,28 +34,113 @@ DEFAULT_SUPPORT_FAQS = [
 
 GREETING_KEYWORDS = ("chao", "hello", "hi", "shop oi", "ad oi", "xin chao")
 THANKS_KEYWORDS = ("cam on", "thanks", "thank you", "ok shop", "ok cam on")
-HUMAN_SUPPORT_KEYWORDS = ("tu van truc tiep", "nguoi that", "nhan vien", "goi lai", "lien he", "hotline")
+HUMAN_SUPPORT_KEYWORDS = (
+    "tu van truc tiep",
+    "nguoi that",
+    "nhan vien",
+    "goi lai",
+    "lien he",
+    "hotline",
+)
 STYLE_RECOMMEND_KEYWORDS = ("goi y", "phoi do", "mix do", "mac sao", "set do", "outfit")
 STOCK_KEYWORDS = ("con hang", "het hang", "ton kho", "con size", "con mau")
-PRICE_KEYWORDS = ("gia bao nhieu", "gia ban", "ban bao nhieu", "bao nhieu tien", "re khong", "gia")
-COUPON_KEYWORDS = ("ma giam gia", "giam gia", "khuyen mai", "voucher", "coupon", "sale", "flash sale")
+PRICE_KEYWORDS = (
+    "gia bao nhieu",
+    "gia ban",
+    "ban bao nhieu",
+    "bao nhieu tien",
+    "re khong",
+    "gia",
+)
+COUPON_KEYWORDS = (
+    "ma giam gia",
+    "giam gia",
+    "khuyen mai",
+    "voucher",
+    "coupon",
+    "sale",
+    "flash sale",
+)
 
-_PRODUCT_TRIGGERS = STOCK_KEYWORDS + PRICE_KEYWORDS + ("khong", "tim mua", "ban khong", "tim")
+_PRODUCT_TRIGGERS = (
+    STOCK_KEYWORDS + PRICE_KEYWORDS + ("khong", "tim mua", "ban khong", "tim")
+)
 
 _STOPWORDS = {
-    "co", "khong", "la", "va", "cua", "cho", "ban", "toi", "minh", "em", "anh", "chi",
-    "muon", "can", "gi", "nao", "the", "theo", "lam", "sao", "ra", "ve", "san", "pham",
-    "shop", "web", "site", "ngay", "hien", "thi", "de", "duoc", "them", "hay", "nhung",
-    "cung", "khi", "neu", "ong", "ba", "o", "that", "xin", "vui", "long", "tra", "loi",
-    "ao", "quan", "bo", "con", "doi", "ai", "noi", "da", "da", "dang", "kieu",
+    "co",
+    "khong",
+    "la",
+    "va",
+    "cua",
+    "cho",
+    "ban",
+    "toi",
+    "minh",
+    "em",
+    "anh",
+    "chi",
+    "muon",
+    "can",
+    "gi",
+    "nao",
+    "the",
+    "theo",
+    "lam",
+    "sao",
+    "ra",
+    "ve",
+    "san",
+    "pham",
+    "shop",
+    "web",
+    "site",
+    "ngay",
+    "hien",
+    "thi",
+    "de",
+    "duoc",
+    "them",
+    "hay",
+    "nhung",
+    "cung",
+    "khi",
+    "neu",
+    "ong",
+    "ba",
+    "o",
+    "that",
+    "xin",
+    "vui",
+    "long",
+    "tra",
+    "loi",
+    "ao",
+    "quan",
+    "bo",
+    "con",
+    "doi",
+    "ai",
+    "noi",
+    "da",
+    "da",
+    "dang",
+    "kieu",
 }
 
 _SUGGESTIONS = {
     "shipping": ["Ship mất bao lâu?", "Freeship từ bao nhiêu?", "Kiểm tra đơn hàng"],
-    "payment": ["Thanh toán COD được không?", "Hướng dẫn chuyển khoản", "Kiểm tra đơn hàng"],
+    "payment": [
+        "Thanh toán COD được không?",
+        "Hướng dẫn chuyển khoản",
+        "Kiểm tra đơn hàng",
+    ],
     "order": ["Xem đơn hàng của tôi", "Hủy đơn như thế nào?", "Đơn đang giao đến đâu?"],
     "return": ["Đổi size như thế nào?", "Trả hàng hoàn tiền", "Còn hàng không?"],
-    "coupon": ["Có mã giảm giá nào không?", "Freeship từ bao nhiêu?", "Mua combo giá tốt"],
+    "coupon": [
+        "Có mã giảm giá nào không?",
+        "Freeship từ bao nhiêu?",
+        "Mua combo giá tốt",
+    ],
     "style": ["Gợi ý set đồ đi làm", "Tư vấn size", "Còn hàng không?"],
     "stock": ["Còn size M không?", "Kiểm tra tồn kho", "Chốt size giúp shop"],
     "human": ["Tư vấn size", "Kiểm tra đơn hàng", "Còn hàng không?"],
@@ -68,7 +153,9 @@ def has_any_keyword(message, keywords):
 
 
 def product_matches_keyword(product, normalized_keyword):
-    return normalized_keyword in normalize_vn_text(product.name) or normalized_keyword in normalize_vn_text(product.description)
+    return normalized_keyword in normalize_vn_text(
+        product.name
+    ) or normalized_keyword in normalize_vn_text(product.description)
 
 
 def extract_height_cm(message):
@@ -241,13 +328,25 @@ def build_size_support_reply(message, state=None):
 
 
 def detect_topic(normalized_message):
-    if any(keyword in normalized_message for keyword in ["size", "kich co", "cao", "nang", "kg", "cm", "1m", "form"]):
+    if any(
+        keyword in normalized_message
+        for keyword in ["size", "kich co", "cao", "nang", "kg", "cm", "1m", "form"]
+    ):
         return "size"
-    if any(keyword in normalized_message for keyword in ["ship", "giao", "van chuyen", "phi ship", "free ship"]):
+    if any(
+        keyword in normalized_message
+        for keyword in ["ship", "giao", "van chuyen", "phi ship", "free ship"]
+    ):
         return "shipping"
-    if any(keyword in normalized_message for keyword in ["thanh toan", "chuyen khoan", "cod", "ngan hang"]):
+    if any(
+        keyword in normalized_message
+        for keyword in ["thanh toan", "chuyen khoan", "cod", "ngan hang"]
+    ):
         return "payment"
-    if any(keyword in normalized_message for keyword in ["don", "theo doi", "trang thai", "ma don"]):
+    if any(
+        keyword in normalized_message
+        for keyword in ["don", "theo doi", "trang thai", "ma don"]
+    ):
         return "order"
     if any(keyword in normalized_message for keyword in COUPON_KEYWORDS):
         return "coupon"
@@ -295,13 +394,15 @@ def build_product_stock_reply(products):
     lines = []
     for product in products:
         if product.stock > 0:
-            lines.append(f"- {product.name}: còn hàng, giá {_format_price(product.price)}.")
+            lines.append(
+                f"- {product.name}: còn hàng, giá {_format_price(product.price)}."
+            )
         else:
-            lines.append(f"- {product.name}: hiện hết hàng (giá {_format_price(product.price)}).")
+            lines.append(
+                f"- {product.name}: hiện hết hàng (giá {_format_price(product.price)})."
+            )
     joined = " ".join(lines)
-    return (
-        f"Shop tìm thấy: {joined} Bạn mở trang sản phẩm để chọn màu/size và xem tồn kho chính xác hơn nhé."
-    )
+    return f"Shop tìm thấy: {joined} Bạn mở trang sản phẩm để chọn màu/size và xem tồn kho chính xác hơn nhé."
 
 
 def build_product_price_reply(products):
@@ -322,7 +423,9 @@ def match_faq(normalized_message):
     faqs = list(SupportFAQ.objects.filter(is_active=True).order_by("priority", "id"))
     if not faqs:
         for item in DEFAULT_SUPPORT_FAQS:
-            if has_any_keyword(normalized_message, parse_keyword_list(item["keywords"])):
+            if has_any_keyword(
+                normalized_message, parse_keyword_list(item["keywords"])
+            ):
                 return item["answer"]
         return None
 
@@ -330,7 +433,9 @@ def match_faq(normalized_message):
     best_score = 0
     for faq in faqs:
         keywords = parse_keyword_list(faq.keywords)
-        score = sum(1 for keyword in keywords if keyword and keyword in normalized_message)
+        score = sum(
+            1 for keyword in keywords if keyword and keyword in normalized_message
+        )
         question_text = normalize_vn_text(faq.question)
         if question_text and question_text in normalized_message:
             score += 3
@@ -341,7 +446,9 @@ def match_faq(normalized_message):
 
 
 def _is_pure_greeting(normalized_message):
-    return len(normalized_message) <= 20 and has_any_keyword(normalized_message, GREETING_KEYWORDS)
+    return len(normalized_message) <= 20 and has_any_keyword(
+        normalized_message, GREETING_KEYWORDS
+    )
 
 
 def _fallback_reply(state):
@@ -364,15 +471,24 @@ def build_support_reply(message, state=None):
 
     if has_any_keyword(normalized_message, HUMAN_SUPPORT_KEYWORDS):
         state["topic"] = "human"
-        return {"reply": build_human_support_reply(), "suggestions": _SUGGESTIONS["human"]}
+        return {
+            "reply": build_human_support_reply(),
+            "suggestions": _SUGGESTIONS["human"],
+        }
 
     if _is_pure_greeting(normalized_message):
         state["topic"] = ""
-        return {"reply": build_greeting_reply(), "suggestions": ["Tư vấn size", "Phí ship bao nhiêu?", "Còn hàng không?"]}
+        return {
+            "reply": build_greeting_reply(),
+            "suggestions": ["Tư vấn size", "Phí ship bao nhiêu?", "Còn hàng không?"],
+        }
 
     size_reply = build_size_support_reply(message, state=state)
     if size_reply:
-        return {"reply": size_reply, "suggestions": ["Mẫu: 1m72 68kg", "Còn size M không?", "Xem bảng size"]}
+        return {
+            "reply": size_reply,
+            "suggestions": ["Mẫu: 1m72 68kg", "Còn size M không?", "Xem bảng size"],
+        }
 
     if has_any_keyword(normalized_message, STYLE_RECOMMEND_KEYWORDS):
         state["topic"] = "style"
@@ -401,9 +517,17 @@ def build_support_reply(message, state=None):
         state["topic"] = topic
         topic_reply = build_topic_reply(topic)
         if topic_reply:
-            return {"reply": topic_reply, "suggestions": _SUGGESTIONS.get(topic, ["Tư vấn size", "Còn hàng không?"])}
+            return {
+                "reply": topic_reply,
+                "suggestions": _SUGGESTIONS.get(
+                    topic, ["Tư vấn size", "Còn hàng không?"]
+                ),
+            }
 
-    return {"reply": _fallback_reply(state), "suggestions": ["Tư vấn size", "Phí ship bao nhiêu?", "Còn hàng không?"]}
+    return {
+        "reply": _fallback_reply(state),
+        "suggestions": ["Tư vấn size", "Phí ship bao nhiêu?", "Còn hàng không?"],
+    }
 
 
 def find_support_reply(message, state=None):

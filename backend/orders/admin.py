@@ -1,17 +1,22 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 
 from .models import Coupon, CouponRedemption, Order, OrderItem, ReturnRequest
-
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ("product", "variant", "selected_color", "selected_size", "quantity", "price")
+    readonly_fields = (
+        "product",
+        "variant",
+        "selected_color",
+        "selected_size",
+        "quantity",
+        "price",
+    )
 
 
 @admin.register(Order)
-
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -35,15 +40,21 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrderItem)
-
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ("order", "product", "variant", "selected_color", "selected_size", "quantity", "price")
+    list_display = (
+        "order",
+        "product",
+        "variant",
+        "selected_color",
+        "selected_size",
+        "quantity",
+        "price",
+    )
     list_filter = ("order__status",)
     search_fields = ("order__id", "product__name")
 
 
 @admin.register(Coupon)
-
 class CouponAdmin(admin.ModelAdmin):
     list_display = (
         "code",
@@ -63,7 +74,6 @@ class CouponAdmin(admin.ModelAdmin):
 
 
 @admin.register(CouponRedemption)
-
 class CouponRedemptionAdmin(admin.ModelAdmin):
     list_display = ("coupon", "user", "order", "used_at")
     list_filter = ("used_at",)
@@ -72,7 +82,15 @@ class CouponRedemptionAdmin(admin.ModelAdmin):
 
 @admin.register(ReturnRequest)
 class ReturnRequestAdmin(admin.ModelAdmin):
-    list_display = ("id", "order", "return_type", "reason", "refund_amount", "status", "created_at")
+    list_display = (
+        "id",
+        "order",
+        "return_type",
+        "reason",
+        "refund_amount",
+        "status",
+        "created_at",
+    )
     list_filter = ("status", "return_type", "reason")
     search_fields = ("order__id", "order__customer_name", "order__phone")
     list_editable = ("status",)

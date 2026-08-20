@@ -1,4 +1,4 @@
-﻿from django.contrib.auth.models import User
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
@@ -14,9 +14,7 @@ from .forms import (
 from .models import UserActivity, UserProfile, VisitorSession
 
 
-
 class UserAuthFlowTest(TestCase):
-
     def setUp(self):
         cache.clear()
         self.existing = User.objects.create_user(
@@ -24,7 +22,6 @@ class UserAuthFlowTest(TestCase):
             email="existing@test.com",
             password="StrongPass123!",
         )
-
 
     def test_register_login_logout_flow(self):
         register_response = self.client.post(
@@ -57,7 +54,6 @@ class UserAuthFlowTest(TestCase):
         logout_response = self.client.get(reverse("users:logout"))
         self.assertEqual(logout_response.status_code, 302)
 
-
     def test_register_with_phone_only_is_valid(self):
         response = self.client.post(
             reverse("users:register"),
@@ -75,7 +71,6 @@ class UserAuthFlowTest(TestCase):
         user = User.objects.get(username="phoneonly")
         self.assertEqual(user.profile.phone_number, "0912345678")
 
-
     def test_register_without_email_or_phone_is_valid(self):
         response = self.client.post(
             reverse("users:register"),
@@ -91,7 +86,6 @@ class UserAuthFlowTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(User.objects.filter(username="nopoint").exists())
-
 
     def test_register_password_policy_enforced(self):
         response = self.client.post(
@@ -109,7 +103,6 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mật khẩu phải có ít nhất 1 chữ in hoa")
 
-
     def test_register_duplicate_username_shows_error(self):
         response = self.client.post(
             reverse("users:register"),
@@ -125,7 +118,6 @@ class UserAuthFlowTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Tên đăng nhập đã tồn tại")
-
 
     def test_register_password_mismatch(self):
         response = self.client.post(
@@ -143,15 +135,15 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mật khẩu nhập lại không khớp")
 
-
     def test_login_invalid_credentials(self):
         response = self.client.post(
             reverse("users:login"),
             {"username": "existing", "password": "wrong"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu")
-
+        self.assertContains(
+            response, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu"
+        )
 
     def test_login_with_email(self):
         response = self.client.post(
@@ -160,15 +152,15 @@ class UserAuthFlowTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
 
-
     def test_login_with_phone_number(self):
-        UserProfile.objects.update_or_create(user=self.existing, defaults={"phone_number": "0911222333"})
+        UserProfile.objects.update_or_create(
+            user=self.existing, defaults={"phone_number": "0911222333"}
+        )
         response = self.client.post(
             reverse("users:login"),
             {"username": "0911222333", "password": "StrongPass123!"},
         )
         self.assertEqual(response.status_code, 302)
-
 
     def test_login_respects_next_parameter(self):
         response = self.client.post(
@@ -178,12 +170,10 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("orders:checkout"))
 
-
     def test_profile_requires_login(self):
         response = self.client.get(reverse("users:profile"))
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("users:login"), response.url)
-
 
     def test_authenticated_user_redirected_from_login_and_register(self):
         self.client.login(username="existing", password="StrongPass123!")
@@ -196,17 +186,16 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(register_page.url, reverse("products:product_list"))
 
 
-
 class UserTrackingStorageTest(TestCase):
-
     def setUp(self):
         cache.clear()
 
     def test_guest_visit_is_stored(self):
         self.client.get(reverse("products:product_list"))
         self.assertGreater(VisitorSession.objects.count(), 0)
-        self.assertGreater(UserActivity.objects.filter(event_type="page_view").count(), 0)
-
+        self.assertGreater(
+            UserActivity.objects.filter(event_type="page_view").count(), 0
+        )
 
     def test_register_is_stored_and_visitor_becomes_authenticated(self):
         self.client.post(
@@ -223,16 +212,21 @@ class UserTrackingStorageTest(TestCase):
         )
 
         self.assertTrue(UserActivity.objects.filter(event_type="register").exists())
-        self.assertTrue(UserProfile.objects.filter(user__username="trackuser", phone_number="0911111111").exists())
+        self.assertTrue(
+            UserProfile.objects.filter(
+                user__username="trackuser", phone_number="0911111111"
+            ).exists()
+        )
         visitor = VisitorSession.objects.order_by("-id").first()
         self.assertIsNotNone(visitor)
         self.assertTrue(visitor.is_authenticated)
 
 
 class ProfileViewTest(TestCase):
-
     def setUp(self):
-        self.user = User.objects.create_user(username="profileuser", password="StrongPass123!")
+        self.user = User.objects.create_user(
+            username="profileuser", password="StrongPass123!"
+        )
 
     def test_profile_page_renders(self):
         self.client.login(username="profileuser", password="StrongPass123!")
@@ -274,7 +268,6 @@ class ProfileViewTest(TestCase):
 
 
 class CaptchaImageTest(TestCase):
-
     def setUp(self):
         cache.clear()
 
@@ -287,19 +280,20 @@ class CaptchaImageTest(TestCase):
 
     def test_generate_captcha_code_length_and_charset(self):
         from .captcha import generate_captcha_code
+
         code = generate_captcha_code()
         self.assertEqual(len(code), 6)
         self.assertTrue(code.isalnum())
 
     def test_generate_captcha_image_returns_bytes(self):
         from .captcha import generate_captcha_image
+
         data = generate_captcha_image("ABC123")
         self.assertIsInstance(data, bytes)
         self.assertTrue(data.startswith(b"\x89PNG"))
 
 
 class ForgotPasswordResetFlowTest(TestCase):
-
     def setUp(self):
         cache.clear()
         self.user = User.objects.create_user(
@@ -307,7 +301,9 @@ class ForgotPasswordResetFlowTest(TestCase):
             email="resetme@test.com",
             password="OldPassword123!",
         )
-        UserProfile.objects.update_or_create(user=self.user, defaults={"phone_number": "0999888777"})
+        UserProfile.objects.update_or_create(
+            user=self.user, defaults={"phone_number": "0999888777"}
+        )
 
     def test_forgot_password_get_renders(self):
         response = self.client.get(reverse("users:forgot_password"))
@@ -321,21 +317,29 @@ class ForgotPasswordResetFlowTest(TestCase):
         self.assertEqual(response.url, reverse("products:product_list"))
 
     def test_forgot_password_post_valid_by_username(self):
-        response = self.client.post(reverse("users:forgot_password"), {"identifier": "resetme"})
+        response = self.client.post(
+            reverse("users:forgot_password"), {"identifier": "resetme"}
+        )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("users:forgot_password_captcha"))
         self.assertEqual(self.client.session["reset_user_id"], self.user.id)
 
     def test_forgot_password_post_valid_by_email(self):
-        response = self.client.post(reverse("users:forgot_password"), {"identifier": "RESETME@test.com"})
+        response = self.client.post(
+            reverse("users:forgot_password"), {"identifier": "RESETME@test.com"}
+        )
         self.assertEqual(response.status_code, 302)
 
     def test_forgot_password_post_valid_by_phone(self):
-        response = self.client.post(reverse("users:forgot_password"), {"identifier": "0999888777"})
+        response = self.client.post(
+            reverse("users:forgot_password"), {"identifier": "0999888777"}
+        )
         self.assertEqual(response.status_code, 302)
 
     def test_forgot_password_post_not_found(self):
-        response = self.client.post(reverse("users:forgot_password"), {"identifier": "no-such-user"})
+        response = self.client.post(
+            reverse("users:forgot_password"), {"identifier": "no-such-user"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Không tìm thấy tài khoản")
 
@@ -351,13 +355,17 @@ class ForgotPasswordResetFlowTest(TestCase):
 
     def test_forgot_password_captcha_post_valid(self):
         self._prime_reset_session()
-        response = self.client.post(reverse("users:forgot_password_captcha"), {"captcha": "abc123"})
+        response = self.client.post(
+            reverse("users:forgot_password_captcha"), {"captcha": "abc123"}
+        )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("users:reset_password"))
 
     def test_forgot_password_captcha_post_invalid(self):
         self._prime_reset_session()
-        response = self.client.post(reverse("users:forgot_password_captcha"), {"captcha": "ZZZZZZ"})
+        response = self.client.post(
+            reverse("users:forgot_password_captcha"), {"captcha": "ZZZZZZ"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mã xác thực không đúng")
 
@@ -395,21 +403,25 @@ class ForgotPasswordResetFlowTest(TestCase):
 
 
 class SocialLoginConfigTest(TestCase):
-
     def tearDown(self):
         import os
+
         for key in ("GOOGLE_OAUTH_URL", "FACEBOOK_OAUTH_URL", "APPLE_OAUTH_URL"):
             os.environ.pop(key, None)
 
     def test_social_login_configured_redirects(self):
         import os
+
         os.environ["GOOGLE_OAUTH_URL"] = "https://example.com/oauth/google"
-        response = self.client.get(reverse("users:social_login", kwargs={"provider": "google"}))
+        response = self.client.get(
+            reverse("users:social_login", kwargs={"provider": "google"})
+        )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith("https://example.com/oauth/google"))
 
     def test_social_login_appends_next_for_safe_url(self):
         import os
+
         os.environ["GOOGLE_OAUTH_URL"] = "https://example.com/oauth/google"
         response = self.client.get(
             reverse("users:social_login", kwargs={"provider": "google"}),
@@ -420,6 +432,7 @@ class SocialLoginConfigTest(TestCase):
 
     def test_social_login_rejects_open_redirect_in_next(self):
         import os
+
         os.environ["GOOGLE_OAUTH_URL"] = "https://example.com/oauth/google"
         response = self.client.get(
             reverse("users:social_login", kwargs={"provider": "google"}),
@@ -430,10 +443,11 @@ class SocialLoginConfigTest(TestCase):
 
 
 class ChangePasswordFlowTest(TestCase):
-
     def setUp(self):
         cache.clear()
-        self.user = User.objects.create_user(username="changer", password="OldPassword123!")
+        self.user = User.objects.create_user(
+            username="changer", password="OldPassword123!"
+        )
 
     def test_change_password_requires_login(self):
         response = self.client.get(reverse("users:change_password"))
@@ -448,7 +462,11 @@ class ChangePasswordFlowTest(TestCase):
         self.client.login(username="changer", password="OldPassword123!")
         response = self.client.post(
             reverse("users:change_password"),
-            {"current_password": "OldPassword123!", "new_password1": "NewPassword123!", "new_password2": "NewPassword123!"},
+            {
+                "current_password": "OldPassword123!",
+                "new_password1": "NewPassword123!",
+                "new_password2": "NewPassword123!",
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("users:profile"))
@@ -459,62 +477,99 @@ class ChangePasswordFlowTest(TestCase):
         self.client.login(username="changer", password="OldPassword123!")
         response = self.client.post(
             reverse("users:change_password"),
-            {"current_password": "wrong", "new_password1": "NewPassword123!", "new_password2": "NewPassword123!"},
+            {
+                "current_password": "wrong",
+                "new_password1": "NewPassword123!",
+                "new_password2": "NewPassword123!",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mật khẩu hiện tại không đúng")
 
 
 class FormValidationTest(TestCase):
-
     def setUp(self):
         cache.clear()
-        self.user = User.objects.create_user(username="formuser", email="form@test.com", password="StrongPass123!")
-        UserProfile.objects.update_or_create(user=self.user, defaults={"phone_number": "0911222333"})
+        self.user = User.objects.create_user(
+            username="formuser", email="form@test.com", password="StrongPass123!"
+        )
+        UserProfile.objects.update_or_create(
+            user=self.user, defaults={"phone_number": "0911222333"}
+        )
 
     def test_register_form_invalid_phone(self):
-        form = RegisterForm(data={
-            "username": "x1", "email": "", "phone_number": "abc",
-            "password1": "StrongPass123!", "password2": "StrongPass123!",
-        })
+        form = RegisterForm(
+            data={
+                "username": "x1",
+                "email": "",
+                "phone_number": "abc",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            }
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("Số điện thoại không hợp lệ", str(form.errors["phone_number"]))
 
     def test_register_form_password_too_short(self):
-        form = RegisterForm(data={
-            "username": "x2", "phone_number": "", "email": "x2@test.com",
-            "password1": "Short1!", "password2": "Short1!",
-        })
+        form = RegisterForm(
+            data={
+                "username": "x2",
+                "phone_number": "",
+                "email": "x2@test.com",
+                "password1": "Short1!",
+                "password2": "Short1!",
+            }
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("ít nhất 8 ký tự", str(form.errors["password1"]))
 
     def test_register_form_password_requires_uppercase(self):
-        form = RegisterForm(data={
-            "username": "x3", "phone_number": "", "email": "x3@test.com",
-            "password1": "lowercase123!", "password2": "lowercase123!",
-        })
+        form = RegisterForm(
+            data={
+                "username": "x3",
+                "phone_number": "",
+                "email": "x3@test.com",
+                "password1": "lowercase123!",
+                "password2": "lowercase123!",
+            }
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("chữ in hoa", str(form.errors["password1"]))
 
     def test_register_form_password_requires_digit(self):
-        form = RegisterForm(data={
-            "username": "x4", "phone_number": "", "email": "x4@test.com",
-            "password1": "Uppercaseonly!", "password2": "Uppercaseonly!",
-        })
+        form = RegisterForm(
+            data={
+                "username": "x4",
+                "phone_number": "",
+                "email": "x4@test.com",
+                "password1": "Uppercaseonly!",
+                "password2": "Uppercaseonly!",
+            }
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("chữ số", str(form.errors["password1"]))
 
     def test_register_form_password_requires_special(self):
-        form = RegisterForm(data={
-            "username": "x5", "phone_number": "", "email": "x5@test.com",
-            "password1": "NoSpecial123", "password2": "NoSpecial123",
-        })
+        form = RegisterForm(
+            data={
+                "username": "x5",
+                "phone_number": "",
+                "email": "x5@test.com",
+                "password1": "NoSpecial123",
+                "password2": "NoSpecial123",
+            }
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("ký tự đặc biệt", str(form.errors["password1"]))
 
     def test_profile_form_update(self):
         form = ProfileForm(
-            data={"first_name": "New", "last_name": "Name", "email": "", "phone_number": "0911222333"},
+            data={
+                "first_name": "New",
+                "last_name": "Name",
+                "email": "",
+                "phone_number": "0911222333",
+            },
             user=self.user,
         )
         self.assertTrue(form.is_valid())
@@ -542,6 +597,7 @@ class FormValidationTest(TestCase):
 
     def test_captcha_form_wrong_code(self):
         from django.test import RequestFactory
+
         request = RequestFactory().get("/")
         request.session = {"captcha_code": "ABC123"}
         form = CaptchaForm(data={"captcha": "XYZ999"}, request=request)
@@ -552,12 +608,18 @@ class FormValidationTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_reset_password_form_mismatch(self):
-        form = ResetPasswordForm(data={"password1": "StrongPass123!", "password2": "OtherPass123!"})
+        form = ResetPasswordForm(
+            data={"password1": "StrongPass123!", "password2": "OtherPass123!"}
+        )
         self.assertFalse(form.is_valid())
 
     def test_change_password_new_matches_current_rejected(self):
         form = ChangePasswordForm(
-            data={"current_password": "StrongPass123!", "new_password1": "StrongPass123!", "new_password2": "StrongPass123!"},
+            data={
+                "current_password": "StrongPass123!",
+                "new_password1": "StrongPass123!",
+                "new_password2": "StrongPass123!",
+            },
             user=self.user,
         )
         self.assertFalse(form.is_valid())
@@ -565,17 +627,20 @@ class FormValidationTest(TestCase):
 
 
 class MiddlewareVisitorTest(TestCase):
-
     def setUp(self):
         cache.clear()
 
     def test_x_forwarded_for_external_ip_used_and_updated(self):
-        response = self.client.get(reverse("products:product_list"), HTTP_X_FORWARDED_FOR="8.8.8.8")
+        response = self.client.get(
+            reverse("products:product_list"), HTTP_X_FORWARDED_FOR="8.8.8.8"
+        )
         self.assertEqual(response.status_code, 200)
         visitor = VisitorSession.objects.order_by("-id").first()
         self.assertEqual(visitor.ip_address, "8.8.8.8")
 
-        self.client.get(reverse("products:product_list"), HTTP_X_FORWARDED_FOR="9.9.9.9")
+        self.client.get(
+            reverse("products:product_list"), HTTP_X_FORWARDED_FOR="9.9.9.9"
+        )
         visitor.refresh_from_db()
         self.assertEqual(visitor.ip_address, "9.9.9.9")
 
@@ -589,7 +654,9 @@ class MiddlewareVisitorTest(TestCase):
         self.assertEqual(visitor.user_agent, "TestAgent-2")
 
     def test_post_records_action_event(self):
-        self.client.post(reverse("users:login"), {"username": "nobody", "password": "nope"})
+        self.client.post(
+            reverse("users:login"), {"username": "nobody", "password": "nope"}
+        )
         self.assertTrue(UserActivity.objects.filter(event_type="action").exists())
 
     def test_login_updates_visitor_user_and_auth_state(self):
@@ -629,12 +696,14 @@ class MiddlewareVisitorTest(TestCase):
 
 
 class RoleSyncTest(TestCase):
-
     def test_role_from_user_mapping(self):
         from .role_sync import role_from_user
 
         admin = User.objects.create_user(
-            username="role_admin", password="StrongPass123!", is_superuser=True, is_staff=True
+            username="role_admin",
+            password="StrongPass123!",
+            is_superuser=True,
+            is_staff=True,
         )
         staff = User.objects.create_user(
             username="role_staff", password="StrongPass123!", is_staff=True
@@ -655,10 +724,12 @@ class RoleSyncTest(TestCase):
 
 
 class PermissionsTest(TestCase):
-
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="perm_admin", password="StrongPass123!", is_superuser=True, is_staff=True
+            username="perm_admin",
+            password="StrongPass123!",
+            is_superuser=True,
+            is_staff=True,
         )
         self.staff = User.objects.create_user(
             username="perm_staff", password="StrongPass123!", is_staff=True
@@ -728,4 +799,3 @@ class PermissionsTest(TestCase):
         self.assertFalse(is_staff_member(self.customer))
         self.assertFalse(can_manage_orders(self.customer))
         self.assertFalse(can_manage_inventory(self.customer))
-

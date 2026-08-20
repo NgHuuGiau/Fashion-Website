@@ -53,10 +53,16 @@ class Command(BaseCommand):
     help = "Điền mô tả riêng cho từng sản phẩm còn thiếu mô tả."
 
     def add_arguments(self, parser):
-        parser.add_argument("--force", action="store_true", help="Ghi đè cả sản phẩm đã có mô tả.")
+        parser.add_argument(
+            "--force", action="store_true", help="Ghi đè cả sản phẩm đã có mô tả."
+        )
 
     def handle(self, *args, **options):
-        qs = Product.objects.all() if options["force"] else Product.objects.filter(description__exact="")
+        qs = (
+            Product.objects.all()
+            if options["force"]
+            else Product.objects.filter(description__exact="")
+        )
         updated = 0
         for product in qs:
             tpl = TEMPLATES.get(product.category.slug, None)

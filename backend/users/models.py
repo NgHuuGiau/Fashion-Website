@@ -1,18 +1,18 @@
-﻿from django.conf import settings
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
-
 class VisitorSession(models.Model):
     session_key = models.CharField(max_length=80, unique=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
     is_authenticated = models.BooleanField(default=False)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     first_seen = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
-
 
     class Meta:
         ordering = ["-last_seen"]
@@ -20,7 +20,6 @@ class VisitorSession(models.Model):
     def __str__(self):
         who = self.user.username if self.user else "guest"
         return f"{self.session_key} ({who})"
-
 
 
 class UserActivity(models.Model):
@@ -34,15 +33,20 @@ class UserActivity(models.Model):
         ("checkout", "Checkout"),
     ]
 
-    visitor = models.ForeignKey(VisitorSession, null=True, blank=True, on_delete=models.SET_NULL)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES, default="page_view")
+    visitor = models.ForeignKey(
+        VisitorSession, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    event_type = models.CharField(
+        max_length=20, choices=EVENT_CHOICES, default="page_view"
+    )
     path = models.CharField(max_length=255, blank=True)
     method = models.CharField(max_length=10, blank=True)
     status_code = models.PositiveIntegerField(default=200)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
 
     class Meta:
         ordering = ["-created_at"]
@@ -55,14 +59,19 @@ class UserActivity(models.Model):
         return f"{self.event_type} {self.path} ({self.created_at:%Y-%m-%d %H:%M:%S})"
 
 
-
 class UserAddress(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
-    label = models.CharField(max_length=40, blank=True, verbose_name="Nhãn (Nhà / Công ty)")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses"
+    )
+    label = models.CharField(
+        max_length=40, blank=True, verbose_name="Nhãn (Nhà / Công ty)"
+    )
     recipient_name = models.CharField(max_length=150, verbose_name="Người nhận")
     phone = models.CharField(max_length=20, verbose_name="Số điện thoại")
     address = models.TextField(verbose_name="Địa chỉ")
-    is_default = models.BooleanField(default=False, verbose_name="Mặc định", db_index=True)
+    is_default = models.BooleanField(
+        default=False, verbose_name="Mặc định", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -75,16 +84,24 @@ class UserAddress(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            self.__class__.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+            self.__class__.objects.filter(user=self.user, is_default=True).exclude(
+                pk=self.pk
+            ).update(is_default=False)
         super().save(*args, **kwargs)
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
+    )
     phone_number = models.CharField(max_length=20, blank=True)
-    points = models.PositiveIntegerField(default=0, verbose_name="Điểm tích lũy", db_index=True)
+    points = models.PositiveIntegerField(
+        default=0, verbose_name="Điểm tích lũy", db_index=True
+    )
     birthday = models.DateField(null=True, blank=True, verbose_name="Ngày sinh")
-    points_expire_at = models.DateField(null=True, blank=True, verbose_name="Điểm hết hạn")
+    points_expire_at = models.DateField(
+        null=True, blank=True, verbose_name="Điểm hết hạn"
+    )
 
     class Meta:
         verbose_name = "Hồ sơ người dùng"
@@ -109,9 +126,24 @@ class UserProfile(models.Model):
 
     def tier(self):
         tiers = [
-            {"threshold": 2000, "name": "VIP", "badge": "gold", "benefit": "Freeship mọi đơn · hỗ trợ ưu tiên · quà tặng sinh nhật"},
-            {"threshold": 1000, "name": "Thân thiết", "badge": "silver", "benefit": "Freeship từ 299K · ưu đãi riêng hằng tháng"},
-            {"threshold": 0, "name": "Thành viên", "badge": "bronze", "benefit": "Tích 1K = 1 điểm, đổi voucher mỗi đơn"},
+            {
+                "threshold": 2000,
+                "name": "VIP",
+                "badge": "gold",
+                "benefit": "Freeship mọi đơn · hỗ trợ ưu tiên · quà tặng sinh nhật",
+            },
+            {
+                "threshold": 1000,
+                "name": "Thân thiết",
+                "badge": "silver",
+                "benefit": "Freeship từ 299K · ưu đãi riêng hằng tháng",
+            },
+            {
+                "threshold": 0,
+                "name": "Thành viên",
+                "badge": "bronze",
+                "benefit": "Tích 1K = 1 điểm, đổi voucher mỗi đơn",
+            },
         ]
         current = tiers[-1]
         for tier in tiers:

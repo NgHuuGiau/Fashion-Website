@@ -17,7 +17,12 @@ from ..forms import ReturnRequestForm
 from ..models import Order, ReturnRequest
 
 from users.models import UserProfile
-from .cart import build_vietqr_url, expire_bank_order_if_needed, normalize_shipping_address, restore_order_stock
+from .cart import (
+    build_vietqr_url,
+    expire_bank_order_if_needed,
+    normalize_shipping_address,
+    restore_order_stock,
+)
 
 HCMC_KEYWORDS = (
     "ho chi minh",
@@ -116,7 +121,11 @@ def auto_advance_order_status(order):
     if order.status == "pending" and now > order.created_at + timedelta(hours=24):
         order.status = "shipping"
         order.save(update_fields=["status", "updated_at"])
-    elif order.status == "processing" and order.is_paid and now > order.created_at + timedelta(hours=24):
+    elif (
+        order.status == "processing"
+        and order.is_paid
+        and now > order.created_at + timedelta(hours=24)
+    ):
         order.status = "shipping"
         order.save(update_fields=["status", "updated_at"])
     if order.status == "shipping":
@@ -195,7 +204,9 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
     )
     decorate_order_tracking(order)
     if expire_bank_order_if_needed(order):
-        messages.warning(request, "Đơn hàng quá 15 phút chưa thanh toán, hệ thống đã tự hủy.")
+        messages.warning(
+            request, "Đơn hàng quá 15 phút chưa thanh toán, hệ thống đã tự hủy."
+        )
         return redirect("orders:order_failed", order_id=order.id)
 
     editable_statuses = {"pending", "processing"}
@@ -226,10 +237,16 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
 
     qr_url = ""
     selected_bank_name = ""
-    if order.payment_method == "bank" and not order.is_paid and order.status != "cancelled":
+    if (
+        order.payment_method == "bank"
+        and not order.is_paid
+        and order.status != "cancelled"
+    ):
         bank_meta = BANKS.get(order.bank_code) or BANKS["VCB"]
         selected_bank_name = bank_meta["name"]
-        qr_url = build_vietqr_url(order.bank_code or "VCB", order.total_amount, f"DH{order.id}")
+        qr_url = build_vietqr_url(
+            order.bank_code or "VCB", order.total_amount, f"DH{order.id}"
+        )
 
     return render(
         request,
@@ -249,7 +266,11 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
 
 @login_required
 def my_orders(request: HttpRequest) -> HttpResponse:
-    qs = Order.objects.all() if request.user.is_staff else Order.objects.filter(user=request.user)
+    qs = (
+        Order.objects.all()
+        if request.user.is_staff
+        else Order.objects.filter(user=request.user)
+    )
     orders = list(
         qs.prefetch_related("items__product", "items__variant").order_by("-created_at")
     )
@@ -283,10 +304,10 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
         form = ReturnRequestForm(request.POST, order=order)
         if form.is_valid():
             item_ids = form.cleaned_data["item_ids"]
-            chosen_items = order.items.filter(id__in=item_ids) if item_ids else order.items.all()
-            refund_amount = sum(
-                item.price * item.quantity for item in chosen_items
+            chosen_items = (
+                order.items.filter(id__in=item_ids) if item_ids else order.items.all()
             )
+            refund_amount = sum(item.price * item.quantity for item in chosen_items)
             ReturnRequest.objects.create(
                 order=order,
                 return_type=form.cleaned_data["return_type"],
@@ -303,7 +324,10 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
                     for item in chosen_items
                 ],
             )
-            messages.success(request, "Đã gửi yêu cầu đổi trả. Shop sẽ liên hệ xác nhận trong 1–2 ngày làm việc.")
+            messages.success(
+                request,
+                "Đã gửi yêu cầu đổi trả. Shop sẽ liên hệ xác nhận trong 1–2 ngày làm việc.",
+            )
             return redirect("orders:order_review", order_id=order.id)
         for field, field_errors in form.errors.items():
             for err in field_errors:
@@ -320,20 +344,45 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
     )
 
 
-@rate_limit("order_lookup", max_requests=15, window=60, error_msg="Quá nhiều yêu cầu tra cứu. Vui lòng thử lại sau.")
+@rate_limit(
+    "order_lookup",
+    max_requests=15,
+    window=60,
+    error_msg="Quá nhiều yêu cầu tra cứu. Vui lòng thử lại sau.",
+)
 def order_lookup(request: HttpRequest) -> HttpResponse:
     form = OrderLookupForm()
     if request.method == "POST":
         form = OrderLookupForm(request.POST)
         if form.is_valid():
             try:
-                order = Order.objects.get(id=form.cleaned_data["order_id"], phone=form.cleaned_data["phone"])
+                order = Order.objects.get(
+                    id=form.cleaned_data["order_id"], phone=form.cleaned_data["phone"]
+                )
                 expire_bank_order_if_needed(order)
                 decorate_order_tracking(order)
-                return render(request, "shop/order_lookup.html", {"looked_up_order": order, "form": form})
+                return render(
+                    request,
+                    "shop/order_lookup.html",
+                    {"looked_up_order": order, "form": form},
+                )
             except Order.DoesNotExist:
-                return render(request, "shop/order_lookup.html", {"lookup_error": "Không tìm thấy đơn hàng. Kiểm tra lại mã đơn và số điện thoại.", "form": form})
-        return render(request, "shop/order_lookup.html", {"lookup_error": "Vui lòng nhập đúng mã đơn và số điện thoại.", "form": form})
+                return render(
+                    request,
+                    "shop/order_lookup.html",
+                    {
+                        "lookup_error": "Không tìm thấy đơn hàng. Kiểm tra lại mã đơn và số điện thoại.",
+                        "form": form,
+                    },
+                )
+        return render(
+            request,
+            "shop/order_lookup.html",
+            {
+                "lookup_error": "Vui lòng nhập đúng mã đơn và số điện thoại.",
+                "form": form,
+            },
+        )
     return render(request, "shop/order_lookup.html", {"form": form})
 
 
@@ -341,7 +390,9 @@ def order_lookup(request: HttpRequest) -> HttpResponse:
 @require_POST
 @transaction.atomic
 def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_object_or_404(Order.objects.select_for_update(), id=order_id, user=request.user)
+    order = get_object_or_404(
+        Order.objects.select_for_update(), id=order_id, user=request.user
+    )
     expire_bank_order_if_needed(order)
     if order.status in ("pending", "processing") and not order.is_paid:
         restore_order_stock(order)
@@ -360,7 +411,11 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
 @login_required
 @require_POST
 def reorder_order(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_object_or_404(Order.objects.prefetch_related("items__product", "items__variant"), id=order_id, user=request.user)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product", "items__variant"),
+        id=order_id,
+        user=request.user,
+    )
 
     from ..cart import add_cart
 
@@ -384,9 +439,14 @@ def reorder_order(request: HttpRequest, order_id) -> HttpResponse:
             skipped += 1
 
     if added:
-        messages.success(request, f"Đã thêm {added} món từ đơn #{order.id} vào giỏ hàng.")
+        messages.success(
+            request, f"Đã thêm {added} món từ đơn #{order.id} vào giỏ hàng."
+        )
     if skipped:
-        messages.warning(request, f"{skipped} món không còn hàng hoặc đã ngừng bán nên không thêm vào giỏ.")
+        messages.warning(
+            request,
+            f"{skipped} món không còn hàng hoặc đã ngừng bán nên không thêm vào giỏ.",
+        )
     if not added and not skipped:
         messages.info(request, "Không có sản phẩm nào để mua lại.")
     return redirect("orders:cart_detail")

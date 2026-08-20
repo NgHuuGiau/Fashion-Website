@@ -1,9 +1,8 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-
 
 
 class Coupon(models.Model):
@@ -18,26 +17,32 @@ class Coupon(models.Model):
     ]
 
     code = models.CharField(max_length=30, unique=True, db_index=True)
-    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=TYPE_PERCENT)
+    discount_type = models.CharField(
+        max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=TYPE_PERCENT
+    )
     value = models.DecimalField(max_digits=10, decimal_places=0, default=Decimal("0"))
-    min_order_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
-    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True)
+    min_order_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
+    max_discount_amount = models.DecimalField(
+        max_digits=10, decimal_places=0, null=True, blank=True
+    )
     is_active = models.BooleanField(default=True, db_index=True)
     starts_at = models.DateTimeField(null=True, blank=True, db_index=True)
     ends_at = models.DateTimeField(null=True, blank=True, db_index=True)
     usage_limit = models.PositiveIntegerField(null=True, blank=True)
-    max_uses_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name="Giới hạn mỗi người")
+    max_uses_per_user = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Giới hạn mỗi người"
+    )
     used_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     class Meta:
         ordering = ["code"]
 
     def __str__(self):
         return self.code
-
 
     def is_usable_now(self):
         now = timezone.now()
@@ -51,7 +56,6 @@ class Coupon(models.Model):
             return False
         return True
 
-
     def is_usable_by_user(self, user):
         if not user or not user.is_authenticated:
             return True
@@ -62,9 +66,21 @@ class Coupon(models.Model):
 
 
 class CouponRedemption(models.Model):
-    coupon = models.ForeignKey(Coupon, related_name="redemptions", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="coupon_redemptions", on_delete=models.CASCADE)
-    order = models.ForeignKey("orders.Order", null=True, blank=True, on_delete=models.SET_NULL, related_name="coupon_redemptions")
+    coupon = models.ForeignKey(
+        Coupon, related_name="redemptions", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="coupon_redemptions",
+        on_delete=models.CASCADE,
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="coupon_redemptions",
+    )
     used_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -74,7 +90,6 @@ class CouponRedemption(models.Model):
 
     def __str__(self):
         return f"{self.coupon.code} - {self.user}"
-
 
 
 class Order(models.Model):
@@ -110,34 +125,70 @@ class Order(models.Model):
         "vnpost": "https://www.vnpost.vn/vi-vn/tra-cuu/tra-cuu-hang",
     }
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
     customer_name = models.CharField(max_length=150)
     customer_email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, db_index=True)
     shipping_address = models.TextField()
     note = models.TextField(blank=True)
-    delivery_time_slot = models.CharField(max_length=20, blank=True, verbose_name="Khung giờ nhận hàng")
+    delivery_time_slot = models.CharField(
+        max_length=20, blank=True, verbose_name="Khung giờ nhận hàng"
+    )
     gift_wrap = models.BooleanField(default=False, verbose_name="Đóng gói quà tặng")
-    gift_note = models.CharField(max_length=255, blank=True, verbose_name="Thiệp chúc kèm quà")
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod", db_index=True)
+    gift_note = models.CharField(
+        max_length=255, blank=True, verbose_name="Thiệp chúc kèm quà"
+    )
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod", db_index=True
+    )
     bank_code = models.CharField(max_length=20, blank=True)
     is_paid = models.BooleanField(default=False, db_index=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
-    carrier = models.CharField(max_length=20, choices=CARRIER_CHOICES, blank=True, verbose_name="Đơn vị vận chuyển")
-    tracking_code = models.CharField(max_length=40, blank=True, verbose_name="Mã vận đơn")
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
+    )
+    carrier = models.CharField(
+        max_length=20,
+        choices=CARRIER_CHOICES,
+        blank=True,
+        verbose_name="Đơn vị vận chuyển",
+    )
+    tracking_code = models.CharField(
+        max_length=40, blank=True, verbose_name="Mã vận đơn"
+    )
 
-    subtotal_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
-    shipping_fee = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
+    subtotal_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
+    shipping_fee = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
+    discount_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
     points_used = models.PositiveIntegerField(default=0, verbose_name="Điểm đã dùng")
-    points_earned = models.PositiveIntegerField(default=0, verbose_name="Điểm tích được")
-    coupon = models.ForeignKey("orders.Coupon", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")
+    points_earned = models.PositiveIntegerField(
+        default=0, verbose_name="Điểm tích được"
+    )
+    coupon = models.ForeignKey(
+        "orders.Coupon",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+    )
     coupon_code = models.CharField(max_length=30, blank=True)
-    total_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
+    total_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     class Meta:
         ordering = ["-created_at"]
@@ -196,13 +247,21 @@ class ReturnRequest(models.Model):
     REASON_LABELS = dict(REASON_CHOICES)
     RETURN_TYPE_LABELS = dict(RETURN_TYPE_CHOICES)
 
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="return_requests")
-    return_type = models.CharField(max_length=20, choices=RETURN_TYPE_CHOICES, default="refund")
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="return_requests"
+    )
+    return_type = models.CharField(
+        max_length=20, choices=RETURN_TYPE_CHOICES, default="refund"
+    )
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     items = models.JSONField(default=list)
-    refund_amount = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal("0"))
+    refund_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
     note = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -215,8 +274,12 @@ class ReturnRequest(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="order_items")
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True)
+    product = models.ForeignKey(
+        "products.Product", on_delete=models.CASCADE, related_name="order_items"
+    )
+    variant = models.ForeignKey(
+        "products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True
+    )
     selected_color = models.CharField(max_length=50, blank=True)
     selected_size = models.CharField(max_length=20, blank=True)
     quantity = models.PositiveIntegerField(default=1)
@@ -225,17 +288,25 @@ class OrderItem(models.Model):
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
 
-
     def subtotal(self):
         return self.price * self.quantity
 
 
 class GiftCard(models.Model):
     """Thẻ quà tặng - mua tặng người khác, có mã duy nhất, hạn sử dụng 1 năm"""
-    code = models.CharField(max_length=16, unique=True, db_index=True, verbose_name="Mã thẻ")
-    initial_balance = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá trị ban đầu")
-    current_balance = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="Số dư hiện tại")
-    currency = models.CharField(max_length=3, default="VND", verbose_name="Đơn vị tiền tệ")
+
+    code = models.CharField(
+        max_length=16, unique=True, db_index=True, verbose_name="Mã thẻ"
+    )
+    initial_balance = models.DecimalField(
+        max_digits=10, decimal_places=0, verbose_name="Giá trị ban đầu"
+    )
+    current_balance = models.DecimalField(
+        max_digits=10, decimal_places=0, default=0, verbose_name="Số dư hiện tại"
+    )
+    currency = models.CharField(
+        max_length=3, default="VND", verbose_name="Đơn vị tiền tệ"
+    )
 
     purchaser = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -243,11 +314,13 @@ class GiftCard(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Người mua"
+        verbose_name="Người mua",
     )
     purchaser_email = models.EmailField(blank=True, verbose_name="Email người mua")
     recipient_email = models.EmailField(blank=True, verbose_name="Email người nhận")
-    recipient_name = models.CharField(max_length=150, blank=True, verbose_name="Tên người nhận")
+    recipient_name = models.CharField(
+        max_length=150, blank=True, verbose_name="Tên người nhận"
+    )
     message = models.TextField(blank=True, verbose_name="Lời nhắn")
 
     STATUS_CHOICES = [
@@ -256,7 +329,9 @@ class GiftCard(models.Model):
         ("expired", "Hết hạn"),
         ("cancelled", "Đã hủy"),
     ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", db_index=True)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="active", db_index=True
+    )
 
     purchased_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(verbose_name="Hạn sử dụng")
@@ -284,8 +359,11 @@ class GiftCard(models.Model):
         """Tạo mã 12 ký tự: GC + 10 random"""
         import random
         import string
+
         while True:
-            code = "GC" + "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            code = "GC" + "".join(
+                random.choices(string.ascii_uppercase + string.digits, k=10)
+            )
             if not GiftCard.objects.filter(code=code).exists():
                 return code
 
@@ -325,11 +403,12 @@ class GiftCard(models.Model):
 
 class GiftCardUsage(models.Model):
     """Lịch sử sử dụng thẻ quà tặng"""
+
     gift_card = models.ForeignKey(
         GiftCard,
         related_name="usages",
         on_delete=models.CASCADE,
-        verbose_name="Thẻ quà tặng"
+        verbose_name="Thẻ quà tặng",
     )
     order = models.ForeignKey(
         "orders.Order",
@@ -337,10 +416,14 @@ class GiftCardUsage(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="gift_card_usages",
-        verbose_name="Đơn hàng"
+        verbose_name="Đơn hàng",
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Số tiền đã dùng")
-    balance_after = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Số dư còn lại")
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=0, verbose_name="Số tiền đã dùng"
+    )
+    balance_after = models.DecimalField(
+        max_digits=10, decimal_places=0, verbose_name="Số dư còn lại"
+    )
     used_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -4,15 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0016_backinstock'),
+        ("products", "0016_backinstock"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
-            name='compare_price',
-            field=models.DecimalField(blank=True, decimal_places=0, max_digits=10, null=True, verbose_name='Giá gốc (trước khuyến mãi)'),
+            model_name="product",
+            name="compare_price",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=0,
+                max_digits=10,
+                null=True,
+                verbose_name="Giá gốc (trước khuyến mãi)",
+            ),
         ),
     ]

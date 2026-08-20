@@ -5,26 +5,48 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0015_review_image'),
+        ("products", "0015_review_image"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='BackInStock',
+            name="BackInStock",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=254, verbose_name='Email')),
-                ('created', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('notified', models.BooleanField(default=False, verbose_name='Đã gửi thông báo')),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='back_in_stock_requests', to='products.product')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("email", models.EmailField(max_length=254, verbose_name="Email")),
+                ("created", models.DateTimeField(auto_now_add=True, db_index=True)),
+                (
+                    "notified",
+                    models.BooleanField(default=False, verbose_name="Đã gửi thông báo"),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="back_in_stock_requests",
+                        to="products.product",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Báo khi có hàng',
-                'verbose_name_plural': 'Báo khi có hàng',
-                'ordering': ['-created'],
-                'constraints': [models.UniqueConstraint(fields=('product', 'email'), name='unique_backinstock_product_email')],
+                "verbose_name": "Báo khi có hàng",
+                "verbose_name_plural": "Báo khi có hàng",
+                "ordering": ["-created"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("product", "email"),
+                        name="unique_backinstock_product_email",
+                    )
+                ],
             },
         ),
     ]

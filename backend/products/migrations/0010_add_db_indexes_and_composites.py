@@ -4,38 +4,48 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0009_alter_product_available_alter_product_featured_and_more'),
+        ("products", "0009_alter_product_available_alter_product_featured_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
-            name='stock',
-            field=models.PositiveIntegerField(db_index=True, default=0, verbose_name='Số lượng kho'),
+            model_name="product",
+            name="stock",
+            field=models.PositiveIntegerField(
+                db_index=True, default=0, verbose_name="Số lượng kho"
+            ),
         ),
         migrations.AlterField(
-            model_name='product',
-            name='updated',
+            model_name="product",
+            name="updated",
             field=models.DateTimeField(auto_now=True, db_index=True),
         ),
         migrations.AlterField(
-            model_name='productimage',
-            name='sort_order',
-            field=models.PositiveSmallIntegerField(db_index=True, default=0, verbose_name='Thứ tự'),
+            model_name="productimage",
+            name="sort_order",
+            field=models.PositiveSmallIntegerField(
+                db_index=True, default=0, verbose_name="Thứ tự"
+            ),
         ),
         migrations.AlterField(
-            model_name='productvariant',
-            name='stock',
-            field=models.PositiveIntegerField(db_index=True, default=0, verbose_name='Tồn kho'),
+            model_name="productvariant",
+            name="stock",
+            field=models.PositiveIntegerField(
+                db_index=True, default=0, verbose_name="Tồn kho"
+            ),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['available', 'stock'], name='products_pr_availab_04dc25_idx'),
+            model_name="product",
+            index=models.Index(
+                fields=["available", "stock"], name="products_pr_availab_04dc25_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['category', 'available', '-created'], name='products_pr_categor_2c3e86_idx'),
+            model_name="product",
+            index=models.Index(
+                fields=["category", "available", "-created"],
+                name="products_pr_categor_2c3e86_idx",
+            ),
         ),
     ]

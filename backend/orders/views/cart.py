@@ -110,14 +110,20 @@ def restore_order_stock(order):
     with transaction.atomic():
         for item in order.items.select_related("product", "variant"):
             if item.variant:
-                ProductVariant.objects.filter(id=item.variant.id).update(stock=F("stock") + item.quantity)
-                total_stock = item.product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
+                ProductVariant.objects.filter(id=item.variant.id).update(
+                    stock=F("stock") + item.quantity
+                )
+                total_stock = (
+                    item.product.variants.filter(is_active=True).aggregate(
+                        total=Sum("stock")
+                    )["total"]
+                    or 0
+                )
                 item.product.stock = total_stock
                 item.product.save(update_fields=["stock", "updated"])
             else:
                 Product.objects.filter(id=item.product.id).update(
-                    stock=F("stock") + item.quantity,
-                    updated=timezone.now()
+                    stock=F("stock") + item.quantity, updated=timezone.now()
                 )
 
 
@@ -125,14 +131,21 @@ def reserve_order_stock(order):
     with transaction.atomic():
         for item in order.items.select_related("product", "variant"):
             if item.variant:
-                ProductVariant.objects.filter(id=item.variant.id).update(stock=Greatest(F("stock") - item.quantity, 0))
-                total_stock = item.product.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0
+                ProductVariant.objects.filter(id=item.variant.id).update(
+                    stock=Greatest(F("stock") - item.quantity, 0)
+                )
+                total_stock = (
+                    item.product.variants.filter(is_active=True).aggregate(
+                        total=Sum("stock")
+                    )["total"]
+                    or 0
+                )
                 item.product.stock = total_stock
                 item.product.save(update_fields=["stock", "updated"])
             else:
                 Product.objects.filter(id=item.product.id).update(
                     stock=Greatest(F("stock") - item.quantity, 0),
-                    updated=timezone.now()
+                    updated=timezone.now(),
                 )
 
 
@@ -171,7 +184,9 @@ def is_bank_order_expired(order):
         return False
     if order.status != "processing":
         return False
-    return timezone.now() > (order.created_at + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES))
+    return timezone.now() > (
+        order.created_at + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
+    )
 
 
 def expire_bank_order_if_needed(order):
@@ -194,7 +209,9 @@ def _payment_token(order_id):
 def cart_add(request: HttpRequest, product_id) -> HttpResponse:
     is_ajax = request.headers.get("x-requested-with", "").lower() == "xmlhttprequest"
 
-    def finish(message: str, is_error: bool = False, url: str | None = None) -> HttpResponse:
+    def finish(
+        message: str, is_error: bool = False, url: str | None = None
+    ) -> HttpResponse:
         if is_ajax:
             return JsonResponse({"ok": not is_error, "message": message})
         if is_error:
@@ -209,17 +226,32 @@ def cart_add(request: HttpRequest, product_id) -> HttpResponse:
     requires_variant = product.requires_variants
 
     if variant_id:
-        selected_variant = ProductVariant.objects.filter(id=variant_id, product=product, is_active=True).first()
+        selected_variant = ProductVariant.objects.filter(
+            id=variant_id, product=product, is_active=True
+        ).first()
 
     if requires_variant and not selected_variant:
-        return finish("Vui lòng chọn màu và size trước khi thêm vào giỏ.", True, product.get_absolute_url())
+        return finish(
+            "Vui lòng chọn màu và size trước khi thêm vào giỏ.",
+            True,
+            product.get_absolute_url(),
+        )
 
     stock = selected_variant.stock if selected_variant else product.stock
     if stock <= 0:
-        return finish("Sản phẩm đã hết hàng.", True, request.POST.get("next") or "products:product_list")
+        return finish(
+            "Sản phẩm đã hết hàng.",
+            True,
+            request.POST.get("next") or "products:product_list",
+        )
 
     quantity = safe_int(request.POST.get("quantity", 1), default=1, minimum=1)
-    success, msg = add_cart(request, product.id, quantity=quantity, variant_id=selected_variant.id if selected_variant else None)
+    success, msg = add_cart(
+        request,
+        product.id,
+        quantity=quantity,
+        variant_id=selected_variant.id if selected_variant else None,
+    )
     if not success:
         return finish(msg, True, request.POST.get("next") or "products:product_list")
     log_activity(
@@ -246,7 +278,9 @@ def cart_summary(request: HttpRequest) -> JsonResponse:
                 "price": str(row["price"]),
                 "line_total": str(row["subtotal"]),
                 "variant_label": (
-                    f"{row['variant'].color_name} / {row['variant'].size}" if row["variant"] else ""
+                    f"{row['variant'].color_name} / {row['variant'].size}"
+                    if row["variant"]
+                    else ""
                 ),
                 "image": row["product"].get_image(),
                 "url": reverse(
@@ -344,12 +378,13 @@ def checkout(request: HttpRequest) -> HttpResponse:
         profile = None
     else:
         initial = {
-            "customer_name": f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
+            "customer_name": f"{request.user.first_name} {request.user.last_name}".strip()
+            or request.user.username,
             "customer_email": request.user.email,
         }
-        default_address = UserAddress.objects.filter(user=request.user, is_default=True).first() or (
-            UserAddress.objects.filter(user=request.user).first()
-        )
+        default_address = UserAddress.objects.filter(
+            user=request.user, is_default=True
+        ).first() or (UserAddress.objects.filter(user=request.user).first())
         if default_address:
             initial["phone"] = default_address.phone
             initial["shipping_address"] = default_address.address
@@ -358,7 +393,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
         tier_discount_pct_value = TIER_DISCOUNTS.get(tier_name, 0)
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
-    shipping_fee = calculate_shipping_fee(subtotal, default_address.address if default_address else "")
+    shipping_fee = calculate_shipping_fee(
+        subtotal, default_address.address if default_address else ""
+    )
     discount_amount = Decimal("0")
     tier_discount_amount = Decimal("0")
 
@@ -366,23 +403,44 @@ def checkout(request: HttpRequest) -> HttpResponse:
         form = CheckoutForm(request.POST)
         if form.is_valid():
             payment_method = form.cleaned_data["payment_method"]
-            bank_code = form.cleaned_data.get("bank_code", "") if payment_method == "bank" else ""
+            bank_code = (
+                form.cleaned_data.get("bank_code", "")
+                if payment_method == "bank"
+                else ""
+            )
             coupon_code = form.cleaned_data.get("coupon_code", "")
-            shipping_fee = calculate_shipping_fee(subtotal, form.cleaned_data["shipping_address"])
-            tier_discount_amount = subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
+            shipping_fee = calculate_shipping_fee(
+                subtotal, form.cleaned_data["shipping_address"]
+            )
+            tier_discount_amount = (
+                subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
+            )
 
             coupon_user = None if is_guest else request.user
-            selected_coupon, coupon_error = validate_coupon(coupon_code, subtotal, user=coupon_user)
+            selected_coupon, coupon_error = validate_coupon(
+                coupon_code, subtotal, user=coupon_user
+            )
             if coupon_error:
                 form.add_error("coupon_code", coupon_error)
             else:
-                discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
-                total_amount = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
+                discount_amount = calculate_coupon_discount(
+                    selected_coupon, subtotal, shipping_fee
+                )
+                total_amount = max(
+                    Decimal("0"),
+                    subtotal + shipping_fee - discount_amount - tier_discount_amount,
+                )
 
                 points_to_use = 0
                 points_discount = Decimal("0")
-                if not is_guest and profile.points and (form.cleaned_data.get("points_to_use") or 0) > 0:
-                    points_to_use = min(form.cleaned_data["points_to_use"], profile.points)
+                if (
+                    not is_guest
+                    and profile.points
+                    and (form.cleaned_data.get("points_to_use") or 0) > 0
+                ):
+                    points_to_use = min(
+                        form.cleaned_data["points_to_use"], profile.points
+                    )
                     points_discount = min(
                         Decimal(points_to_use) * Decimal("100"),
                         max(Decimal("0"), subtotal - discount_amount),
@@ -391,9 +449,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
                 with transaction.atomic():
                     if selected_coupon:
-                        selected_coupon = Coupon.objects.select_for_update().get(id=selected_coupon.id)
-                        if not selected_coupon.is_usable_now() or (not is_guest and not selected_coupon.is_usable_by_user(request.user)):
-                            form.add_error("coupon_code", "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.")
+                        selected_coupon = Coupon.objects.select_for_update().get(
+                            id=selected_coupon.id
+                        )
+                        if not selected_coupon.is_usable_now() or (
+                            not is_guest
+                            and not selected_coupon.is_usable_by_user(request.user)
+                        ):
+                            form.add_error(
+                                "coupon_code",
+                                "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.",
+                            )
                             transaction.set_rollback(True)
                             return render(
                                 request,
@@ -407,7 +473,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "form": form,
                                     "shop_bank_account": SHOP_BANK_ACCOUNT,
                                     "shop_account_name": SHOP_ACCOUNT_NAME,
-                                    "demo_qr_url": build_vietqr_url(bank_code or "VCB", subtotal + shipping_fee, "DH-TAM"),
+                                    "demo_qr_url": build_vietqr_url(
+                                        bank_code or "VCB",
+                                        subtotal + shipping_fee,
+                                        "DH-TAM",
+                                    ),
                                     "banks": BANKS,
                                     "saved_addresses": saved_addresses,
                                     "tier_name": tier_name,
@@ -426,7 +496,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         phone=form.cleaned_data["phone"],
                         shipping_address=form.cleaned_data["shipping_address"],
                         note=form.cleaned_data["note"],
-                        delivery_time_slot=form.cleaned_data.get("delivery_time_slot", ""),
+                        delivery_time_slot=form.cleaned_data.get(
+                            "delivery_time_slot", ""
+                        ),
                         gift_wrap=form.cleaned_data.get("gift_wrap", False),
                         gift_note=form.cleaned_data.get("gift_note", ""),
                         payment_method=payment_method,
@@ -439,7 +511,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         coupon_code=selected_coupon.code if selected_coupon else "",
                         total_amount=total_amount,
                         is_paid=False,
-                        status="processing" if payment_method in ("bank", "vnpay") else "pending",
+                        status="processing"
+                        if payment_method in ("bank", "vnpay")
+                        else "pending",
                     )
 
                     if points_to_use and not is_guest:
@@ -453,16 +527,24 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             order=order,
                         )
 
-                    variant_ids = [item["variant"].id for item in items if item.get("variant")]
-                    plain_product_ids = [item["product"].id for item in items if not item.get("variant")]
+                    variant_ids = [
+                        item["variant"].id for item in items if item.get("variant")
+                    ]
+                    plain_product_ids = [
+                        item["product"].id for item in items if not item.get("variant")
+                    ]
 
                     locked_variants = {
                         v.id: v
-                        for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+                        for v in ProductVariant.objects.select_for_update().filter(
+                            id__in=variant_ids
+                        )
                     }
                     locked_products = {
                         p.id: p
-                        for p in Product.objects.select_for_update().filter(id__in=plain_product_ids)
+                        for p in Product.objects.select_for_update().filter(
+                            id__in=plain_product_ids
+                        )
                     }
 
                     for item in items:
@@ -474,7 +556,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             lv = locked_variants.get(variant.id)
                             if not lv or lv.stock < quantity:
                                 transaction.set_rollback(True)
-                                messages.error(request, f"Sản phẩm {product.name} ({lv.color_name}/{lv.size}) không đủ hàng.")
+                                messages.error(
+                                    request,
+                                    f"Sản phẩm {product.name} ({lv.color_name}/{lv.size}) không đủ hàng.",
+                                )
                                 return redirect("orders:cart_detail")
                             ProductVariant.objects.filter(id=variant.id).update(
                                 stock=Greatest(F("stock") - quantity, 0)
@@ -483,7 +568,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             lp = locked_products.get(product.id)
                             if not lp or lp.stock < quantity:
                                 transaction.set_rollback(True)
-                                messages.error(request, f"Sản phẩm {product.name} không đủ hàng.")
+                                messages.error(
+                                    request, f"Sản phẩm {product.name} không đủ hàng."
+                                )
                                 return redirect("orders:cart_detail")
                             Product.objects.filter(id=product.id).update(
                                 stock=Greatest(F("stock") - quantity, 0),
@@ -504,7 +591,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         product = item["product"]
                         variant = item.get("variant")
                         if variant:
-                            product.stock = ProductVariant.objects.filter(product=product, is_active=True).aggregate(total=Sum("stock"))["total"] or 0
+                            product.stock = (
+                                ProductVariant.objects.filter(
+                                    product=product, is_active=True
+                                ).aggregate(total=Sum("stock"))["total"]
+                                or 0
+                            )
                             product.save(update_fields=["stock", "updated"])
 
                 clear_cart(request)
@@ -533,14 +625,20 @@ def checkout(request: HttpRequest) -> HttpResponse:
     else:
         form = CheckoutForm(initial=initial)
 
-    demo_bank_code = request.POST.get("bank_code") if request.method == "POST" else "VCB"
+    demo_bank_code = (
+        request.POST.get("bank_code") if request.method == "POST" else "VCB"
+    )
     if demo_bank_code not in BANKS:
         demo_bank_code = "VCB"
 
     if request.method == "POST" and form.is_valid() and not coupon_error:
-        discount_amount = calculate_coupon_discount(selected_coupon, subtotal, shipping_fee)
+        discount_amount = calculate_coupon_discount(
+            selected_coupon, subtotal, shipping_fee
+        )
 
-    total = max(Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount)
+    total = max(
+        Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount
+    )
 
     if is_guest:
         user_points = 0
@@ -558,7 +656,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "tier_name": tier_name,
             "tier_discount_pct": tier_discount_pct_value,
             "tier_discount_amount": tier_discount_amount,
-            "shipping_zone": shipping_zone(form.cleaned_data["shipping_address"]) if request.method == "POST" and form.is_valid() else shipping_zone(default_address.address if default_address else ""),
+            "shipping_zone": shipping_zone(form.cleaned_data["shipping_address"])
+            if request.method == "POST" and form.is_valid()
+            else shipping_zone(default_address.address if default_address else ""),
             "total": total,
             "form": form,
             "shop_bank_account": SHOP_BANK_ACCOUNT,
@@ -575,4 +675,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
 def promo_page(request: HttpRequest) -> HttpResponse:
     coupons = [c for c in Coupon.objects.filter(is_active=True) if c.is_usable_now()]
-    return render(request, "shop/promo.html", {"coupons": coupons, "freeship_threshold": FREESHIP_THRESHOLD})
+    return render(
+        request,
+        "shop/promo.html",
+        {"coupons": coupons, "freeship_threshold": FREESHIP_THRESHOLD},
+    )

@@ -1,44 +1,76 @@
-﻿
 import django.db.models.deletion
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, verbose_name='Tên danh mục')),
-                ('slug', models.SlugField(unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, verbose_name="Tên danh mục")),
+                ("slug", models.SlugField(unique=True)),
             ],
             options={
-                'verbose_name_plural': 'Categories',
+                "verbose_name_plural": "Categories",
             },
         ),
         migrations.CreateModel(
-            name='Product',
+            name="Product",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200, verbose_name='Tên sản phẩm')),
-                ('slug', models.SlugField(max_length=200)),
-                ('image', models.ImageField(blank=True, upload_to='products/%Y/%m/%d', verbose_name='Ảnh sản phẩm')),
-                ('description', models.TextField(blank=True, verbose_name='Mô tả')),
-                ('price', models.DecimalField(decimal_places=0, max_digits=10, verbose_name='Giá tiền')),
-                ('stock', models.IntegerField(default=0, verbose_name='Số lượng kho')),
-                ('available', models.BooleanField(default=True)),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('updated', models.DateTimeField(auto_now=True)),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='products', to='products.category')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200, verbose_name="Tên sản phẩm")),
+                ("slug", models.SlugField(max_length=200)),
+                (
+                    "image",
+                    models.ImageField(
+                        blank=True,
+                        upload_to="products/%Y/%m/%d",
+                        verbose_name="Ảnh sản phẩm",
+                    ),
+                ),
+                ("description", models.TextField(blank=True, verbose_name="Mô tả")),
+                (
+                    "price",
+                    models.DecimalField(
+                        decimal_places=0, max_digits=10, verbose_name="Giá tiền"
+                    ),
+                ),
+                ("stock", models.IntegerField(default=0, verbose_name="Số lượng kho")),
+                ("available", models.BooleanField(default=True)),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                ("updated", models.DateTimeField(auto_now=True)),
+                (
+                    "category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="products",
+                        to="products.category",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('-created',),
+                "ordering": ("-created",),
             },
         ),
     ]

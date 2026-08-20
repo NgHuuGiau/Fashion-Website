@@ -1,11 +1,9 @@
-﻿
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -14,37 +12,101 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='VisitorSession',
+            name="VisitorSession",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('session_key', models.CharField(max_length=80, unique=True)),
-                ('is_authenticated', models.BooleanField(default=False)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('user_agent', models.TextField(blank=True)),
-                ('first_seen', models.DateTimeField(auto_now_add=True)),
-                ('last_seen', models.DateTimeField(auto_now=True)),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("session_key", models.CharField(max_length=80, unique=True)),
+                ("is_authenticated", models.BooleanField(default=False)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.TextField(blank=True)),
+                ("first_seen", models.DateTimeField(auto_now_add=True)),
+                ("last_seen", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-last_seen'],
+                "ordering": ["-last_seen"],
             },
         ),
         migrations.CreateModel(
-            name='UserActivity',
+            name="UserActivity",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('event_type', models.CharField(choices=[('page_view', 'Page View'), ('action', 'Action'), ('register', 'Register'), ('login', 'Login'), ('logout', 'Logout'), ('cart_add', 'Cart Add'), ('checkout', 'Checkout')], default='page_view', max_length=20)),
-                ('path', models.CharField(blank=True, max_length=255)),
-                ('method', models.CharField(blank=True, max_length=10)),
-                ('status_code', models.PositiveIntegerField(default=200)),
-                ('metadata', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('visitor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='users.visitorsession')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "event_type",
+                    models.CharField(
+                        choices=[
+                            ("page_view", "Page View"),
+                            ("action", "Action"),
+                            ("register", "Register"),
+                            ("login", "Login"),
+                            ("logout", "Logout"),
+                            ("cart_add", "Cart Add"),
+                            ("checkout", "Checkout"),
+                        ],
+                        default="page_view",
+                        max_length=20,
+                    ),
+                ),
+                ("path", models.CharField(blank=True, max_length=255)),
+                ("method", models.CharField(blank=True, max_length=10)),
+                ("status_code", models.PositiveIntegerField(default=200)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "visitor",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="users.visitorsession",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['event_type', 'created_at'], name='users_usera_event_t_951286_idx'), models.Index(fields=['path', 'created_at'], name='users_usera_path_718dcb_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["event_type", "created_at"],
+                        name="users_usera_event_t_951286_idx",
+                    ),
+                    models.Index(
+                        fields=["path", "created_at"],
+                        name="users_usera_path_718dcb_idx",
+                    ),
+                ],
             },
         ),
     ]
