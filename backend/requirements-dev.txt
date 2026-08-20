@@ -19,7 +19,7 @@ black>=24.0,<25
 isort>=5.13,<5.14
 
 # Security
-bandit>=1.7,<1.8
+bandit>=1.7,<1.10
 pip-audit>=2.7,<2.8
 safety>=3.2,<3.3
 
