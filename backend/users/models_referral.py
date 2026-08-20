@@ -7,18 +7,23 @@ from django.utils import timezone
 
 class ReferralCode(models.Model):
     """Mã giới thiệu - tặng 50K cho người giới thiệu và 50K cho người được giới thiệu"""
-    code = models.CharField(max_length=12, unique=True, db_index=True, verbose_name="Mã code")
+
+    code = models.CharField(
+        max_length=12, unique=True, db_index=True, verbose_name="Mã code"
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="referral_codes",
         on_delete=models.CASCADE,
-        verbose_name="Người sở hữu"
+        verbose_name="Người sở hữu",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     usage_count = models.PositiveIntegerField(default=0)
-    max_usage = models.PositiveIntegerField(default=50, verbose_name="Số lần dùng tối đa")
+    max_usage = models.PositiveIntegerField(
+        default=50, verbose_name="Số lần dùng tối đa"
+    )
 
     class Meta:
         verbose_name = "Mã giới thiệu"
@@ -58,6 +63,7 @@ class ReferralCode(models.Model):
 
 class ReferralReward(models.Model):
     """Ghi nhận phần thưởng referral"""
+
     REWARD_TYPE_CHOICES = [
         ("referrer", "Người giới thiệu"),
         ("referred", "Người được giới thiệu"),
@@ -67,29 +73,31 @@ class ReferralReward(models.Model):
         ReferralCode,
         related_name="rewards",
         on_delete=models.CASCADE,
-        verbose_name="Mã giới thiệu"
+        verbose_name="Mã giới thiệu",
     )
     referrer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="referral_rewards_given",
         on_delete=models.CASCADE,
-        verbose_name="Người giới thiệu"
+        verbose_name="Người giới thiệu",
     )
     referred_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="referral_rewards_received",
         on_delete=models.CASCADE,
-        verbose_name="Người được giới thiệu"
+        verbose_name="Người được giới thiệu",
     )
     reward_type = models.CharField(max_length=10, choices=REWARD_TYPE_CHOICES)
-    amount = models.DecimalField(max_digits=10, decimal_places=0, default=50000, verbose_name="Số tiền (đ)")
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=0, default=50000, verbose_name="Số tiền (đ)"
+    )
     order = models.ForeignKey(
         "orders.Order",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="referral_rewards",
-        verbose_name="Đơn hàng liên quan"
+        verbose_name="Đơn hàng liên quan",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_claimed = models.BooleanField(default=False)

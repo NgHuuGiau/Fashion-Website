@@ -27,16 +27,32 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    category = models.ForeignKey(Category, related_name="products", on_delete=models.CASCADE)
+    category = models.ForeignKey(
+        Category, related_name="products", on_delete=models.CASCADE
+    )
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
     slug = models.SlugField(max_length=200, db_index=True)
-    image = models.ImageField(upload_to="products/%Y/%m/%d", blank=True, verbose_name="Ảnh sản phẩm")
+    image = models.ImageField(
+        upload_to="products/%Y/%m/%d", blank=True, verbose_name="Ảnh sản phẩm"
+    )
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
-    price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Giá tiền", db_index=True)
-    compare_price = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True, verbose_name="Giá gốc (trước khuyến mãi)")
-    stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng kho", db_index=True)
-    available = models.BooleanField(default=True, verbose_name="Đang bán", db_index=True)
+    price = models.DecimalField(
+        max_digits=10, decimal_places=0, verbose_name="Giá tiền", db_index=True
+    )
+    compare_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=0,
+        null=True,
+        blank=True,
+        verbose_name="Giá gốc (trước khuyến mãi)",
+    )
+    stock = models.PositiveIntegerField(
+        default=0, verbose_name="Số lượng kho", db_index=True
+    )
+    available = models.BooleanField(
+        default=True, verbose_name="Đang bán", db_index=True
+    )
     featured = models.BooleanField(default=False, verbose_name="Nổi bật", db_index=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True, db_index=True)
@@ -57,10 +73,16 @@ class Product(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
 
-        return reverse("products:product_detail", kwargs={"pk": self.id, "slug": self.slug})
+        return reverse(
+            "products:product_detail", kwargs={"pk": self.id, "slug": self.slug}
+        )
 
     def _build_placeholder_image(self):
-        category_label = (self.category.name or self.category.slug or "HUUGIAU").upper().replace("-", " ")
+        category_label = (
+            (self.category.name or self.category.slug or "HUUGIAU")
+            .upper()
+            .replace("-", " ")
+        )
         product_label = (self.name or "HUUGIAU").upper()
         svg = f"""
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
@@ -96,7 +118,9 @@ class Product(models.Model):
             return generated_cover
 
         first_gallery_image = list(self.gallery_images.all()[:1])
-        if first_gallery_image and self._media_file_exists(first_gallery_image[0].image.name):
+        if first_gallery_image and self._media_file_exists(
+            first_gallery_image[0].image.name
+        ):
             return first_gallery_image[0].image.url
         return self._build_placeholder_image()
 
@@ -146,11 +170,18 @@ class Product(models.Model):
 
         if not images:
             for generated_image in self._generated_detail_images():
-                self._append_unique_image(images, seen_urls, generated_image["url"], generated_image["is_primary"])
+                self._append_unique_image(
+                    images,
+                    seen_urls,
+                    generated_image["url"],
+                    generated_image["is_primary"],
+                )
 
         if not images:
             if include_primary:
-                self._append_unique_image(images, seen_urls, self._build_placeholder_image(), True)
+                self._append_unique_image(
+                    images, seen_urls, self._build_placeholder_image(), True
+                )
 
         return images[:MAX_PRODUCT_GALLERY_IMAGES]
 
@@ -165,11 +196,20 @@ class Product(models.Model):
         return []
 
     def total_image_count(self):
-        base_count = 1 if (self.image_url or (self.image and self._media_file_exists(self.image.name))) else 0
+        base_count = (
+            1
+            if (
+                self.image_url
+                or (self.image and self._media_file_exists(self.image.name))
+            )
+            else 0
+        )
         return min(MAX_PRODUCT_GALLERY_IMAGES, base_count + self.gallery_images.count())
 
     def get_total_stock(self):
-        variant_stock = self.variants.filter(is_active=True).aggregate(total=Sum("stock"))["total"]
+        variant_stock = self.variants.filter(is_active=True).aggregate(
+            total=Sum("stock")
+        )["total"]
         if variant_stock is not None:
             return variant_stock
         return self.stock
@@ -179,7 +219,11 @@ class Product(models.Model):
         from orders.models import OrderItem
 
         # Tìm các đơn hàng chứa sản phẩm này
-        order_ids = OrderItem.objects.filter(product=self).values_list("order_id", flat=True).distinct()
+        order_ids = (
+            OrderItem.objects.filter(product=self)
+            .values_list("order_id", flat=True)
+            .distinct()
+        )
 
         # Tìm sản phẩm khác trong cùng đơn hàng
         cross_sell_ids = (
@@ -192,17 +236,25 @@ class Product(models.Model):
 
         ids = [item["product_id"] for item in cross_sell_ids]
         return Product.objects.filter(id__in=ids, available=True).only(
-            "id", "name", "slug", "price", "discount_percent", "image", "image_url"
+            "id", "name", "slug", "price", "image", "image_url"
         )
 
 
 class ProductVariant(models.Model):
-    product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, related_name="variants", on_delete=models.CASCADE
+    )
     color_name = models.CharField(max_length=50, verbose_name="Màu sắc", db_index=True)
-    color_code = models.CharField(max_length=20, default="#111111", verbose_name="Mã màu")
+    color_code = models.CharField(
+        max_length=20, default="#111111", verbose_name="Mã màu"
+    )
     size = models.CharField(max_length=20, verbose_name="Size", db_index=True)
-    stock = models.PositiveIntegerField(default=0, verbose_name="Tồn kho", db_index=True)
-    is_active = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    stock = models.PositiveIntegerField(
+        default=0, verbose_name="Tồn kho", db_index=True
+    )
+    is_active = models.BooleanField(
+        default=True, verbose_name="Hiển thị", db_index=True
+    )
 
     class Meta:
         ordering = ["color_name", "size"]
@@ -213,9 +265,15 @@ class ProductVariant(models.Model):
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, related_name="gallery_images", on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="products/gallery/%Y/%m/%d", verbose_name="Ảnh gallery")
-    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Thứ tự", db_index=True)
+    product = models.ForeignKey(
+        Product, related_name="gallery_images", on_delete=models.CASCADE
+    )
+    image = models.ImageField(
+        upload_to="products/gallery/%Y/%m/%d", verbose_name="Ảnh gallery"
+    )
+    sort_order = models.PositiveSmallIntegerField(
+        default=0, verbose_name="Thứ tự", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -228,8 +286,14 @@ class ProductImage(models.Model):
 
 
 class WishlistItem(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishlist_items")
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="wishlist_items")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="wishlist_items"
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -245,15 +309,29 @@ class WishlistItem(models.Model):
 class Review(models.Model):
     RATING_CHOICES = [(i, f"{i} sao") for i in range(1, 6)]
 
-    product = models.ForeignKey(Product, related_name="reviews", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE)
-    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Số sao", db_index=True)
+    product = models.ForeignKey(
+        Product, related_name="reviews", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="reviews", on_delete=models.CASCADE
+    )
+    rating = models.PositiveSmallIntegerField(
+        choices=RATING_CHOICES, verbose_name="Số sao", db_index=True
+    )
     comment = models.TextField(blank=True, verbose_name="Nội dung đánh giá")
     shop_reply = models.TextField(blank=True, verbose_name="Shop phản hồi")
-    customer_reply = models.TextField(blank=True, verbose_name="Khách hàng phản hồi shop")
-    image = models.ImageField(upload_to="reviews/%Y/%m/%d", blank=True, verbose_name="Ảnh kèm đánh giá")
-    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
-    verified_purchase = models.BooleanField(default=False, verbose_name="Đã mua hàng", db_index=True)
+    customer_reply = models.TextField(
+        blank=True, verbose_name="Khách hàng phản hồi shop"
+    )
+    image = models.ImageField(
+        upload_to="reviews/%Y/%m/%d", blank=True, verbose_name="Ảnh kèm đánh giá"
+    )
+    is_published = models.BooleanField(
+        default=True, verbose_name="Hiển thị", db_index=True
+    )
+    verified_purchase = models.BooleanField(
+        default=False, verbose_name="Đã mua hàng", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -294,7 +372,9 @@ class SupportFAQ(models.Model):
 
 class NewsletterSubscriber(models.Model):
     email = models.EmailField(unique=True, verbose_name="Email")
-    is_active = models.BooleanField(default=True, verbose_name="Đang nhận tin", db_index=True)
+    is_active = models.BooleanField(
+        default=True, verbose_name="Đang nhận tin", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -309,11 +389,15 @@ class NewsletterSubscriber(models.Model):
 
 class BlogPost(models.Model):
     title = models.CharField(max_length=200, verbose_name="Tiêu đề")
-    slug = models.SlugField(max_length=220, unique=True, db_index=True, verbose_name="Slug")
+    slug = models.SlugField(
+        max_length=220, unique=True, db_index=True, verbose_name="Slug"
+    )
     excerpt = models.CharField(max_length=300, blank=True, verbose_name="Mô tả ngắn")
     body = models.TextField(verbose_name="Nội dung")
     cover_image_url = models.URLField(blank=True, verbose_name="URL ảnh bìa")
-    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    is_published = models.BooleanField(
+        default=True, verbose_name="Hiển thị", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -328,11 +412,19 @@ class BlogPost(models.Model):
 
 
 class ProductQuestion(models.Model):
-    product = models.ForeignKey(Product, related_name="questions", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="product_questions", on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, related_name="questions", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="product_questions",
+        on_delete=models.CASCADE,
+    )
     question = models.TextField(verbose_name="Câu hỏi")
     answer = models.TextField(blank=True, verbose_name="Trả lời")
-    is_published = models.BooleanField(default=True, verbose_name="Hiển thị", db_index=True)
+    is_published = models.BooleanField(
+        default=True, verbose_name="Hiển thị", db_index=True
+    )
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     answered_at = models.DateTimeField(null=True, blank=True)
     updated = models.DateTimeField(auto_now=True)
@@ -353,7 +445,9 @@ class ProductQuestion(models.Model):
 
 
 class BackInStock(models.Model):
-    product = models.ForeignKey(Product, related_name="back_in_stock_requests", on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, related_name="back_in_stock_requests", on_delete=models.CASCADE
+    )
     email = models.EmailField(max_length=254, verbose_name="Email")
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     notified = models.BooleanField(default=False, verbose_name="Đã gửi thông báo")
@@ -363,7 +457,9 @@ class BackInStock(models.Model):
         verbose_name_plural = "Báo khi có hàng"
         ordering = ["-created"]
         constraints = [
-            models.UniqueConstraint(fields=["product", "email"], name="unique_backinstock_product_email")
+            models.UniqueConstraint(
+                fields=["product", "email"], name="unique_backinstock_product_email"
+            )
         ]
 
     def __str__(self):

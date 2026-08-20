@@ -1,4 +1,4 @@
-﻿from django.conf import settings
+from django.conf import settings
 from django.contrib import admin
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -19,12 +19,10 @@ from .models import (
 
 
 @admin.register(Category)
-
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
-
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -34,9 +32,16 @@ class ProductVariantInline(admin.TabularInline):
 
 
 @admin.register(Product)
-
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price", "stock", "available", "featured", "updated")
+    list_display = (
+        "name",
+        "category",
+        "price",
+        "stock",
+        "available",
+        "featured",
+        "updated",
+    )
     list_filter = ("available", "featured", "category", "updated")
     list_editable = ("price", "stock", "available", "featured")
     prepopulated_fields = {"slug": ("name",)}
@@ -45,7 +50,6 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductVariant)
-
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("product", "color_name", "size", "stock", "is_active")
     list_filter = ("is_active", "color_name", "size")
@@ -53,7 +57,6 @@ class ProductVariantAdmin(admin.ModelAdmin):
 
 
 @admin.register(WishlistItem)
-
 class WishlistItemAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "created")
     list_filter = ("created",)
@@ -61,7 +64,6 @@ class WishlistItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(SupportFAQ)
-
 class SupportFAQAdmin(admin.ModelAdmin):
     list_display = ("question", "priority", "is_active", "updated")
     list_filter = ("is_active",)
@@ -70,9 +72,16 @@ class SupportFAQAdmin(admin.ModelAdmin):
 
 
 @admin.register(Review)
-
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("product", "user", "rating", "shop_reply", "verified_purchase", "is_published", "created")
+    list_display = (
+        "product",
+        "user",
+        "rating",
+        "shop_reply",
+        "verified_purchase",
+        "is_published",
+        "created",
+    )
     list_filter = ("rating", "is_published", "verified_purchase", "created")
     list_editable = ("is_published", "rating")
     search_fields = ("product__name", "user__username", "comment", "shop_reply")
@@ -80,7 +89,6 @@ class ReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(BlogPost)
-
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = ("title", "is_published", "created", "updated")
     list_filter = ("is_published", "created")
@@ -90,7 +98,6 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 
 @admin.register(NewsletterSubscriber)
-
 class NewsletterSubscriberAdmin(admin.ModelAdmin):
     list_display = ("email", "is_active", "created")
     list_filter = ("is_active", "created")
@@ -99,9 +106,15 @@ class NewsletterSubscriberAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductQuestion)
-
 class ProductQuestionAdmin(admin.ModelAdmin):
-    list_display = ("product", "user", "question", "is_published", "answered_at", "created")
+    list_display = (
+        "product",
+        "user",
+        "question",
+        "is_published",
+        "answered_at",
+        "created",
+    )
     list_filter = ("is_published", "created")
     list_editable = ("is_published",)
     search_fields = ("question", "answer", "product__name", "user__username")
@@ -114,7 +127,6 @@ class ProductQuestionAdmin(admin.ModelAdmin):
 
 
 @admin.register(BackInStock)
-
 class BackInStockAdmin(admin.ModelAdmin):
     list_display = ("product", "email", "notified", "created")
     list_filter = ("notified", "created")
@@ -130,9 +142,15 @@ class BackInStockAdmin(admin.ModelAdmin):
             if sub.product.stock <= 0 or not settings.EMAIL_HOST:
                 continue
             url = request.build_absolute_uri(
-                reverse("products:product_detail", kwargs={"pk": sub.product.id, "slug": sub.product.slug})
+                reverse(
+                    "products:product_detail",
+                    kwargs={"pk": sub.product.id, "slug": sub.product.slug},
+                )
             )
-            html = render_to_string("emails/back_in_stock.html", {"product": sub.product, "product_url": url})
+            html = render_to_string(
+                "emails/back_in_stock.html",
+                {"product": sub.product, "product_url": url},
+            )
             msg = EmailMultiAlternatives(
                 subject=f"Hàng đã về — {sub.product.name} — HUUGIAU Studio",
                 body=f"Hàng đã về: {sub.product.name}",

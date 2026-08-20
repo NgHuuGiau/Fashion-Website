@@ -13,6 +13,7 @@ Cách dùng:
     python run_local.py 127.0.0.1 8000
     python run_local.py 127.0.0.1 8000 --http   # chỉ HTTP, không dùng TLS
 """
+
 import ipaddress
 import os
 import sys
@@ -93,7 +94,9 @@ def _main_uvicorn(host, port, use_tls):
     display_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
     print(f"Dev server đang chạy: {scheme}://{display_host}:{port}/  (Ctrl+C để tắt)")
     if use_tls:
-        print("Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được.")
+        print(
+            "Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được."
+        )
     uvicorn.run(application, host=host, port=port, log_level="warning", **kwargs)
 
 
@@ -131,7 +134,9 @@ def _main_wsgiref(host, port, use_tls):
     display_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
     print(f"Dev server đang chạy: {scheme}://{display_host}:{port}/  (Ctrl+C để tắt)")
     if use_tls:
-        print("Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được.")
+        print(
+            "Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được."
+        )
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

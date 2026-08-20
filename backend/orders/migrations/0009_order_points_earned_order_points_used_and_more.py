@@ -4,25 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0008_coupon_max_uses_per_user_couponredemption'),
+        ("orders", "0008_coupon_max_uses_per_user_couponredemption"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='points_earned',
-            field=models.PositiveIntegerField(default=0, verbose_name='Điểm tích được'),
+            model_name="order",
+            name="points_earned",
+            field=models.PositiveIntegerField(default=0, verbose_name="Điểm tích được"),
         ),
         migrations.AddField(
-            model_name='order',
-            name='points_used',
-            field=models.PositiveIntegerField(default=0, verbose_name='Điểm đã dùng'),
+            model_name="order",
+            name="points_used",
+            field=models.PositiveIntegerField(default=0, verbose_name="Điểm đã dùng"),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='payment_method',
-            field=models.CharField(choices=[('cod', 'Thanh toán khi nhận hàng'), ('bank', 'Chuyển khoản ngân hàng'), ('vnpay', 'Thanh toán VNPay')], db_index=True, default='cod', max_length=20),
+            model_name="order",
+            name="payment_method",
+            field=models.CharField(
+                choices=[
+                    ("cod", "Thanh toán khi nhận hàng"),
+                    ("bank", "Chuyển khoản ngân hàng"),
+                    ("vnpay", "Thanh toán VNPay"),
+                ],
+                db_index=True,
+                default="cod",
+                max_length=20,
+            ),
         ),
     ]

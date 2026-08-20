@@ -27,7 +27,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         reviews = list(
-            Review.objects.filter(is_published=True, image="").select_related("product").order_by("?")[:12]
+            Review.objects.filter(is_published=True, image="")
+            .select_related("product")
+            .order_by("?")[:12]
         )
         photo_dir = Path("frontend/static/images/reviews")
         photo_dir.mkdir(parents=True, exist_ok=True)

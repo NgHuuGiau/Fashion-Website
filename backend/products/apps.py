@@ -1,6 +1,5 @@
-﻿from django.apps import AppConfig
-
+from django.apps import AppConfig
 
 
 class ProductsConfig(AppConfig):
-    name = 'products'
+    name = "products"

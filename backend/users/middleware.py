@@ -1,6 +1,5 @@
-﻿from .activity import log_activity
+from .activity import log_activity
 from .models import VisitorSession
-
 
 
 class VisitorTrackingMiddleware:
@@ -14,17 +13,20 @@ class VisitorTrackingMiddleware:
         request.visitor_session = self._bind_visitor(request)
         response = self.get_response(request)
 
-        if not request.path.startswith("/static/") and not request.path.startswith("/media/"):
+        if not request.path.startswith("/static/") and not request.path.startswith(
+            "/media/"
+        ):
             event_type = "page_view" if request.method == "GET" else "action"
             log_activity(
                 request,
                 event_type=event_type,
-                metadata={"query": request.GET.dict() if request.method == "GET" else {}},
+                metadata={
+                    "query": request.GET.dict() if request.method == "GET" else {}
+                },
                 status_code=getattr(response, "status_code", 200),
             )
 
         return response
-
 
     def _bind_visitor(self, request):
         session_key = request.session.session_key
@@ -68,7 +70,6 @@ class VisitorTrackingMiddleware:
         return visitor
 
     @staticmethod
-
     def _get_ip(request):
         forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
         if forwarded:

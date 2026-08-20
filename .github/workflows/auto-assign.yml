@@ -17,7 +17,7 @@ jobs:
         uses: posva/auto-assign-action@v2
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          assignees: "huugiau-backend,huugiau-frontend,huugiau-devops"
+          assignees: "NgHuuGiau"
           num-of-assignees: 2
           skip-keywords: "wip,draft,do not merge,do-not-merge"
           allow-self-assignment: false

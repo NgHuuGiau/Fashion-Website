@@ -39,6 +39,9 @@ class CategorySitemap(Sitemap):
     def items(self):
         return Category.objects.all().only("id", "slug")
 
+    def location(self, item):
+        return reverse("products:product_list") + f"?category={item.slug}"
+
 
 class BlogSitemap(Sitemap):
     priority = 0.8
@@ -46,6 +49,9 @@ class BlogSitemap(Sitemap):
 
     def items(self):
         return BlogPost.objects.filter(is_published=True).only("id", "slug", "updated")
+
+    def location(self, item):
+        return reverse("products:blog_detail", kwargs={"slug": item.slug})
 
     def lastmod(self, obj):
         return obj.updated or obj.created

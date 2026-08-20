@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -7,9 +7,7 @@ from django.urls import reverse
 from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
 
 
-
 class ProductViewsTest(TestCase):
-
     def setUp(self):
         self.ao = Category.objects.create(name="Áo", slug="ao")
         self.quan = Category.objects.create(name="Quần", slug="quan")
@@ -61,19 +59,16 @@ class ProductViewsTest(TestCase):
             is_active=True,
         )
 
-
     def test_product_list_page_ok(self):
         response = self.client.get(reverse("products:product_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
 
-
     def test_product_list_excludes_unavailable(self):
         response = self.client.get(reverse("products:product_list"))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Ẩn test")
-
 
     def test_product_list_filter_by_category(self):
         response = self.client.get(reverse("products:product_list"), {"category": "ao"})
@@ -81,11 +76,11 @@ class ProductViewsTest(TestCase):
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
 
-
     def test_product_list_filter_by_invalid_category_returns_404(self):
-        response = self.client.get(reverse("products:product_list"), {"category": "khong-ton-tai"})
+        response = self.client.get(
+            reverse("products:product_list"), {"category": "khong-ton-tai"}
+        )
         self.assertEqual(response.status_code, 404)
-
 
     def test_product_list_keyword_search(self):
         response = self.client.get(reverse("products:product_list"), {"q": "quần"})
@@ -93,35 +88,38 @@ class ProductViewsTest(TestCase):
         self.assertContains(response, "Quần test")
         self.assertNotContains(response, "Áo test")
 
-
     def test_product_list_keyword_search_without_accent_and_case(self):
         response = self.client.get(reverse("products:product_list"), {"q": "AO"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
 
-
     def test_product_list_filter_by_price_range(self):
-        response = self.client.get(reverse("products:product_list"), {"min_price": "300000", "max_price": "399000"})
+        response = self.client.get(
+            reverse("products:product_list"),
+            {"min_price": "300000", "max_price": "399000"},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
-
 
     def test_product_list_filter_by_dotted_price_range(self):
-        response = self.client.get(reverse("products:product_list"), {"min_price": "300.000", "max_price": "399.000"})
+        response = self.client.get(
+            reverse("products:product_list"),
+            {"min_price": "300.000", "max_price": "399.000"},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
 
-
     def test_product_list_sort_price_desc(self):
-        response = self.client.get(reverse("products:product_list"), {"sort": "price_desc", "min_price": "1"})
+        response = self.client.get(
+            reverse("products:product_list"), {"sort": "price_desc", "min_price": "1"}
+        )
         self.assertEqual(response.status_code, 200)
         products = response.context["products"]
         self.assertGreaterEqual(len(products), 2)
         self.assertEqual(products[0].id, self.product_quan.id)
-
 
     def test_product_list_has_pagination_context(self):
         for i in range(20):
@@ -135,30 +133,39 @@ class ProductViewsTest(TestCase):
                 available=True,
             )
 
-        response = self.client.get(reverse("products:product_list"), {"sort": "name_asc", "min_price": "1", "page": 2})
+        response = self.client.get(
+            reverse("products:product_list"),
+            {"sort": "name_asc", "min_price": "1", "page": 2},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["products"].number, 2)
         self.assertTrue(response.context["products"].has_previous())
 
-
     def test_product_detail_page_ok(self):
         response = self.client.get(
-            reverse("products:product_detail", kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug})
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug},
+            )
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
 
-
     def test_product_detail_404_when_wrong_slug(self):
         response = self.client.get(
-            reverse("products:product_detail", kwargs={"pk": self.product_ao.id, "slug": "sai-slug"})
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product_ao.id, "slug": "sai-slug"},
+            )
         )
         self.assertEqual(response.status_code, 404)
 
-
     def test_product_detail_context_contains_variant_json_and_default(self):
         response = self.client.get(
-            reverse("products:product_detail", kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug})
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug},
+            )
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["requires_variant"])
@@ -169,7 +176,6 @@ class ProductViewsTest(TestCase):
         self.assertGreaterEqual(len(payload), 2)
         self.assertIn("color_name", payload[0])
         self.assertIn("size", payload[0])
-
 
     def test_accessory_detail_does_not_require_variant(self):
         accessory = Product.objects.create(
@@ -182,15 +188,16 @@ class ProductViewsTest(TestCase):
             available=True,
         )
         response = self.client.get(
-            reverse("products:product_detail", kwargs={"pk": accessory.id, "slug": accessory.slug})
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": accessory.id, "slug": accessory.slug},
+            )
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["requires_variant"])
 
 
-
 class WishlistFeatureTest(TestCase):
-
     def setUp(self):
         self.category = Category.objects.create(name="Áo", slug="ao")
         self.product = Product.objects.create(
@@ -202,31 +209,39 @@ class WishlistFeatureTest(TestCase):
             stock=5,
             available=True,
         )
-        self.user = User.objects.create_user(username="wishuser", password="StrongPass123@")
-
+        self.user = User.objects.create_user(
+            username="wishuser", password="StrongPass123@"
+        )
 
     def test_wishlist_requires_login(self):
         response = self.client.get(reverse("products:wishlist_list"))
         self.assertEqual(response.status_code, 302)
 
-
     def test_toggle_wishlist_add_and_remove(self):
         self.client.login(username="wishuser", password="StrongPass123@")
 
-        add_response = self.client.post(reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id}))
+        add_response = self.client.post(
+            reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id})
+        )
         self.assertEqual(add_response.status_code, 302)
-        self.assertTrue(WishlistItem.objects.filter(user=self.user, product=self.product).exists())
+        self.assertTrue(
+            WishlistItem.objects.filter(user=self.user, product=self.product).exists()
+        )
 
-        remove_response = self.client.post(reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id}))
+        remove_response = self.client.post(
+            reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id})
+        )
         self.assertEqual(remove_response.status_code, 302)
-        self.assertFalse(WishlistItem.objects.filter(user=self.user, product=self.product).exists())
-
+        self.assertFalse(
+            WishlistItem.objects.filter(user=self.user, product=self.product).exists()
+        )
 
     def test_wishlist_toggle_get_not_allowed(self):
         self.client.login(username="wishuser", password="StrongPass123@")
-        response = self.client.get(reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id}))
+        response = self.client.get(
+            reverse("products:wishlist_toggle", kwargs={"product_id": self.product.id})
+        )
         self.assertEqual(response.status_code, 405)
-
 
     def test_wishlist_list_shows_items(self):
         WishlistItem.objects.create(user=self.user, product=self.product)
@@ -237,9 +252,7 @@ class WishlistFeatureTest(TestCase):
         self.assertContains(response, "Áo wishlist")
 
 
-
 class SupportChatApiTest(TestCase):
-
     def setUp(self):
         SupportFAQ.objects.create(
             question="Bao hanh ra sao?",
@@ -249,33 +262,36 @@ class SupportChatApiTest(TestCase):
             is_active=True,
         )
 
-
     def test_support_chat_reply_matches_database(self):
-        response = self.client.get(reverse("products:support_chat_reply"), {"q": "San pham co bao hanh loi ky thuat khong"})
+        response = self.client.get(
+            reverse("products:support_chat_reply"),
+            {"q": "San pham co bao hanh loi ky thuat khong"},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["reply"], "Shop ho tro bao hanh loi ky thuat.")
-
 
     def test_support_chat_reply_empty_question_rejected(self):
         response = self.client.get(reverse("products:support_chat_reply"), {"q": ""})
         self.assertEqual(response.status_code, 400)
 
-
     def test_support_chat_reply_can_recommend_size(self):
-        response = self.client.get(reverse("products:support_chat_reply"), {"q": "Mình cao 1m72 nặng 68kg mặc size gì?"})
+        response = self.client.get(
+            reverse("products:support_chat_reply"),
+            {"q": "Mình cao 1m72 nặng 68kg mặc size gì?"},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIn("size", response.json()["reply"].lower())
         self.assertIn("68kg", response.json()["reply"])
 
-
     def test_support_chat_reply_asks_for_missing_weight(self):
-        response = self.client.get(reverse("products:support_chat_reply"), {"q": "Mình cao 1m68 mặc size gì?"})
+        response = self.client.get(
+            reverse("products:support_chat_reply"), {"q": "Mình cao 1m68 mặc size gì?"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIn("cân nặng", response.json()["reply"].lower())
 
 
 class SearchSuggestTest(TestCase):
-
     def setUp(self):
         self.category = Category.objects.create(name="Áo", slug="ao")
         Product.objects.create(
@@ -353,125 +369,149 @@ class SearchSuggestTest(TestCase):
 
 
 class ChatServiceUnitTest(TestCase):
-
     def test_has_any_keyword_match(self):
         from .services.chat_service import has_any_keyword
+
         self.assertTrue(has_any_keyword("chao ban", ("chao", "hello")))
 
     def test_has_any_keyword_no_match(self):
         from .services.chat_service import has_any_keyword
+
         self.assertFalse(has_any_keyword("goodbye", ("chao", "hello")))
 
     def test_has_any_keyword_empty_message(self):
         from .services.chat_service import has_any_keyword
+
         self.assertFalse(has_any_keyword("", ("chao", "hello")))
 
     def test_extract_height_cm_172cm(self):
         from .services.chat_service import extract_height_cm
+
         self.assertEqual(extract_height_cm("Tôi cao 172cm"), 172)
 
     def test_extract_height_cm_1m72(self):
         from .services.chat_service import extract_height_cm
+
         self.assertEqual(extract_height_cm("Tôi cao 1m72"), 172)
 
     def test_extract_height_cm_no_match(self):
         from .services.chat_service import extract_height_cm
+
         self.assertIsNone(extract_height_cm("Tôi cao"))
 
     def test_extract_weight_kg_68kg(self):
         from .services.chat_service import extract_weight_kg
+
         self.assertEqual(extract_weight_kg("Tôi nặng 68kg"), 68)
 
     def test_extract_weight_kg_no_match(self):
         from .services.chat_service import extract_weight_kg
+
         self.assertIsNone(extract_weight_kg("Tôi nặng"))
 
     def test_build_size_recommendation_s(self):
         from .services.chat_service import build_size_recommendation
+
         result = build_size_recommendation(158, 48)
         self.assertIn("S", result)
 
     def test_build_size_recommendation_m(self):
         from .services.chat_service import build_size_recommendation
+
         result = build_size_recommendation(165, 58)
         self.assertIn("M", result)
 
     def test_build_size_recommendation_l(self):
         from .services.chat_service import build_size_recommendation
+
         result = build_size_recommendation(172, 68)
         self.assertIn("L", result)
 
     def test_build_size_recommendation_xl(self):
         from .services.chat_service import build_size_recommendation
+
         result = build_size_recommendation(178, 76)
         self.assertIn("XL", result)
 
     def test_build_size_recommendation_xxl(self):
         from .services.chat_service import build_size_recommendation
+
         result = build_size_recommendation(185, 85)
         self.assertIn("XXL", result)
 
     def test_detect_topic_size(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("toi cao 1m72 mac size gi"), "size")
 
     def test_detect_topic_shipping(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("phi ship bao nhieu"), "shipping")
 
     def test_detect_topic_payment(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("thanh toan chuyen khoan duoc khong"), "payment")
 
     def test_detect_topic_empty(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("troi dep qua"), "")
 
     def test_greeting_reply(self):
         from .services.chat_service import build_greeting_reply
+
         self.assertIn("Chào bạn", build_greeting_reply())
 
     def test_thanks_reply(self):
         from .services.chat_service import build_thanks_reply
+
         self.assertIn("cần chốt size", build_thanks_reply())
 
     def test_human_support_reply(self):
         from .services.chat_service import build_human_support_reply
+
         self.assertIn("câu hỏi cụ thể", build_human_support_reply())
 
     def test_size_support_reply_not_size_topic(self):
         from .services.chat_service import build_size_support_reply
+
         result = build_size_support_reply("troi dep qua", state={"topic": "style"})
         self.assertIsNone(result)
 
     def test_size_support_reply_needs_both(self):
         from .services.chat_service import build_size_support_reply
+
         result = build_size_support_reply("size")
         self.assertIn("gửi theo mẫu", result)
 
     def test_size_support_reply_only_height(self):
         from .services.chat_service import build_size_support_reply
+
         result = build_size_support_reply("cao 1m72")
         self.assertIn("cân nặng", result)
 
     def test_find_support_reply_greeting(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("Chào shop")
         self.assertIn("Chào bạn", result)
 
     def test_find_support_reply_thanks(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("Cảm ơn shop")
         self.assertIn("cần chốt size", result)
 
     def test_find_support_reply_fallback(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("abcxyz")
         self.assertIn("hỗ trợ về size", result)
 
 
 class ProductModelTest(TestCase):
-
     def setUp(self):
         self.ao_category = Category.objects.create(name="Áo", slug="ao")
         self.pk_category = Category.objects.create(name="Phụ kiện", slug="phu-kien")
@@ -516,74 +556,88 @@ class ProductModelTest(TestCase):
 
 
 class ChatServiceCoverageTest(TestCase):
-
     def test_find_support_reply_human_support(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("cần nhân viên tư vấn")
         self.assertIn("hỗ trợ ngay", result)
 
     def test_find_support_reply_style_recommend(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("tư vấn cách phối đồ")
         self.assertIn("phối", result)
 
     def test_find_support_reply_stock_question(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("còn hàng không?")
         self.assertIn("tồn kho", result)
 
     def test_detect_topic_order(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("theo doi don cua toi"), "order")
 
     def test_detect_topic_return(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("muon doi tra hang"), "return")
 
     def test_detect_topic_style(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("cach phoi do dep"), "style")
 
     def test_detect_topic_stock(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("con hang khong"), "stock")
 
     def test_detect_topic_human(self):
         from .services.chat_service import detect_topic
+
         self.assertEqual(detect_topic("can nhan vien tu van"), "human")
 
     def test_faq_ship_reply(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("van chuyen toan quoc khong")
         self.assertIn("freeship toàn quốc", result)
 
     def test_faq_payment_reply(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("thanh toan sao")
         self.assertIn("chuyển khoản ngân hàng", result)
 
     def test_faq_track_reply(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("theo doi don the nao")
         self.assertIn("Đơn hàng", result)
 
     def test_faq_return_reply(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("can doi tra the nao")
         self.assertIn("liên hệ", result)
 
     def test_faq_size_reply_via_keyword(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("chat lieu the nao")
         self.assertIn("chiều cao", result)
 
     def test_build_size_support_reply_weight_only(self):
         from .services.chat_service import build_size_support_reply
+
         result = build_size_support_reply("tôi nặng 60kg")
         self.assertIn("chiều cao", result)
 
     def test_find_support_reply_with_db_faq_scoring(self):
         from .models import SupportFAQ
+
         SupportFAQ.objects.create(
             question="Hàng có bảo hành không?",
             keywords="bao hanh,loi ky thuat",
@@ -592,11 +646,13 @@ class ChatServiceCoverageTest(TestCase):
             is_active=True,
         )
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("san pham co bao hanh khong")
         self.assertEqual(result, "Có bảo hành 30 ngày.")
 
     def test_product_matches_keyword(self):
         from .services.chat_service import product_matches_keyword
+
         product = Product.objects.create(
             category=Category.objects.create(name="Áo", slug="ao2"),
             name="Áo hoodie",
@@ -609,31 +665,41 @@ class ChatServiceCoverageTest(TestCase):
 
     def test_extract_height_1m7_single_suffix(self):
         from .services.chat_service import extract_height_cm
+
         self.assertEqual(extract_height_cm("tôi cao 1m7"), 170)
 
     def test_extract_height_1m72_double_suffix(self):
         from .services.chat_service import extract_height_cm
+
         self.assertEqual(extract_height_cm("tôi cao 1m72"), 172)
 
     def test_extract_weight_kg_invalid_range(self):
         from .services.chat_service import extract_weight_kg
+
         self.assertIsNone(extract_weight_kg("nặng 200kg"))
 
     def test_build_style_reply(self):
         from .services.chat_service import build_style_reply
+
         self.assertIn("phối", build_style_reply())
 
     def test_build_stock_reply(self):
         from .services.chat_service import build_stock_reply
+
         self.assertIn("tồn kho", build_stock_reply())
 
     def test_product_stock_reply_for_named_product(self):
         category = Category.objects.create(name="Áo", slug="ao-chat")
         Product.objects.create(
-            category=category, name="Áo khoác da", slug="ao-khoac-da-chat",
-            price=900000, stock=4, available=True,
+            category=category,
+            name="Áo khoác da",
+            slug="ao-khoac-da-chat",
+            price=900000,
+            stock=4,
+            available=True,
         )
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("áo khoác da còn hàng không?")
         self.assertIn("Áo khoác da", result)
         self.assertIn("còn hàng", result)
@@ -641,10 +707,15 @@ class ChatServiceCoverageTest(TestCase):
     def test_product_price_reply_for_named_product(self):
         category = Category.objects.create(name="Áo", slug="ao-chat2")
         Product.objects.create(
-            category=category, name="Áo khoác da", slug="ao-khoac-da-chat2",
-            price=900000, stock=4, available=True,
+            category=category,
+            name="Áo khoác da",
+            slug="ao-khoac-da-chat2",
+            price=900000,
+            stock=4,
+            available=True,
         )
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("áo khoác da giá bao nhiêu?")
         self.assertIn("Áo khoác da", result)
         self.assertIn("900.000", result)
@@ -652,16 +723,22 @@ class ChatServiceCoverageTest(TestCase):
     def test_product_reply_notes_out_of_stock(self):
         category = Category.objects.create(name="Áo", slug="ao-chat3")
         Product.objects.create(
-            category=category, name="Áo khoác da", slug="ao-khoac-da-chat3",
-            price=900000, stock=0, available=True,
+            category=category,
+            name="Áo khoác da",
+            slug="ao-khoac-da-chat3",
+            price=900000,
+            stock=0,
+            available=True,
         )
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("áo khoác da còn không?")
         self.assertIn("Áo khoác da", result)
         self.assertIn("hết hàng", result)
 
     def test_build_support_reply_returns_suggestions(self):
         from .services.chat_service import build_support_reply
+
         result = build_support_reply("Chào shop")
         self.assertIn("reply", result)
         self.assertIn("suggestions", result)
@@ -669,11 +746,14 @@ class ChatServiceCoverageTest(TestCase):
 
     def test_coupon_intent_reply(self):
         from .services.chat_service import find_support_reply
+
         result = find_support_reply("có mã giảm giá không?")
         self.assertIn("mã giảm giá", result)
 
     def test_chat_endpoint_returns_suggestions(self):
-        response = self.client.get(reverse("products:support_chat_reply"), {"q": "chào shop"})
+        response = self.client.get(
+            reverse("products:support_chat_reply"), {"q": "chào shop"}
+        )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("reply", payload)
@@ -681,12 +761,15 @@ class ChatServiceCoverageTest(TestCase):
 
 
 class ProductModelMethodTest(TestCase):
-
     def setUp(self):
         self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
         self.product = Product.objects.create(
-            category=self.pk, name="Mũ placeholder", slug="mu-placeholder",
-            price=100000, stock=5, available=True,
+            category=self.pk,
+            name="Mũ placeholder",
+            slug="mu-placeholder",
+            price=100000,
+            stock=5,
+            available=True,
         )
 
     def test_category_str(self):
@@ -738,39 +821,52 @@ class ProductModelMethodTest(TestCase):
 
     def test_product_image_str(self):
         from .models import ProductImage
+
         image = ProductImage.objects.create(product=self.product, sort_order=1)
         self.assertIn("Mũ placeholder", str(image))
 
     def test_wishlist_item_str(self):
         from django.contrib.auth.models import User
         from .models import WishlistItem
+
         user = User.objects.create_user(username="wishstr", password="StrongPass123!")
         item = WishlistItem.objects.create(user=user, product=self.product)
         self.assertIn("Mũ placeholder", str(item))
 
     def test_support_faq_str(self):
         from .models import SupportFAQ
+
         faq = SupportFAQ.objects.create(question="Q test", answer="A", priority=1)
         self.assertEqual(str(faq), "Q test")
 
     def test_product_variant_str(self):
         from .models import ProductVariant
+
         variant = ProductVariant.objects.create(
-            product=self.product, color_name="Den", color_code="#111111", size="M", stock=2, is_active=True,
+            product=self.product,
+            color_name="Den",
+            color_code="#111111",
+            size="M",
+            stock=2,
+            is_active=True,
         )
         self.assertIn("Den", str(variant))
 
 
 class ProductGeneratedAssetTest(TestCase):
-
     SLUG = "asset-generated-unique"
 
     def setUp(self):
         from django.conf import settings
+
         self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
         self.product = Product.objects.create(
-            category=self.pk, name="Asset", slug=self.SLUG,
-            price=1, stock=1, available=True,
+            category=self.pk,
+            name="Asset",
+            slug=self.SLUG,
+            price=1,
+            stock=1,
+            available=True,
         )
         self.gen_dir = settings.MEDIA_ROOT / "products" / "generated" / self.SLUG
         self.gen_dir.mkdir(parents=True, exist_ok=True)
@@ -780,15 +876,20 @@ class ProductGeneratedAssetTest(TestCase):
 
     def tearDown(self):
         import shutil
+
         shutil.rmtree(self.gen_dir, ignore_errors=True)
 
     def test_get_image_returns_generated_cover(self):
         from django.conf import settings
+
         url = self.product.get_image()
-        self.assertEqual(url, f"{settings.MEDIA_URL}products/generated/{self.SLUG}/cover.svg")
+        self.assertEqual(
+            url, f"{settings.MEDIA_URL}products/generated/{self.SLUG}/cover.svg"
+        )
 
     def test_build_generated_asset_url_exists(self):
         from django.conf import settings
+
         url = self.product._build_generated_asset_url("detail-1.svg")
         self.assertTrue(url.startswith(settings.MEDIA_URL))
 
@@ -811,7 +912,6 @@ class ProductGeneratedAssetTest(TestCase):
 
 
 class ReviewTest(TestCase):
-
     def setUp(self):
         self.category = Category.objects.create(name="Áo", slug="ao")
         self.product = Product.objects.create(
@@ -831,7 +931,11 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "5", "comment": "Tốt"},
         )
-        self.assertRedirects(response, f"{reverse('users:login')}?next=" + reverse("products:review_submit", kwargs={"product_id": self.product.id}))
+        self.assertRedirects(
+            response,
+            f"{reverse('users:login')}?next="
+            + reverse("products:review_submit", kwargs={"product_id": self.product.id}),
+        )
 
     def test_review_create_and_display(self):
         self.client.login(username="buyer", password="Pass123!")
@@ -839,14 +943,25 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "5", "comment": "Rất đẹp"},
         )
-        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertRedirects(
+            response,
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            ),
+        )
 
         self.assertEqual(self.product.reviews.count(), 1)
         review = self.product.reviews.get(user=self.buyer)
         self.assertEqual(review.rating, 5)
         self.assertFalse(review.verified_purchase)
 
-        detail = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        detail = self.client.get(
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            )
+        )
         self.assertContains(detail, "Rất đẹp")
         self.assertEqual(detail.context["rating_count"], 1)
         self.assertEqual(detail.context["rating_avg"], 5)
@@ -861,7 +976,13 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "2", "comment": "Lần hai"},
         )
-        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertRedirects(
+            response,
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            ),
+        )
         self.assertEqual(self.product.reviews.count(), 1)
         self.assertEqual(self.product.reviews.get().rating, 4)
 
@@ -871,24 +992,52 @@ class ReviewTest(TestCase):
             reverse("products:review_submit", kwargs={"product_id": self.product.id}),
             {"rating": "9", "comment": "Xấu"},
         )
-        self.assertRedirects(response, reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        self.assertRedirects(
+            response,
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            ),
+        )
         self.assertEqual(self.product.reviews.count(), 0)
 
     def test_review_avg_and_buckets(self):
-        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
-        Review.objects.create(product=self.product, user=self.other, rating=3, comment="tb")
+        Review.objects.create(
+            product=self.product, user=self.buyer, rating=5, comment="ok"
+        )
+        Review.objects.create(
+            product=self.product, user=self.other, rating=3, comment="tb"
+        )
 
-        response = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        response = self.client.get(
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            )
+        )
         self.assertEqual(response.context["rating_avg"], 4)
         self.assertEqual(response.context["rating_count"], 2)
-        buckets = {item["rating"]: item["total"] for item in response.context["review_buckets"]}
+        buckets = {
+            item["rating"]: item["total"] for item in response.context["review_buckets"]
+        }
         self.assertEqual(buckets[5], 1)
         self.assertEqual(buckets[3], 1)
         self.assertEqual(buckets[1], 0)
 
     def test_unpublished_review_hidden(self):
-        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ẩn", is_published=False)
-        response = self.client.get(reverse("products:product_detail", kwargs={"pk": self.product.id, "slug": self.product.slug}))
+        Review.objects.create(
+            product=self.product,
+            user=self.buyer,
+            rating=5,
+            comment="ẩn",
+            is_published=False,
+        )
+        response = self.client.get(
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product.id, "slug": self.product.slug},
+            )
+        )
         self.assertEqual(response.context["rating_count"], 0)
         self.assertNotContains(response, "ẩn")
 
@@ -904,7 +1053,9 @@ class ReviewTest(TestCase):
             subtotal_amount=200000,
             total_amount=200000,
         )
-        OrderItem.objects.create(order=order, product=self.product, quantity=1, price=200000)
+        OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, price=200000
+        )
 
         self.client.login(username="buyer", password="Pass123!")
         self.client.post(
@@ -945,11 +1096,13 @@ class ReviewTest(TestCase):
 
         with override_settings(ZALO_OA_ID="zalo_oa_test"):
             response = self.client.get(reverse("products:product_list"))
-        self.assertContains(response, "class=\"zalo-launcher\"")
+        self.assertContains(response, 'class="zalo-launcher"')
         self.assertContains(response, "zalo.me/zalo_oa_test")
 
     def test_catalog_shows_rating_count(self):
-        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment="ok")
+        Review.objects.create(
+            product=self.product, user=self.buyer, rating=5, comment="ok"
+        )
         response = self.client.get(reverse("products:product_list"))
         self.assertContains(response, "Áo có đánh giá")
         self.assertEqual(response.context["products"][0].rating_count, 1)

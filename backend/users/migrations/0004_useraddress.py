@@ -6,29 +6,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0003_userprofile_points'),
+        ("users", "0003_userprofile_points"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='UserAddress',
+            name="UserAddress",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('label', models.CharField(blank=True, max_length=40, verbose_name='Nhãn (Nhà / Công ty)')),
-                ('recipient_name', models.CharField(max_length=150, verbose_name='Người nhận')),
-                ('phone', models.CharField(max_length=20, verbose_name='Số điện thoại')),
-                ('address', models.TextField(verbose_name='Địa chỉ')),
-                ('is_default', models.BooleanField(db_index=True, default=False, verbose_name='Mặc định')),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='addresses', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "label",
+                    models.CharField(
+                        blank=True, max_length=40, verbose_name="Nhãn (Nhà / Công ty)"
+                    ),
+                ),
+                (
+                    "recipient_name",
+                    models.CharField(max_length=150, verbose_name="Người nhận"),
+                ),
+                (
+                    "phone",
+                    models.CharField(max_length=20, verbose_name="Số điện thoại"),
+                ),
+                ("address", models.TextField(verbose_name="Địa chỉ")),
+                (
+                    "is_default",
+                    models.BooleanField(
+                        db_index=True, default=False, verbose_name="Mặc định"
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="addresses",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Địa chỉ giao hàng',
-                'verbose_name_plural': 'Địa chỉ giao hàng',
-                'ordering': ['-is_default', '-created'],
+                "verbose_name": "Địa chỉ giao hàng",
+                "verbose_name_plural": "Địa chỉ giao hàng",
+                "ordering": ["-is_default", "-created"],
             },
         ),
     ]

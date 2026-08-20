@@ -21,7 +21,9 @@ def _order_context(order):
         items.append(
             {
                 "name": item.product.name,
-                "meta": " / ".join(filter(None, [item.selected_color, item.selected_size])),
+                "meta": " / ".join(
+                    filter(None, [item.selected_color, item.selected_size])
+                ),
                 "quantity": item.quantity,
                 "price": item.price,
                 "total": item.price * item.quantity,

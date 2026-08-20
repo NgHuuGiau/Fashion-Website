@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0017_product_compare_price'),
+        ("products", "0017_product_compare_price"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='review',
-            name='shop_reply',
-            field=models.TextField(blank=True, verbose_name='Shop phản hồi'),
+            model_name="review",
+            name="shop_reply",
+            field=models.TextField(blank=True, verbose_name="Shop phản hồi"),
         ),
     ]

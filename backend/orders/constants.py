@@ -21,17 +21,63 @@ TIER_DISCOUNTS = {
 }
 
 HCMC_KEYWORDS = (
-    "ho chi minh", "hcm", "tp hcm", "tphcm", "sai gon", "quan 1", "quan 2", "quan 3",
-    "quan 4", "quan 5", "quan 6", "quan 7", "quan 8", "quan 9", "quan 10", "quan 11",
-    "quan 12", "thu duc", "go vap", "binh thanh", "tan binh", "tan phu", "phu nhuan", "binh tan",
+    "ho chi minh",
+    "hcm",
+    "tp hcm",
+    "tphcm",
+    "sai gon",
+    "quan 1",
+    "quan 2",
+    "quan 3",
+    "quan 4",
+    "quan 5",
+    "quan 6",
+    "quan 7",
+    "quan 8",
+    "quan 9",
+    "quan 10",
+    "quan 11",
+    "quan 12",
+    "thu duc",
+    "go vap",
+    "binh thanh",
+    "tan binh",
+    "tan phu",
+    "phu nhuan",
+    "binh tan",
 )
 NEAR_HCMC_KEYWORDS = (
-    "binh duong", "dong nai", "tay ninh", "ba ria", "vung tau", "long an", "tien giang", "ben tre",
+    "binh duong",
+    "dong nai",
+    "tay ninh",
+    "ba ria",
+    "vung tau",
+    "long an",
+    "tien giang",
+    "ben tre",
 )
 NORTHERN_KEYWORDS = (
-    "ha noi", "hanoi", "hai phong", "bac ninh", "hung yen", "hai duong", "vinh phuc",
-    "bac giang", "thai nguyen", "quang ninh", "son la", "hue", "da nang", "nha trang",
-    "viet tri", "thai binh", "nam dinh", "ninh binh", "thanh hoa", "nghe an", "ha tinh",
+    "ha noi",
+    "hanoi",
+    "hai phong",
+    "bac ninh",
+    "hung yen",
+    "hai duong",
+    "vinh phuc",
+    "bac giang",
+    "thai nguyen",
+    "quang ninh",
+    "son la",
+    "hue",
+    "da nang",
+    "nha trang",
+    "viet tri",
+    "thai binh",
+    "nam dinh",
+    "ninh binh",
+    "thanh hoa",
+    "nghe an",
+    "ha tinh",
 )
 
 BANKS = {
@@ -60,4 +106,6 @@ BANKS = {
     "KLB": {"name": "KienLongBank", "bin": "970452"},
 }
 
-BANK_CHOICES = [("", "-- Chọn ngân hàng --")] + [(code, meta["name"]) for code, meta in BANKS.items()]
+BANK_CHOICES = [("", "-- Chọn ngân hàng --")] + [
+    (code, meta["name"]) for code, meta in BANKS.items()
+]

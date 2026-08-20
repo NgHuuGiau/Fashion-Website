@@ -4,6 +4,7 @@
 Chuyển đổi tại chỗ: đuôi ảnh thành .webp, xóa file gốc, cập nhật đường dẫn
 trong DB. Ảnh chưa tồn tại trên đĩa / ảnh URL sẽ được bỏ qua.
 """
+
 from pathlib import Path
 
 from django.conf import settings
@@ -30,8 +31,12 @@ class Command(BaseCommand):
     help = "Nén ảnh sản phẩm thành WebP (giảm ~60-80% dung lượng, giữ chất lượng)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--quality", type=int, default=82, help="Chất lượng WebP (0-100).")
-        parser.add_argument("--dry-run", action="store_true", help="Chỉ liệt kê, không đổi gì.")
+        parser.add_argument(
+            "--quality", type=int, default=82, help="Chất lượng WebP (0-100)."
+        )
+        parser.add_argument(
+            "--dry-run", action="store_true", help="Chỉ liệt kê, không đổi gì."
+        )
 
     @staticmethod
     def _field_files():
@@ -68,7 +73,10 @@ class Command(BaseCommand):
             obj.save(update_fields=[field_name])
             converted += 1
 
-        self.stdout.write(self.style.SUCCESS(f"\nDone: {converted} file.")
-                          if not errors else self.style.SUCCESS(f"Done: {converted} file, {len(errors)} lỗi."))
+        self.stdout.write(
+            self.style.SUCCESS(f"\nDone: {converted} file.")
+            if not errors
+            else self.style.SUCCESS(f"Done: {converted} file, {len(errors)} lỗi.")
+        )
         for err in errors:
             self.stderr.write(err)

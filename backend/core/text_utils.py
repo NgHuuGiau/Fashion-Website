@@ -17,4 +17,6 @@ def normalize_vn_text(value):
 
 
 def parse_keyword_list(value):
-    return [normalize_vn_text(part) for part in str(value or "").split(",") if part.strip()]
+    return [
+        normalize_vn_text(part) for part in str(value or "").split(",") if part.strip()
+    ]

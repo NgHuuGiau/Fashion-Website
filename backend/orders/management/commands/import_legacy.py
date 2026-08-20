@@ -49,7 +49,9 @@ class Command(BaseCommand):
             self.stdout.write("  [bỏ qua] Không tìm thấy bảng legacy Categories")
             return
         for row in self._fetch("SELECT id, name, slug FROM [Categories]"):
-            Category.objects.get_or_create(id=row["id"], defaults={"name": row["name"], "slug": row["slug"]})
+            Category.objects.get_or_create(
+                id=row["id"], defaults={"name": row["name"], "slug": row["slug"]}
+            )
         self.stdout.write(f"  -> {Category.objects.count()} categories")
 
     def _import_products(self):
@@ -112,8 +114,12 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                UserProfile.objects.get_or_create(user=user, defaults={"phone_number": row["phone"] or ""})
-        self.stdout.write(f"  -> {User.objects.count()} users, {UserProfile.objects.count()} profiles")
+                UserProfile.objects.get_or_create(
+                    user=user, defaults={"phone_number": row["phone"] or ""}
+                )
+        self.stdout.write(
+            f"  -> {User.objects.count()} users, {UserProfile.objects.count()} profiles"
+        )
 
     def _import_coupons(self):
         if not self._table_exists("Coupons"):
@@ -172,7 +178,9 @@ class Command(BaseCommand):
         if not self._table_exists("OrderItems"):
             self.stdout.write("  [bỏ qua] Không tìm thấy bảng legacy OrderItems")
             return
-        for row in self._fetch("SELECT id, order_id, product_id, variant_id, color AS selected_color, size AS selected_size, quantity, price FROM [OrderItems]"):
+        for row in self._fetch(
+            "SELECT id, order_id, product_id, variant_id, color AS selected_color, size AS selected_size, quantity, price FROM [OrderItems]"
+        ):
             OrderItem.objects.get_or_create(
                 id=row["id"],
                 defaults={
@@ -222,7 +230,9 @@ class Command(BaseCommand):
         if not self._table_exists("Activities"):
             self.stdout.write("  [bỏ qua] Không tìm thấy bảng legacy Activities")
             return
-        for row in self._fetch("SELECT id, user_id, event AS event_type, path, created_at FROM [Activities]"):
+        for row in self._fetch(
+            "SELECT id, user_id, event AS event_type, path, created_at FROM [Activities]"
+        ):
             UserActivity.objects.get_or_create(
                 id=row["id"],
                 defaults={

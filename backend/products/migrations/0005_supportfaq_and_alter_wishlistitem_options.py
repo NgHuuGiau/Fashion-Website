@@ -1,4 +1,3 @@
-﻿
 from django.db import migrations, models
 
 
@@ -42,7 +41,6 @@ def seed_support_faq(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("products", "0004_wishlistitem"),
     ]
@@ -59,12 +57,33 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="SupportFAQ",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("question", models.CharField(max_length=255, verbose_name="Câu hỏi")),
-                ("keywords", models.CharField(blank=True, max_length=255, verbose_name="Từ khóa")),
+                (
+                    "keywords",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Từ khóa"
+                    ),
+                ),
                 ("answer", models.TextField(verbose_name="Câu trả lời")),
-                ("priority", models.PositiveSmallIntegerField(default=100, verbose_name="Độ ưu tiên")),
-                ("is_active", models.BooleanField(default=True, verbose_name="Đang dùng")),
+                (
+                    "priority",
+                    models.PositiveSmallIntegerField(
+                        default=100, verbose_name="Độ ưu tiên"
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Đang dùng"),
+                ),
                 ("created", models.DateTimeField(auto_now_add=True)),
                 ("updated", models.DateTimeField(auto_now=True)),
             ],
@@ -76,11 +95,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="supportfaq",
-            index=models.Index(fields=["is_active", "priority"], name="products_su_is_acti_1d2b34_idx"),
+            index=models.Index(
+                fields=["is_active", "priority"], name="products_su_is_acti_1d2b34_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="supportfaq",
-            index=models.Index(fields=["question"], name="products_su_questio_05f0da_idx"),
+            index=models.Index(
+                fields=["question"], name="products_su_questio_05f0da_idx"
+            ),
         ),
         migrations.RunPython(seed_support_faq, migrations.RunPython.noop),
     ]

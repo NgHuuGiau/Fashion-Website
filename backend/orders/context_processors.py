@@ -29,7 +29,11 @@ def cart_count_cached(request):
     cached = cart.get(count_key)
     if cached is not None:
         return cached
-    total = sum(safe_int(item.get("quantity", 0)) for item in cart.values() if isinstance(item, dict))
+    total = sum(
+        safe_int(item.get("quantity", 0))
+        for item in cart.values()
+        if isinstance(item, dict)
+    )
     cart[count_key] = total
     request.session.modified = True
     return total

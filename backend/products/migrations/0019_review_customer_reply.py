@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0018_review_shop_reply'),
+        ("products", "0018_review_shop_reply"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='review',
-            name='customer_reply',
-            field=models.TextField(blank=True, verbose_name='Khách hàng phản hồi shop'),
+            model_name="review",
+            name="customer_reply",
+            field=models.TextField(blank=True, verbose_name="Khách hàng phản hồi shop"),
         ),
     ]

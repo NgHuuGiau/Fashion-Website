@@ -1,6 +1,5 @@
-﻿from django.apps import AppConfig
-
+from django.apps import AppConfig
 
 
 class OrdersConfig(AppConfig):
-    name = 'orders'
+    name = "orders"

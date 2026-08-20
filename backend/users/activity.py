@@ -1,5 +1,4 @@
-﻿from .models import UserActivity
-
+from .models import UserActivity
 
 
 def log_activity(request, event_type="action", metadata=None, status_code=200):
@@ -7,7 +6,11 @@ def log_activity(request, event_type="action", metadata=None, status_code=200):
         metadata = {}
 
     visitor = getattr(request, "visitor_session", None)
-    user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+    user = (
+        request.user
+        if getattr(request, "user", None) and request.user.is_authenticated
+        else None
+    )
 
     UserActivity.objects.create(
         visitor=visitor,

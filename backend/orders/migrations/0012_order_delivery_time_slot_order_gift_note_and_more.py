@@ -4,25 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0011_returnrequest'),
+        ("orders", "0011_returnrequest"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='delivery_time_slot',
-            field=models.CharField(blank=True, max_length=20, verbose_name='Khung giờ nhận hàng'),
+            model_name="order",
+            name="delivery_time_slot",
+            field=models.CharField(
+                blank=True, max_length=20, verbose_name="Khung giờ nhận hàng"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='gift_note',
-            field=models.CharField(blank=True, max_length=255, verbose_name='Thiệp chúc kèm quà'),
+            model_name="order",
+            name="gift_note",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="Thiệp chúc kèm quà"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='gift_wrap',
-            field=models.BooleanField(default=False, verbose_name='Đóng gói quà tặng'),
+            model_name="order",
+            name="gift_wrap",
+            field=models.BooleanField(default=False, verbose_name="Đóng gói quà tặng"),
         ),
     ]

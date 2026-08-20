@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0004_useraddress'),
+        ("users", "0004_useraddress"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='birthday',
-            field=models.DateField(blank=True, null=True, verbose_name='Ngày sinh'),
+            model_name="userprofile",
+            name="birthday",
+            field=models.DateField(blank=True, null=True, verbose_name="Ngày sinh"),
         ),
         migrations.AddField(
-            model_name='userprofile',
-            name='points_expire_at',
-            field=models.DateField(blank=True, null=True, verbose_name='Điểm hết hạn'),
+            model_name="userprofile",
+            name="points_expire_at",
+            field=models.DateField(blank=True, null=True, verbose_name="Điểm hết hạn"),
         ),
     ]

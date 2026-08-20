@@ -70,16 +70,56 @@ THREE_COMMENTS = [
 EMOJIS = ["", "", "", "", "❤️", "🔥", "✨"]
 
 REAL_NAMES = [
-    "Nguyễn Minh Anh", "Trần Thu Hà", "Lê Quốc Bảo", "Phạm Ngọc Mai", "Hoàng Gia Huy",
-    "Vũ Khánh Linh", "Đặng Tuấn Kiệt", "Bùi Phương Thảo", "Đỗ Thanh Tùng", "Hồ Mỹ Duyên",
-    "Ngô Đức Huy", "Dương Bảo Ngọc", "Lý Công Minh", "Trịnh Thùy Trang", "Cao Văn Hùng",
-    "Đinh Hồng Nhung", "Lương Minh Phúc", "Mai Hải Yến", "Tạ Quang Vinh", "Phan Thị Hằng",
-    "Võ Anh Khoa", "Đoàn Ngọc Lan", "Tô Văn Tài", "Hứa Thanh Huyền", "Lâm Thế Vũ",
-    "Châu Hồng Ánh", "Trương Quốc Cường", "Kiều Thị Hoa", "Phùng Văn Nam", "Giang Thu Hương",
-    "Bạch Đăng Khoa", "Lại Minh Châu", "Hà Duy Long", "Cấn Thị Nga", "Nông Văn Dũng",
-    "Vi Thùy Dương", "Sử Đức Thịnh", "Nghiêm Bích Ngọc", "Quách Văn Sơn", "Lê Thị Bích",
-    "Nguyễn Đức Thành", "Trần Hải Đăng", "Phạm Nhật Minh", "Hoàng Thị Lan", "Vũ Đình Khôi",
-    "Đặng Xuân Trường", "Bùi Thanh Vy", "Đỗ Trọng Nhân", "Hồ Kim Oanh", "Ngô Văn Tuấn",
+    "Nguyễn Minh Anh",
+    "Trần Thu Hà",
+    "Lê Quốc Bảo",
+    "Phạm Ngọc Mai",
+    "Hoàng Gia Huy",
+    "Vũ Khánh Linh",
+    "Đặng Tuấn Kiệt",
+    "Bùi Phương Thảo",
+    "Đỗ Thanh Tùng",
+    "Hồ Mỹ Duyên",
+    "Ngô Đức Huy",
+    "Dương Bảo Ngọc",
+    "Lý Công Minh",
+    "Trịnh Thùy Trang",
+    "Cao Văn Hùng",
+    "Đinh Hồng Nhung",
+    "Lương Minh Phúc",
+    "Mai Hải Yến",
+    "Tạ Quang Vinh",
+    "Phan Thị Hằng",
+    "Võ Anh Khoa",
+    "Đoàn Ngọc Lan",
+    "Tô Văn Tài",
+    "Hứa Thanh Huyền",
+    "Lâm Thế Vũ",
+    "Châu Hồng Ánh",
+    "Trương Quốc Cường",
+    "Kiều Thị Hoa",
+    "Phùng Văn Nam",
+    "Giang Thu Hương",
+    "Bạch Đăng Khoa",
+    "Lại Minh Châu",
+    "Hà Duy Long",
+    "Cấn Thị Nga",
+    "Nông Văn Dũng",
+    "Vi Thùy Dương",
+    "Sử Đức Thịnh",
+    "Nghiêm Bích Ngọc",
+    "Quách Văn Sơn",
+    "Lê Thị Bích",
+    "Nguyễn Đức Thành",
+    "Trần Hải Đăng",
+    "Phạm Nhật Minh",
+    "Hoàng Thị Lan",
+    "Vũ Đình Khôi",
+    "Đặng Xuân Trường",
+    "Bùi Thanh Vy",
+    "Đỗ Trọng Nhân",
+    "Hồ Kim Oanh",
+    "Ngô Văn Tuấn",
 ]
 
 
@@ -113,11 +153,20 @@ class Command(BaseCommand):
     help = "Tạo dữ liệu đánh giá mẫu cho các sản phẩm có sẵn (idempotent)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--per-product", type=int, default=4, help="Số review mỗi sản phẩm (mặc định 4).")
-        parser.add_argument("--force", action="store_true", help="Xóa review cũ trước khi seed.")
+        parser.add_argument(
+            "--per-product",
+            type=int,
+            default=4,
+            help="Số review mỗi sản phẩm (mặc định 4).",
+        )
+        parser.add_argument(
+            "--force", action="store_true", help="Xóa review cũ trước khi seed."
+        )
 
     def _backfill_names(self):
-        users = sorted(get_user_model().objects.filter(is_staff=False), key=lambda u: u.username)
+        users = sorted(
+            get_user_model().objects.filter(is_staff=False), key=lambda u: u.username
+        )
         updated = 0
         for idx, user in enumerate(users):
             if user.get_full_name():
@@ -138,7 +187,9 @@ class Command(BaseCommand):
         products = list(Product.objects.filter(available=True))
         users = list(get_user_model().objects.filter(is_staff=False))
         if not products or not users:
-            self.stdout.write(self.style.ERROR("Cần sản phẩm và user thường trước khi seed review."))
+            self.stdout.write(
+                self.style.ERROR("Cần sản phẩm và user thường trước khi seed review.")
+            )
             return
 
         created = 0
@@ -154,7 +205,10 @@ class Command(BaseCommand):
                     rating=rating,
                     comment=compose_comment(rating),
                     verified_purchase=random.random() < 0.8,
-                    created=timezone.now() - timedelta(days=random.randint(1, 60), hours=random.randint(0, 23)),
+                    created=timezone.now()
+                    - timedelta(
+                        days=random.randint(1, 60), hours=random.randint(0, 23)
+                    ),
                 )
                 created += 1
 

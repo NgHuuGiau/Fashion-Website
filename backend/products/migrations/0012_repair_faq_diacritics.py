@@ -36,13 +36,12 @@ def repair_faq_text(apps, schema_editor):
     }
     for priority in FIXES:
         new_question, new_answer = FIXES[priority]
-        SupportFAQ.objects.filter(priority=priority, question=old_questions[priority]).update(
-            question=new_question, answer=new_answer
-        )
+        SupportFAQ.objects.filter(
+            priority=priority, question=old_questions[priority]
+        ).update(question=new_question, answer=new_answer)
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("products", "0011_review"),
     ]

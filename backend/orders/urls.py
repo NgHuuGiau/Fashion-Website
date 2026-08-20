@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 
 from .admin_product_dashboard import admin_dashboard
 from .views import (
@@ -43,14 +43,36 @@ urlpatterns = [
     path("gio-hang/xoa-tat-ca/", cart_clear_all, name="cart_clear_all"),
     path("thanh-toan/", checkout, name="checkout"),
     path("dat-hang-thanh-cong/<int:order_id>/", order_success, name="order_success"),
-    path("cho-thanh-toan-ngan-hang/<int:order_id>/", bank_payment_waiting, name="bank_payment_waiting"),
-    path("cho-thanh-toan-ngan-hang/<int:order_id>/trang-thai/", bank_payment_status, name="bank_payment_status"),
+    path(
+        "cho-thanh-toan-ngan-hang/<int:order_id>/",
+        bank_payment_waiting,
+        name="bank_payment_waiting",
+    ),
+    path(
+        "cho-thanh-toan-ngan-hang/<int:order_id>/trang-thai/",
+        bank_payment_status,
+        name="bank_payment_status",
+    ),
     path("dat-hang-chua-thanh-cong/<int:order_id>/", order_failed, name="order_failed"),
     path("don-hang/<int:order_id>/xem-lai/", order_review, name="order_review"),
-    path("don-hang/<int:order_id>/doi-tra/", create_return_request, name="create_return"),
-    path("don-hang/<int:order_id>/xac-nhan-thanh-toan/", bank_payment_confirm, name="bank_payment_confirm"),
-    path("don-hang/<int:order_id>/huy-thanh-toan/", bank_payment_cancel, name="bank_payment_cancel"),
-    path("qr-thanh-toan/<str:token>/<int:order_id>/", bank_payment_mobile, name="bank_payment_mobile"),
+    path(
+        "don-hang/<int:order_id>/doi-tra/", create_return_request, name="create_return"
+    ),
+    path(
+        "don-hang/<int:order_id>/xac-nhan-thanh-toan/",
+        bank_payment_confirm,
+        name="bank_payment_confirm",
+    ),
+    path(
+        "don-hang/<int:order_id>/huy-thanh-toan/",
+        bank_payment_cancel,
+        name="bank_payment_cancel",
+    ),
+    path(
+        "qr-thanh-toan/<str:token>/<int:order_id>/",
+        bank_payment_mobile,
+        name="bank_payment_mobile",
+    ),
     path("thanh-toan-vnpay/<int:order_id>/", vnpay_payment, name="vnpay_payment"),
     path("thanh-toan-vnpay/callback/", vnpay_return, name="vnpay_return"),
     path("thanh-toan-vnpay/ipn/", vnpay_ipn, name="vnpay_ipn"),
@@ -60,6 +82,14 @@ urlpatterns = [
     path("don-hang/<int:order_id>/huy/", user_cancel_order, name="user_cancel_order"),
     path("don-hang/<int:order_id>/mua-lai/", reorder_order, name="reorder_order"),
     path("admin-dashboard/xuat-don/", admin_export_orders, name="admin_export_orders"),
-    path("admin-dashboard/xuat-doanh-thu/", admin_export_revenue, name="admin_export_revenue"),
-    path("admin-dashboard/in-hoa-don/<int:order_id>/", print_invoice, name="admin_print_invoice"),
+    path(
+        "admin-dashboard/xuat-doanh-thu/",
+        admin_export_revenue,
+        name="admin_export_revenue",
+    ),
+    path(
+        "admin-dashboard/in-hoa-don/<int:order_id>/",
+        print_invoice,
+        name="admin_print_invoice",
+    ),
 ]

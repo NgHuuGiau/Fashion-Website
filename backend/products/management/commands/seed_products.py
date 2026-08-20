@@ -16,7 +16,11 @@ from products.models import Category, Product, ProductVariant
 DEFAULT_CATEGORY_NAME = "Áo"
 PANTS_CATEGORY_NAME = "Quần"
 ACCESSORY_CATEGORY_NAME = "Phụ Kiện"
-CATEGORY_DISPLAY_ORDER = (DEFAULT_CATEGORY_NAME, PANTS_CATEGORY_NAME, ACCESSORY_CATEGORY_NAME)
+CATEGORY_DISPLAY_ORDER = (
+    DEFAULT_CATEGORY_NAME,
+    PANTS_CATEGORY_NAME,
+    ACCESSORY_CATEGORY_NAME,
+)
 CATEGORY_ALIASES = {
     "Quầ": PANTS_CATEGORY_NAME,
     "Quầnn": PANTS_CATEGORY_NAME,
@@ -42,9 +46,17 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--sync", action="store_true", help="Đồng bộ từ JSON vào database.")
-        parser.add_argument("--export", action="store_true", help="Xuất database ra file JSON.")
-        parser.add_argument("--random-hot", action="store_true", help="Ngẫu nhiên 12 sản phẩm HOT trong file JSON.")
+        parser.add_argument(
+            "--sync", action="store_true", help="Đồng bộ từ JSON vào database."
+        )
+        parser.add_argument(
+            "--export", action="store_true", help="Xuất database ra file JSON."
+        )
+        parser.add_argument(
+            "--random-hot",
+            action="store_true",
+            help="Ngẫu nhiên 12 sản phẩm HOT trong file JSON.",
+        )
         parser.add_argument(
             "--shuffle-hot",
             type=int,
@@ -53,12 +65,20 @@ class Command(BaseCommand):
             help="Reset và chọn ngẫu nhiên N sản phẩm HOT trực tiếp trong DB.",
         )
         parser.add_argument("--inspect", action="store_true", help="Xem bảng dữ liệu.")
-        parser.add_argument("--loadtest", action="store_true", help="Chạy kiểm thử tải.")
-        parser.add_argument("--path", type=str, default="/", help="Route cần test, ví dụ: /")
-        parser.add_argument("--users", type=int, default=50, help="Số user đồng thời cho load test")
+        parser.add_argument(
+            "--loadtest", action="store_true", help="Chạy kiểm thử tải."
+        )
+        parser.add_argument(
+            "--path", type=str, default="/", help="Route cần test, ví dụ: /"
+        )
+        parser.add_argument(
+            "--users", type=int, default=50, help="Số user đồng thời cho load test"
+        )
 
     def handle(self, *args, **options):
-        json_path = Path(settings.BASE_DIR) / "database" / "seed" / "products_to_sync.json"
+        json_path = (
+            Path(settings.BASE_DIR) / "database" / "seed" / "products_to_sync.json"
+        )
         db_path = Path(settings.DATABASES["default"]["NAME"])
 
         if options["sync"]:
@@ -74,7 +94,9 @@ class Command(BaseCommand):
         elif options["loadtest"]:
             self._run_loadtest(options["path"], options["users"])
         else:
-            self.stdout.write(self.style.WARNING("Vui lòng chọn tham số. Gõ --help để xem chi tiết."))
+            self.stdout.write(
+                self.style.WARNING("Vui lòng chọn tham số. Gõ --help để xem chi tiết.")
+            )
 
     def _normalize_category_name(self, category_name):
         cat_name = (category_name or DEFAULT_CATEGORY_NAME).strip()
@@ -97,7 +119,9 @@ class Command(BaseCommand):
         for item in data:
             name = item["name"].strip()
             slug = item.get("slug") or slugify(name)
-            cat_name = self._normalize_category_name(item.get("category_name", DEFAULT_CATEGORY_NAME))
+            cat_name = self._normalize_category_name(
+                item.get("category_name", DEFAULT_CATEGORY_NAME)
+            )
 
             category, _ = Category.objects.get_or_create(
                 slug=slugify(cat_name),
@@ -135,7 +159,9 @@ class Command(BaseCommand):
             }
             for product in products
         ]
-        json_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
         self.stdout.write(self.style.SUCCESS(f"Đã xuất {len(data)} sản phẩm."))
 
     def _randomize_hot_json(self, json_path):
@@ -149,7 +175,9 @@ class Command(BaseCommand):
 
         grouped = {}
         for item in data:
-            cat_name = self._normalize_category_name(item.get("category_name", DEFAULT_CATEGORY_NAME))
+            cat_name = self._normalize_category_name(
+                item.get("category_name", DEFAULT_CATEGORY_NAME)
+            )
             item["category_name"] = cat_name
             grouped.setdefault(cat_name, []).append(item)
 
@@ -163,24 +191,41 @@ class Command(BaseCommand):
         for item in hot_items:
             item["featured"] = 1
 
-        json_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
-        self.stdout.write(self.style.SUCCESS("Đã ngẫu nhiên 12 sản phẩm HOT trong JSON. Hãy chạy --sync để áp dụng."))
+        json_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Đã ngẫu nhiên 12 sản phẩm HOT trong JSON. Hãy chạy --sync để áp dụng."
+            )
+        )
 
     def _shuffle_hot_db(self, count):
         Product.objects.update(featured=False)
-        ids = list(Product.objects.filter(available=True).order_by("?").values_list("id", flat=True)[:count])
+        ids = list(
+            Product.objects.filter(available=True)
+            .order_by("?")
+            .values_list("id", flat=True)[:count]
+        )
         if ids:
             Product.objects.filter(id__in=ids).update(featured=True)
-        self.stdout.write(self.style.SUCCESS(f"Đã chọn ngẫu nhiên {len(ids)} sản phẩm HOT trực tiếp trong DB."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Đã chọn ngẫu nhiên {len(ids)} sản phẩm HOT trực tiếp trong DB."
+            )
+        )
 
     def _inspect_db(self, db_path):
         from django.db import connection as db_conn
+
         tables = db_conn.introspection.table_names()
         for index, table_name in enumerate(tables, 1):
             self.stdout.write(f"{index}. {table_name}")
 
     def _run_loadtest(self, path, users):
-        self.stdout.write(self.style.NOTICE(f"Đang load test: path={path}, users={users}"))
+        self.stdout.write(
+            self.style.NOTICE(f"Đang load test: path={path}, users={users}")
+        )
 
         def worker():
             client = Client()
@@ -197,13 +242,19 @@ class Command(BaseCommand):
         all_latencies = [item for sublist in results for item in sublist]
         avg = statistics.mean(all_latencies)
         p95 = statistics.quantiles(all_latencies, n=100)[94]
-        self.stdout.write(self.style.SUCCESS(f"Kết quả: Avg={avg:.1f}ms, P95={p95:.1f}ms"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Kết quả: Avg={avg:.1f}ms, P95={p95:.1f}ms")
+        )
 
     def _seed_variants_minimal(self, product):
         if product.variants.exists():
             return
 
-        sizes = APPAREL_SIZES if product.category.slug in APPAREL_CATEGORY_SLUGS else ACCESSORY_SIZES
+        sizes = (
+            APPAREL_SIZES
+            if product.category.slug in APPAREL_CATEGORY_SLUGS
+            else ACCESSORY_SIZES
+        )
         for color_name, color_code in DEFAULT_VARIANT_COLORS:
             for size in sizes:
                 ProductVariant.objects.get_or_create(

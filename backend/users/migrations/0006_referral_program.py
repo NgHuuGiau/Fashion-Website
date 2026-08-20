@@ -6,50 +6,137 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0013_allow_guest_orders'),
-        ('users', '0005_userprofile_birthday_userprofile_points_expire_at'),
+        ("orders", "0013_allow_guest_orders"),
+        ("users", "0005_userprofile_birthday_userprofile_points_expire_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ReferralCode',
+            name="ReferralCode",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(db_index=True, max_length=12, unique=True, verbose_name='Mã code')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('expires_at', models.DateTimeField(blank=True, null=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('usage_count', models.PositiveIntegerField(default=0)),
-                ('max_usage', models.PositiveIntegerField(default=50, verbose_name='Số lần dùng tối đa')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='referral_codes', to=settings.AUTH_USER_MODEL, verbose_name='Người sở hữu')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "code",
+                    models.CharField(
+                        db_index=True,
+                        max_length=12,
+                        unique=True,
+                        verbose_name="Mã code",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("expires_at", models.DateTimeField(blank=True, null=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("usage_count", models.PositiveIntegerField(default=0)),
+                (
+                    "max_usage",
+                    models.PositiveIntegerField(
+                        default=50, verbose_name="Số lần dùng tối đa"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="referral_codes",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Người sở hữu",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Mã giới thiệu',
-                'verbose_name_plural': 'Mã giới thiệu',
-                'ordering': ['-created_at'],
+                "verbose_name": "Mã giới thiệu",
+                "verbose_name_plural": "Mã giới thiệu",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='ReferralReward',
+            name="ReferralReward",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('reward_type', models.CharField(choices=[('referrer', 'Người giới thiệu'), ('referred', 'Người được giới thiệu')], max_length=10)),
-                ('amount', models.DecimalField(decimal_places=0, default=50000, max_digits=10, verbose_name='Số tiền (đ)')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('is_claimed', models.BooleanField(default=False)),
-                ('claimed_at', models.DateTimeField(blank=True, null=True)),
-                ('order', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='referral_rewards', to='orders.order', verbose_name='Đơn hàng liên quan')),
-                ('referral_code', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rewards', to='users.referralcode', verbose_name='Mã giới thiệu')),
-                ('referred_user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='referral_rewards_received', to=settings.AUTH_USER_MODEL, verbose_name='Người được giới thiệu')),
-                ('referrer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='referral_rewards_given', to=settings.AUTH_USER_MODEL, verbose_name='Người giới thiệu')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "reward_type",
+                    models.CharField(
+                        choices=[
+                            ("referrer", "Người giới thiệu"),
+                            ("referred", "Người được giới thiệu"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=0,
+                        default=50000,
+                        max_digits=10,
+                        verbose_name="Số tiền (đ)",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("is_claimed", models.BooleanField(default=False)),
+                ("claimed_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "order",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="referral_rewards",
+                        to="orders.order",
+                        verbose_name="Đơn hàng liên quan",
+                    ),
+                ),
+                (
+                    "referral_code",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="rewards",
+                        to="users.referralcode",
+                        verbose_name="Mã giới thiệu",
+                    ),
+                ),
+                (
+                    "referred_user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="referral_rewards_received",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Người được giới thiệu",
+                    ),
+                ),
+                (
+                    "referrer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="referral_rewards_given",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Người giới thiệu",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Phần thưởng giới thiệu',
-                'verbose_name_plural': 'Phần thưởng giới thiệu',
-                'ordering': ['-created_at'],
+                "verbose_name": "Phần thưởng giới thiệu",
+                "verbose_name_plural": "Phần thưởng giới thiệu",
+                "ordering": ["-created_at"],
             },
         ),
     ]

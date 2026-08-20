@@ -3,6 +3,7 @@
 Management command: export_insert_sql
 Export toàn bộ dữ liệu hiện tại ra file 02_INSERT_DATA.sql (format SSMS).
 """
+
 import os
 from datetime import datetime
 from decimal import Decimal
@@ -29,6 +30,7 @@ class Command(BaseCommand):
         output_path = options["output"]
         if not os.path.isabs(output_path):
             from django.conf import settings
+
             output_path = os.path.join(settings.BASE_DIR, output_path)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -45,7 +47,9 @@ class Command(BaseCommand):
             f.write(self._export_wishlist())
             f.write(self._export_faqs())
             f.write(self._export_activities())
-            f.write("\n-- ============================================================\n")
+            f.write(
+                "\n-- ============================================================\n"
+            )
             f.write("-- END OF DATA\n")
             f.write("-- ============================================================\n")
 
@@ -104,7 +108,9 @@ class Command(BaseCommand):
         lines = ["-- Danh mục sản phẩm", "SET IDENTITY_INSERT [Categories] ON;", "GO"]
         if cats:
             lines.append("INSERT INTO [Categories] ([id], [name], [slug]) VALUES")
-            vals = [f"({c.id}, {self._quote(c.name)}, {self._quote(c.slug)})" for c in cats]
+            vals = [
+                f"({c.id}, {self._quote(c.name)}, {self._quote(c.slug)})" for c in cats
+            ]
             lines.append(",\n".join(vals) + ";")
         lines.append("GO")
         lines.append("SET IDENTITY_INSERT [Categories] OFF;")
@@ -126,7 +132,7 @@ class Command(BaseCommand):
                     f"{self._quote(p.image_url or '')}, {self._quote(p.created)})"
                 )
             for i in range(0, len(vals), 50):
-                batch = vals[i:i+50]
+                batch = vals[i : i + 50]
                 if i > 0:
                     lines.append("GO")
                     lines.append(f"INSERT INTO [Products] ({cols}) VALUES")
@@ -139,7 +145,11 @@ class Command(BaseCommand):
 
     def _export_variants(self):
         variants = ProductVariant.objects.select_related("product").order_by("id")
-        lines = ["-- Biến thể sản phẩm (màu sắc, kích cỡ)", "SET IDENTITY_INSERT [Variants] ON;", "GO"]
+        lines = [
+            "-- Biến thể sản phẩm (màu sắc, kích cỡ)",
+            "SET IDENTITY_INSERT [Variants] ON;",
+            "GO",
+        ]
         if variants:
             cols = "[id], [product_id], [color_name], [color_code], [size], [stock], [is_active]"
             lines.append(f"INSERT INTO [Variants] ({cols}) VALUES")
@@ -150,7 +160,7 @@ class Command(BaseCommand):
                     f"{self._quote(v.size)}, {v.stock}, {1 if v.is_active else 0})"
                 )
             for i in range(0, len(vals), 50):
-                batch = vals[i:i+50]
+                batch = vals[i : i + 50]
                 if i > 0:
                     lines.append("GO")
                     lines.append(f"INSERT INTO [Variants] ({cols}) VALUES")
@@ -198,7 +208,7 @@ class Command(BaseCommand):
                     f"{self._quote(coupon_code)}, {self._quote(o.created_at)})"
                 )
             for i in range(0, len(vals), 50):
-                batch = vals[i:i+50]
+                batch = vals[i : i + 50]
                 if i > 0:
                     lines.append("GO")
                     cols = "[id], [user_id], [customer_name], [phone], [shipping_address], [status], [total_amount], [is_paid], [payment_method], [discount_amount], [coupon], [created_at]"
@@ -211,7 +221,9 @@ class Command(BaseCommand):
         return "\n".join(lines) + "\n"
 
     def _export_order_items(self):
-        items = OrderItem.objects.select_related("order", "product", "variant").order_by("id")
+        items = OrderItem.objects.select_related(
+            "order", "product", "variant"
+        ).order_by("id")
         lines = ["-- Chi tiết đơn hàng", "SET IDENTITY_INSERT [OrderItems] ON;", "GO"]
         if items:
             cols = "[id], [order_id], [product_id], [variant_id], [color], [size], [quantity], [price]"
@@ -225,7 +237,7 @@ class Command(BaseCommand):
                     f"{self._quote(color)}, {self._quote(size)}, {item.quantity}, {item.price})"
                 )
             for i in range(0, len(vals), 50):
-                batch = vals[i:i+50]
+                batch = vals[i : i + 50]
                 if i > 0:
                     lines.append("GO")
                     lines.append(f"INSERT INTO [OrderItems] ({cols}) VALUES")
@@ -238,12 +250,16 @@ class Command(BaseCommand):
 
     def _export_wishlist(self):
         from products.models import WishlistItem
+
         wishes = WishlistItem.objects.all().order_by("id")
         lines = ["-- Sản phẩm yêu thích", "SET IDENTITY_INSERT [Wishlist] ON;", "GO"]
         if wishes:
             cols = "[id], [user_id], [product_id], [created]"
             lines.append(f"INSERT INTO [Wishlist] ({cols}) VALUES")
-            vals = [f"({w.id}, {w.user_id}, {w.product_id}, {self._quote(w.created)})" for w in wishes]
+            vals = [
+                f"({w.id}, {w.user_id}, {w.product_id}, {self._quote(w.created)})"
+                for w in wishes
+            ]
             lines.append(",\n".join(vals) + ";")
         lines.append("GO")
         lines.append("SET IDENTITY_INSERT [Wishlist] OFF;")
@@ -280,6 +296,7 @@ class Command(BaseCommand):
                 user_id = a.user_id if a.user_id else "NULL"
                 metadata = a.metadata if isinstance(a.metadata, dict) else {}
                 import json
+
                 meta_str = json.dumps(metadata, ensure_ascii=False).replace("'", "''")
                 vals.append(
                     f"({a.id}, {visitor_id}, {user_id}, {self._quote(a.event_type)}, "

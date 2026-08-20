@@ -6,7 +6,9 @@ from django.contrib.staticfiles.management.commands.runserver import (
 )
 from django.core.servers.basehttp import WSGIServer
 
-CERT_FILE = Path(__file__).resolve().parent.parent.parent.parent / "certs" / "server.crt"
+CERT_FILE = (
+    Path(__file__).resolve().parent.parent.parent.parent / "certs" / "server.crt"
+)
 KEY_FILE = Path(__file__).resolve().parent.parent.parent.parent / "certs" / "server.key"
 
 _SSL_CONTEXT = None

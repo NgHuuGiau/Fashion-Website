@@ -4,45 +4,91 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0012_repair_faq_diacritics'),
+        ("products", "0012_repair_faq_diacritics"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NewsletterSubscriber',
+            name="NewsletterSubscriber",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=254, unique=True, verbose_name='Email')),
-                ('is_active', models.BooleanField(db_index=True, default=True, verbose_name='Đang nhận tin')),
-                ('created', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('updated', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        max_length=254, unique=True, verbose_name="Email"
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        db_index=True, default=True, verbose_name="Đang nhận tin"
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("updated", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Đăng ký nhận tin',
-                'verbose_name_plural': 'Đăng ký nhận tin',
-                'ordering': ['-created'],
+                "verbose_name": "Đăng ký nhận tin",
+                "verbose_name_plural": "Đăng ký nhận tin",
+                "ordering": ["-created"],
             },
         ),
         migrations.CreateModel(
-            name='BlogPost',
+            name="BlogPost",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200, verbose_name='Tiêu đề')),
-                ('slug', models.SlugField(max_length=220, unique=True, verbose_name='Slug')),
-                ('excerpt', models.CharField(blank=True, max_length=300, verbose_name='Mô tả ngắn')),
-                ('body', models.TextField(verbose_name='Nội dung')),
-                ('cover_image_url', models.URLField(blank=True, verbose_name='URL ảnh bìa')),
-                ('is_published', models.BooleanField(db_index=True, default=True, verbose_name='Hiển thị')),
-                ('created', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('updated', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200, verbose_name="Tiêu đề")),
+                (
+                    "slug",
+                    models.SlugField(max_length=220, unique=True, verbose_name="Slug"),
+                ),
+                (
+                    "excerpt",
+                    models.CharField(
+                        blank=True, max_length=300, verbose_name="Mô tả ngắn"
+                    ),
+                ),
+                ("body", models.TextField(verbose_name="Nội dung")),
+                (
+                    "cover_image_url",
+                    models.URLField(blank=True, verbose_name="URL ảnh bìa"),
+                ),
+                (
+                    "is_published",
+                    models.BooleanField(
+                        db_index=True, default=True, verbose_name="Hiển thị"
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("updated", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Bài viết / Lookbook',
-                'verbose_name_plural': 'Bài viết / Lookbook',
-                'ordering': ['-created'],
-                'indexes': [models.Index(fields=['is_published', '-created'], name='products_bl_is_publ_22ccb8_idx')],
+                "verbose_name": "Bài viết / Lookbook",
+                "verbose_name_plural": "Bài viết / Lookbook",
+                "ordering": ["-created"],
+                "indexes": [
+                    models.Index(
+                        fields=["is_published", "-created"],
+                        name="products_bl_is_publ_22ccb8_idx",
+                    )
+                ],
             },
         ),
     ]

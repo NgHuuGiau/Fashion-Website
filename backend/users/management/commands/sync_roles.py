@@ -19,12 +19,16 @@ class Command(BaseCommand):
             role = row["role"]
             is_super = role == 0
             is_staff = role in (0, 1)
-            updated += User.objects.filter(
-                id=row["id"],
-            ).exclude(
-                is_superuser=is_super,
-                is_staff=is_staff,
-            ).update(is_superuser=is_super, is_staff=is_staff)
+            updated += (
+                User.objects.filter(
+                    id=row["id"],
+                )
+                .exclude(
+                    is_superuser=is_super,
+                    is_staff=is_staff,
+                )
+                .update(is_superuser=is_super, is_staff=is_staff)
+            )
         self.stdout.write(self.style.SUCCESS(f"Synced {updated} users."))
 
     def _fetch(self, sql):
