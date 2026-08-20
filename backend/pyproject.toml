@@ -35,7 +35,6 @@ dependencies = [
     "django-ratelimit>=4.1",
     "django-axes>=5.5",
     "django-user-agents>=0.4",
-    "django-countries-field>=1.0",
 ]
 
 [tool.setuptools.packages.find]
