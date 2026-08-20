@@ -61,7 +61,7 @@ jobs:
 
       - name: Run Ruff format check
         run: |
-          cd backend && ruff format --check . --config pyproject.toml
+          cd backend && ruff format --check .
         continue-on-error: false
 
   type-check:

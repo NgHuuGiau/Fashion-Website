@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "fashion-website"
 version = "1.0.0"
 description = "HUUGIAU Fashion Website - Django E-commerce"
-readme = "../README.md"
 requires-python = ">=3.10"
 dependencies = [
     "django>=4.2,<5.1",
@@ -38,6 +37,12 @@ dependencies = [
     "django-user-agents>=0.4",
     "django-countries-field>=1.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["core*", "orders*", "products*", "users*"]
+
+[tool.setuptools.package-data]
+orders = ["templates/**/*", "static/**/*"]
 
 [project.optional-dependencies]
 dev = [
@@ -121,13 +126,11 @@ exclude = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-indent-width = 4
 line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = ["orders", "products", "users", "core"]
 known-third-party = ["django", "rest_framework", "celery", "redis"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 combine-as-imports = true
 
 [tool.mypy]

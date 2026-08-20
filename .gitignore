@@ -43,6 +43,7 @@ backend/.ruff_cache/
 backend/.pytest_cache/
 backend/.coverage
 .coverage
+*.egg-info/
 
 # SSL certs (dev only)
 backend/certs/
