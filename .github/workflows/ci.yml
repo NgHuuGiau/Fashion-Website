@@ -259,7 +259,7 @@ jobs:
           retention-days: 7
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         if: ${{ matrix.python-version == '3.12' && matrix.django-version == '4.2' }}
         with:
           files: ./backend/coverage.xml
