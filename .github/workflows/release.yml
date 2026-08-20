@@ -45,7 +45,7 @@ jobs:
       - name: Lint
         run: |
           cd backend && ruff check . --output-format=github
-          cd backend && ruff format --check . --config pyproject.toml
+          cd backend && ruff format --check .
 
       - name: Type check
         run: |
