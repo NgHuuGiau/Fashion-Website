@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Comprehensive CI/CD pipeline with GitHub Actions
 - CodeQL security analysis
-- Dependabot configuration with grouped updates
 - Ruff linting and formatting
 - MyPy type checking
 - Bandit security scanning
@@ -20,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CODEOWNERS for review assignment
 - Security policy
 - Contributing guidelines
+- So sánh sản phẩm (session-based, tối đa 4, bảng đối chiếu)
+- Timeline trạng thái đơn hàng (4 bước: Xác nhận → Đóng gói → Đang giao → Đã giao)
+- Nhắc giỏ hàng bỏ quên (model CartReminder, email template, management command)
 
 ### Changed
 - Replaced flake8/isort/black with Ruff

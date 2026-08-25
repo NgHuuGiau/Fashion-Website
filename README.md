@@ -78,6 +78,9 @@ File `.env` ở thư mục gốc hỗ trợ:
 - **Support chat** — FAQ, gợi ý size, ngữ cảnh
 - **Admin dashboard** — biểu đồ doanh thu 7 ngày, CRUD sản phẩm, gallery, variants, quản lý đơn hàng + coupon, bulk actions, xuất CSV, **báo cáo doanh thu theo tháng + xuất CSV**
 - **Tối ưu ảnh** — `python manage.py optimize_images --dry-run` để xem, bỏ `--dry-run` để chuyển toàn bộ ảnh sản phẩm sang WebP
+- **So sánh sản phẩm** — toggle trên card/chi tiết, bảng so sánh tối đa 4 sản phẩm (session-based)
+- **Timeline đơn hàng** — 4 bước (Xác nhận → Đóng gói → Đang giao → Đã giao) trên tra cứu đơn + đơn hàng của tôi
+- **Nhắc giỏ hàng bỏ quên** — email tự động nhắc khách quay lại giỏ hàng (management command `send_cart_reminders`)
 
 ## Cài đặt nhanh
 
