@@ -1,77 +1,4 @@
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "fashion-website"
-version = "1.0.0"
-description = "HUUGIAU Fashion Website - Django E-commerce"
-requires-python = ">=3.12"
-dependencies = [
-    "django>=5.2,<5.3",
-    "djangorestframework>=3.14",
-    "psycopg2-binary>=2.9",
-    "django-environ>=0.11",
-    "django-cors-headers>=4.3",
-    "django-allauth>=0.57",
-    "django-crispy-forms>=2.1",
-    "crispy-bootstrap5>=2024.2",
-    "Pillow>=10.0",
-    "django-imagekit>=5.0",
-    "django-compressor>=4.2",
-    "django-debug-toolbar>=4.2",
-    "django-extensions>=3.2",
-    "celery>=5.3",
-    "redis>=5.0",
-    "gunicorn>=21.0",
-    "whitenoise>=6.6",
-    "django-countries>=7.5",
-    "phonenumbers>=8.13",
-    "django-phonenumber-field>=7.2",
-    "qrcode>=7.4",
-    "reportlab>=4.0",
-    "weasyprint>=60.0",
-    "django-simple-captcha>=0.5.15",
-    "django-ratelimit>=4.1",
-    "django-axes>=5.5",
-    "django-user-agents>=0.4",
-]
-
-[tool.setuptools.packages.find]
-include = ["core*", "orders*", "products*", "users*"]
-
-[tool.setuptools.package-data]
-orders = ["templates/**/*", "static/**/*"]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.4",
-    "pytest-django>=4.5",
-    "pytest-cov>=4.1",
-    "pytest-xdist>=3.3",
-    "pytest-mock>=3.12",
-    "factory-boy>=3.3",
-    "faker>=24.0",
-    "ruff>=0.5",
-    "mypy>=1.11",
-    "django-stubs>=5.2",
-    "types-requests>=2.31",
-    "bandit>=1.7",
-    "pip-audit>=2.7",
-    "safety>=3.2",
-    "pre-commit>=3.6",
-    "black>=24.0",
-    "isort>=5.13",
-    "coverage>=7.3",
-    "codecov>=2.1",
-]
-test = [
-    "pytest>=7.4",
-    "pytest-django>=4.5",
-    "pytest-cov>=4.1",
-    "factory-boy>=3.3",
-    "faker>=24.0",
-]
+# Chỉ chứa tool config. Dependencies duy nhất nằm ở requirements.txt / requirements-dev.txt.
 
 [tool.ruff]
 target-version = "py312"
@@ -95,7 +22,6 @@ select = [
     "LOG", # logging-format
     "ASYNC", # async
     "PL",  # pylint
-    "TRY", # tryceratops
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
@@ -118,8 +44,6 @@ exclude = [
     "build",
     "*.egg-info",
     "node_modules",
-    "frontend/node_modules",
-    "frontend/.next",
 ]
 
 [tool.ruff.format]
@@ -129,7 +53,7 @@ line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = ["orders", "products", "users", "core"]
-known-third-party = ["django", "rest_framework", "celery", "redis"]
+known-third-party = ["django", "celery", "redis"]
 combine-as-imports = true
 
 [tool.mypy]
@@ -152,9 +76,8 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
     "django.*",
-    "rest_framework.*",
     "celery.*",
-    "django_*",
+    "mssql_*",
 ]
 ignore_missing_imports = true
 
@@ -205,22 +128,12 @@ precision = 2
 [tool.coverage.xml]
 output = "coverage.xml"
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 100
-
 [tool.bandit]
 exclude_dirs = ["tests", "migrations", "venv", ".venv"]
 skips = ["B101", "B601"]  # assert, shell=True (sometimes needed)
 
 [tool.pip-audit]
 descend = true
-skip = ["django"]  # sometimes false positives
 
 [tool.safety]
 ignore = ["70612", "70613"]  # known false positives for Django

@@ -13,8 +13,6 @@ on:
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 jobs:
   release:
@@ -26,41 +24,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e "backend[dev]"
-
-      - name: Run tests
-        run: |
-          cd backend
-          python -m pytest -x -v --cov=. --cov-fail-under=70
-
-      - name: Lint
-        run: |
-          cd backend && ruff check . --output-format=github
-          cd backend && ruff format --check .
-
-      - name: Type check
-        run: |
-          cd backend && mypy . --config-file=pyproject.toml --ignore-missing-imports || true
-
-      - name: Security scan
-        run: |
-          cd backend
-          bandit -r . -lll --configfile pyproject.toml || true
-          pip-audit -r requirements.txt || true
-          safety check -r requirements.txt || true
-
-      - name: Build frontend
-        run: |
-          cd frontend && npm install --no-audit --no-fund && npm run build || echo "No build script"
+      # Test/lint/security đã chạy ở CI Pipeline khi push — không lặp lại ở đây.
 
       - name: Extract version
         id: version
@@ -72,27 +36,13 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Extract changelog for this version
-          VERSION="${{ steps.version.outputs.version }}"
-          # Extract from CHANGELOG.md between this version and next
-          # Simplified - just use the tag
-          echo "changelog=Release ${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify
-        run: |
-          echo "Release ${{ steps.version.outputs.version }} created successfully!"

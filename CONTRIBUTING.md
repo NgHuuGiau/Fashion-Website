@@ -14,7 +14,7 @@ cd fashion-website
 cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -r requirements-dev.txt
 
 # 4. Copy environment template
 cp .env.example .env
