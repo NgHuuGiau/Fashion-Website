@@ -57,7 +57,7 @@ We will:
 - Use environment variables for all sensitive configuration
 - Run `bandit` and `pip-audit` before submitting PRs
 - Follow OWASP Top 10 guidelines
-- Keep dependencies updated (Dependabot will help)
+- Keep dependencies updated (run `pip-audit` and `safety` regularly)
 
 ## Security Features in This Project
 
@@ -70,7 +70,7 @@ We will:
 - **XSS Protection**: Django template auto-escaping + CSP headers
 - **Clickjacking**: X-Frame-Options middleware
 - **Content Security Policy**: Configured via middleware
-- **Dependency Scanning**: Automated via Dependabot, pip-audit, Safety
+- **Dependency Scanning**: Automated via pip-audit, Safety
 - **Static Analysis**: CodeQL, Bandit, Ruff
 
 ## Contact
