@@ -11,9 +11,9 @@ factory-boy>=3.3,<3.4
 faker>=24.0,<25
 
 # Linting & Formatting
-ruff>=0.5.7,<0.6
+ruff>=0.6
 mypy>=1.11,<1.12
-django-stubs>=4.2,<4.3
+django-stubs>=5.2
 types-requests>=2.31,<2.32
 black>=24.0,<25
 isort>=5.13,<5.14

@@ -109,7 +109,7 @@ body:
       placeholder: |
         - OS: Ubuntu 22.04 / Windows 11 / macOS
         - Python: 3.12.x
-        - Django: 4.2.x / 5.0.x
+        - Django: 5.2.x
         - Database: PostgreSQL 16 / SQL Server 2022
         - Browser: Chrome 120 / Firefox 121
         - Deployment: Docker / Bare metal / VPS

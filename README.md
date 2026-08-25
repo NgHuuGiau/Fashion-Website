@@ -11,7 +11,7 @@
 ![Pillow](https://img.shields.io/badge/Pillow-3776AB?logo=python&logoColor=white)
 ![Font Awesome](https://img.shields.io/badge/Font_Awesome_6.5-528DD7?logo=fontawesome&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows_11%2B-0078D4?logo=windows&logoColor=white)
-![CI](https://img.shields.io/github/actions/workflow/status/NgHuuGiau/Fashion-Website/test.yml?logo=githubactions&logoColor=white&label=CI)
+![CI](https://img.shields.io/github/actions/workflow/status/NgHuuGiau/Fashion-Website/ci.yml?logo=githubactions&logoColor=white&label=CI)
 ![Coverage](https://img.shields.io/badge/coverage-86%25-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -156,7 +156,7 @@ Fashion-Website/
 ├── chay-web.bat           # Double-click rồi chạy — mở web tại https://127.0.0.1:8000/
 ├── backup-db.bat          # Backup DB tự động (giữ 7 ngày, lưu vào backups/)
 ├── backups/               # File backup .bak (đã gitignore, OneDrive tự đồng bộ cloud)
-├── .github/workflows/     # CI: test.yml (SQL Server 2022 Docker), codeql.yml
+├── .github/workflows/     # CI: ci.yml (PostgreSQL, Python 3.12/3.13, Django 5.2), codeql.yml
 ├── docs/                  # Documentation
 ├── .env
 └── requirements.txt
