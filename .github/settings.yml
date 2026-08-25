@@ -25,7 +25,6 @@ repository:
   allow_auto_merge: true
   delete_branch_on_merge: true
   allow_update_branch: true
-  allow_merge_commit: false
   squash_merge_commit_title: "PR_TITLE"
   squash_merge_commit_message: "PR_BODY"
 
@@ -45,7 +44,7 @@ branches:
           - "Type Check (mypy)"
           - "Security Scan"
           - "CodeQL Analysis"
-          - "Tests (Python 3.12)"
+          - "Django Tests (Python 3.12)"
           - "Frontend Lint"
           - "Build Verification"
       enforce_admins: true
@@ -69,7 +68,7 @@ branches:
           - "Lint (Ruff)"
           - "Type Check (mypy)"
           - "Security Scan"
-          - "Tests (Python 3.12)"
+          - "Django Tests (Python 3.12)"
       restrictions: null
       required_linear_history: false
       allow_force_pushes: false
