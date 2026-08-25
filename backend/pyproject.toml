@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "fashion-website"
 version = "1.0.0"
 description = "HUUGIAU Fashion Website - Django E-commerce"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "django>=4.2,<5.1",
+    "django>=5.2,<5.3",
     "djangorestframework>=3.14",
     "psycopg2-binary>=2.9",
     "django-environ>=0.11",
@@ -54,7 +54,7 @@ dev = [
     "faker>=24.0",
     "ruff>=0.5",
     "mypy>=1.11",
-    "django-stubs>=4.2",
+    "django-stubs>=5.2",
     "types-requests>=2.31",
     "bandit>=1.7",
     "pip-audit>=2.7",
@@ -74,7 +74,7 @@ test = [
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 select = [
     "E",   # pycodestyle errors
@@ -133,7 +133,7 @@ known-third-party = ["django", "rest_framework", "celery", "redis"]
 combine-as-imports = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
