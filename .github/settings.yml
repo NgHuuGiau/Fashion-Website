@@ -44,7 +44,10 @@ branches:
           - "Type Check (mypy)"
           - "Security Scan"
           - "CodeQL Analysis"
+          - "Django Tests (Python 3.10)"
+          - "Django Tests (Python 3.11)"
           - "Django Tests (Python 3.12)"
+          - "Django Tests (Python 3.13)"
           - "Frontend Lint"
           - "Build Verification"
       enforce_admins: true

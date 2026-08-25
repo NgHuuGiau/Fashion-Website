@@ -6,28 +6,47 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0016_giftcard_giftcardusage'),
+        ("orders", "0016_giftcard_giftcardusage"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CartReminder',
+            name="CartReminder",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('session_key', models.CharField(db_index=True, max_length=40, unique=True)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('cart_snapshot', models.TextField(blank=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('reminded_at', models.DateTimeField(blank=True, null=True)),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='cart_reminders', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "session_key",
+                    models.CharField(db_index=True, max_length=40, unique=True),
+                ),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("cart_snapshot", models.TextField(blank=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("reminded_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="cart_reminders",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Nhắc giỏ hàng bỏ quên',
-                'verbose_name_plural': 'Nhắc giỏ hàng bỏ quên',
-                'ordering': ['-updated_at'],
+                "verbose_name": "Nhắc giỏ hàng bỏ quên",
+                "verbose_name_plural": "Nhắc giỏ hàng bỏ quên",
+                "ordering": ["-updated_at"],
             },
         ),
     ]

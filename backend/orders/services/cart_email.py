@@ -29,5 +29,7 @@ def send_cart_reminder(reminder, fail_silently=True):
         msg.send(fail_silently=fail_silently)
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Không gửi được email nhắc giỏ hàng %s: %s", reminder.session_key, exc)
+        logger.warning(
+            "Không gửi được email nhắc giỏ hàng %s: %s", reminder.session_key, exc
+        )
         return False

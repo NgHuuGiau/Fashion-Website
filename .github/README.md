@@ -15,7 +15,7 @@ Runs on: push, PR, schedule (weekly)
 | `type-check` | MyPy static analysis | 15min |
 | `security` | Bandit, pip-audit, Safety | 15min |
 | `codeql` | GitHub CodeQL SAST | 30min |
-| `test` | Django tests (Python 3.12/3.13 × Django 5.2) | 30min |
+| `test` | Django tests (Python 3.10–3.13 × Django 5.2) | 30min |
 | `frontend-lint` | Stylelint + ESLint | 10min |
 | `build` | Django system check + collectstatic | 20min |
 | `summary` | Aggregated status badge | 1min |

@@ -822,14 +822,18 @@ def compare_clear(request: HttpRequest) -> HttpResponse:
     request.session[COMPARE_SESSION_KEY] = []
     messages.info(request, "Đã xoá danh mục so sánh.")
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         return redirect(next_url)
     return redirect("products:product_list")
 
 
 def compare_toggle(request: HttpRequest, product_id: int) -> HttpResponse:
     product = get_object_or_404(Product, id=product_id, available=True)
-    ids = [i for i in request.session.get(COMPARE_SESSION_KEY, []) if isinstance(i, int)]
+    ids = [
+        i for i in request.session.get(COMPARE_SESSION_KEY, []) if isinstance(i, int)
+    ]
     if product.id in ids:
         ids.remove(product.id)
         messages.info(request, f"Đã bỏ '{product.name}' khỏi danh mục so sánh.")
@@ -841,7 +845,9 @@ def compare_toggle(request: HttpRequest, product_id: int) -> HttpResponse:
     request.session[COMPARE_SESSION_KEY] = ids
 
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         return redirect(next_url)
     return redirect("products:compare_view")
 
@@ -860,12 +866,20 @@ def compare_view(request: HttpRequest) -> HttpResponse:
     attach_low_stock(ordered)
     for p in ordered:
         sizes = (
-            list(p.variants.filter(is_active=True, stock__gt=0).values_list("size", flat=True).distinct())
+            list(
+                p.variants.filter(is_active=True, stock__gt=0)
+                .values_list("size", flat=True)
+                .distinct()
+            )
             if p.variants.exists()
             else []
         )
         colors = (
-            list(p.variants.filter(is_active=True, stock__gt=0).values_list("color_name", flat=True).distinct())
+            list(
+                p.variants.filter(is_active=True, stock__gt=0)
+                .values_list("color_name", flat=True)
+                .distinct()
+            )
             if p.variants.exists()
             else []
         )

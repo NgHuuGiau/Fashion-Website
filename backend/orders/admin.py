@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import CartReminder, Coupon, CouponRedemption, Order, OrderItem, ReturnRequest
+from .models import (
+    CartReminder,
+    Coupon,
+    CouponRedemption,
+    Order,
+    OrderItem,
+    ReturnRequest,
+)
 
 
 class OrderItemInline(admin.TabularInline):

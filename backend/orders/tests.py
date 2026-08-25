@@ -3325,9 +3325,12 @@ class RealismBatchBTests(TestCase):
         review.refresh_from_db()
         self.assertEqual(review.customer_reply, "")
 
+
 class TimelineInLookupTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="tl_user", password="StrongPass123!")
+        self.user = User.objects.create_user(
+            username="tl_user", password="StrongPass123!"
+        )
         self.order = Order.objects.create(
             user=self.user,
             customer_name="TL Test",
@@ -3356,7 +3359,11 @@ class CartReminderTest(TestCase):
         self.client.login(username="remind_user", password="StrongPass123!")
         self.cat = Category.objects.create(name="Áo", slug="ao")
         self.product = Product.objects.create(
-            name="Áo reminder", slug="ao-reminder", category=self.cat, price=100000, stock=5
+            name="Áo reminder",
+            slug="ao-reminder",
+            category=self.cat,
+            price=100000,
+            stock=5,
         )
 
     def test_cart_detail_creates_reminder(self):
@@ -3390,7 +3397,9 @@ class CartReminderTest(TestCase):
         self.client.get(reverse("orders:cart_detail"))
         # dummy not affected, but current session has no reminder
         self.assertFalse(
-            CartReminder.objects.filter(session_key=self.client.session.session_key).exists()
+            CartReminder.objects.filter(
+                session_key=self.client.session.session_key
+            ).exists()
         )
 
     def test_command_marks_reminded(self):

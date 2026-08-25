@@ -447,7 +447,9 @@ class CartReminder(models.Model):
         related_name="cart_reminders",
     )
     email = models.EmailField(blank=True)
-    cart_snapshot = models.TextField(blank=True)  # JSON [{name, meta, quantity, subtotal}]
+    cart_snapshot = models.TextField(
+        blank=True
+    )  # JSON [{name, meta, quantity, subtotal}]
     updated_at = models.DateTimeField(auto_now=True)
     reminded_at = models.DateTimeField(null=True, blank=True)
 

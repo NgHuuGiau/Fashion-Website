@@ -25,4 +25,6 @@ class Command(BaseCommand):
                 row.reminded_at = timezone.now()
                 row.save(update_fields=["reminded_at"])
                 sent += 1
-        self.stdout.write(self.style.SUCCESS(f"Đã gửi {sent}/{rows.count()} email nhắc giỏ hàng."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Đã gửi {sent}/{rows.count()} email nhắc giỏ hàng.")
+        )

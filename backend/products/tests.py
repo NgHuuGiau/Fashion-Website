@@ -1108,22 +1108,35 @@ class ReviewTest(TestCase):
         self.assertEqual(response.context["products"][0].rating_count, 1)
         self.assertEqual(response.context["products"][0].rating_avg, 5)
 
+
 class CompareTest(TestCase):
     def setUp(self):
         self.cat = Category.objects.create(name="Áo", slug="ao")
         self.product = Product.objects.create(
-            name="Áo basics", slug="ao-basics", category=self.cat, price=200000, stock=10
+            name="Áo basics",
+            slug="ao-basics",
+            category=self.cat,
+            price=200000,
+            stock=10,
         )
         self.product2 = Product.objects.create(
-            name="Quần basics", slug="quan-basics", category=self.cat, price=350000, stock=10
+            name="Quần basics",
+            slug="quan-basics",
+            category=self.cat,
+            price=350000,
+            stock=10,
         )
         self.url = reverse("products:product_list")
 
     def test_toggle_add_and_remove(self):
-        resp = self.client.post(reverse("products:compare_toggle", args=[self.product.id]))
+        resp = self.client.post(
+            reverse("products:compare_toggle", args=[self.product.id])
+        )
         self.assertEqual(resp.status_code, 302)
         self.assertIn(self.product.id, self.client.session.get("compare_ids", []))
-        resp = self.client.post(reverse("products:compare_toggle", args=[self.product.id]))
+        resp = self.client.post(
+            reverse("products:compare_toggle", args=[self.product.id])
+        )
         self.assertEqual(resp.status_code, 302)
         self.assertNotIn(self.product.id, self.client.session.get("compare_ids", []))
 
