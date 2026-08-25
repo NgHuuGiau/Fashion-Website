@@ -36,6 +36,54 @@ from ..forms import CheckoutForm
 from ..models import Coupon, CouponRedemption, Order, OrderItem
 
 
+def _upsert_cart_reminder(request, items):
+    """Lưu snapshot giỏ hàng để email nhắc sau 3h (only khi đã đăng nhập)."""
+    try:
+        from ..models import CartReminder
+    except ImportError:
+        return
+    import json
+
+    snapshot = [
+        {
+            "name": str(row["product"].name),
+            "meta": " / ".join(
+                filter(
+                    None,
+                    [
+                        getattr(row.get("variant"), "color_name", ""),
+                        getattr(row.get("variant"), "size", ""),
+                    ],
+                )
+            ),
+            "quantity": row["quantity"],
+            "subtotal": float(row["subtotal"]),
+        }
+        for row in items
+    ]
+    session_key = request.session.session_key or ""
+    if not session_key:
+        return
+    CartReminder.objects.update_or_create(
+        session_key=session_key,
+        defaults={
+            "user": request.user,
+            "email": request.user.email or "",
+            "cart_snapshot": json.dumps(snapshot, ensure_ascii=False),
+        },
+    )
+
+
+def _clear_cart_reminder(request):
+    try:
+        from ..models import CartReminder
+    except ImportError:
+        return
+    sk = request.session.session_key
+    if sk:
+        CartReminder.objects.filter(session_key=sk).delete()
+
+
 def build_vietqr_url(bank_code, amount, transfer_note):
     bank = BANKS.get(bank_code)
     if not bank:
@@ -339,6 +387,7 @@ def cart_remove(request: HttpRequest) -> HttpResponse:
 @require_POST
 def cart_clear_all(request: HttpRequest) -> HttpResponse:
     clear_cart(request)
+    _clear_cart_reminder(request)
     messages.success(request, "Đã xóa toàn bộ giỏ hàng.")
     return redirect("orders:cart_detail")
 
@@ -347,6 +396,13 @@ def cart_detail(request: HttpRequest) -> HttpResponse:
     items, subtotal = iter_cart(request)
     shipping_fee = calculate_shipping_fee(subtotal)
     total = subtotal + shipping_fee
+
+    if request.user.is_authenticated:
+        if items:
+            _upsert_cart_reminder(request, items)
+        else:
+            _clear_cart_reminder(request)
+
     return render(
         request,
         "shop/cart.html",

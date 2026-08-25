@@ -300,6 +300,17 @@
         </div>
     </footer>
 
+    {% if compare_ids %}
+    <div class="compare-bar is-visible" aria-label="Danh sách so sánh">
+        <span><i class="fa-solid fa-scale-balanced"></i> {{ compare_ids|length }} sản phẩm trong so sánh</span>
+        <a href="{% url 'products:compare_view' %}">So sánh ngay</a>
+        <form method="post" action="{% url 'products:compare_clear' %}">
+            {% csrf_token %}
+            <button type="submit" class="compare-btn is-active">Xoá</button>
+        </form>
+    </div>
+    {% endif %}
+
     <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Mở hỗ trợ mua hàng">
         <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
     </button>

@@ -124,7 +124,14 @@
             <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card-main" aria-label="{{ product.name|repair_text }}">
             <div class="card-media card-media-editorial">
                 {% if product.get_image %}
-                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" class="primary-img" loading="lazy">
+                {% with gallery=product.gallery_images.all %}
+                    {% if gallery.0 and gallery.0.image.url != product.get_image %}
+                    <img src="{{ gallery.0.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% elif gallery.1 and gallery.1.image.url != product.get_image %}
+                    <img src="{{ gallery.1.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% endif %}
+                {% endwith %}
                 {% else %}
                 <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                 {% endif %}
@@ -168,6 +175,12 @@
             <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
                 <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem nhanh
             </button>
+            <form method="post" action="{% url 'products:compare_toggle' product.id %}" class="card-compare-form">
+                {% csrf_token %}
+                <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}" aria-label="So sánh {{ product.name|repair_text }}">
+                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> So sánh
+                </button>
+            </form>
         </div>
         {% empty %}
         <div class="empty-state panel">
@@ -247,7 +260,14 @@
                 <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ product.name|repair_text }}">
                     <div class="card-media card-media-editorial">
                         {% if product.get_image %}
-                        <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
+                        <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" class="primary-img" loading="lazy">
+                        {% with gallery=product.gallery_images.all %}
+                            {% if gallery.0 and gallery.0.image.url != product.get_image %}
+                            <img src="{{ gallery.0.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                            {% elif gallery.1 and gallery.1.image.url != product.get_image %}
+                            <img src="{{ gallery.1.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                            {% endif %}
+                        {% endwith %}
                         {% else %}
                         <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
                         {% endif %}
@@ -288,6 +308,12 @@
                         </div>
                     </div>
                 </a>
+                <form method="post" action="{% url 'products:compare_toggle' product.id %}" class="card-compare-form">
+                    {% csrf_token %}
+                    <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}" aria-label="So sánh {{ product.name|repair_text }}">
+                        <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> So sánh
+                    </button>
+                </form>
                 {% empty %}
                 <div class="empty-state panel">
                     <h2>Chưa có sản phẩm phù hợp</h2>

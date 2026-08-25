@@ -3324,3 +3324,91 @@ class RealismBatchBTests(TestCase):
         self.client.post(url, {"customer_reply": "Noi dung"})
         review.refresh_from_db()
         self.assertEqual(review.customer_reply, "")
+
+class TimelineInLookupTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="tl_user", password="StrongPass123!")
+        self.order = Order.objects.create(
+            user=self.user,
+            customer_name="TL Test",
+            phone="0911122233",
+            shipping_address="HCM",
+            payment_method="cod",
+            total_amount=150000,
+        )
+
+    def test_timeline_renders_in_lookup_result(self):
+        resp = self.client.post(
+            reverse("orders:order_lookup"),
+            {"order_id": self.order.id, "phone": "0911122233"},
+        )
+        self.assertContains(resp, "order-timeline")
+
+
+class CartReminderTest(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="remind_user", email="remind@test.com", password="StrongPass123!"
+        )
+        self.client.login(username="remind_user", password="StrongPass123!")
+        self.cat = Category.objects.create(name="Áo", slug="ao")
+        self.product = Product.objects.create(
+            name="Áo reminder", slug="ao-reminder", category=self.cat, price=100000, stock=5
+        )
+
+    def test_cart_detail_creates_reminder(self):
+        cat = Category.objects.create(name="Phụ kiện", slug="phu-kien")
+        product = Product.objects.create(
+            name="Nón test", slug="non-test", category=cat, price=100000, stock=5
+        )
+        self.client.post(
+            reverse("orders:cart_add", args=[product.id]),
+            {"quantity": 1},
+            follow=True,
+        )
+        resp = self.client.get(reverse("orders:cart_detail"))
+        self.assertEqual(resp.status_code, 200)
+        from orders.models import CartReminder
+
+        reminder = CartReminder.objects.filter(
+            session_key=self.client.session.session_key
+        ).first()
+        self.assertIsNotNone(reminder)
+        self.assertEqual(reminder.email, "remind@test.com")
+        self.assertIn("Nón test", reminder.cart_snapshot)
+
+    def test_cart_clear_removes_reminder(self):
+        from orders.models import CartReminder
+
+        CartReminder.objects.create(
+            session_key="dummy", email="x@test.com", cart_snapshot="[]"
+        )
+        self.client.session["cart"] = {}
+        self.client.get(reverse("orders:cart_detail"))
+        # dummy not affected, but current session has no reminder
+        self.assertFalse(
+            CartReminder.objects.filter(session_key=self.client.session.session_key).exists()
+        )
+
+    def test_command_marks_reminded(self):
+        from django.utils import timezone as tz
+
+        from orders.models import CartReminder
+
+        old = tz.now() - tz.timedelta(hours=4)
+        reminder = CartReminder.objects.create(
+            session_key="old_session",
+            email="old@test.com",
+            cart_snapshot='[{"name":"X","meta":"","quantity":1,"subtotal":100}]',
+        )
+        CartReminder.objects.filter(pk=reminder.pk).update(updated_at=old)
+        reminder.refresh_from_db()
+        self.assertIsNone(reminder.reminded_at)
+        from django.core.management import call_command
+
+        call_command("send_cart_reminders")
+        reminder.refresh_from_db()
+        self.assertIsNotNone(reminder.reminded_at)

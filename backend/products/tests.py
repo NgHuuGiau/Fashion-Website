@@ -1107,3 +1107,60 @@ class ReviewTest(TestCase):
         self.assertContains(response, "Áo có đánh giá")
         self.assertEqual(response.context["products"][0].rating_count, 1)
         self.assertEqual(response.context["products"][0].rating_avg, 5)
+
+class CompareTest(TestCase):
+    def setUp(self):
+        self.cat = Category.objects.create(name="Áo", slug="ao")
+        self.product = Product.objects.create(
+            name="Áo basics", slug="ao-basics", category=self.cat, price=200000, stock=10
+        )
+        self.product2 = Product.objects.create(
+            name="Quần basics", slug="quan-basics", category=self.cat, price=350000, stock=10
+        )
+        self.url = reverse("products:product_list")
+
+    def test_toggle_add_and_remove(self):
+        resp = self.client.post(reverse("products:compare_toggle", args=[self.product.id]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(self.product.id, self.client.session.get("compare_ids", []))
+        resp = self.client.post(reverse("products:compare_toggle", args=[self.product.id]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertNotIn(self.product.id, self.client.session.get("compare_ids", []))
+
+    def test_compare_view_empty_and_populated(self):
+        resp = self.client.get(reverse("products:compare_view"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(response=resp, text="Chưa có sản phẩm để so sánh")
+        self.client.post(
+            reverse("products:compare_toggle", args=[self.product.id]),
+            follow=True,
+        )
+        resp = self.client.get(reverse("products:compare_view"))
+        self.assertContains(response=resp, text="Áo basics")
+
+    def test_compare_max_limit(self):
+        self.client.post(
+            reverse("products:compare_toggle", args=[self.product.id]),
+            follow=True,
+        )
+        resp = self.client.post(
+            reverse("products:compare_toggle", args=[self.product2.id]),
+            follow=True,
+        )
+        self.assertIn(self.product2.id, self.client.session.get("compare_ids", []))
+        self.client.session["compare_ids"] = list(range(100, 104))
+        resp = self.client.post(
+            reverse("products:compare_toggle", args=[self.product2.id]),
+            follow=True,
+        )
+        self.assertNotIn(self.product2.id, self.client.session.get("compare_ids", []))
+        self.assertContains(response=resp, text="tối đa 4")
+
+    def test_compare_clear(self):
+        self.client.post(
+            reverse("products:compare_toggle", args=[self.product.id]),
+            follow=True,
+        )
+        resp = self.client.post(reverse("products:compare_clear"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.client.session.get("compare_ids"), [])

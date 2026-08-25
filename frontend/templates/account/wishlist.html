@@ -20,7 +20,14 @@
         <article class="product-card product-card-editorial">
             <a href="{% url 'products:product_detail' product.id product.slug %}" class="card-media card-media-editorial">
                 {% if product.get_image %}
-                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}">
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" class="primary-img" loading="lazy">
+                {% with gallery=product.gallery_images.all %}
+                    {% if gallery.0 and gallery.0.image.url != product.get_image %}
+                    <img src="{{ gallery.0.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% elif gallery.1 and gallery.1.image.url != product.get_image %}
+                    <img src="{{ gallery.1.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% endif %}
+                {% endwith %}
                 {% else %}
                 <div class="product-fallback">{{ product.category.slug|product_type_label }}</div>
                 {% endif %}

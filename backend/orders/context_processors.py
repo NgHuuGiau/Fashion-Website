@@ -39,10 +39,19 @@ def cart_count_cached(request):
     return total
 
 
+def get_compare_ids(request):
+    ids = request.session.get("compare_ids", [])
+    try:
+        return [int(i) for i in ids]
+    except (TypeError, ValueError):
+        return []
+
+
 def cart_info(request):
     return {
         "cart_item_count": cart_count_cached(request),
         "wishlist_item_count": wishlist_count(request),
+        "compare_ids": get_compare_ids(request),
     }
 
 

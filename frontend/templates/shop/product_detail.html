@@ -80,6 +80,15 @@
             </form>
             {% endif %}
             <p class="wishlist-note">❤️ Lưu vào yêu thích để xem sau và nhận thông báo khi sản phẩm giảm giá.</p>
+            <form method="post" action="{% url 'products:compare_toggle' product.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}">
+                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                    {% if product.id in compare_ids %}Bỏ so sánh{% else %}Thêm vào so sánh{% endif %}
+                </button>
+                <a href="{% url 'products:compare_view' %}" class="compare-view-link">Xem bảng so sánh</a>
+            </form>
         </div>
         </div>
 

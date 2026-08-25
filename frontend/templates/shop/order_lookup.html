@@ -42,6 +42,7 @@
             {% if looked_up_order.eta_label %}<div class="order-info-row"><span class="order-info-label">Dự kiến giao</span><strong>{{ looked_up_order.eta_label }}</strong></div>{% endif %}
             <div class="order-info-row"><span class="order-info-label">Tổng tiền</span><strong class="order-info-value">{{ looked_up_order.total_amount|vnd }}đ</strong></div>
         </div>
+        {% include "shop/_order_timeline.html" with order=looked_up_order %}
         <h4 style="margin-top:1rem;font-size:0.85rem">Sản phẩm</h4>
         <ul class="order-product-list">
             {% for item in looked_up_order.items.all %}

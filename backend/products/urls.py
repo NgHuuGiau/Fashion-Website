@@ -29,5 +29,12 @@ urlpatterns = [
     path("nhan-tin/dang-ky/", views.newsletter_subscribe, name="newsletter_subscribe"),
     path("lookbook/", views.blog_list, name="blog_list"),
     path("lookbook/<slug:slug>/", views.blog_detail, name="blog_detail"),
+    path("so-sanh/", views.compare_view, name="compare_view"),
+    path("so-sanh/xoa-tat-ca/", views.compare_clear, name="compare_clear"),
+    path(
+        "so-sanh/<int:product_id>/toggle/",
+        views.compare_toggle,
+        name="compare_toggle",
+    ),
     path("tim-kiem/goi-y/", views.search_suggest, name="search_suggest"),
 ]

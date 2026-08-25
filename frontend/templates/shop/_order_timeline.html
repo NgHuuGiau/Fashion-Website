@@ -1,0 +1,22 @@
+{# Timeline trạng thái đơn hàng — dùng chung cho my_orders + tra cứu đơn #}
+<div class="order-timeline {% if order.status == 'cancelled' %}is-cancelled{% endif %}" aria-label="Tiến trình đơn hàng">
+    <div class="timeline-step is-active">
+        <span class="timeline-dot"><i class="fa-solid {% if order.status == 'cancelled' %}fa-xmark{% else %}fa-check{% endif %}"></i></span>
+        <span>{% if order.status == 'cancelled' %}Đã huỷ{% else %}Xác nhận{% endif %}</span>
+    </div>
+    <div class="timeline-line {% if order.status == 'processing' or order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}"></div>
+    <div class="timeline-step {% if order.status == 'processing' or order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}">
+        <span class="timeline-dot"></span>
+        <span>Đóng gói</span>
+    </div>
+    <div class="timeline-line {% if order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}"></div>
+    <div class="timeline-step {% if order.status == 'shipping' or order.status == 'delivered' %}is-active{% endif %}">
+        <span class="timeline-dot"></span>
+        <span>Đang giao</span>
+    </div>
+    <div class="timeline-line {% if order.status == 'delivered' %}is-active{% endif %}"></div>
+    <div class="timeline-step {% if order.status == 'delivered' %}is-active{% endif %}">
+        <span class="timeline-dot"></span>
+        <span>Đã giao</span>
+    </div>
+</div>

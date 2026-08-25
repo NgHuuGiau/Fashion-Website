@@ -433,3 +433,28 @@ class GiftCardUsage(models.Model):
 
     def __str__(self):
         return f"{self.gift_card.code} - {self.amount:,.0f}đ"
+
+
+class CartReminder(models.Model):
+    """Giỏ hàng bỏ quên: chốt lại lần cuối khách chạm vào giỏ (theo session)."""
+
+    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cart_reminders",
+    )
+    email = models.EmailField(blank=True)
+    cart_snapshot = models.TextField(blank=True)  # JSON [{name, meta, quantity, subtotal}]
+    updated_at = models.DateTimeField(auto_now=True)
+    reminded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Nhắc giỏ hàng bỏ quên"
+        verbose_name_plural = "Nhắc giỏ hàng bỏ quên"
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"CartReminder {self.session_key} -> {self.email or '(chưa có email)'}"

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Coupon, CouponRedemption, Order, OrderItem, ReturnRequest
+from .models import CartReminder, Coupon, CouponRedemption, Order, OrderItem, ReturnRequest
 
 
 class OrderItemInline(admin.TabularInline):
@@ -94,3 +94,10 @@ class ReturnRequestAdmin(admin.ModelAdmin):
     list_filter = ("status", "return_type", "reason")
     search_fields = ("order__id", "order__customer_name", "order__phone")
     list_editable = ("status",)
+
+
+@admin.register(CartReminder)
+class CartReminderAdmin(admin.ModelAdmin):
+    list_display = ("session_key", "user", "email", "updated_at", "reminded_at")
+    search_fields = ("email", "session_key", "user__username")
+    list_filter = ("reminded_at",)

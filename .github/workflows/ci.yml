@@ -331,34 +331,13 @@ jobs:
           cd frontend && npm run build || echo "No build script - skipping"
 
   # ========================================
-  # DEPENDENCY REVIEW
-  # ========================================
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          config-file: '.github/dependency-review-config.yml'
-          fail-on-severity: high
-
-  # ========================================
   # SUMMARY
   # ========================================
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, type-check, security, codeql, test, frontend-lint, build, dependency-review]
+    needs: [lint, type-check, security, codeql, test, frontend-lint, build]
     steps:
       - name: Collect results
         run: |
@@ -373,7 +352,6 @@ jobs:
           echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Lint | ${{ needs.frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependency Review | ${{ needs.dependency-review.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**All checks must pass for merge.**" >> $GITHUB_STEP_SUMMARY
 

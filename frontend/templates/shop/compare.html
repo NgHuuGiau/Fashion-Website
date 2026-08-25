@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}So sánh sản phẩm{% endblock %}
+{% block og_title %}So sánh sản phẩm — HUUGIAU Atelier{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Mua sắm thông minh</p>
+            <h1>So sánh sản phẩm</h1>
+            <p>Đối chiếu tối đa {{ compare_max }} sản phẩm để chọn mẫu ưng ý nhất.</p>
+        </div>
+    </div>
+
+    {% if products %}
+    <div class="panel compare-table-wrap">
+        <table class="compare-table">
+            <thead>
+                <tr>
+                    <th>Tiêu chí</th>
+                    {% for p in products %}
+                    <th>
+                        <img src="{{ p.get_image }}" alt="{{ p.name|repair_text }}">
+                        <div><a href="{% url 'products:product_detail' p.id p.slug %}">{{ p.name|repair_text }}</a></div>
+                        <form method="post" action="{% url 'products:compare_toggle' p.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'products:compare_view' %}">
+                            <button type="submit" class="compare-btn"><i class="fa-solid fa-xmark"></i> Bỏ</button>
+                        </form>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>Danh mục</th>
+                    {% for p in products %}<td>{{ p.category.name|repair_text }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Giá</th>
+                    {% for p in products %}
+                    <td>
+                        {% if p.discount_percent %}<s class="price-compare">{{ p.compare_price|vnd }}đ</s>{% endif %}
+                        <strong>{{ p.price|vnd }}đ</strong>
+                        {% if p.discount_percent %}<span class="tag tag-sale">-{{ p.discount_percent }}%</span>{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>Đánh giá</th>
+                    {% for p in products %}
+                    <td>
+                        {% if p.rating_count %}{{ p.rating_avg|floatformat:1 }}/5 · {{ p.rating_count }} đánh giá{% else %}Chưa có đánh giá{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>Đã bán</th>
+                    {% for p in products %}<td>{{ p.sold_count|default:0 }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Màu sắc</th>
+                    {% for p in products %}<td>{{ p.compare_colors }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Size còn hàng</th>
+                    {% for p in products %}<td>{{ p.compare_sizes }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Tồn kho</th>
+                    {% for p in products %}
+                    <td>{% if p.low_stock %}<span class="tag tag-low-stock">Sắp hết hàng</span> {% endif %}{{ p.compare_stock }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state panel">
+        <h2>Chưa có sản phẩm để so sánh</h2>
+        <p>Bấm nút "So sánh" trên thẻ sản phẩm hoặc trang chi tiết để thêm vào đây.</p>
+        <a href="{% url 'products:product_list' %}" class="btn">Xem sản phẩm</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

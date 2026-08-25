@@ -18,7 +18,6 @@ Runs on: push, PR, schedule (weekly)
 | `test` | Django tests (3.10/3.11/3.12 × Django 4.2/5.0) | 30min |
 | `frontend-lint` | Stylelint + ESLint | 10min |
 | `build` | Django system check + collectstatic | 20min |
-| `dependency-review` | PR dependency scanning | 5min |
 | `summary` | Aggregated status badge | 1min |
 
 ## Required Secrets

@@ -811,3 +811,70 @@ def blog_list(request: HttpRequest) -> HttpResponse:
 def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
     post = get_object_or_404(BlogPost, slug=slug, is_published=True)
     return render(request, "shop/blog_detail.html", {"post": post})
+
+
+COMPARE_SESSION_KEY = "compare_ids"
+COMPARE_MAX = 4
+
+
+@require_POST
+def compare_clear(request: HttpRequest) -> HttpResponse:
+    request.session[COMPARE_SESSION_KEY] = []
+    messages.info(request, "Đã xoá danh mục so sánh.")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("products:product_list")
+
+
+def compare_toggle(request: HttpRequest, product_id: int) -> HttpResponse:
+    product = get_object_or_404(Product, id=product_id, available=True)
+    ids = [i for i in request.session.get(COMPARE_SESSION_KEY, []) if isinstance(i, int)]
+    if product.id in ids:
+        ids.remove(product.id)
+        messages.info(request, f"Đã bỏ '{product.name}' khỏi danh mục so sánh.")
+    elif len(ids) >= COMPARE_MAX:
+        messages.warning(request, f"Chỉ so sánh tối đa {COMPARE_MAX} sản phẩm.")
+    else:
+        ids.append(product.id)
+        messages.success(request, f"Đã thêm '{product.name}' vào so sánh.")
+    request.session[COMPARE_SESSION_KEY] = ids
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("products:compare_view")
+
+
+def compare_view(request: HttpRequest) -> HttpResponse:
+    from orders.context_processors import get_compare_ids
+
+    ids = get_compare_ids(request)
+    products = Product.objects.filter(id__in=ids).annotate(
+        rating_avg=Avg("reviews__rating", filter=Q(reviews__is_published=True)),
+        rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
+    )
+    by_id = {p.id: p for p in products}
+    ordered = [by_id[i] for i in ids if i in by_id]
+    attach_sold_counts(ordered)
+    attach_low_stock(ordered)
+    for p in ordered:
+        sizes = (
+            list(p.variants.filter(is_active=True, stock__gt=0).values_list("size", flat=True).distinct())
+            if p.variants.exists()
+            else []
+        )
+        colors = (
+            list(p.variants.filter(is_active=True, stock__gt=0).values_list("color_name", flat=True).distinct())
+            if p.variants.exists()
+            else []
+        )
+        p.compare_sizes = ", ".join(sizes) if sizes else "—"
+        p.compare_colors = ", ".join(colors) if colors else "—"
+        stock = p.get_total_stock()
+        p.compare_stock = f"Còn {stock} sản phẩm" if stock > 0 else "Hết hàng"
+    return render(
+        request,
+        "shop/compare.html",
+        {"products": ordered, "compare_max": COMPARE_MAX},
+    )
