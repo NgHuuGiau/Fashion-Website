@@ -239,9 +239,11 @@ jobs:
         run: |
           cd backend
           set +e
-          python manage.py migrate --noinput --traceback --verbosity 2 > /tmp/migrout.txt 2>&1
-          RC=$?
+          python manage.py migrate --noinput --traceback --verbosity 2 2>&1 | tee /tmp/migrout.txt
+          RC=${PIPESTATUS[0]}
           set -e
+          ERRORS=$(tail -30 /tmp/migrout.txt | tr '\n' ' ' | head -c 1000)
+          echo "::error file=backend/manage.py::Migration failed (Python ${{ matrix.python-version }}, exit $RC) — $ERRORS"
           {
             echo '## Migration Output (Python ${{ matrix.python-version }})'
             echo '```'
@@ -249,7 +251,6 @@ jobs:
             echo '```'
             echo "Exit code: $RC"
           } >> $GITHUB_STEP_SUMMARY
-          cat /tmp/migrout.txt
           exit $RC
 
       # ponytail: chưa đo coverage thật trên CI (SQL Server local chậm) — bỏ gate 70%,
