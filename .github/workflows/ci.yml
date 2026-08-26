@@ -238,13 +238,12 @@ jobs:
       - name: Run migrations
         run: |
           cd backend
-          python -c "import django,os,json;os.environ.setdefault('DJANGO_SETTINGS_MODULE','core.settings');django.setup();s=django.conf.settings.DATABASES['default'];print(json.dumps({k:s.get(k,'?') for k in ('ENGINE','NAME','HOST','PORT','USER')}));print('Django',django.get_version())" 2>&1
           set +e
-          python manage.py migrate --noinput --traceback --verbosity 2 2>&1 > /tmp/migrout.txt
+          python manage.py migrate --noinput --traceback --verbosity 2 > /tmp/migrout.txt 2>&1
           RC=$?
           set -e
           {
-            echo '## Migration Debug (Python ${{ matrix.python-version }})'
+            echo '## Migration Output (Python ${{ matrix.python-version }})'
             echo '```'
             cat /tmp/migrout.txt
             echo '```'
