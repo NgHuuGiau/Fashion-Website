@@ -230,14 +230,16 @@ jobs:
       - name: Wait for PostgreSQL
         run: |
           for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U test && break
+            pg_isready -h localhost -p 5432 -U test -d test_fashion && break
             sleep 1
           done
+          pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready"; exit 1; }
 
       - name: Run migrations
         run: |
           cd backend
-          python manage.py migrate --noinput
+          python -c "import django; django.setup(); from django.conf import settings; print('ENGINE:', settings.DATABASES['default']['ENGINE']); print('NAME:', settings.DATABASES['default']['NAME']); print('HOST:', settings.DATABASES['default']['HOST'])"
+          python manage.py migrate --noinput --traceback --verbosity 2
 
       # ponytail: chưa đo coverage thật trên CI (SQL Server local chậm) — bỏ gate 70%,
       # vẫn xuất report để xem; bật lại fail-under khi có baseline đáng tin.
