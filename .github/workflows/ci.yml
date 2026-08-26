@@ -235,6 +235,12 @@ jobs:
           done
           pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready"; exit 1; }
 
+      - name: Run Django check
+        run: |
+          cd backend
+          python manage.py check --traceback 2>&1
+        continue-on-error: true
+
       - name: Run migrations
         run: |
           cd backend
@@ -242,8 +248,8 @@ jobs:
           python manage.py migrate --noinput --traceback --verbosity 2 2>&1 | tee /tmp/migrout.txt
           RC=${PIPESTATUS[0]}
           set -e
-          ERRORS=$(tail -30 /tmp/migrout.txt | tr '\n' ' ' | head -c 1000)
-          echo "::error file=backend/manage.py::Migration failed (Python ${{ matrix.python-version }}, exit $RC) — $ERRORS"
+          LAST_ERR=$(tail -5 /tmp/migrout.txt | grep -E '^\S' | tail -1 | head -c 500)
+          echo "::error file=backend/manage.py::Migration failed (Python ${{ matrix.python-version }}, exit $RC) — $LAST_ERR"
           {
             echo '## Migration Output (Python ${{ matrix.python-version }})'
             echo '```'
@@ -252,6 +258,14 @@ jobs:
             echo "Exit code: $RC"
           } >> $GITHUB_STEP_SUMMARY
           exit $RC
+
+      - name: Upload migration output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: migration-output-py${{ matrix.python-version }}
+          path: /tmp/migrout.txt
+          retention-days: 7
 
       # ponytail: chưa đo coverage thật trên CI (SQL Server local chậm) — bỏ gate 70%,
       # vẫn xuất report để xem; bật lại fail-under khi có baseline đáng tin.
