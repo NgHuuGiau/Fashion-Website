@@ -10,10 +10,10 @@
       "@type": "Review",
       "author": {
         "@type": "Person",
-        "name": "{{ r.user.get_full_name|default:r.user.username|repair_text }}"
+        "name": {{ r.user.get_full_name|default:r.user.username|repair_text|json_escape }}
       },
-      "datePublished": "{{ r.created_at|date:'Y-m-d' }}",
-      "reviewBody": "{{ r.comment|repair_text }}",
+      "datePublished": {{ r.created_at|date:'Y-m-d'|json_escape }},
+      "reviewBody": {{ r.comment|repair_text|json_escape }},
       "reviewRating": {
         "@type": "Rating",
         "ratingValue": "{{ r.rating }}",

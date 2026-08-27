@@ -24,6 +24,12 @@ function addRecentlyViewed(product) {
   saveRecentlyViewed(filtered);
 }
 
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 function renderRecentlyViewed(containerSelector) {
   const list = getRecentlyViewed();
   if (!list.length) return;
@@ -32,9 +38,9 @@ function renderRecentlyViewed(containerSelector) {
   if (!container) return;
 
   container.innerHTML = list.map(p => `
-    <a href="/san-pham/${p.id}/${p.slug}/" class="recent-item">
-      <img src="${p.image_url}" alt="${p.name}" loading="lazy">
-      <span class="recent-name">${p.name}</span>
+    <a href="/san-pham/${escapeHTML(String(p.id))}/${escapeHTML(String(p.slug))}/" class="recent-item">
+      <img src="${escapeHTML(String(p.image_url))}" alt="${escapeHTML(String(p.name))}" loading="lazy">
+      <span class="recent-name">${escapeHTML(String(p.name))}</span>
       <span class="recent-price">
         ${p.discount_percent
           ? `<s>${Number(p.price).toLocaleString('vi-VN')}đ</s> ${Number(p.price * (1 - p.discount_percent / 100)).toLocaleString('vi-VN')}đ`

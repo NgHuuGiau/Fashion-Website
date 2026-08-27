@@ -8,6 +8,7 @@
     --line-strong: rgba(28, 20, 14, 0.17);
     --text: #1a1109;
     --text-soft: #402f23;
+    --text-strong: #0d0805;
     --muted: #8a715f;
     --muted-light: #b09c8a;
     --accent: #c05a1c;
@@ -17,6 +18,11 @@
     --accent-glow: rgba(192, 90, 28, 0.22);
     --accent-gold: #b2853f;
     --accent-gold-soft: rgba(178, 133, 63, 0.14);
+    --border: rgba(28, 20, 14, 0.10);
+    --line-soft: rgba(28, 20, 14, 0.05);
+    --panel: #fffdf9;
+    --panel-alt: rgba(255, 253, 249, 0.7);
+    --muted-strong: #6b5847;
     --success: #1f8a4d;
     --success-soft: rgba(31, 138, 77, 0.10);
     --danger: #d94a34;
@@ -24,11 +30,13 @@
     --warning: #d97706;
     --info: #5b7a9a;
     --shadow-sm: 0 1px 2px rgba(28, 20, 14, 0.05), 0 4px 14px rgba(28, 20, 14, 0.06);
+    --shadow: var(--shadow-sm);
     --shadow-md: 0 8px 24px rgba(28, 20, 14, 0.08), 0 16px 42px rgba(28, 20, 14, 0.06);
     --shadow-lg: 0 16px 44px rgba(28, 20, 14, 0.10), 0 32px 72px rgba(28, 20, 14, 0.07);
     --shadow-xl: 0 24px 60px rgba(28, 20, 14, 0.12), 0 48px 100px rgba(28, 20, 14, 0.08);
     --glow-accent: 0 0 44px rgba(192, 90, 28, 0.16);
     --radius: 18px;
+    --radius-md: 14px;
     --radius-sm: 10px;
     --radius-xs: 6px;
     --radius-pill: 9999px;
@@ -178,7 +186,7 @@ button {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 99;
+    z-index: 150;
     width: 300px;
     max-width: 85vw;
     height: 100dvh;
@@ -4530,7 +4538,7 @@ button {
     position: fixed;
     top: 1rem;
     right: 1rem;
-    z-index: 200;
+    z-index: 500;
     display: grid;
     gap: 0.6rem;
     max-width: 380px;
@@ -5899,6 +5907,7 @@ textarea:focus-visible {
     transform: translateY(16px); opacity: 0; pointer-events: none; transition: transform 0.35s ease, opacity 0.35s ease;
 }
 .buy-popup.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.buy-popup-body { display: flex; align-items: center; gap: 0.8rem; }
 .buy-popup-thumb { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 8px; display: grid; place-items: center; font-size: 0.6rem; font-weight: 800; color: #fff; background: var(--accent); letter-spacing: 0.5px; }
 .buy-popup-name { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 0.15rem; }
 .buy-popup-meta { font-size: 0.74rem; color: var(--muted); }

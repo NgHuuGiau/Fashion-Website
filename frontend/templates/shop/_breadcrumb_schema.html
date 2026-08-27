@@ -20,7 +20,7 @@
     {
       "@type": "ListItem",
       "position": 3,
-      "name": "{{ product.category.name|repair_text }}",
+      "name": {{ product.category.name|repair_text|json_escape }},
       "item": "{{ request.scheme }}://{{ request.get_host }}{% url 'products:product_list' %}?category={{ product.category.slug }}"
     },
     {
@@ -33,7 +33,7 @@
     {
       "@type": "ListItem",
       "position": 3,
-      "name": "{{ product.name|repair_text|truncatechars:40 }}",
+      "name": {{ product.name|repair_text|truncatechars:40|json_escape }},
       "item": "{{ request.build_absolute_uri }}"
     }
     {% endif %}

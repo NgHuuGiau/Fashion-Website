@@ -1,6 +1,20 @@
 (function() {
     'use strict';
 
+    // ─── Shared scroll lock ───
+    var _overlayCount = 0;
+    function lockScroll() {
+        if (_overlayCount++ === 0) document.body.style.overflow = 'hidden';
+    }
+    function unlockScroll() {
+        if (--_overlayCount <= 0) {
+            _overlayCount = 0;
+            if (!document.body.dataset.navOpen && !document.body.dataset.exitOpen) {
+                document.body.style.overflow = '';
+            }
+        }
+    }
+
     // ─── Variant picker (button-based) ───
     const dataNode = document.getElementById('variant-data');
     const picker = document.getElementById('variant-picker');
@@ -140,14 +154,14 @@
         }
         overlay.querySelector('img').src = src;
         overlay.classList.add('is-open');
-        document.body.style.overflow = 'hidden';
+        lockScroll();
     });
     document.addEventListener('click', function(e) {
         var overlay = document.getElementById('gallery-zoom');
         if (!overlay || !overlay.classList.contains('is-open')) return;
         if (e.target === overlay || e.target.closest('.gallery-zoom-close')) {
             overlay.classList.remove('is-open');
-            document.body.style.overflow = '';
+            unlockScroll();
         }
     });
     document.addEventListener('keydown', function(e) {
@@ -155,7 +169,7 @@
         var overlay = document.getElementById('gallery-zoom');
         if (overlay && overlay.classList.contains('is-open')) {
             overlay.classList.remove('is-open');
-            document.body.style.overflow = '';
+            unlockScroll();
         }
     });
 
@@ -218,10 +232,10 @@
                 return 'Hiện shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng (QR). COD được khuyến khích vì tiện lợi, không cần chờ xác nhận thanh toán.';
             }
             if (/size|kích[\s\S]*c[oồ]|vừa|m[\s\S]*c|1m|m[\s\S]*t|cao.*cân|chi[eê]u cao/i.test(text)) {
-                var match = text.match(/(\d{1,2})\s*m[\s\S]*?(\d{1,3})\s*kg/i);
+                var match = text.match(/(\d{1,2})\s*m\s*(\d{1,3})(?:\s+(\d{1,3})\s*kg)?/i);
                 if (match) {
                     var h = parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
-                    var w = parseInt(match[3], 10);
+                    var w = match[3] ? parseInt(match[3], 10) : 0;
                     if (h >= 175 || w >= 80) return 'Với số đo của bạn, shop gợi ý size L hoặc XL cho áo, M hoặc L cho quần. Tuy nhiên tùy form mặc ôm hay rộng nữa — nếu thích mặc ôm thì chọn size nhỏ hơn 1 size.';
                     if (h >= 165 || w >= 65) return 'Với số đo của bạn, shop gợi ý size M cho áo và M cho quần. Nếu thích mặc rộng hoặc có chất riêng, shop có thể tư vấn thêm nếu bạn nói rõ sản phẩm.';
                     return 'Theo số đo bạn cung cấp, size S hoặc M sẽ phù hợp. Bạn vào trang sản phẩm để xem bảng size chi tiết nhé.';
@@ -287,7 +301,7 @@
             chatbox.classList.remove('hidden');
             backdrop.classList.remove('hidden');
             launcher.classList.add('hidden');
-            document.body.style.overflow = 'hidden';
+            lockScroll();
             setTimeout(() => { chatInput.focus(); scrollToBottom(); }, 50);
         });
 
@@ -295,7 +309,7 @@
             chatbox.classList.add('hidden');
             backdrop.classList.add('hidden');
             launcher.classList.remove('hidden');
-            document.body.style.overflow = '';
+            unlockScroll();
         }
 
         closeBtn.addEventListener('click', closeChat);
@@ -735,7 +749,6 @@
         var sticky = document.getElementById('sticky-buy');
         var mainForm = document.getElementById('detail-buy-form');
         if (!sticky || !mainForm) return;
-        var qtyInput = mainForm.querySelector('[data-qty-input]');
         var variantId = document.getElementById('variant-id-input');
 
         var shown = false;
@@ -778,10 +791,6 @@
                         copy.value = variantId.value;
                         mainForm.appendChild(copy);
                     }
-                }
-                if (qtyInput) {
-                    var qtyCopy = mainForm.querySelector('[data-qty-input]');
-                    if (qtyCopy) qtyCopy.value = qtyInput.value;
                 }
                 mainForm.submit();
             });

@@ -18,7 +18,8 @@
                     xhr.open('GET', suggestUrl + '?q=' + encodeURIComponent(q), true);
                     xhr.onload = function(){
                         if (xhr.status !== 200) return;
-                        var data = JSON.parse(xhr.responseText);
+                        var data;
+                        try { data = JSON.parse(xhr.responseText); } catch (e) { return; }
                         if (!data.length) { box.innerHTML = ''; box.classList.remove('is-active'); return; }
                         var html = '';
                         data.forEach(function(item){
@@ -63,10 +64,15 @@
             var isOpen = open !== undefined ? open : !siteNav.classList.contains('is-open');
             if (isOpen) {
                 siteNav.classList.add('is-open');
+                document.body.dataset.navOpen = '1';
                 document.body.style.overflow = 'hidden';
             } else {
                 siteNav.classList.remove('is-open');
-                document.body.style.overflow = '';
+                delete document.body.dataset.navOpen;
+                if (!document.getElementById('gallery-zoom')?.classList.contains('is-open') &&
+                    !document.querySelector('.chatbox:not(.hidden)')) {
+                    document.body.style.overflow = '';
+                }
             }
         }
 
@@ -86,11 +92,13 @@
                 toggleMenu(false);
             }
         });
-        siteNav.addEventListener('click', function(e) {
-            if (e.target.closest('a') && siteNav.classList.contains('is-open')) {
-                toggleMenu(false);
-            }
-        });
+        if (siteNav) {
+            siteNav.addEventListener('click', function(e) {
+                if (e.target.closest('a') && siteNav.classList.contains('is-open')) {
+                    toggleMenu(false);
+                }
+            });
+        }
 
         // ─── Auto-dismiss messages ───
         document.querySelectorAll('.message-stack .message').forEach(function(msg) {
@@ -163,7 +171,7 @@
         var metaEl = document.getElementById('buy-popup-meta');
         var thumbEl = document.getElementById('buy-popup-thumb');
         var closeBtn = document.getElementById('buy-popup-close');
-        if (!popup || !nameEl || !metaEl) return;
+        if (!popup || !nameEl || !metaEl || !thumbEl || !closeBtn) return;
 
         var items = [
             { name: 'Áo Tee Oversize Essential', thumb: 'TEE', price: '250.000', city: 'Hà Nội' },
@@ -236,13 +244,18 @@
             if (dismissed) return;
             popup.classList.remove('hidden');
             popup.classList.add('show');
+            document.body.dataset.exitOpen = '1';
             document.body.style.overflow = 'hidden';
         }
         function hide() {
             dismissed = true;
             popup.classList.remove('show');
             popup.classList.add('hidden');
-            document.body.style.overflow = '';
+            delete document.body.dataset.exitOpen;
+            if (!document.getElementById('gallery-zoom')?.classList.contains('is-open') &&
+                !document.querySelector('.chatbox:not(.hidden)')) {
+                document.body.style.overflow = '';
+            }
             try { localStorage.setItem('exit_popup_seen', '1'); } catch (e) {}
         }
 
@@ -262,7 +275,11 @@
                 dismissed = true;
                 popup.classList.remove('show');
                 popup.classList.add('hidden');
-                document.body.style.overflow = '';
+                delete document.body.dataset.exitOpen;
+                if (!document.getElementById('gallery-zoom')?.classList.contains('is-open') &&
+                    !document.querySelector('.chatbox:not(.hidden)')) {
+                    document.body.style.overflow = '';
+                }
             });
         }
     })();

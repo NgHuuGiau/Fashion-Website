@@ -24,6 +24,22 @@ def vnd(value):
     return f"{amount:,}".replace(",", ".")
 
 
+@register.filter(is_safe=True)
+def json_escape(value):
+    """JSON string value an toàn trong JSON-LD: thoát control chars & <>&."""
+    import json
+
+    from django.utils.safestring import mark_safe
+
+    s = value if value is not None else ""
+    out = json.dumps(str(s), ensure_ascii=False)
+    return mark_safe(
+        out.replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+
+
 @register.filter
 def repair_text(value):
     return repair_mojibake_text(value)

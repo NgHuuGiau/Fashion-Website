@@ -3,8 +3,8 @@
 {
   "@context": "https://schema.org/",
   "@type": "Product",
-  "name": "{{ product.name|repair_text }}",
-  "description": "{{ product.description|default:''|repair_text|truncatechars:300 }}",
+  "name": {{ product.name|repair_text|json_escape }},
+  "description": {{ product.description|default:''|repair_text|truncatechars:300|json_escape }},
   "sku": "HUUGIAU-{{ product.id }}",
   "brand": {
     "@type": "Brand",
@@ -27,9 +27,6 @@
       "name": "HUUGIAU Atelier"
     }
   },
-  {% if product.discount_percent %}
-  "priceValidUntil": "{{ 'now'|date:'Y-m-d'|add:'7 days' }}",
-  {% endif %}
   "aggregateRating": {
     "@type": "AggregateRating",
     "ratingValue": "{{ product.reviews.aggregate|default:0 }}",
