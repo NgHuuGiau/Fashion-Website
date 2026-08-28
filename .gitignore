@@ -44,6 +44,7 @@ backend/.pytest_cache/
 backend/.coverage
 .coverage
 *.egg-info/
+frontend/static/CACHE/
 
 # SSL certs (dev only)
 backend/certs/

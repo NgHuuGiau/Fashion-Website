@@ -78,36 +78,17 @@
             <div class="payment-sidebar-sticky">
                 <div class="payment-qr-section">
                     <div class="payment-qr-tabs">
-                        <button class="payment-qr-tab active" data-tab="confirm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 12h8"/></svg>
-                            Xác nhận
-                        </button>
-                        <button class="payment-qr-tab" data-tab="transfer">
+                        <button class="payment-qr-tab active" data-tab="transfer">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="14" rx="2"/><path d="M12 2L22 8H2L12 2z"/></svg>
-                            Chuyển khoản
+                            Quét mã chuyển khoản
+                        </button>
+                        <button class="payment-qr-tab" data-tab="confirm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Mở trang xác nhận
                         </button>
                     </div>
 
-                    <div class="payment-qr-panel active" id="panel-confirm">
-                        <p class="payment-qr-panel-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            Quét mã để xác nhận thanh toán
-                        </p>
-                        <a href="{{ mobile_url }}" target="_blank" rel="noopener" class="payment-qr-link-wrap">
-                            <div class="payment-qr-box">
-                                <img src="{{ qr_url }}" alt="QR xác nhận" class="payment-qr-img" id="qr-confirm-img" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\'display:block;padding:1rem;font-size:0.75rem;color:#ab9a8b\'>Không tải được QR.<br><a href=\''+this.closest(\'a\').href+'\' style=\'color:#c96f2e;font-weight:600\'>Bấm để mở</a></span>'">
-                                <div class="payment-qr-box-overlay">
-                                    <span>Bấm để mở</span>
-                                </div>
-                            </div>
-                        </a>
-                        <div class="payment-qr-hint">
-                            <span class="payment-qr-hint-dot"></span>
-                            Mở trên điện thoại để xác nhận
-                        </div>
-                    </div>
-
-                    <div class="payment-qr-panel" id="panel-transfer">
+                    <div class="payment-qr-panel active" id="panel-transfer">
                         <p class="payment-qr-panel-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="2" x2="12" y2="16"/></svg>
                             Quét mã để chuyển khoản
@@ -119,6 +100,38 @@
                             <span class="payment-qr-hint-dot"></span>
                             Dùng app ngân hàng quét mã
                         </div>
+                    </div>
+
+                    <div class="payment-qr-panel" id="panel-confirm">
+                        <p class="payment-qr-panel-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Bấm vào mã QR để mở trang xác nhận
+                        </p>
+                        <a href="{{ mobile_url }}" target="_blank" rel="noopener" class="payment-qr-link-wrap">
+                            <div class="payment-qr-box">
+                                <img src="{{ qr_url }}" alt="QR xác nhận" class="payment-qr-img" id="qr-confirm-img" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\'display:block;padding:1rem;font-size:0.75rem;color:#ab9a8b\'>Không tải được QR.<br><a href=\''+this.closest(\'a\').href+'\' style=\'color:#c96f2e;font-weight:600\'>Bấm để mở</a></span>'">
+                                <div class="payment-qr-box-overlay">
+                                    <span>Bấm để mở</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="payment-qr-hint">
+                            <span class="payment-qr-hint-dot"></span>
+                            Nhảy sang trang xác nhận trên điện thoại
+                        </div>
+                    </div>
+
+                    <div class="payment-confirm-action">
+                        <p class="payment-confirm-note">Đã chuyển khoản xong? Bấm nút dưới để xác nhận:</p>
+                        <form method="post" action="{{ confirm_url }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="token" value="{{ token }}">
+                            <button type="submit" class="payment-confirm-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                                Tôi đã chuyển khoản — Xác nhận đã thanh toán
+                            </button>
+                        </form>
+                        <p class="payment-confirm-hint">Hoặc bấm vào mã QR bên trên để mở trang xác nhận riêng.</p>
                     </div>
                 </div>
 
@@ -170,7 +183,7 @@
                         <div class="payment-guide-number">2</div>
                         <div class="payment-guide-text">
                             <strong>Xác nhận</strong>
-                            <span>Quét mã QR xác nhận để hoàn tất</span>
+                            <span>Bấm "Tôi đã chuyển khoản" để hoàn tất</span>
                         </div>
                     </div>
                 </div>
@@ -574,6 +587,42 @@
 @keyframes pulseDot {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 1; }
+}
+
+.payment-confirm-action {
+    border-top: 1px solid var(--line);
+    padding: 0.9rem 1.25rem 1.1rem;
+    text-align: center;
+    background: var(--bg-soft);
+}
+.payment-confirm-note {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+}
+.payment-confirm-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #fffdfa;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    transition: all 0.2s ease;
+}
+.payment-confirm-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.payment-confirm-btn:active { transform: translateY(0) scale(0.98); }
+.payment-confirm-hint {
+    font-size: 0.62rem;
+    color: var(--muted-light);
+    margin-top: 0.5rem;
 }
 
 .payment-summary-card {

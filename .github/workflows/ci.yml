@@ -371,6 +371,10 @@ jobs:
         run: |
           cd backend && python manage.py collectstatic --dry-run --noinput --clear
 
+      - name: Compress CSS/JS (offline manifest, production path)
+        run: |
+          cd backend && DEBUG=False SECURE_SSL_REDIRECT=False ALLOWED_HOSTS=testserver python manage.py compress --force
+
       - name: Frontend build check
         run: |
           cd frontend && npm run build || echo "No build script - skipping"

@@ -104,6 +104,7 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
             "orders:bank_payment_mobile", kwargs={"token": token, "order_id": order.id}
         )
     )
+    confirm_url = reverse("orders:bank_payment_confirm", kwargs={"order_id": order.id})
     return render(
         request,
         "shop/bank_payment_waiting.html",
@@ -114,6 +115,8 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
             "shop_account_name": SHOP_ACCOUNT_NAME,
             "qr_url": qr_url,
             "mobile_url": mobile_url,
+            "confirm_url": confirm_url,
+            "token": token,
             "expires_at_iso": expires_at.isoformat(),
             "payment_timeout_minutes": PAYMENT_TIMEOUT_MINUTES,
         },

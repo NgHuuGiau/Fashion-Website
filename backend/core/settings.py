@@ -265,6 +265,14 @@ if not DEBUG:
         "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
     )
 
+# django-compressor offline yêu cầu finder riêng; nếu thiếu, `manage.py compress`
+# lỗi "add 'compressor.finders.CompressorFinder' to STATICFILES_FINDERS" khi deploy.
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "compressor.finders.CompressorFinder",
+]
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

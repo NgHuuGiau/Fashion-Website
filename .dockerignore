@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+env
+__pycache__
+*.pyc
+node_modules
+frontend/static/CACHE
+staticfiles
+backend/certs
+*.md
+!backend/requirements.md
+Ghi Chú.txt
+LOCAL_NOTES.md
