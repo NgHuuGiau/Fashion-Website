@@ -10,7 +10,8 @@ psycopg2-binary>=2.9,<2.10
 redis>=5.0,<5.1
 
 # Nén CSS/JS + tiện ích manage.py
-django-compressor>=4.2,<4.3
+# (>=4.5: 4.2 import get_storage_class đã bị xóa khỏi Django 5.x; 4.6 tested local)
+django-compressor>=4.5,<4.7
 django-extensions>=3.2,<3.3
 
 # Sinh cert HTTPS dev (run_local.py) — VNPay HMAC dùng hmac stdlib

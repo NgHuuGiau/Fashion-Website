@@ -34,9 +34,7 @@ def json_escape(value):
     s = value if value is not None else ""
     out = json.dumps(str(s), ensure_ascii=False)
     return mark_safe(
-        out.replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("&", "\\u0026")
+        out.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     )
 
 
