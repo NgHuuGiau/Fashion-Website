@@ -1,7 +1,6 @@
 (function() {
     'use strict';
     document.addEventListener('DOMContentLoaded', function() {
-        // ─── Search autocomplete ───
         (function(){
             var input = document.getElementById('header-search-input');
             var box = document.getElementById('search-suggest');
@@ -55,7 +54,6 @@
             }
         })();
 
-        // ─── Sidebar menu (toggle on hamburger) ───
         var hamburger = document.getElementById('hamburger-btn');
         var closeMenu = document.getElementById('close-menu');
         var siteNav = document.getElementById('site-nav');
@@ -100,7 +98,6 @@
             });
         }
 
-        // ─── Auto-dismiss messages ───
         document.querySelectorAll('.message-stack .message').forEach(function(msg) {
             msg.addEventListener('click', function() {
                 this.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -110,7 +107,6 @@
             });
         });
 
-        // ─── Scroll reveal animation ───
         if ('IntersectionObserver' in window) {
             var revealElements = document.querySelectorAll('.lookbook-shell, .hero-shell, .detail-layout, .checkout-layout, .cart-layout, .auth-layout, .account-layout, .admin-hero-shell');
             var revealObserver = new IntersectionObserver(function(entries) {
@@ -127,7 +123,6 @@
             });
         }
 
-        // ─── Cart quantity bump animation ───
         var cartCount = document.querySelector('.icon-count');
         if (cartCount) {
             var originalText = cartCount.textContent;
@@ -142,7 +137,6 @@
             observer.observe(cartCount, { childList: true, characterData: true, subtree: true });
         }
 
-        // ─── Toast notifications ───
         (function(){
             var dataEl = document.getElementById('messages-data');
             if (!dataEl) return;
@@ -164,7 +158,6 @@
         })();
     });
 
-    // ─── Popup "Ai đó vừa đặt mua" ───
     (function() {
         var popup = document.getElementById('buy-popup');
         var nameEl = document.getElementById('buy-popup-name');
@@ -233,7 +226,6 @@
         });
     })();
 
-    // ─── Exit-intent promo popup ───
     (function() {
         var popup = document.getElementById('exit-popup');
         if (!popup) return;
@@ -284,7 +276,6 @@
         }
     })();
 
-    // ─── Mini-cart drawer ───
     (function () {
         var drawer = document.getElementById('cart-drawer');
         var overlay = document.getElementById('cart-drawer-overlay');
@@ -370,7 +361,6 @@
         });
     })();
 
-    // ─── Add-to-cart opens drawer (AJAX) ───
     (function () {
         var form = document.getElementById('detail-buy-form');
         if (!form) return;

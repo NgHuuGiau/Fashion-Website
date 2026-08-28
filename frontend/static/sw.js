@@ -7,7 +7,6 @@ const STATIC_ASSETS = [
   '/static/manifest.json',
 ];
 
-// Install - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -15,7 +14,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate - clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -25,21 +23,17 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch - network first for API, cache first for static
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET
   if (request.method !== 'GET') return;
 
-  // API routes - network first, no cache
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(fetch(request));
     return;
   }
 
-  // Static assets - cache first
   if (
     url.pathname.startsWith('/static/') ||
     url.pathname === '/manifest.json' ||
@@ -58,7 +52,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Pages - network first, fallback to cache
   event.respondWith(
     fetch(request)
       .then((resp) => {
@@ -72,7 +65,6 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handler (placeholder for future VAPID integration)
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   const data = event.data.json();

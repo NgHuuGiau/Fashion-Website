@@ -24,8 +24,6 @@ permissions:
 env:
   PYTHON_VERSION: '3.12'
   DJANGO_SETTINGS_MODULE: 'core.settings'
-  # CI là môi trường test: DEBUG=True giữ SECURE_SSL_REDIRECT/đăng nhập cookie/compressor offline
-  # ở chế độ dev, nếu không mọi request bị 301 (SSL) và {% compress %} lỗi offline manifest.
   DEBUG: 'True'
   SECRET_KEY: 'ci-insecure-key-for-tests-only'
   ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
@@ -39,9 +37,6 @@ env:
   DB_PASSWORD: 'test'
 
 jobs:
-  # ========================================
-  # LINT & STATIC ANALYSIS
-  # ========================================
   lint:
     name: Lint (Ruff)
     runs-on: ubuntu-latest
@@ -140,9 +135,6 @@ jobs:
             safety-results.json
           retention-days: 14
 
-  # ========================================
-  # CODEQL ANALYSIS
-  # ========================================
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
@@ -177,9 +169,6 @@ jobs:
           path: sarif-results
           retention-days: 14
 
-  # ========================================
-  # DJANGO TESTS
-  # ========================================
   test:
     name: Django Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -272,8 +261,6 @@ jobs:
           path: /tmp/migrout.txt
           retention-days: 7
 
-      # ponytail: chưa đo coverage thật trên CI (SQL Server local chậm) — bỏ gate 70%,
-      # vẫn xuất report để xem; bật lại fail-under khi có baseline đáng tin.
       - name: Run tests with coverage
         run: |
           cd backend
@@ -306,9 +293,6 @@ jobs:
           flags: unittests
           name: codecov-${{ matrix.python-version }}-${{ matrix.django-version }}
 
-  # ========================================
-  # FRONTEND LINT (CSS/JS)
-  # ========================================
   frontend-lint:
     name: Frontend Lint
     runs-on: ubuntu-latest
@@ -336,9 +320,6 @@ jobs:
         run: |
           cd frontend && npx eslint "**/*.js" --format=github || true
 
-  # ========================================
-  # BUILD VERIFICATION
-  # ========================================
   build:
     name: Build Verification
     runs-on: ubuntu-latest
@@ -379,9 +360,6 @@ jobs:
         run: |
           cd frontend && npm run build || echo "No build script - skipping"
 
-  # ========================================
-  # SUMMARY
-  # ========================================
   summary:
     name: CI Summary
     runs-on: ubuntu-latest

@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // ─── Shared scroll lock ───
     var _overlayCount = 0;
     function lockScroll() {
         if (_overlayCount++ === 0) document.body.style.overflow = 'hidden';
@@ -15,7 +14,6 @@
         }
     }
 
-    // ─── Variant picker (button-based) ───
     const dataNode = document.getElementById('variant-data');
     const picker = document.getElementById('variant-picker');
     const variantInput = document.getElementById('variant-id-input');
@@ -122,7 +120,6 @@
         }
     }
 
-    // ─── Image gallery (thumb clicks via delegation) ───
     document.addEventListener('click', function(e) {
         var thumb = e.target.closest('[data-detail-image]');
         if (!thumb) return;
@@ -136,7 +133,6 @@
         thumb.classList.add('active');
     });
 
-    // ─── Gallery zoom (click ảnh chính mở lightbox) ───
     document.addEventListener('click', function(e) {
         var main = document.getElementById('detail-main-image');
         if (!main || e.target !== main) return;
@@ -173,7 +169,6 @@
         }
     });
 
-    // ─── Quantity stepper (delegation) ───
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-qty-step]');
         if (!btn) return;
@@ -194,7 +189,6 @@
         }
     });
 
-    // ─── Support chat ───
     const launcher = document.getElementById('chat-launcher');
     const chatbox = document.getElementById('support-chatbox');
     const backdrop = document.getElementById('chatbox-backdrop');
@@ -323,7 +317,6 @@
         });
     }
 
-    // ─── Variant matrix editor (admin) ───
     const matrixBody = document.getElementById('variant-matrix-body');
     const matrixHead = document.getElementById('variant-matrix-head');
     const matrixSizesBox = document.getElementById('variant-matrix-sizes');
@@ -452,7 +445,6 @@
         matrixUpdateStockTotal();
     }
 
-    // ─── Smooth scroll for anchor links ───
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
@@ -465,7 +457,6 @@
         });
     });
 
-    // ─── Back to top ───
     const backToTop = document.createElement('button');
     backToTop.className = 'back-to-top hidden';
     backToTop.innerHTML = '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i>';
@@ -480,7 +471,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // ─── Toast notification system ───
     window.showToast = function(message, type) {
         type = type || 'success';
         const container = document.getElementById('toast-container');
@@ -502,7 +492,6 @@
         }, 3500);
     };
 
-    // ─── Image lazy loading ───
     if ('IntersectionObserver' in window) {
         const lazyImages = document.querySelectorAll('img[data-src]');
         const imageObserver = new IntersectionObserver((entries) => {
@@ -518,7 +507,6 @@
         lazyImages.forEach(img => imageObserver.observe(img));
     }
 
-    // ─── Gallery arrow navigation (data-gallery-dir) ───
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-gallery-dir]');
         if (!btn) return;
@@ -544,14 +532,12 @@
         target.classList.add('active');
     });
 
-    // ─── Size guide modal (data-modal) ───
     document.addEventListener('click', function(e) {
         var trigger = e.target.closest('[data-modal]');
         if (!trigger) return;
         var modalId = trigger.dataset.modal;
         var modal = document.getElementById(modalId);
         if (!modal) return;
-        // A trigger inside an accordion <summary> must not toggle the accordion.
         if (trigger.closest('summary')) {
             e.preventDefault();
             e.stopPropagation();
@@ -570,13 +556,11 @@
         }
     });
 
-    // ─── Order filter auto-submit (onchange) ───
     document.addEventListener('change', function(e) {
         var select = e.target.closest('[data-auto-submit]');
         if (select && select.form) select.form.submit();
     });
 
-    // ─── Order card clickable ───
     document.addEventListener('click', function(e) {
         var card = e.target.closest('.order-card-clickable');
         if (!card) return;
@@ -585,7 +569,6 @@
         if (link) window.location.href = link.href;
     });
 
-    // ─── Admin tab switching (data-target) ───
     (function() {
         var tabs = document.querySelectorAll('.admin-tab[data-target]');
         var contents = {};
@@ -611,7 +594,6 @@
         if (hash && contents[hash]) showTab(hash);
     })();
 
-    // ─── Admin product search ───
     (function() {
         var searchInput = document.getElementById('admin-product-search');
         if (!searchInput) return;
@@ -626,7 +608,6 @@
         });
     })();
 
-    // ─── Admin coupon edit/reset ───
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-edit-coupon]');
         if (!btn) return;
@@ -657,7 +638,6 @@
         el('coupon-cancel-btn').style.display = 'none';
     });
 
-    // ─── Admin bulk select ───
     (function() {
         var headerCheck = document.getElementById('admin-select-all-header');
         var footerCheck = document.getElementById('admin-select-all');
@@ -691,7 +671,6 @@
         checks.forEach(function(c) { c.addEventListener('change', updateBulk); });
     })();
 
-    // ─── Table scroll hint ───
     document.querySelectorAll('.table-wrap').forEach(function(wrap) {
         if (wrap.scrollWidth > wrap.clientWidth) {
             var hint = document.createElement('small');
@@ -701,7 +680,6 @@
         }
     });
 
-    // ─── Keyboard shortcut: close modals with Escape ───
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             const openDropdown = document.querySelector('.account-menu[open]');
@@ -709,7 +687,6 @@
         }
     });
 
-    // ─── Star rating picker ───
     document.querySelectorAll('[data-star-rating]').forEach(group => {
         const input = group.querySelector('input[name="rating"]');
         group.querySelectorAll('.star').forEach(btn => {
@@ -725,7 +702,6 @@
         });
     });
 
-    // ─── Static star display (summary + review items) ───
     document.querySelectorAll('[data-static-stars]').forEach(el => {
         const value = parseFloat(el.dataset.staticStars || '0');
         const whole = Math.floor(value);
@@ -744,7 +720,6 @@
         });
     });
 
-    // ─── Sticky buy bar (mobile) ───
     (function() {
         var sticky = document.getElementById('sticky-buy');
         var mainForm = document.getElementById('detail-buy-form');
@@ -804,7 +779,6 @@
         }
     })();
 
-    // ─── Social proof: "người đang xem" (detail) ───
     (function() {
         var el = document.querySelector('[data-viewers-count]');
         if (!el) return;
@@ -823,7 +797,6 @@
         setTimeout(drift, 5000 + Math.floor(Math.random() * 4000));
     })();
 
-    // ─── Flash sale countdown (home) ───
     (function() {
         var timer = document.querySelector('[data-flash-sale]');
         if (!timer) return;
@@ -831,7 +804,6 @@
         var mEl = timer.querySelector('[data-flash-m]');
         var sEl = timer.querySelector('[data-flash-s]');
         if (!hEl || !mEl || !sEl) return;
-        // ponytail: countdown đến cuối ngày — đơn giản, không cần cấu hình
         function tick() {
             var now = new Date();
             var end = new Date(now);

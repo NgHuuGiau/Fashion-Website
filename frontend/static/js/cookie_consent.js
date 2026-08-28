@@ -1,4 +1,3 @@
-// Cookie Consent Banner (Luật An ninh mạng VN)
 (function () {
   const STORAGE_KEY = 'huugiau_cookie_consent';
   const BANNER_HTML = `
@@ -45,12 +44,10 @@
     const consent = getConsent();
     if (consent) return; // đã đồng ý
 
-    // inject banner
     const wrapper = document.createElement('div');
     wrapper.innerHTML = BANNER_HTML;
     document.body.appendChild(wrapper.firstElementChild);
 
-    // load CSS
     if (!document.querySelector('link[href*="cookie_consent.css"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -62,14 +59,12 @@
     banner.querySelector('[data-action="accept"]').addEventListener('click', () => {
       setConsent({ necessary: true, analytics: true, marketing: true, timestamp: Date.now() });
       hideBanner();
-      // trigger GA4 consent update if needed
       if (window.gtag) {
         gtag('consent', 'update', { analytics_storage: 'granted', ad_storage: 'granted' });
       }
     });
 
     banner.querySelector('[data-action="customize"]').addEventListener('click', () => {
-      // Simple modal for customization (could be expanded)
       const analytics = confirm('Cho phép cookie phân tích (Google Analytics)?');
       const marketing = confirm('Cho phép cookie quảng cáo/đánh giá lại?');
       setConsent({

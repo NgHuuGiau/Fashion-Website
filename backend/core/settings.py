@@ -108,8 +108,7 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 DB_ENGINE = os.getenv("DB_ENGINE", "mssql").lower()
 
-# SQL Server is the primary supported database. PostgreSQL is supported
-# explicitly for CI/testing (set DB_ENGINE=postgres).
+
 if DB_ENGINE in {"mssql", "sqlserver"}:
     _DB_BACKEND = "mssql"
 elif DB_ENGINE == "postgres":
@@ -142,7 +141,6 @@ if _DB_BACKEND == "mssql":
 DATABASES = {"default": _db_config}
 
 if os.getenv("DB_USER"):
-    # SQL auth (e.g. CI). Leave unset for Windows/trusted auth locally.
     DATABASES["default"]["USER"] = os.getenv("DB_USER")
     DATABASES["default"]["PASSWORD"] = os.getenv("DB_PASSWORD", "")
 
@@ -151,7 +149,7 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 
-# Email (SMTP). Để trống EMAIL_HOST = tắt gửi mail (dev).
+
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
 )
@@ -164,12 +162,12 @@ DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@huugiau.local>"
 )
 
-# VNPay (sandbox mặc định)
+
 VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
 
-# GA4 + Zalo OA (để trống = tắt trên shop)
+
 GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
 ZALO_OA_ID = os.getenv("ZALO_OA_ID", "")
 HOTLINE = os.getenv("HOTLINE", "0932047365")
@@ -229,8 +227,6 @@ if _use_redis:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 else:
-    # WARNING: LocMemCache is per-process and NOT suitable for production with multiple workers.
-    # Set REDIS_URL in .env (with Redis actually running) for database+cache sessions.
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -265,8 +261,7 @@ if not DEBUG:
         "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
     )
 
-# django-compressor offline yêu cầu finder riêng; nếu thiếu, `manage.py compress`
-# lỗi "add 'compressor.finders.CompressorFinder' to STATICFILES_FINDERS" khi deploy.
+
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",

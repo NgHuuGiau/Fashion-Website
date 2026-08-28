@@ -1,8 +1,7 @@
-{# GA4 Enhanced Ecommerce DataLayer #}
+
 <script>
 window.dataLayer = window.dataLayer || [];
 
-// Push product view on product detail
 {% if product %}
 dataLayer.push({
   event: 'view_item',
@@ -22,7 +21,6 @@ dataLayer.push({
 });
 {% endif %}
 
-// Push cart events
 {% if cart_items %}
 dataLayer.push({
   event: 'view_cart',
@@ -46,7 +44,6 @@ dataLayer.push({
 });
 {% endif %}
 
-// Push checkout steps
 {% if checkout_step %}
 dataLayer.push({
   event: 'begin_checkout',
@@ -71,7 +68,6 @@ dataLayer.push({
 });
 {% endif %}
 
-// Purchase event (on order success page)
 {% if purchase_order %}
 dataLayer.push({
   event: 'purchase',
@@ -99,7 +95,6 @@ dataLayer.push({
 });
 {% endif %}
 
-// Add to cart event (triggered via JS)
 window.ga4AddToCart = function(product, quantity) {
   dataLayer.push({
     event: 'add_to_cart',
@@ -117,7 +112,6 @@ window.ga4AddToCart = function(product, quantity) {
   });
 };
 
-// Remove from cart
 window.ga4RemoveFromCart = function(product, quantity) {
   dataLayer.push({
     event: 'remove_from_cart',

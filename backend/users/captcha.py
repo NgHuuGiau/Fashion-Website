@@ -23,7 +23,6 @@ def generate_captcha_image(
     img = Image.new("RGB", (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # Noise lines
     for _ in range(random.randint(3, 6)):
         x1 = random.randint(0, width)
         y1 = random.randint(0, height)
@@ -35,14 +34,12 @@ def generate_captcha_image(
             width=random.randint(1, 2),
         )
 
-    # Noise dots
     for _ in range(random.randint(30, 60)):
         draw.point(
             (random.randint(0, width), random.randint(0, height)),
             fill=_random_color(100, 200),
         )
 
-    # Text
     try:
         font = ImageFont.truetype("arial.ttf", font_size)
     except Exception:
@@ -55,7 +52,7 @@ def generate_captcha_image(
     for i, ch in enumerate(code):
         x = x_start + sum(draw.textlength(c, font=font) for c in code[:i])
         y = y_start + random.randint(-3, 3)
-        # Random rotation per char
+
         char_img = Image.new(
             "RGBA", (font_size + 10, font_size + 10), (255, 255, 255, 0)
         )
@@ -64,7 +61,6 @@ def generate_captcha_image(
         char_img = char_img.rotate(random.randint(-15, 15), expand=1)
         img.paste(char_img, (int(x), int(y)), char_img)
 
-    # Blur slightly
     img = img.filter(ImageFilter.GaussianBlur(radius=0.5))
 
     buf = BytesIO()

@@ -3281,7 +3281,7 @@ class RealismBatchBTests(TestCase):
     def test_vip_tier_discount_applied(self):
         self._checkout()
         order = Order.objects.first()
-        self.assertEqual(order.discount_amount, Decimal("20000"))  # 5% of 400000
+        self.assertEqual(order.discount_amount, Decimal("20000"))
         self.assertEqual(
             order.total_amount, Decimal("25000") + Decimal("400000") - Decimal("20000")
         )
@@ -3395,7 +3395,7 @@ class CartReminderTest(TestCase):
         )
         self.client.session["cart"] = {}
         self.client.get(reverse("orders:cart_detail"))
-        # dummy not affected, but current session has no reminder
+
         self.assertFalse(
             CartReminder.objects.filter(
                 session_key=self.client.session.session_key

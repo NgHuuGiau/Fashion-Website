@@ -1,4 +1,4 @@
-{# Timeline trạng thái đơn hàng — dùng chung cho my_orders + tra cứu đơn #}
+
 <div class="order-timeline {% if order.status == 'cancelled' %}is-cancelled{% endif %}" aria-label="Tiến trình đơn hàng">
     <div class="timeline-step is-active">
         <span class="timeline-dot"><i class="fa-solid {% if order.status == 'cancelled' %}fa-xmark{% else %}fa-check{% endif %}"></i></span>

@@ -101,7 +101,7 @@ def _main_uvicorn(host, port, use_tls):
 
 
 def _main_wsgiref(host, port, use_tls):
-    # Fallback khi chưa cài uvicorn (phục vụ kém ổn định hơn).
+
     import socketserver
     import ssl
 

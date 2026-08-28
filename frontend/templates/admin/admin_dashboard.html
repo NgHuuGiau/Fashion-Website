@@ -77,7 +77,7 @@
       </div>
     </header>
 
-    <!-- ════════════════ TAB: TỔNG QUAN ════════════════ -->
+    
     <section class="admin-tab-content active" id="admin-overview">
 
       <div class="adm-kpis">
@@ -410,7 +410,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: THÊM SẢN PHẨM ════════════════ -->
+    
     <section class="admin-tab-content" id="admin-product-form">
       <div class="admin-board-panel">
         <div class="section-head">
@@ -570,7 +570,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: SẢN PHẨM ════════════════ -->
+    
     <section class="admin-tab-content" id="admin-product-table">
       <div class="admin-board-panel">
         <div class="section-head">
@@ -674,7 +674,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: KHO HÀNG ════════════════ -->
+    
     <section class="admin-tab-content" id="admin-inventory">
       <div class="adm-kpis">
         <article class="adm-kpi-card">
@@ -792,7 +792,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: ĐƠN HÀNG ════════════════ -->
+    
     <section class="admin-tab-content" id="admin-orders">
       <div class="admin-board-panel">
         <div class="section-head">
@@ -905,7 +905,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: BÁO CÁO ════════════════ -->
+    
     <section class="admin-tab-content" id="admin-reports">
       <div class="admin-board-panel">
         <div class="section-head">
@@ -960,7 +960,7 @@
       </div>
     </section>
 
-    <!-- ════════════════ TAB: MÃ GIẢM GIÁ ════════════════ -->
+    
     {% if permissions.can_manage_coupons %}
     <section class="admin-tab-content" id="admin-coupons">
       <div class="admin-board-panel">
@@ -1070,7 +1070,7 @@
     </section>
     {% endif %}
 
-    <!-- ════════════════ TAB: NHÂN VIÊN & PHÂN QUYỀN ════════════════ -->
+    
     {% if permissions.is_admin %}
     <section class="admin-tab-content" id="admin-users">
       <div class="admin-board-panel">
@@ -1223,7 +1223,7 @@ document.addEventListener('click', function(e) {
 </script>
 
 <style>
-/* ─── Shell ─────────────────────────────── */
+
 .adm-shell {
   display: grid;
   grid-template-columns: 232px minmax(0, 1fr);
@@ -1234,7 +1234,7 @@ document.addEventListener('click', function(e) {
 .adm-main { display: grid; gap: 1.25rem; min-width: 0; }
 .adm-main > * { min-width: 0; }
 
-/* ─── Sidebar ───────────────────────────── */
+
 .adm-sidebar {
   position: sticky;
   top: calc(var(--header-h) + 1rem);
@@ -1357,7 +1357,7 @@ document.addEventListener('click', function(e) {
 }
 .adm-side-link:hover { background: var(--surface-tint); color: var(--text); }
 
-/* ─── Topbar ────────────────────────────── */
+
 .adm-topbar {
   display: flex;
   justify-content: space-between;
@@ -1393,7 +1393,7 @@ document.addEventListener('click', function(e) {
 .adm-date-chip-accent { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
 .adm-date-chip-accent i { color: var(--accent-strong); }
 
-/* ─── Tab content ───────────────────────── */
+
 .admin-tab { background: none; border: none; padding: 0; font-family: inherit; cursor: pointer; }
 .admin-tab-content { display: none; }
 .admin-tab-content.active { display: grid; gap: 1.25rem; animation: adminFadeUp 0.25s ease; }
@@ -1402,7 +1402,7 @@ document.addEventListener('click', function(e) {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── KPI cards ─────────────────────────── */
+
 .adm-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1451,7 +1451,7 @@ document.addEventListener('click', function(e) {
 }
 .adm-kpi-hint { font-size: 0.68rem; color: var(--muted); }
 
-/* ─── Pipeline ──────────────────────────── */
+
 .adm-pipeline { padding: 1.1rem 1.2rem; display: grid; gap: 0.9rem; }
 .adm-pipe-head {
   display: flex;
@@ -1512,7 +1512,7 @@ document.addEventListener('click', function(e) {
 .adm-dot-delivered { background: var(--success); }
 .adm-dot-cancelled { background: var(--muted-light); }
 
-/* ─── Chart ─────────────────────────────── */
+
 .adm-chart-panel { padding: 1.2rem; }
 .admin-chart-head {
   display: flex;
@@ -1735,7 +1735,7 @@ document.addEventListener('click', function(e) {
   .category-chart-value { grid-column: 2; text-align: left; }
 }
 
-/* ─── Lower grid ────────────────────────── */
+
 .adm-grid-2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
@@ -1793,7 +1793,7 @@ document.addEventListener('click', function(e) {
 }
 .adm-stock-pill.is-empty { background: var(--danger-soft); color: var(--danger); }
 
-/* ─── Mini orders ───────────────────────── */
+
 .adm-mini-orders { display: grid; gap: 0.5rem; margin-top: 0.4rem; }
 .adm-mini-order {
   display: flex;
@@ -1840,7 +1840,7 @@ document.addEventListener('click', function(e) {
   font-size: 0.7rem;
 }
 
-/* ─── Badges ────────────────────────────── */
+
 .admin-badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -1866,7 +1866,7 @@ document.addEventListener('click', function(e) {
 .admin-badge-role-staff { background: rgba(91, 122, 154, 0.14); color: var(--info, #5b7a9a); }
 .admin-badge-role-user { background: var(--surface-tint); color: var(--muted); }
 
-/* ─── Tables helpers ────────────────────── */
+
 .admin-product-table thead th,
 .admin-inventory-table thead th,
 .admin-coupon-table thead th,
@@ -1918,7 +1918,7 @@ document.addEventListener('click', function(e) {
 .admin-product-table td:nth-child(2),
 .admin-inventory-table td:nth-child(2) { text-align: center; overflow: hidden; }
 
-/* Sản phẩm */
+
 .pcol-name { width: 24%; }
 .pcol-category { width: 12%; }
 .pcol-price { width: 12%; }
@@ -1926,7 +1926,7 @@ document.addEventListener('click', function(e) {
 .pcol-status { width: 11%; }
 .pcol-actions { width: 21%; }
 
-/* Kho hàng */
+
 .icol-name { width: 21%; }
 .icol-category { width: 13%; }
 .icol-price { width: 11%; }
@@ -1934,7 +1934,7 @@ document.addEventListener('click', function(e) {
 .icol-variants { width: 24%; }
 .icol-status { width: 13%; }
 
-/* Đơn hàng */
+
 .ocol-id { width: 8%; }
 .ocol-customer { width: 20%; }
 .ocol-total { width: 11%; }
@@ -1943,7 +1943,7 @@ document.addEventListener('click', function(e) {
 .ocol-date { width: 9%; }
 .ocol-actions { width: 28%; }
 
-/* Mã giảm giá */
+
 .ccol-code { width: 15%; }
 .ccol-type { width: 6%; }
 .ccol-value { width: 16%; }
@@ -1952,7 +1952,7 @@ document.addEventListener('click', function(e) {
 .ccol-active { width: 10%; }
 .ccol-actions { width: 23%; }
 
-/* Phân quyền */
+
 .ucol-name { width: 20%; }
 .ucol-email { width: 25%; }
 .ucol-role { width: 16%; }
@@ -2024,7 +2024,7 @@ document.addEventListener('click', function(e) {
 .admin-quick-form { display: inline-flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
 .admin-hr { border: 0; border-top: 1px solid var(--line); margin: 1.25rem 0; }
 
-/* ─── Kho hàng ──────────────────────────── */
+
 .inv-variant-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .inv-variant-chip {
   display: inline-block;
@@ -2039,7 +2039,7 @@ document.addEventListener('click', function(e) {
 }
 .inv-variant-chip.is-inactive { opacity: 0.45; text-decoration: line-through; }
 
-/* ─── Phân quyền ────────────────────────── */
+
 .admin-user-actions {
   display: flex;
   align-items: center;
@@ -2064,7 +2064,7 @@ document.addEventListener('click', function(e) {
   border-radius: 6px;
 }
 
-/* ─── Responsive ────────────────────────── */
+
 @media (max-width: 1100px) {
   .adm-shell { grid-template-columns: 1fr; }
   .adm-sidebar { position: static; }

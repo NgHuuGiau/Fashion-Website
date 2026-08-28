@@ -82,7 +82,7 @@ body {
     overflow-x: clip;
 }
 
-/* ─── Overflow safety ────────────────────────────── */
+
 td,
 th {
     overflow-wrap: anywhere;
@@ -213,7 +213,7 @@ button {
     transform: translateX(0);
 }
 
-/* ─── Sidebar inner layout ─── */
+
 
 .site-nav-header {
     display: flex;
@@ -254,7 +254,7 @@ button {
 
 .close-menu svg { width: 16px; height: 16px; color: var(--text-soft); }
 
-/* ─── Search ─── */
+
 
 .site-nav-search {
     display: flex;
@@ -288,7 +288,7 @@ button {
 
 .site-nav-search input::placeholder { color: var(--muted); }
 
-/* ─── Sections ─── */
+
 
 .site-nav-section {
     padding: 0.5rem 1.1rem;
@@ -341,7 +341,7 @@ button {
     margin-top: 0.25rem;
 }
 
-/* ─── Cart link ─── */
+
 
 .site-nav-cart {
     display: flex;
@@ -379,7 +379,7 @@ button {
     text-align: center;
 }
 
-/* ─── Staff section ─── */
+
 
 .site-nav-staff {
     background: #f5f0eb;
@@ -391,7 +391,7 @@ button {
 
 .site-nav-staff .site-nav-label { padding: 0 0.4rem 0.15rem; }
 
-/* ─── Footer ─── */
+
 
 .site-nav-footer {
     padding: 1rem 1.1rem 1.2rem;
@@ -1576,7 +1576,7 @@ button {
     margin-bottom: 0.35rem;
 }
 
-/* ─── Search suggest (from base.html inline) ─── */
+
 .header-search { position: relative; }
 .header-search-suggest {
     display: none;
@@ -2595,7 +2595,7 @@ button {
     }
 }
 
-/* ─── Custom scrollbar ─── */
+
 ::-webkit-scrollbar {
     width: 5px;
 }
@@ -2613,13 +2613,13 @@ button {
     background: var(--muted);
 }
 
-/* ─── Selection ─── */
+
 ::selection {
     background: var(--accent-glow);
     color: var(--text);
 }
 
-/* ─── Scroll reveal animation (applied via JS class) ─── */
+
 .reveal {
     opacity: 0;
     transform: translateY(30px);
@@ -2636,7 +2636,7 @@ button {
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
 
-/* ─── Hover scale effect for interactive cards ─── */
+
 .hover-lift {
     transition: transform 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
 }
@@ -3747,7 +3747,7 @@ button {
     background: var(--surface);
 }
 
-/* Bank picker (custom dropdown) */
+
 .bank-picker {
     position: relative;
 }
@@ -4501,7 +4501,7 @@ button {
     }
 }
 
-/* ─── Back to top ─── */
+
 .back-to-top {
     position: fixed;
     right: 1rem;
@@ -4533,7 +4533,7 @@ button {
     pointer-events: none;
 }
 
-/* ─── Toast notifications ─── */
+
 .toast-container {
     position: fixed;
     top: 1rem;
@@ -4576,12 +4576,12 @@ button {
     background: linear-gradient(135deg, #d97706, #f59e0b);
 }
 
-/* ─── Gallery image transition ─── */
+
 #detail-main-image {
     transition: opacity 0.25s ease;
 }
 
-/* ─── Smooth page reveal ─── */
+
 .page-wrap {
     animation: fadeUp 0.5s ease both;
 }
@@ -4595,7 +4595,7 @@ button {
     }
 }
 
-/* ─── Variant disabled state ─── */
+
 .variant-size-btn.disabled,
 .variant-swatch.disabled {
     opacity: 0.35;
@@ -4604,7 +4604,7 @@ button {
     filter: grayscale(0.8);
 }
 
-/* ─── Product card image zoom on hover ─── */
+
 .card-media-editorial {
     overflow: hidden;
 }
@@ -4617,7 +4617,7 @@ button {
     transform: scale(1.06);
 }
 
-/* ─── Button ripple effect ─── */
+
 .btn {
     position: relative;
     overflow: hidden;
@@ -4637,7 +4637,7 @@ button {
     opacity: 1;
 }
 
-/* ─── Cart count badge animation ─── */
+
 .icon-count {
     transition: transform 0.2s ease;
 }
@@ -4651,7 +4651,7 @@ button {
     50% { transform: scale(1.35); }
 }
 
-/* ─── Message auto-dismiss hint ─── */
+
 .message {
     animation: messageIn 0.35s ease both;
     cursor: pointer;
@@ -4672,7 +4672,7 @@ button {
     }
 }
 
-/* ─── Skeleton loading (placeholder) ─── */
+
 .skeleton {
     background: linear-gradient(90deg, rgba(255, 250, 244, 0.96) 25%, rgba(240, 223, 209, 0.5) 50%, rgba(255, 250, 244, 0.96) 75%);
     background-size: 200% 100%;
@@ -4685,7 +4685,7 @@ button {
     100% { background-position: -200% 0; }
 }
 
-/* ─── Focus styles for accessibility ─── */
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -4696,12 +4696,12 @@ textarea:focus-visible {
     border-radius: 8px;
 }
 
-/* ─── Account dropdown improvements ─── */
+
 .account-dropdown a {
     transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* ─── Footer social links ─── */
+
 .footer-social {
     display: flex;
     gap: 0.5rem;
@@ -4727,7 +4727,7 @@ textarea:focus-visible {
     color: #fff;
 }
 
-/* ─── Live countdown pulse ─── */
+
 .countdown {
     font-family: 'Archivo Expanded', sans-serif;
     font-size: 2.4rem;
@@ -4742,7 +4742,7 @@ textarea:focus-visible {
     50% { opacity: 0.6; }
 }
 
-/* ─── Status badge ─── */
+
 .status-badge {
     display: inline-flex;
     padding: 0.3rem 0.65rem;
@@ -4777,7 +4777,7 @@ textarea:focus-visible {
     color: #b91c1c;
 }
 
-/* ─── Wishlist button active ─── */
+
 .wishlist-btn.active {
     color: var(--danger);
 }
@@ -4786,7 +4786,7 @@ textarea:focus-visible {
     font-weight: 900;
 }
 
-/* ─── Breadcrumb ─── */
+
 .breadcrumb {
     display: flex;
     align-items: center;
@@ -4814,7 +4814,7 @@ textarea:focus-visible {
     font-weight: 500;
 }
 
-/* ─── Catalog controls ─── */
+
 .catalog-controls {
     display: flex;
     gap: 0.5rem;
@@ -4826,7 +4826,7 @@ textarea:focus-visible {
     padding: 0.45rem 0.72rem;
 }
 
-/* ─── Sold out tag ─── */
+
 .tag-soldout {
     background: rgba(22, 16, 12, 0.7);
     backdrop-filter: blur(4px);
@@ -4850,12 +4850,12 @@ textarea:focus-visible {
     opacity: 0.85;
 }
 
-/* ─── Empty state enhancement ─── */
+
 .empty-state {
     padding: 2.5rem 1.5rem;
 }
 
-/* ─── Section shell spacing ─── */
+
 .section-shell {
     padding: 0.8rem 0 1.5rem;
 }
@@ -4870,7 +4870,7 @@ textarea:focus-visible {
     box-shadow: var(--shadow-md);
 }
 
-/* ─── Cart page enhancements ─── */
+
 .cart-summary .summary-actions {
     display: grid;
     gap: 0.7rem;
@@ -4881,7 +4881,7 @@ textarea:focus-visible {
     width: 100%;
 }
 
-/* ─── Variant swatch dot ─── */
+
 .variant-swatch {
     display: inline-flex;
     align-items: center;
@@ -4954,14 +4954,14 @@ textarea:focus-visible {
     margin-top: 0.15rem;
 }
 
-/* ─── Highlighted order card ─── */
+
 .order-card.highlight {
     border-color: var(--accent);
     border-width: 2px;
     background: linear-gradient(180deg, var(--surface-strong), rgba(240, 223, 209, 0.4));
 }
 
-/* ─── Order head ─── */
+
 .order-head {
     display: flex;
     justify-content: space-between;
@@ -4976,14 +4976,14 @@ textarea:focus-visible {
     margin-top: 1rem;
 }
 
-/* ─── Checkout page fix for bank selection ─── */
+
 #bank-code-wrap,
 #bank-transfer-box,
 #cod-note-box {
     transition: opacity 0.25s ease;
 }
 
-/* ─── Auth page brand & icons ─── */
+
 .auth-brand {
     text-align: center;
     margin-bottom: 1.25rem;
@@ -5047,7 +5047,7 @@ textarea:focus-visible {
     font-size: 0.82rem;
 }
 
-/* ─── Admin toggle buttons ─── */
+
 .admin-toggle-actions {
     display: flex;
     flex-wrap: wrap;
@@ -5062,7 +5062,7 @@ textarea:focus-visible {
     margin-top: 1.5rem;
 }
 
-/* ─── Order review locked notice ─── */
+
 .review-edit-toggle {
     margin-top: 1rem;
 }
@@ -5079,7 +5079,7 @@ textarea:focus-visible {
     display: none;
 }
 
-/* ─── Size guide modal ─── */
+
 .size-guide-btn {
     display: inline-block;
     margin-left: 0.5rem;
@@ -5132,7 +5132,7 @@ textarea:focus-visible {
 .size-guide-modal td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line-soft); }
 .size-guide-note { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-soft); }
 
-/* ─── Error page (404/500) ─── */
+
 .error-page {
     text-align: center;
     padding: 4rem 1rem;
@@ -5149,7 +5149,7 @@ textarea:focus-visible {
     margin: 0.5rem 0 1.5rem;
 }
 
-/* ─── Footer email link ─── */
+
 .footer-email {
     color: var(--muted);
     text-decoration: none;
@@ -5159,7 +5159,7 @@ textarea:focus-visible {
     color: var(--accent);
 }
 
-/* ─── Order lookup ─── */
+
 .lookup-form {
     max-width: 400px;
     margin: 1.5rem auto 2rem;
@@ -5197,7 +5197,7 @@ textarea:focus-visible {
     border-bottom: 1px solid var(--line-soft);
 }
 
-/* ─── Admin utilities ─── */
+
 .admin-input {
     padding: 0.35rem 0.6rem;
     border-radius: 6px;
@@ -5303,7 +5303,7 @@ textarea:focus-visible {
     padding-top: 1.5rem;
 }
 
-/* ─── Order card clickable ─── */
+
 .order-card-clickable {
     cursor: pointer;
 }
@@ -5312,19 +5312,19 @@ textarea:focus-visible {
     z-index: 2;
 }
 
-/* ─── Inline form ─── */
+
 .form-inline {
     display: inline;
 }
 
-/* ─── Disabled button helper ─── */
+
 .btn:disabled,
 .btn[disabled] {
     opacity: 0.5;
     pointer-events: none;
 }
 
-/* ─── Coupon table column widths ─── */
+
 .coupon-col-code { width: 130px; }
 .coupon-col-type { width: 100px; }
 .coupon-col-value { width: 100px; }
@@ -5333,14 +5333,14 @@ textarea:focus-visible {
 .coupon-col-active { width: 80px; }
 .coupon-col-actions { width: 140px; }
 
-/* ─── Admin separator ─── */
+
 .admin-hr {
     margin: 1.25rem 0;
     border: none;
     border-top: 1px solid var(--border);
 }
 
-/* ─── Product reviews ─── */
+
 .review-form {
     margin-bottom: 1.5rem;
     padding: 1.2rem 1.3rem;
@@ -5562,7 +5562,7 @@ textarea:focus-visible {
     .review-submit { grid-column: auto; }
 }
 
-/* ─── Trust strip (trang chủ) ─── */
+
 .trust-strip {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -5631,7 +5631,7 @@ textarea:focus-visible {
     .stats-item > span { font-size: 0.66rem; }
 }
 
-/* ─── Bộ sưu tập (collection tiles trang chủ) ─── */
+
 .collection-shell { margin-bottom: 2.75rem; }
 .collection-grid {
     display: grid;
@@ -5702,13 +5702,13 @@ textarea:focus-visible {
     .collection-card { min-height: 140px; }
 }
 
-/* ─── Badge MỚI ─── */
+
 .tag-new {
     background: linear-gradient(135deg, var(--success), #14613a);
     box-shadow: 0 4px 12px rgba(31, 138, 77, 0.25);
 }
 
-/* ─── Gallery zoom lightbox ─── */
+
 .gallery-zoom-overlay {
     position: fixed;
     inset: 0;
@@ -5745,7 +5745,7 @@ textarea:focus-visible {
 .gallery-zoom-close:hover { background: rgba(255, 255, 255, 0.3); }
 #detail-main-image { cursor: zoom-in; }
 
-/* ─── Sticky buy bar (mobile) ─── */
+
 .sticky-buy {
     position: fixed;
     left: 0;
@@ -5781,7 +5781,7 @@ textarea:focus-visible {
 .sticky-buy .btn { flex: 1; width: auto; padding: 0.65rem 1rem; font-size: 0.78rem; }
 .sticky-buy .btn.ghost { border-color: var(--line-strong); }
 
-/* ─── Detail trust (dưới accordion) ─── */
+
 .detail-trust {
     display: grid;
     gap: 0.4rem;
@@ -5803,7 +5803,7 @@ textarea:focus-visible {
 }
 
 
-/* ─── Static pages ─── */
+
 .page-shell { padding: 3rem 0 5rem; }
 .page-narrow { max-width: 760px; }
 .page-title { font-family: var(--font-display, inherit); font-size: 1.9rem; font-weight: 800; margin: 0.4rem 0 1.4rem; }
@@ -5822,7 +5822,7 @@ textarea:focus-visible {
 .breadcrumb a:hover { color: var(--accent, inherit); }
 
 
-/* ─── Blog / Lookbook ─── */
+
 .page-sub { color: var(--muted-light); margin: -0.8rem 0 2rem; }
 .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.4rem; }
 .blog-card { overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -5840,7 +5840,7 @@ textarea:focus-visible {
 .blog-article-cover { width: 100%; border-radius: 12px; margin-top: 1rem; }
 
 
-/* ─── Social proof / urgency ─── */
+
 .detail-social-proof { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0.7rem 0 0.2rem; font-size: 0.82rem; color: var(--muted); }
 .detail-social-proof span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .detail-social-proof .fa-fire, .detail-social-proof .fa-eye { color: var(--accent); }
@@ -5867,7 +5867,7 @@ textarea:focus-visible {
 .flash-sale-clock { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: 2px; color: #fff; }
 
 
-/* ─── Freeship progress bar ─── */
+
 .freeship-bar { 
     margin-bottom: 1.2rem; 
     padding: 1rem 1.2rem; 
@@ -5898,7 +5898,7 @@ textarea:focus-visible {
 }
 
 
-/* ─── Buy popup (social proof) ─── */
+
 .buy-popup {
     position: fixed; left: 1.2rem; bottom: 1.2rem; z-index: 90;
     max-width: 320px; display: flex; align-items: center; gap: 0.8rem;
@@ -6095,7 +6095,7 @@ textarea:focus-visible {
     background: linear-gradient(135deg, #d64541, #a93226); color: #fff;
 }
 
-/* ─── Mini-cart drawer ─── */
+
 .cart-drawer-overlay {
     position: fixed;
     inset: 0;
@@ -6203,7 +6203,7 @@ body.drawer-open { overflow: hidden; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Membership tier ─── */
+
 .tier-pill {
     display: inline-block;
     padding: 0.18rem 0.6rem;
@@ -6230,7 +6230,7 @@ body.drawer-open { overflow: hidden; }
 }
 .tier-progress p { margin: 0.35rem 0 0; font-size: 0.76rem; color: var(--muted); }
 
-/* ===== Order timeline (dùng chung: my-orders + tra cứu đơn) ===== */
+
 .order-timeline {
     display: flex;
     align-items: flex-start;
@@ -6284,7 +6284,7 @@ body.drawer-open { overflow: hidden; }
 }
 .timeline-line.is-active { background: var(--accent-strong); }
 
-/* ===== So sánh sản phẩm ===== */
+
 .compare-btn {
     display: inline-flex;
     align-items: center;

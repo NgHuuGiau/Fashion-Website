@@ -298,8 +298,6 @@ def product_list(request: HttpRequest) -> HttpResponse:
         slider_products = list(featured_qs[:FEATURED_PRODUCT_LIMIT])
 
         if slider_products:
-            # Ponytail: reuse the already-loaded (prefetched) list instead of
-            # re-evaluating featured_qs for the grid -> halves home page queries.
             products_qs = slider_products
         else:
             products_qs = base_products.order_by("id")
@@ -312,8 +310,6 @@ def product_list(request: HttpRequest) -> HttpResponse:
                 rating_count=Count("reviews", filter=Q(reviews__is_published=True)),
             )
         if selected_sort == "bestseller":
-            # Ponytail: python-sort to avoid JOIN multiplication between
-            # variant filters and the order_items aggregate (SQL Server).
             page_all = list(products_qs)
             sold_map = build_sold_map([p.id for p in page_all])
             page_all.sort(key=lambda p: (-sold_map.get(p.id, 0), p.id))

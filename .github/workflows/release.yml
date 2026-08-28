@@ -24,7 +24,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Test/lint/security đã chạy ở CI Pipeline khi push — không lặp lại ở đây.
 
       - name: Extract version
         id: version

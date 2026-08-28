@@ -1,4 +1,3 @@
-# Chỉ chứa tool config. Dependencies duy nhất nằm ở requirements.txt / requirements-dev.txt.
 
 [tool.ruff]
 target-version = "py312"

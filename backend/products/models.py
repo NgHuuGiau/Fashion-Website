@@ -218,14 +218,12 @@ class Product(models.Model):
         """Sản phẩm thường được mua cùng (cross-sell) dựa trên lịch sử đơn hàng."""
         from orders.models import OrderItem
 
-        # Tìm các đơn hàng chứa sản phẩm này
         order_ids = (
             OrderItem.objects.filter(product=self)
             .values_list("order_id", flat=True)
             .distinct()
         )
 
-        # Tìm sản phẩm khác trong cùng đơn hàng
         cross_sell_ids = (
             OrderItem.objects.filter(order_id__in=order_ids)
             .exclude(product=self)

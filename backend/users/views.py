@@ -405,7 +405,7 @@ def reset_password_view(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             user.set_password(form.cleaned_data["password1"])
             user.save(update_fields=["password"])
-            # Clear session
+
             request.session.pop("reset_user_id", None)
             request.session.pop("captcha_code", None)
             messages.success(request, "Đổi mật khẩu thành công. Vui lòng đăng nhập.")

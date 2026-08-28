@@ -8,7 +8,7 @@ PAYMENT_TIMEOUT_MINUTES = 15
 STANDARD_SHIPPING_FEE = Decimal("30000")
 FREESHIP_THRESHOLD = Decimal("499000")
 
-# Phí giao nội thành (HCM + vùng phụ cận) rẻ hơn, miền Bắc xa hơn.
+
 SHIPPING_FEE_ZONES = {
     "near": Decimal("25000"),
     "standard": Decimal("30000"),

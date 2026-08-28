@@ -355,7 +355,7 @@ class Command(BaseCommand):
         users = list(User.objects.all())
         count = 0
         for user in users:
-            if random.random() < 0.3:  # 30% users mua gift card
+            if random.random() < 0.3:
                 amount = random.choice([100000, 200000, 300000, 500000])
                 GiftCard.objects.get_or_create(
                     purchaser=user,

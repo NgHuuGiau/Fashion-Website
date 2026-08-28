@@ -23,7 +23,6 @@ urlpatterns = [
         views.address_set_default,
         name="address_set_default",
     ),
-    # Quên mật khẩu
     path("quen-mat-khau/", views.forgot_password_view, name="forgot_password"),
     path(
         "quen-mat-khau/captcha/",

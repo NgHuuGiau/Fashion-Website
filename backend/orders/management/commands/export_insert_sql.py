@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Management command: export_insert_sql
 Export toàn bộ dữ liệu hiện tại ra file 02_INSERT_DATA.sql (format SSMS).
