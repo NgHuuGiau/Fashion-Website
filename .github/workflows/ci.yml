@@ -24,6 +24,9 @@ permissions:
 env:
   PYTHON_VERSION: '3.12'
   DJANGO_SETTINGS_MODULE: 'core.settings'
+  # CI là môi trường test: DEBUG=True giữ SECURE_SSL_REDIRECT/đăng nhập cookie/compressor offline
+  # ở chế độ dev, nếu không mọi request bị 301 (SSL) và {% compress %} lỗi offline manifest.
+  DEBUG: 'True'
   SECRET_KEY: 'ci-insecure-key-for-tests-only'
   ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
   DB_ENGINE: 'postgres'
