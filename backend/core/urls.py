@@ -36,6 +36,7 @@ def robots_txt(request):
 
 api_urlpatterns = [
     path("", api.api_root, name="api_root"),
+    path("geocode/", api.api_geocode, name="api_geocode"),
     path("products/", api.api_product_list, name="api_product_list"),
     path("products/<int:pk>/", api.api_product_detail, name="api_product_detail"),
     path(

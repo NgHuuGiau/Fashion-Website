@@ -2634,6 +2634,36 @@ class PaymentExtraBranchesTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["cancelled"])
 
+    def test_guest_can_view_own_recent_order(self):
+        self.client.logout()
+        order = self._cod_order(user=None, status="pending", is_paid=False)
+        session = self.client.session
+        session["guest_orders"] = [order.id]
+        session.save()
+        response = self.client.get(
+            reverse("orders:order_success", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_guest_cannot_view_unknown_order(self):
+        self.client.logout()
+        order = self._cod_order(user=None, status="pending", is_paid=False)
+        response = self.client.get(
+            reverse("orders:order_success", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_guest_order_success_blocks_other_users_orders(self):
+        self.client.logout()
+        order = self._cod_order(status="pending", is_paid=False)
+        session = self.client.session
+        session["guest_orders"] = [order.id]
+        session.save()
+        response = self.client.get(
+            reverse("orders:order_success", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 404)
+
 
 class OrderViewExtraBranchesTest(TestCase):
     def setUp(self):

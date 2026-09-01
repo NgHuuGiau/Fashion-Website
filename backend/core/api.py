@@ -5,6 +5,8 @@ Mount tại /api/ trong core/urls.py.
 """
 
 from django.contrib.auth.decorators import login_required
+import json
+
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, JsonResponse
@@ -689,6 +691,52 @@ def api_admin_reviews(request: HttpRequest) -> JsonResponse:
 
 
 @csrf_exempt
+def api_geocode(request: HttpRequest) -> JsonResponse:
+    """Geoapify Geocoding proxy: search forward or reverse without exposing the key."""
+    import urllib.parse
+    import urllib.request
+    from django.conf import settings
+
+    key = getattr(settings, "GEOAPIFY_API_KEY", "")
+    if not key:
+        return api_json({"error": "Chưa cấu hình GEOAPIFY_API_KEY."}, status=503)
+
+    lat = request.GET.get("lat")
+    lng = request.GET.get("lng")
+    q = request.GET.get("q")
+
+    lang = "vi"
+
+    if q:
+        params = {"text": q, "apiKey": key, "lang": lang, "filter": "countrycode:vn", "limit": 1}
+        end = "https://api.geoapify.com/v1/geocode/search?" + urllib.parse.urlencode(params)
+    elif lat and lng:
+        params = {"lat": lat, "lon": lng, "apiKey": key, "lang": lang}
+        end = "https://api.geoapify.com/v1/geocode/reverse?" + urllib.parse.urlencode(params)
+    else:
+        return api_json({"error": "Thiếu q hoặc lat/lng."}, status=400)
+
+    try:
+        with urllib.request.urlopen(end, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return api_json({"error": "Không gọi được Geoapify."}, status=502)
+
+    if data.get("features"):
+        r = data["features"][0]
+        p = r.get("properties", {})
+        loc = r.get("geometry", {}).get("coordinates", [])
+        return api_json(
+            {
+                "lat": loc[1] if len(loc) == 2 else None,
+                "lng": loc[0] if len(loc) == 2 else None,
+                "address": p.get("formatted") or p.get("address_line2") or "",
+            }
+        )
+    return api_json({"error": "Không tìm thấy địa chỉ."}, status=404)
+
+
+@csrf_exempt
 def api_root(request: HttpRequest) -> JsonResponse:
     endpoints = {
         "products": "/api/products/",
@@ -699,6 +747,7 @@ def api_root(request: HttpRequest) -> JsonResponse:
         "order_detail": "/api/orders/<id>/",
         "order_lookup": "/api/orders/lookup/",
         "coupon_check": "/api/coupons/check/",
+        "geocode": "/api/geocode/?q=... | ?lat=...&lng=...",
         "admin": {
             "stats": "/api/admin/stats/",
             "orders": "/api/admin/orders/",

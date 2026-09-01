@@ -8,8 +8,8 @@
     {% for p in cross_sell_products %}
     <article class="product-card">
       <a href="{% url 'products:product_detail' p.id p.slug %}" class="product-card-link">
-        <div class="product-card-media">
-          <img src="{% if p.image %}{{ p.image.url }}{% else %}{{ p.image_url }}{% endif %}" alt="{{ p.name }}" loading="lazy">
+        <div class="product-card-media card-media">
+          <img src="{{ p.get_image }}" alt="{{ p.name }}" loading="lazy">
           {% if p.discount_percent %}
           <span class="product-card-badge">-{{ p.discount_percent }}%</span>
           {% endif %}

@@ -97,7 +97,10 @@ def _main_uvicorn(host, port, use_tls):
         print(
             "Trình duyệt báo động chứng chỉ tự ký -> bấm 'Tiếp tục'/'Advanced' là vào được."
         )
-    uvicorn.run(application, host=host, port=port, log_level="warning", **kwargs)
+    try:
+        uvicorn.run(application, host=host, port=port, log_level="warning", **kwargs)
+    except KeyboardInterrupt:
+        print("\nĐã dừng server.")
 
 
 def _main_wsgiref(host, port, use_tls):

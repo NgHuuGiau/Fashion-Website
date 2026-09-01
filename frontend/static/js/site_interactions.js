@@ -820,4 +820,14 @@
         setInterval(tick, 1000);
     })();
 
+    document.querySelectorAll('.detail-accordion, .size-advisor').forEach(function (acc) {
+        var summary = acc.querySelector(':scope > summary');
+        if (!summary) return;
+        summary.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (e.target.closest('button, a')) return;
+            acc.classList.toggle('is-collapsed');
+        });
+    });
+
 })();

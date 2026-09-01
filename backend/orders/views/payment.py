@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -30,12 +29,23 @@ from ..models import Order
 logger = logging.getLogger(__name__)
 
 
-@login_required
+def get_visitable_order(request: HttpRequest, order_id, queryset=None):
+    """Trả đơn mà khách (kể cả khách vãng lai vừa đặt) được xem; else Http404."""
+    qs = queryset or Order.objects.all()
+    order = get_object_or_404(qs, id=order_id)
+    if request.user.is_staff:
+        return order
+    if request.user.is_authenticated:
+        if order.user_id != request.user.id:
+            raise Http404
+        return order
+    if order.user_id is None and order_id in request.session.get("guest_orders", []):
+        return order
+    raise Http404
+
+
 def order_success(request: HttpRequest, order_id) -> HttpResponse:
-    lookup = {"id": order_id}
-    if not request.user.is_staff:
-        lookup["user"] = request.user
-    order = get_object_or_404(Order, **lookup)
+    order = get_visitable_order(request, order_id)
     decorate_order_tracking(order)
     if expire_bank_order_if_needed(order):
         messages.warning(
@@ -77,12 +87,8 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
     )
 
 
-@login_required
 def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
-    lookup = {"id": order_id}
-    if not request.user.is_staff:
-        lookup["user"] = request.user
-    order = get_object_or_404(Order, **lookup)
+    order = get_visitable_order(request, order_id)
     if order.payment_method != "bank":
         return redirect("orders:order_success", order_id=order.id)
     if expire_bank_order_if_needed(order):
@@ -123,9 +129,8 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
     )
 
 
-@login_required
 def bank_payment_status(request: HttpRequest, order_id) -> JsonResponse:
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order = get_visitable_order(request, order_id)
     expired = expire_bank_order_if_needed(order)
     state = "waiting"
     if order.status == "cancelled" or expired:
@@ -138,12 +143,11 @@ def bank_payment_status(request: HttpRequest, order_id) -> JsonResponse:
     )
 
 
-@login_required
 @require_POST
 @transaction.atomic
 def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_object_or_404(
-        Order.objects.select_for_update(), id=order_id, user=request.user
+    order = get_visitable_order(
+        request, order_id, Order.objects.select_for_update()
     )
     if order.payment_method != "bank":
         messages.error(request, "Đơn hàng này không dùng chuyển khoản ngân hàng.")
@@ -196,12 +200,8 @@ def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
     return redirect("orders:order_success", order_id=order.id)
 
 
-@login_required
 def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
-    lookup = {"id": order_id}
-    if not request.user.is_staff:
-        lookup["user"] = request.user
-    order = get_object_or_404(Order, **lookup)
+    order = get_visitable_order(request, order_id)
     if order.payment_method != "vnpay":
         return redirect("orders:order_success", order_id=order.id)
     if order.is_paid:
@@ -307,12 +307,11 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     return JsonResponse({"RspCode": "97", "Message": "Payment not successful"})
 
 
-@login_required
 @require_POST
 @transaction.atomic
 def bank_payment_cancel(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_object_or_404(
-        Order.objects.select_for_update(), id=order_id, user=request.user
+    order = get_visitable_order(
+        request, order_id, Order.objects.select_for_update()
     )
     if order.payment_method != "bank":
         messages.error(request, "Đơn hàng này không dùng chuyển khoản ngân hàng.")
@@ -331,12 +330,8 @@ def bank_payment_cancel(request: HttpRequest, order_id) -> HttpResponse:
     return redirect("orders:order_failed", order_id=order.id)
 
 
-@login_required
 def order_failed(request: HttpRequest, order_id) -> HttpResponse:
-    lookup = {"id": order_id}
-    if not request.user.is_staff:
-        lookup["user"] = request.user
-    order = get_object_or_404(Order, **lookup)
+    order = get_visitable_order(request, order_id)
     expired_by_timeout = "[AUTO_TIMEOUT_15_MIN]" in (order.note or "")
     reason = "expired" if expired_by_timeout else "cancelled"
     if request.GET.get("reason"):

@@ -11,10 +11,10 @@ class CSPMiddleware:
             response["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 "img-src 'self' data: https:; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
-                "script-src 'self' 'unsafe-inline'; "
-                "frame-src 'self' https://img.vietqr.io; "
-                "connect-src 'self'"
+                "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+                "frame-src 'self' https://img.vietqr.io https://www.google.com/maps; "
+                "connect-src 'self' https://nominatim.openstreetmap.org"
             )
         return response

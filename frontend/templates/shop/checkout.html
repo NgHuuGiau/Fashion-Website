@@ -401,9 +401,9 @@
     }
 
     function reverseGeocode(lat, lng, cb) {
-        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&accept-language=vi')
+        fetch('/api/geocode/?lat=' + lat + '&lng=' + lng)
             .then(function (r) { return r.json(); })
-            .then(function (data) { cb(data && data.display_name || null); })
+            .then(function (data) { cb(data && data.address || null); })
             .catch(function () { cb(null); });
     }
 
@@ -418,9 +418,9 @@
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
         });
         var map = L.map(mapBox).setView([10.7294, 106.7060], 15);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '&copy; <a href="https://www.google.com/maps" target="_blank" rel="noopener">Google Maps</a>'
         }).addTo(map);
         var pinIcon = L.icon({
             iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -454,15 +454,16 @@
             var q = searchBox.value.trim();
             if (!q) return;
             setStatus('Đang tìm địa chỉ...');
-            fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q=' + encodeURIComponent(q) + '&limit=1&accept-language=vi')
+            fetch('/api/geocode/?q=' + encodeURIComponent(q))
                 .then(function (r) { return r.json(); })
-                .then(function (results) {
-                    if (!results || !results.length) {
+                .then(function (data) {
+                    if (!data || !data.lat) {
                         setStatus('Không tìm thấy địa chỉ "' + q + '". Bạn thử từ khoá khác hoặc click trên map.', true);
                         return;
                     }
-                    var r0 = results[0];
-                    setPos(parseFloat(r0.lat), parseFloat(r0.lon), true);
+                    setPos(parseFloat(data.lat), parseFloat(data.lng), false);
+                    addressInput.value = data.address || '';
+                    setStatus('Đã điền địa chỉ từ bản đồ.');
                 })
                 .catch(function () { setStatus('Lỗi tìm kiếm địa chỉ. Thử lại nhé.', true); });
         });

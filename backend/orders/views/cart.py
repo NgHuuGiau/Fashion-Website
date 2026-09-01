@@ -656,6 +656,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             product.save(update_fields=["stock", "updated"])
 
                 clear_cart(request)
+                if is_guest:
+                    request.session.setdefault("guest_orders", []).append(order.id)
+                    request.session.modified = True
                 from ..services.order_email import send_order_email
 
                 send_order_email(order, event="created")

@@ -16,8 +16,8 @@
 {{ product_schema|json_script:"product-schema" }}
 <script id="product-data" type="application/json">{
   "id": {{ product.id }},
-  "name": {{ product.name|repair_text|json_script:"" }},
-  "slug": {{ product.slug|json_script:"" }},
+  "name": "{{ product.name|repair_text|escapejs }}",
+  "slug": "{{ product.slug|escapejs }}",
   "price": {{ product.price }},
   "image_url": "{% if product.image %}{{ product.image.url }}{% else %}{{ product.image_url }}{% endif %}",
   "discount_percent": {{ product.discount_percent|default:0 }}
@@ -30,26 +30,16 @@
     <span>{{ product.name|repair_text|truncatechars:30 }}</span>
 </nav>
 <section class="detail-layout">
-    <div class="detail-gallery">
-        <div class="gallery-stage panel">
-            <button type="button" class="gallery-arrow gallery-arrow-left" aria-label="Xem ảnh trước" data-gallery-dir="-1">
-                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-            </button>
-            <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}" data-lightbox>
-            <button type="button" class="gallery-zoom" aria-label="Phóng to ảnh" data-lightbox>
-                <i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="gallery-arrow gallery-arrow-right" aria-label="Xem ảnh tiếp theo" data-gallery-dir="1">
-                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-            </button>
-        </div>
-        <div class="gallery-thumbs">
+    <div class="detail-gallery panel">
+        <div class="gallery-rail">
             {% for item in detail_gallery_slots %}
             <button type="button" class="thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}" data-detail-image="{{ item.url }}" data-detail-alt="{{ item.alt }}" aria-label="Xem ảnh {{ forloop.counter }}">
                 <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
-                <span>{{ forloop.counter }}</span>
             </button>
             {% endfor %}
+        </div>
+        <div class="gallery-stage">
+            <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}">
         </div>
     </div>
 
@@ -92,8 +82,6 @@
         </div>
         </div>
 
-        <p class="detail-copy">{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
-
         <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form" id="detail-buy-form">
             {% csrf_token %}
 
@@ -127,7 +115,7 @@
             {% endif %}
 
             {% if requires_variant %}
-            <details class="size-advisor panel">
+            <details class="size-advisor panel" open>
                 <summary>Bạn chưa chắc chọn size nào? <span class="size-advisor-cta">Nhờ tư vấn size <i class="fa-solid fa-ruler" aria-hidden="true"></i></span></summary>
                 <div class="size-advisor-body">
                     <p class="size-advisor-hint">Nhập chiều cao và cân nặng, chúng tôi sẽ gợi ý size vừa nhất với bạn.</p>
@@ -186,47 +174,46 @@
         </div>
         {% endif %}
 
-        <div class="detail-accordions">
-            <details class="detail-accordion" open>
-                <summary><span>Mô tả và size</span> <button type="button" class="size-guide-btn" data-modal="size-guide-modal" data-modal-action="open">Bảng size</button></summary>
-                <div>
-                    <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
-                    {% if product.category.slug == "quan" %}
-                    <ul>
-                        <li>M: lưng 74-78 cm, mông 94 cm, dài 96 cm</li>
-                        <li>L: lưng 78-82 cm, mông 98 cm, dài 98 cm</li>
-                        <li>XL: lưng 82-86 cm, mông 102 cm, dài 100 cm</li>
-                        <li>XXL: lưng 86-90 cm, mông 106 cm, dài 102 cm</li>
-                    </ul>
-                    {% elif product.category.slug == "phu-kien" %}
-                    <ul>
-                        <li>Túi nhỏ: dài 18 cm, rộng 6 cm, cao 14 cm</li>
-                        <li>Túi vừa: dài 22 cm, rộng 8 cm, cao 16 cm</li>
-                        <li>Nón: 56-60 cm, có dây điều chỉnh</li>
-                    </ul>
-                    {% else %}
-                    <ul>
-                        <li>S: ngang ngực 50 cm, dài áo 66 cm, dài tay 55 cm</li>
-                        <li>M: ngang ngực 53 cm, dài áo 69 cm, dài tay 57 cm</li>
-                        <li>L: ngang ngực 56 cm, dài áo 72 cm, dài tay 59 cm</li>
-                        <li>XL: ngang ngực 59 cm, dài áo 75 cm, dài tay 61 cm</li>
-                    </ul>
-                    {% endif %}
-                </div>
-            </details>
+        </aside>
+</section>
 
-            <details class="detail-accordion">
-                <summary>Chính sách đổi trả</summary>
-                <div>
-                    <ul>
-                        <li>Đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng.</li>
-                        <li>Lưu lại mã đơn khi cần liên hệ hỗ trợ nhanh.</li>
-                        <li>Chất lượng sản phẩm và tồn kho có thể thay đổi theo từng đợt cập nhật.</li>
-                    </ul>
-                </div>
-            </details>
-        </div>
-    </aside>
+<section class="detail-description panel">
+    <h2 class="detail-description-title">Mô tả</h2>
+    <div class="detail-description-body">
+        <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
+        {% if product.category.slug == "quan" %}
+        <ul>
+            <li>M: lưng 74-78 cm, mông 94 cm, dài 96 cm</li>
+            <li>L: lưng 78-82 cm, mông 98 cm, dài 98 cm</li>
+            <li>XL: lưng 82-86 cm, mông 102 cm, dài 100 cm</li>
+            <li>XXL: lưng 86-90 cm, mông 106 cm, dài 102 cm</li>
+        </ul>
+        {% elif product.category.slug == "phu-kien" %}
+        <ul>
+            <li>Túi nhỏ: dài 18 cm, rộng 6 cm, cao 14 cm</li>
+            <li>Túi vừa: dài 22 cm, rộng 8 cm, cao 16 cm</li>
+            <li>Nón: 56-60 cm, có dây điều chỉnh</li>
+        </ul>
+        {% else %}
+        <ul>
+            <li>S: ngang ngực 50 cm, dài áo 66 cm, dài tay 55 cm</li>
+            <li>M: ngang ngực 53 cm, dài áo 69 cm, dài tay 57 cm</li>
+            <li>L: ngang ngực 56 cm, dài áo 72 cm, dài tay 59 cm</li>
+            <li>XL: ngang ngực 59 cm, dài áo 75 cm, dài tay 61 cm</li>
+        </ul>
+        {% endif %}
+    </div>
+</section>
+
+<section class="detail-description panel">
+    <h2 class="detail-description-title">Chính sách đổi trả</h2>
+    <div class="detail-description-body">
+        <ul>
+            <li>Đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng.</li>
+            <li>Lưu lại mã đơn khi cần liên hệ hỗ trợ nhanh.</li>
+            <li>Chất lượng sản phẩm và tồn kho có thể thay đổi theo từng đợt cập nhật.</li>
+        </ul>
+    </div>
 </section>
 
 <div class="sticky-buy" id="sticky-buy" aria-hidden="true">

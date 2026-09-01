@@ -3,6 +3,7 @@ import random
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -271,17 +272,20 @@ def my_orders(request: HttpRequest) -> HttpResponse:
         if request.user.is_staff
         else Order.objects.filter(user=request.user)
     )
-    orders = list(
-        qs.prefetch_related("items__product", "items__variant").order_by("-created_at")
+    orders = (
+        qs.prefetch_related("items__product", "items__variant")
+        .order_by("-created_at")
     )
-    for order in orders:
+    paginator = Paginator(orders, 15)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    for order in page_obj.object_list:
         expire_bank_order_if_needed(order)
         decorate_order_tracking(order)
     return render(
         request,
         "account/my_orders.html",
         {
-            "orders": orders,
+            "orders": page_obj,
         },
     )
 

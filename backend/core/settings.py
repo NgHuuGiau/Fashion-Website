@@ -169,6 +169,7 @@ VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
 
 
 GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
 ZALO_OA_ID = os.getenv("ZALO_OA_ID", "")
 HOTLINE = os.getenv("HOTLINE", "0932047365")
 STORE_ADDRESS = os.getenv("STORE_ADDRESS", "Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh")
