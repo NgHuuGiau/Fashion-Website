@@ -153,9 +153,7 @@ def bank_payment_status(request: HttpRequest, order_id) -> JsonResponse:
 @require_POST
 @transaction.atomic
 def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_visitable_order(
-        request, order_id, Order.objects.select_for_update()
-    )
+    order = get_visitable_order(request, order_id, Order.objects.select_for_update())
     if order.payment_method != "bank":
         messages.error(request, "Đơn hàng này không dùng chuyển khoản ngân hàng.")
         return redirect("orders:order_success", order_id=order.id)
@@ -317,9 +315,7 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
 @require_POST
 @transaction.atomic
 def bank_payment_cancel(request: HttpRequest, order_id) -> HttpResponse:
-    order = get_visitable_order(
-        request, order_id, Order.objects.select_for_update()
-    )
+    order = get_visitable_order(request, order_id, Order.objects.select_for_update())
     if order.payment_method != "bank":
         messages.error(request, "Đơn hàng này không dùng chuyển khoản ngân hàng.")
         return redirect("orders:order_success", order_id=order.id)

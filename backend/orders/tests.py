@@ -393,7 +393,9 @@ class CartCheckoutAndAdminTest(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh")
+        self.assertContains(
+            response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh"
+        )
         self.assertEqual(Order.objects.count(), before)
 
     @mock.patch("orders.vnpay.is_configured", return_value=False)
@@ -415,7 +417,9 @@ class CartCheckoutAndAdminTest(TestCase):
             reverse("orders:order_success", kwargs={"order_id": order.id})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh")
+        self.assertContains(
+            response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh"
+        )
 
     @mock.patch("orders.vnpay.is_configured", return_value=False)
     def test_vnpay_payment_guest_unconfigured_goes_order_success(self, _mock_cfg):

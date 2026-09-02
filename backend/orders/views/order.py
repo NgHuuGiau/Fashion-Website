@@ -272,9 +272,8 @@ def my_orders(request: HttpRequest) -> HttpResponse:
         if request.user.is_staff
         else Order.objects.filter(user=request.user)
     )
-    orders = (
-        qs.prefetch_related("items__product", "items__variant")
-        .order_by("-created_at")
+    orders = qs.prefetch_related("items__product", "items__variant").order_by(
+        "-created_at"
     )
     paginator = Paginator(orders, 15)
     page_obj = paginator.get_page(request.GET.get("page"))

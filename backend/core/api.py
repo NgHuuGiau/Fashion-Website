@@ -708,11 +708,21 @@ def api_geocode(request: HttpRequest) -> JsonResponse:
     lang = "vi"
 
     if q:
-        params = {"text": q, "apiKey": key, "lang": lang, "filter": "countrycode:vn", "limit": 1}
-        end = "https://api.geoapify.com/v1/geocode/search?" + urllib.parse.urlencode(params)
+        params = {
+            "text": q,
+            "apiKey": key,
+            "lang": lang,
+            "filter": "countrycode:vn",
+            "limit": 1,
+        }
+        end = "https://api.geoapify.com/v1/geocode/search?" + urllib.parse.urlencode(
+            params
+        )
     elif lat and lng:
         params = {"lat": lat, "lon": lng, "apiKey": key, "lang": lang}
-        end = "https://api.geoapify.com/v1/geocode/reverse?" + urllib.parse.urlencode(params)
+        end = "https://api.geoapify.com/v1/geocode/reverse?" + urllib.parse.urlencode(
+            params
+        )
     else:
         return api_json({"error": "Thiếu q hoặc lat/lng."}, status=400)
 
