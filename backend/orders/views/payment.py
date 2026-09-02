@@ -63,7 +63,14 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
         and not order.is_paid
         and order.status == "processing"
     ):
-        return redirect("orders:vnpay_payment", order_id=order.id)
+        from ..vnpay import is_configured
+
+        if is_configured():
+            return redirect("orders:vnpay_payment", order_id=order.id)
+        messages.error(
+            request,
+            "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng thử chuyển khoản ngân hàng.",
+        )
     if order.status == "cancelled":
         return redirect("orders:order_failed", order_id=order.id)
 
@@ -216,7 +223,7 @@ def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
             request,
             "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng thử chuyển khoản ngân hàng.",
         )
-        return redirect("orders:order_review", order_id=order.id)
+        return redirect("orders:order_success", order_id=order.id)
 
     return_url = request.build_absolute_uri(reverse("orders:vnpay_return"))
     ip_addr = request.META.get("REMOTE_ADDR", "127.0.0.1")

@@ -80,7 +80,6 @@
                 <a href="{% url 'products:compare_view' %}" class="compare-view-link">Xem bảng so sánh</a>
             </form>
         </div>
-        </div>
 
         <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form" id="detail-buy-form">
             {% csrf_token %}

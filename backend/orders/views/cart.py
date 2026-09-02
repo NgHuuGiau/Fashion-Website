@@ -503,6 +503,40 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     )
                     total_amount = max(Decimal("0"), total_amount - points_discount)
 
+                if payment_method == "vnpay":
+                    from ..vnpay import is_configured
+
+                    if not is_configured():
+                        form.add_error(
+                            "payment_method",
+                            "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn COD hoặc chuyển khoản ngân hàng.",
+                        )
+                        return render(
+                            request,
+                            "shop/checkout.html",
+                            {
+                                "items": items,
+                                "subtotal": subtotal,
+                                "shipping_fee": shipping_fee,
+                                "discount_amount": Decimal("0"),
+                                "total": subtotal + shipping_fee,
+                                "form": form,
+                                "shop_bank_account": SHOP_BANK_ACCOUNT,
+                                "shop_account_name": SHOP_ACCOUNT_NAME,
+                                "demo_qr_url": build_vietqr_url(
+                                    bank_code or "VCB",
+                                    subtotal + shipping_fee,
+                                    "DH-TAM",
+                                ),
+                                "banks": BANKS,
+                                "saved_addresses": saved_addresses,
+                                "tier_name": tier_name,
+                                "tier_discount_pct": tier_discount_pct_value,
+                                "tier_discount_amount": tier_discount_amount,
+                                "shipping_zone": shipping_fee,
+                            },
+                        )
+
                 with transaction.atomic():
                     if selected_coupon:
                         selected_coupon = Coupon.objects.select_for_update().get(

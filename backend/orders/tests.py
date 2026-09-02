@@ -1,6 +1,7 @@
 import hashlib
 from datetime import timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -369,6 +370,74 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Vui l\u00f2ng ch\u1ecdn ng\u00e2n h\u00e0ng")
+
+    @mock.patch("orders.vnpay.is_configured", return_value=False)
+    def test_checkout_vnpay_unconfigured_blocks_order(self, _mock_cfg):
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_red_m.id},
+        )
+        before = Order.objects.count()
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer Test",
+                "customer_email": "buyer@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "vnpay",
+                "bank_code": "",
+                "coupon_code": "",
+                "note": "",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh")
+        self.assertEqual(Order.objects.count(), before)
+
+    @mock.patch("orders.vnpay.is_configured", return_value=False)
+    def test_order_success_vnpay_unconfigured_guest_no_loop(self, _mock_cfg):
+        order = Order.objects.create(
+            user=None,
+            customer_name="Guest Vnpay",
+            phone="0909",
+            shipping_address="test",
+            payment_method="vnpay",
+            total_amount=100000,
+            status="processing",
+            is_paid=False,
+        )
+        session = self.client.session
+        session["guest_orders"] = [order.id]
+        session.save()
+        response = self.client.get(
+            reverse("orders:order_success", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "VNPay ch\u01b0a \u0111\u01b0\u1ee3c c\u1ea5u h\u00ecnh")
+
+    @mock.patch("orders.vnpay.is_configured", return_value=False)
+    def test_vnpay_payment_guest_unconfigured_goes_order_success(self, _mock_cfg):
+        order = Order.objects.create(
+            user=None,
+            customer_name="Guest Vnpay2",
+            phone="0909",
+            shipping_address="test",
+            payment_method="vnpay",
+            total_amount=100000,
+            status="processing",
+            is_paid=False,
+        )
+        session = self.client.session
+        session["guest_orders"] = [order.id]
+        session.save()
+        response = self.client.get(
+            reverse("orders:vnpay_payment", kwargs={"order_id": order.id}),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.redirect_chain[-1][1], 302)
 
     def test_bank_payment_confirm_marks_order_paid(self):
         self.client.login(username="buyer", password="StrongPass123!")
@@ -2519,6 +2588,20 @@ class PaymentExtraBranchesTest(TestCase):
         defaults.update(kw)
         return Order.objects.create(**defaults)
 
+    def _cod_order(self, **kw):
+        defaults = dict(
+            user=self.user,
+            customer_name="T",
+            phone="0909",
+            shipping_address="HCM",
+            payment_method="cod",
+            total_amount=100000,
+            status="pending",
+            is_paid=False,
+        )
+        defaults.update(kw)
+        return Order.objects.create(**defaults)
+
     def test_order_success_unpaid_bank_redirects_waiting(self):
         order = self._bank_order()
         response = self.client.get(
@@ -3006,7 +3089,7 @@ class VNPayTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("sandbox.vnpayment.vn", response.url)
 
-    def test_payment_unconfigured_redirects_review(self):
+    def test_payment_unconfigured_redirects_success(self):
         with override_settings(VNPAY_TMN_CODE="", VNPAY_HASH_SECRET=""):
             self.client.login(username="buyer", password="StrongPass123!")
             response = self.client.get(
@@ -3014,7 +3097,7 @@ class VNPayTest(TestCase):
             )
             self.assertRedirects(
                 response,
-                reverse("orders:order_review", kwargs={"order_id": self.order.id}),
+                reverse("orders:order_success", kwargs={"order_id": self.order.id}),
             )
 
     def test_payment_rejects_non_vnpay_order(self):
