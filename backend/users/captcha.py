@@ -40,6 +40,7 @@ def generate_captcha_image(
             fill=_random_color(100, 200),
         )
 
+    font: "ImageFont.ImageFont | ImageFont.FreeTypeFont"
     try:
         font = ImageFont.truetype("arial.ttf", font_size)
     except Exception:

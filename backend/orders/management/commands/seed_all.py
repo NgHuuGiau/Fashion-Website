@@ -1,5 +1,6 @@
 import random
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
@@ -32,7 +33,8 @@ class Command(BaseCommand):
         self._create_orders()
 
         self.stdout.write("[6/6] Creating FAQs & wishlist...")
-        self._create_faqs_wishlist()
+        self._create_faqs()
+        self._create_wishlists()
 
         self.stdout.write("[7/7] Creating referral codes & gift cards...")
         self._create_referral_codes()
@@ -198,7 +200,7 @@ class Command(BaseCommand):
                 status = random.choice(statuses)
                 num_items = random.choices([1, 2, 3], weights=[60, 30, 10])[0]
                 chosen = random.sample(products, min(num_items, len(products)))
-                subtotal = 0
+                subtotal = Decimal(0)
                 items_data = []
 
                 for p in chosen:

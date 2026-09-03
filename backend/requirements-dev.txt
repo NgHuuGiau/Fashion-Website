@@ -10,8 +10,8 @@ coverage>=7.3,<7.4
 
 # Lint & format (ruff thay black/isort)
 ruff>=0.6
-mypy>=1.11,<1.12
-django-stubs>=5.2
+mypy>=1.14,<1.15
+django-stubs>=5.2.1,<5.3
 
 # Security
 bandit>=1.7,<1.8

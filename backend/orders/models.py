@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from datetime import timedelta as _timedelta
+
 
 class Coupon(models.Model):
     TYPE_PERCENT = "percent"
@@ -200,7 +202,7 @@ class Order(models.Model):
         ]
 
     def __str__(self):
-        return f"Order #{self.id} - {self.user.username}"
+        return f"Order #{self.id} - {self.user.username if self.user else '(guest)'}"
 
     @property
     def carrier_label(self):
@@ -351,7 +353,7 @@ class GiftCard(models.Model):
         if not self.current_balance:
             self.current_balance = self.initial_balance
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(days=365)
+            self.expires_at = timezone.now() + _timedelta(days=365)
         super().save(*args, **kwargs)
 
     @staticmethod

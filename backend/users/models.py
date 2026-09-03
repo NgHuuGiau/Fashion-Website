@@ -125,7 +125,7 @@ class UserProfile(models.Model):
         return month is not None and month == (today or timezone.localdate()).month
 
     def tier(self):
-        tiers = [
+        tiers: list[dict] = [
             {
                 "threshold": 2000,
                 "name": "VIP",
@@ -145,23 +145,23 @@ class UserProfile(models.Model):
                 "benefit": "Tích 1K = 1 điểm, đổi voucher mỗi đơn",
             },
         ]
-        current = tiers[-1]
+        current: dict = tiers[-1]
         for tier in tiers:
-            if self.points >= tier["threshold"]:
+            if self.points >= int(tier["threshold"]):
                 current = tier
                 break
-        nxt = None
+        nxt: dict | None = None
         for tier in tiers:
-            if tier["threshold"] > self.points:
+            if int(tier["threshold"]) > self.points:
                 nxt = tier
                 break
         progress = 0
         remaining = 0
         if nxt:
-            prev = current["threshold"]
-            span = nxt["threshold"] - prev
+            prev = int(current["threshold"])
+            span = int(nxt["threshold"]) - prev
             progress = min(int((self.points - prev) / span * 100), 100) if span else 100
-            remaining = nxt["threshold"] - self.points
+            remaining = int(nxt["threshold"]) - self.points
         return {
             "name": current["name"],
             "badge": current["badge"],

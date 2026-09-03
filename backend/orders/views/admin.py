@@ -103,7 +103,7 @@ def admin_export_revenue(request: HttpRequest) -> HttpResponse:
         .annotate(revenue=Sum("total_amount"), orders_count=Count("id"))
         .order_by("-month")
     )
-    revenue_by_month = {}
+    revenue_by_month: dict = {}
     for item in month_agg:
         if item["month"] is None:
             continue

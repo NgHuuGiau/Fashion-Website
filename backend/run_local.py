@@ -19,8 +19,8 @@ import os
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -76,7 +76,54 @@ def _ensure_cert():
     return CERT_PATH, KEY_PATH
 
 
+def _free_port(port: int):
+    """Tắt tiến trình python cũ đang chiếm port (server treo khi đóng cửa sổ)."""
+    import socket
+    import subprocess
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", port))
+            return  # port tự do
+    except OSError:
+        pass
+    try:
+        listen_pids = set()
+        out = subprocess.run(
+            ["netstat", "-ano"], capture_output=True, text=True, timeout=10
+        ).stdout
+        for line in out.splitlines():
+            if f":{port}" in line and "LISTENING" in line:
+                parts = line.split()
+                if parts and parts[-1].isdigit():
+                    listen_pids.add(parts[-1])
+        if not listen_pids:
+            return
+        py_pids = set()
+        out = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq python.exe", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        ).stdout
+        import csv
+        import io
+
+        for row in csv.reader(io.StringIO(out)):
+            if len(row) >= 2 and row[1].isdigit():
+                py_pids.add(row[1])
+        for pid in listen_pids & py_pids:
+            subprocess.run(
+                ["taskkill", "/F", "/PID", pid], capture_output=True, timeout=10
+            )
+            print(f"Đã tắt server treo cũ (PID {pid}) đang chiếm port {port}.")
+    except Exception:
+        pass
+
+
 def _main_uvicorn(host, port, use_tls):
+    _free_port(port)
+
     import django
     from django.core.asgi import get_asgi_application
 

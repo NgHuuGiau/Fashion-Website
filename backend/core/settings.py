@@ -120,7 +120,7 @@ else:
         "Unsupported DB_ENGINE=%r. Use mssql (default) or postgres (CI)." % DB_ENGINE
     )
 
-_db_config = {
+_db_config: dict = {
     "ENGINE": _DB_BACKEND,
     "NAME": os.getenv(
         "DB_NAME", "HUUGIAU_Fashion" if _DB_BACKEND == "mssql" else "test_fashion"
@@ -188,7 +188,7 @@ COMPRESS_OUTPUT_DIR = "CACHE"
 COMPRESS_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 if not DEBUG:
     COMPRESS_OFFLINE = True
-    COMPRESS_OFFLINE_CONTEXT = {}
+    COMPRESS_OFFLINE_CONTEXT: dict = {}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "frontend/static/images"
 

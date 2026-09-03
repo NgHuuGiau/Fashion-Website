@@ -77,6 +77,11 @@ class Product(models.Model):
             "products:product_detail", kwargs={"pk": self.id, "slug": self.slug}
         )
 
+    def _media_file_exists(self, relative_name):
+        if not relative_name:
+            return False
+        return (Path(settings.MEDIA_ROOT) / relative_name).exists()
+
     def _build_placeholder_image(self):
         category_label = (
             (self.category.name or self.category.slug or "HUUGIAU")
@@ -158,8 +163,8 @@ class Product(models.Model):
         seen_urls.add(image_url)
 
     def get_gallery_images(self, include_primary=True):
-        images = []
-        seen_urls = set()
+        images: list = []
+        seen_urls: set = set()
 
         primary_url = self.get_image() if include_primary else ""
         self._append_unique_image(images, seen_urls, primary_url, True)

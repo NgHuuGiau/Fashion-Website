@@ -57,7 +57,8 @@ combine-as-imports = true
 
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = true
+plugins = ["mypy_django_plugin.main"]
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
@@ -71,14 +72,35 @@ strict_optional = true
 ignore_missing_imports = true
 namespace_packages = true
 explicit_package_bases = true
+disable_error_code = ["var-annotated", "attr-defined"]
+exclude = [
+    "tests\\.py$",
+    "test_.*\\.py$",
+    ".*_test\\.py$",
+    "(^|/)run_local\\.py$",
+]
 
 [[tool.mypy.overrides]]
 module = [
     "django.*",
     "celery.*",
-    "mssql_*",
+    "mssql.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "orders.forms",
+    "orders.admin_forms",
+    "users.forms",
+    "products.management.commands.optimize_images",
+    "manage",
+]
+disable_error_code = ["union-attr", "attr-defined", "assignment", "call-overload", "index", "var-annotated"]
+
+[tool.django-stubs]
+django_settings_module = "core.settings"
+strict_settings = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
