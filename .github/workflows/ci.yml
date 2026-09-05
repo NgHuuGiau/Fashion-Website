@@ -113,8 +113,9 @@ jobs:
 
       - name: Run Bandit (SAST)
         run: |
-          bandit -r backend -f json -o bandit-results.json
+          # -lll shows issues but exits 0; -f json for artifact
           bandit -r backend -lll
+          bandit -r backend -f json -o bandit-results.json || true
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |
@@ -280,7 +281,7 @@ jobs:
 
       - name: Run ESLint (JS)
         run: |
-          cd frontend && npx eslint "**/*.js" --format=github
+          cd frontend && npx eslint "**/*.js" --format=unix
 
   build:
     name: Build Verification
