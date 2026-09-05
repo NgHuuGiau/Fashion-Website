@@ -155,6 +155,3 @@ skips = ["B101", "B601"]  # assert, shell=True (sometimes needed)
 
 [tool.pip-audit]
 descend = true
-
-[tool.safety]
-ignore = ["70612", "70613"]  # known false positives for Django

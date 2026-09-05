@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,6 +9,7 @@ from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -566,6 +568,9 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "review_filter": review_filter,
             "review_sort": review_sort,
             "rating_avg": rating_avg,
+            "price_valid_until": (
+                timezone.localdate() + timedelta(days=30)
+            ).isoformat(),
             "rating_count": rating_count,
             "review_buckets": review_buckets,
             "user_review": user_review,
@@ -741,6 +746,7 @@ def search_suggest(request: HttpRequest) -> JsonResponse:
 
 
 @require_POST
+@rate_limit("newsletter", max_requests=10, window=3600)
 def newsletter_subscribe(request: HttpRequest) -> HttpResponse:
     email = (request.POST.get("email") or "").strip()
     if len(email) > 254 or "@" not in email or "." not in email.split("@")[-1]:

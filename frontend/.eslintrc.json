@@ -54,6 +54,10 @@
   ],
   "overrides": [
     {
+      "files": ["sw.js", "static/sw.js"],
+      "env": { "serviceworker": true }
+    },
+    {
       "files": ["*.config.js", "*.config.mjs"],
       "env": { "node": true },
       "rules": {

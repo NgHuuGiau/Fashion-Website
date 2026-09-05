@@ -202,8 +202,22 @@ def apply_order_status_change(order, new_status, is_paid=False):
 
     - Chuyển sang trạng thái 'cancelled': trả lại hàng về kho.
     - Bỏ huỷ (từ 'cancelled' sang trạng thái khác): trừ lại hàng khỏi kho.
+    - 'delivered' là trạng thái cuối: không chuyển đi đâu (hoàn hàng
+      dùng luồng đổi/trả), và chỉ được đánh dấu khi đã thanh toán.
     """
     old_status = order.status
+    if old_status == "delivered" and new_status != "delivered":
+        # Cho phép chuyển sang 'cancelled' NẾU đơn đã thanh toán (was_paid)
+        # -> đây là luồng hoàn tiền (refund): khách trả hàng, lấy tiền lại.
+        if not (new_status == "cancelled" and not is_paid and order.is_paid):
+            raise ValueError(
+                f"Đơn #{order.id} đã hoàn thành, không thể chuyển sang '{new_status}'. "
+                "Dùng luồng đổi/trả để xử lý."
+            )
+    if new_status == "delivered" and not is_paid:
+        raise ValueError(
+            f"Đơn #{order.id} chưa thanh toán, không thể đánh dấu hoàn thành."
+        )
     with transaction.atomic():
         if old_status != "cancelled" and new_status == "cancelled":
             restore_order_stock(order)
@@ -249,9 +263,7 @@ def expire_bank_order_if_needed(order):
         locked.status = "cancelled"
         timeout_note = "[AUTO_TIMEOUT_15_MIN]"
         locked.note = (
-            f"{locked.note}\n{timeout_note}".strip()
-            if locked.note
-            else timeout_note
+            f"{locked.note}\n{timeout_note}".strip() if locked.note else timeout_note
         )
         locked.save(update_fields=["status", "note", "updated_at"])
     order.status = "cancelled"
@@ -587,8 +599,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "shipping_zone": shipping_fee,
                                 },
                             )
-                        selected_coupon.used_count += 1
-                        selected_coupon.save(update_fields=["used_count", "updated_at"])
+                        # Tăng atomic ở DB (tránh 2 checkout đồng thời ghi đè used_count).
+                        Coupon.objects.filter(id=selected_coupon.id).update(
+                            used_count=F("used_count") + 1,
+                            updated_at=timezone.now(),
+                        )
 
                     order = Order.objects.create(
                         user=None if is_guest else request.user,
@@ -618,8 +633,19 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     )
 
                     if points_to_use and not is_guest:
-                        profile.points -= points_to_use
-                        profile.save(update_fields=["points"])
+                        # Trừ atomic có điều kiện: hết điểm giữa chừng thì hủy
+                        # cả đơn (rollback) thay vì cho số dư âm (2 checkout
+                        # đồng thời).
+                        deducted = UserProfile.objects.filter(
+                            id=profile.id, points__gte=points_to_use
+                        ).update(points=F("points") - points_to_use)
+                        if not deducted:
+                            messages.error(
+                                request,
+                                "Số điểm của bạn vừa thay đổi, vui lòng kiểm tra lại.",
+                            )
+                            transaction.set_rollback(True)
+                            return redirect("orders:checkout")
 
                     if selected_coupon:
                         CouponRedemption.objects.create(

@@ -2,9 +2,10 @@
 .skeleton {
   background: linear-gradient(90deg, var(--panel-alt) 25%, var(--border) 50%, var(--panel-alt) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
 }
+
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -14,19 +15,22 @@
   display: flex;
   flex-direction: column;
 }
+
 .skeleton-image {
-  aspect-ratio: 3/4;
   width: 100%;
+  aspect-ratio: 3/4;
   margin-bottom: 0.75rem;
 }
+
 .skeleton-title {
-  height: 1.2rem;
   width: 70%;
+  height: 1.2rem;
   margin-bottom: 0.5rem;
 }
+
 .skeleton-price {
-  height: 1.4rem;
   width: 40%;
+  height: 1.4rem;
 }
 
 .skeleton-list {

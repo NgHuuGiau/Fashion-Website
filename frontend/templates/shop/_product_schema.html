@@ -20,7 +20,7 @@
     "url": "{{ request.build_absolute_uri }}",
     "priceCurrency": "VND",
     "price": "{{ product.price|floatformat:0 }}",
-    "priceValidUntil": "{{ 'now'|date:'Y-m-d'|add:'30 days' }}",
+    "priceValidUntil": "{{ price_valid_until }}",
     "availability": "{% if product.available and product.get_total_stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
     "seller": {
       "@type": "Organization",
@@ -29,8 +29,8 @@
   },
   "aggregateRating": {
     "@type": "AggregateRating",
-    "ratingValue": "{{ product.reviews.aggregate|default:0 }}",
-    "reviewCount": "{{ product.reviews.count|default:0 }}"
+    "ratingValue": "{{ rating_avg|floatformat:1 }}",
+    "reviewCount": "{{ rating_count|default:0 }}"
   }
 }
 </script>

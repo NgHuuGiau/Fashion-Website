@@ -935,11 +935,15 @@ def admin_dashboard(request):
             order_status_form = OrderStatusForm(status_post)
             if order_status_form.is_valid():
                 order = get_object_or_404(Order, id=order_id)
-                apply_order_status_change(
-                    order,
-                    order_status_form.cleaned_data["status"],
-                    order_status_form.cleaned_data.get("is_paid", False),
-                )
+                try:
+                    apply_order_status_change(
+                        order,
+                        order_status_form.cleaned_data["status"],
+                        order_status_form.cleaned_data.get("is_paid", False),
+                    )
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+                    return redirect("orders:admin_dashboard")
                 messages.success(
                     request,
                     f"Đơn #{order.id} đã chuyển sang trạng thái '{dict(Order.STATUS_CHOICES).get(order.status)}'.",
@@ -963,7 +967,11 @@ def admin_dashboard(request):
                 return redirect("orders:admin_dashboard")
             was_paid = order.is_paid
             amount = int(order.total_amount)
-            apply_order_status_change(order, "cancelled", is_paid=False)
+            try:
+                apply_order_status_change(order, "cancelled", is_paid=False)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("orders:admin_dashboard")
             refund_note = f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
             order.note = (
                 f"{order.note}\n{refund_note}".strip() if order.note else refund_note

@@ -109,20 +109,16 @@ jobs:
 
       - name: Install security tools
         run: |
-          pip install bandit==1.7.8 pip-audit==2.7.0 safety==3.2.1
+          pip install bandit==1.7.8 pip-audit==2.7.0
 
       - name: Run Bandit (SAST)
         run: |
-          bandit -r backend -f json -o bandit-results.json || true
-          bandit -r backend -lll || true
+          bandit -r backend -f json -o bandit-results.json
+          bandit -r backend -lll
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |
-          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json || true
-
-      - name: Run Safety
-        run: |
-          safety check -r backend/requirements.txt --json -o safety-results.json || true
+          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json
 
       - name: Upload security artifacts
         uses: actions/upload-artifact@v4
@@ -132,41 +128,6 @@ jobs:
           path: |
             bandit-results.json
             pip-audit-results.json
-            safety-results.json
-          retention-days: 14
-
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: python
-          queries: security-and-quality
-          config: |
-            paths:
-              - backend/
-              - frontend/
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: "/language:python"
-          output: sarif-results
-
-      - name: Upload SARIF
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-sarif
-          path: sarif-results
           retention-days: 14
 
   test:
@@ -233,7 +194,6 @@ jobs:
         run: |
           cd backend
           python manage.py check --traceback 2>&1
-        continue-on-error: true
 
       - name: Run migrations
         run: |
@@ -313,12 +273,14 @@ jobs:
           cd frontend && npm install --no-audit --no-fund
 
       - name: Run Stylelint (CSS)
+        # Tạm thời không gate: CSS legacy còn ~200 lỗi cosmetic
+        # (đã dọn 1684 -> ~200). Bật lại khi dọn xong.
         run: |
           cd frontend && npx stylelint "**/*.css" --formatter=github || true
 
       - name: Run ESLint (JS)
         run: |
-          cd frontend && npx eslint "**/*.js" --format=github || true
+          cd frontend && npx eslint "**/*.js" --format=github
 
   build:
     name: Build Verification
@@ -364,7 +326,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, type-check, security, codeql, test, frontend-lint, build]
+    needs: [lint, type-check, security, test, frontend-lint, build]
     steps:
       - name: Collect results
         run: |
@@ -375,7 +337,6 @@ jobs:
           echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Lint | ${{ needs.frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY

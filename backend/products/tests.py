@@ -1,5 +1,3 @@
-import json
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -172,7 +170,7 @@ class ProductViewsTest(TestCase):
         self.assertEqual(response.context["default_color"], "Den")
         self.assertEqual(response.context["default_size"], "M")
 
-        payload = json.loads(response.context["variant_data_json"])
+        payload = response.context["variant_data_json"]
         self.assertGreaterEqual(len(payload), 2)
         self.assertIn("color_name", payload[0])
         self.assertIn("size", payload[0])

@@ -40,7 +40,7 @@ branches:
           - "Lint (Ruff)"
           - "Type Check (mypy)"
           - "Security Scan"
-          - "CodeQL Analysis"
+          - "Analyze"
           - "Django Tests (Python 3.10)"
           - "Django Tests (Python 3.11)"
           - "Django Tests (Python 3.12)"
@@ -125,27 +125,27 @@ labels:
     description: "Breaking change"
 
 autolabel:
-  - pattern: "^deps\("
+  - pattern: '^deps\('
     labels: ["dependencies"]
   - pattern: "^security"
     labels: ["security"]
-  - pattern: "^fix\("
+  - pattern: '^fix\('
     labels: ["bug"]
-  - pattern: "^feat\("
+  - pattern: '^feat\('
     labels: ["enhancement"]
-  - pattern: "^refactor\("
+  - pattern: '^refactor\('
     labels: ["refactoring"]
-  - pattern: "^perf\("
+  - pattern: '^perf\('
     labels: ["performance"]
-  - pattern: "^docs\("
+  - pattern: '^docs\('
     labels: ["documentation"]
-  - pattern: "^test\("
+  - pattern: '^test\('
     labels: ["help wanted"]
-  - pattern: "^ci\("
+  - pattern: '^ci\('
     labels: ["ci/cd"]
-  - pattern: "^frontend\("
+  - pattern: '^frontend\('
     labels: ["frontend"]
-  - pattern: "^backend\("
+  - pattern: '^backend\('
     labels: ["backend"]
 
 autoassign:

@@ -1,7 +1,7 @@
-const RECENTLY_VIEWED_KEY = 'huugiau_recently_viewed';
+const RECENTLY_VIEWED_KEY = "huugiau_recently_viewed";
 const MAX_RECENT = 10;
 
-function getRecentlyViewed() {
+function getRecentlyViewed () {
   try {
     return JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY)) || [];
   } catch {
@@ -9,25 +9,25 @@ function getRecentlyViewed() {
   }
 }
 
-function saveRecentlyViewed(list) {
+function saveRecentlyViewed (list) {
   localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
-  document.cookie = `${RECENTLY_VIEWED_KEY}=${encodeURIComponent(JSON.stringify(list.slice(0, MAX_RECENT)))};path=/;max-age=${60*60*24*30};SameSite=Lax`;
+  document.cookie = `${RECENTLY_VIEWED_KEY}=${encodeURIComponent(JSON.stringify(list.slice(0, MAX_RECENT)))};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Lax`;
 }
 
-function addRecentlyViewed(product) {
+function addRecentlyViewed (product) {
   const list = getRecentlyViewed();
   const filtered = list.filter(p => p.id !== product.id);
   filtered.unshift(product);
   saveRecentlyViewed(filtered);
 }
 
-function escapeHTML(str) {
-  const div = document.createElement('div');
+function escapeHTML (str) {
+  const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
 }
 
-function renderRecentlyViewed(containerSelector) {
+function renderRecentlyViewed (containerSelector) {
   const list = getRecentlyViewed();
   if (!list.length) return;
 
@@ -40,14 +40,14 @@ function renderRecentlyViewed(containerSelector) {
       <span class="recent-name">${escapeHTML(String(p.name))}</span>
       <span class="recent-price">
         ${p.discount_percent
-          ? `<s>${Number(p.price).toLocaleString('vi-VN')}đ</s> ${Number(p.price * (1 - p.discount_percent / 100)).toLocaleString('vi-VN')}đ`
-          : `${Number(p.price).toLocaleString('vi-VN')}đ`}
+    ? `<s>${Number(p.price).toLocaleString("vi-VN")}đ</s> ${Number(p.price * (1 - p.discount_percent / 100)).toLocaleString("vi-VN")}đ`
+    : `${Number(p.price).toLocaleString("vi-VN")}đ`}
       </span>
     </a>
-  `).join('');
+  `).join("");
 }
 
-if (document.body.classList.contains('product-detail-page')) {
+if (document.body.classList.contains("product-detail-page")) {
   const productData = window.PRODUCT_DATA; // set in template
   if (productData) addRecentlyViewed(productData);
 }

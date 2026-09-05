@@ -476,7 +476,10 @@ def api_admin_order_status(request: HttpRequest, pk: int) -> JsonResponse:
     if new_status not in dict(Order.STATUS_CHOICES):
         return api_error("Trạng thái không hợp lệ.")
     is_paid = request.POST.get("is_paid", "").strip() in ("1", "true", "on")
-    apply_order_status_change(order, new_status, is_paid=is_paid)
+    try:
+        apply_order_status_change(order, new_status, is_paid=is_paid)
+    except ValueError as exc:
+        return api_error(str(exc))
     return api_json(
         {
             "success": True,
@@ -499,7 +502,10 @@ def api_admin_order_refund(request: HttpRequest, pk: int) -> JsonResponse:
         return api_error("Đơn hàng này đã được hủy/hoàn tiền trước đó.")
     was_paid = order.is_paid
     amount = int(order.total_amount)
-    apply_order_status_change(order, "cancelled", is_paid=False)
+    try:
+        apply_order_status_change(order, "cancelled", is_paid=False)
+    except ValueError as exc:
+        return api_error(str(exc))
     refund_note = (
         f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
     )
