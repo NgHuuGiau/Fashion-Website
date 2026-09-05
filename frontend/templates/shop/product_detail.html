@@ -108,7 +108,7 @@
                     </div>
                     <p class="variant-stock-text" id="variant-stock-text"></p>
                     <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
-                    <script type="application/json" id="variant-data">{{ variant_data_json|safe }}</script>
+                    {{ variant_data_json|json_script:"variant-data" }}
                 </div>
             </div>
             {% endif %}

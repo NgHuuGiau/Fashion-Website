@@ -236,7 +236,7 @@ def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
 
 def vnpay_return(request: HttpRequest) -> HttpResponse:
     """VNPay chuyển hướng về đây sau khi khách thanh toán."""
-    from ..vnpay import verify_return
+    from ..vnpay import amount_matches, verify_return
 
     params = request.GET.dict()
     if not verify_return(params):
@@ -248,6 +248,9 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
     order = Order.objects.filter(id=txn_ref).first()
     if not order:
         messages.error(request, "Không tìm thấy đơn hàng.")
+        return redirect("orders:my_orders")
+    if order.payment_method != "vnpay" or not amount_matches(order, params):
+        messages.error(request, "Số tiền thanh toán không khớp đơn hàng.")
         return redirect("orders:my_orders")
 
     if order.is_paid:
@@ -286,7 +289,7 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
 @transaction.atomic
 def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     """Server-to-server IPN của VNPay gọi lại. Trả về RspCode để VNPay xác nhận."""
-    from ..vnpay import verify_return
+    from ..vnpay import amount_matches, verify_return
 
     params = request.GET.dict()
     order_id = params.get("vnp_TxnRef", "")
@@ -295,6 +298,8 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     order = Order.objects.filter(id=order_id).first()
     if order is None:
         return JsonResponse({"RspCode": "01", "Message": "Order not found"})
+    if order.payment_method != "vnpay" or not amount_matches(order, params):
+        return JsonResponse({"RspCode": "97", "Message": "Amount mismatch"})
     response_code = params.get("vnp_ResponseCode", "")
     transaction_status = params.get("vnp_TransactionStatus", "")
     if response_code == "00" and transaction_status == "00" and not order.is_paid:

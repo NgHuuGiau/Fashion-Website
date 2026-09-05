@@ -90,9 +90,12 @@ class Command(BaseCommand):
             for u in users:
                 role = 0 if u.is_superuser else (1 if u.is_staff else 2)
                 phone = getattr(u, "phone", "") or ""
+                # KHÔNG xuất password hash thật vào SQL (từng lộ trong git).
+                # '!' = marker "unusable password" của Django: giữ nguyên số cột
+                # để SQL chạy được, nhưng không ai đăng nhập được bằng hash cũ.
                 vals.append(
                     f"({u.id}, {self._quote(u.username)}, {self._quote(u.email)}, "
-                    f"{self._quote(u.password)}, {role}, {1 if u.is_active else 0}, "
+                    f"N'!', {role}, {1 if u.is_active else 0}, "
                     f"{self._quote(u.date_joined)}, {self._quote(phone)})"
                 )
             lines.append(",\n".join(vals) + ";")

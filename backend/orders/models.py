@@ -75,6 +75,8 @@ class CouponRedemption(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="coupon_redemptions",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,  # khách vãng lai dùng mã khuyến mãi
     )
     order = models.ForeignKey(
         "orders.Order",

@@ -321,27 +321,63 @@ class ForgotPasswordResetFlowTest(TestCase):
             reverse("users:forgot_password"), {"identifier": "resetme"}
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("users:forgot_password_captcha"))
-        self.assertEqual(self.client.session["reset_user_id"], self.user.id)
+        self.assertEqual(response.url, reverse("users:login"))
+        # email chứa link token đã được gửi, session chưa set (chờ click link)
+        from django.core import mail
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("dat-lai", mail.outbox[0].body)
+        self.assertNotIn("reset_user_id", self.client.session)
 
     def test_forgot_password_post_valid_by_email(self):
         response = self.client.post(
             reverse("users:forgot_password"), {"identifier": "RESETME@test.com"}
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:login"))
 
     def test_forgot_password_post_valid_by_phone(self):
         response = self.client.post(
             reverse("users:forgot_password"), {"identifier": "0999888777"}
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:login"))
 
     def test_forgot_password_post_not_found(self):
+        # chống dò tài khoản: trả cùng phản hồi như khi thành công
         response = self.client.post(
             reverse("users:forgot_password"), {"identifier": "no-such-user"}
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Không tìm thấy tài khoản")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:login"))
+
+    def test_password_reset_confirm_valid_token(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        response = self.client.get(
+            reverse(
+                "users:password_reset_confirm",
+                kwargs={"uidb64": uid, "token": token},
+            )
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:reset_password"))
+        self.assertEqual(self.client.session["reset_user_id"], self.user.id)
+
+    def test_password_reset_confirm_invalid_token(self):
+        response = self.client.get(
+            reverse(
+                "users:password_reset_confirm",
+                kwargs={"uidb64": "MQ", "token": "sai-token"},
+            )
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:forgot_password"))
+        self.assertNotIn("reset_user_id", self.client.session)
 
     def test_forgot_password_captcha_requires_session(self):
         response = self.client.get(reverse("users:forgot_password_captcha"))

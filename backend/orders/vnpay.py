@@ -72,3 +72,11 @@ def verify_return(params: dict) -> bool:
     }
     expected = _secure_hash(data)
     return hmac.compare_digest(received, expected)
+
+
+def amount_matches(order, params: dict) -> bool:
+    """Đối chiếu vnp_Amount (đơn vị xu = VND*100) với tổng tiền đơn hàng."""
+    try:
+        return int(params.get("vnp_Amount", 0)) == int(order.total_amount) * 100
+    except (TypeError, ValueError):
+        return False

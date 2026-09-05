@@ -338,7 +338,11 @@ def change_password_view(request: HttpRequest) -> HttpResponse:
     error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.",
 )
 def forgot_password_view(request: HttpRequest) -> HttpResponse:
-    """Bước 1: Nhập tài khoản (username/email/phone) để kiểm tra tồn tại."""
+    """Bước 1: Nhập tài khoản -> gửi link đặt lại có token qua email.
+
+    Luôn trả cùng một thông báo (kể cả tài khoản không tồn tại) để chống
+    dò quét tài khoản (user enumeration).
+    """
     if request.user.is_authenticated:
         return redirect("products:product_list")
 
@@ -346,12 +350,78 @@ def forgot_password_view(request: HttpRequest) -> HttpResponse:
         form = ForgotPasswordForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data["_matched_user"]
-            request.session["reset_user_id"] = user.id
-            return redirect("users:forgot_password_captcha")
+            try:
+                _send_reset_email(request, user)
+            except Exception:
+                messages.error(
+                    request,
+                    "Không gửi được email lúc này. Vui lòng thử lại sau.",
+                )
+                return render(request, "auth/forgot_password.html", {"form": form})
+            messages.info(
+                request,
+                "Nếu tài khoản tồn tại, email hướng dẫn đặt lại mật khẩu đã được gửi.",
+            )
+            return redirect("users:login")
+        # Tài khoản không tồn tại: trả cùng thông báo như thành công.
+        messages.info(
+            request,
+            "Nếu tài khoản tồn tại, email hướng dẫn đặt lại mật khẩu đã được gửi.",
+        )
+        return redirect("users:login")
     else:
         form = ForgotPasswordForm()
 
     return render(request, "auth/forgot_password.html", {"form": form})
+
+
+def _send_reset_email(request: HttpRequest, user) -> None:
+    """Gửi email chứa link đặt lại mật khẩu (uid + token có hạn dùng)."""
+    from django.conf import settings
+    from django.contrib.auth.tokens import default_token_generator
+    from django.core.mail import send_mail
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = request.build_absolute_uri(
+        reverse(
+            "users:password_reset_confirm", kwargs={"uidb64": uid, "token": token}
+        )
+    )
+    try:
+        send_mail(
+            "Đặt lại mật khẩu HUUGIAU Studio",
+            f"Chào {user.username},\n\n"
+            f"Bấm vào link sau để đặt lại mật khẩu (hết hạn sau 1 ngày):\n{reset_url}\n\n"
+            "Nếu bạn không yêu cầu, hãy bỏ qua email này.",
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.warning("Gửi email đặt lại mật khẩu thất bại cho %s", user.username)
+        raise
+
+
+def password_reset_confirm(
+    request: HttpRequest, uidb64: str, token: str
+) -> HttpResponse:
+    """Bước 2: Xác thực token trong email -> cho vào form đặt mật khẩu mới."""
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_str
+    from django.utils.http import urlsafe_base64_decode
+
+    try:
+        user = User.objects.get(pk=force_str(urlsafe_base64_decode(uidb64)))
+    except (User.DoesNotExist, ValueError, TypeError):
+        user = None
+    if user is None or not default_token_generator.check_token(user, token):
+        messages.error(request, "Link đặt lại đã hết hạn hoặc không hợp lệ.")
+        return redirect("users:forgot_password")
+    request.session["reset_user_id"] = user.id
+    return redirect("users:reset_password")
 
 
 def captcha_image_view(request: HttpRequest) -> HttpResponse:

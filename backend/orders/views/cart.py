@@ -240,11 +240,22 @@ def is_bank_order_expired(order):
 def expire_bank_order_if_needed(order):
     if not is_bank_order_expired(order):
         return False
-    restore_order_stock(order)
+    # Khóa row đơn hàng: 2 poll đồng thời chỉ 1 luồng thắng, tránh restore stock 2 lần.
+    with transaction.atomic():
+        locked = Order.objects.select_for_update().get(id=order.id)
+        if not is_bank_order_expired(locked):
+            return False  # luồng khác đã xử lý xong
+        restore_order_stock(locked)
+        locked.status = "cancelled"
+        timeout_note = "[AUTO_TIMEOUT_15_MIN]"
+        locked.note = (
+            f"{locked.note}\n{timeout_note}".strip()
+            if locked.note
+            else timeout_note
+        )
+        locked.save(update_fields=["status", "note", "updated_at"])
     order.status = "cancelled"
-    timeout_note = "[AUTO_TIMEOUT_15_MIN]"
-    order.note = f"{order.note}\n{timeout_note}".strip() if order.note else timeout_note
-    order.save(update_fields=["status", "note", "updated_at"])
+    order.note = locked.note
     return True
 
 

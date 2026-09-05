@@ -8,6 +8,7 @@ psycopg2-binary>=2.9,<2.10
 
 # Cache/session (tùy chọn — đặt REDIS_URL trong .env để bật)
 redis>=5.0,<5.1
+django-redis>=5.4,<5.5
 
 # Nén CSS/JS + tiện ích manage.py
 # (>=4.5: 4.2 import get_storage_class đã bị xóa khỏi Django 5.x; 4.6 tested local)

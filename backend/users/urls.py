@@ -33,4 +33,9 @@ urlpatterns = [
         "quen-mat-khau/captcha/image/", views.captcha_image_view, name="captcha_image"
     ),
     path("quen-mat-khau/dat-lai/", views.reset_password_view, name="reset_password"),
+    path(
+        "quen-mat-khau/dat-lai/<uidb64>/<token>/",
+        views.password_reset_confirm,
+        name="password_reset_confirm",
+    ),
 ]

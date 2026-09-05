@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from orders.models import Coupon, GiftCard, Order, OrderItem
@@ -16,7 +16,20 @@ from users.models_referral import ReferralCode
 class Command(BaseCommand):
     help = "Seed toàn bộ database: migrate, sản phẩm, users, coupons, đơn hàng các trạng thái."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Cho phép chạy kể cả khi DEBUG=False (mặc định từ chối để tránh seed nhầm production).",
+        )
+
     def handle(self, *args, **options):
+        from django.conf import settings
+
+        if not settings.DEBUG and not options["force"]:
+            raise CommandError(
+                "Từ chối seed khi DEBUG=False. Chạy lại với --force nếu bạn chắc chắn."
+            )
         self.stdout.write("[1/6] Migrating...")
         call_command("migrate", verbosity=0)
 
@@ -39,8 +52,6 @@ class Command(BaseCommand):
         self.stdout.write("[7/7] Creating referral codes & gift cards...")
         self._create_referral_codes()
         self._create_gift_cards()
-        self._create_faqs()
-        self._create_wishlists()
         self._create_activities()
 
         self.stdout.write(self.style.SUCCESS("Done!"))

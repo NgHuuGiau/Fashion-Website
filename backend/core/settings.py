@@ -42,12 +42,20 @@ if not _secret_key:
 SECRET_KEY = _secret_key
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
-CSRF_TRUSTED_ORIGINS = [
-    "https://localhost:8000",
-    "https://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    [
+        "https://localhost:8000",
+        "https://127.0.0.1:8000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+)
+# Đứng sau reverse proxy (nginx) chấm dứt TLS: proxy gửi X-Forwarded-Proto,
+# Django mới biết request gốc là https (tránh vòng lặp redirect + cookie secure sai).
+if env_bool("BEHIND_PROXY", False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",

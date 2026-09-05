@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 
 from django.contrib import messages
@@ -561,7 +560,7 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "detail_gallery_slots": detail_gallery_slots,
             "color_options": color_options,
             "size_options": size_options,
-            "variant_data_json": json.dumps(variant_data, ensure_ascii=False),
+            "variant_data_json": variant_data,
             "is_in_wishlist": is_in_wishlist,
             "reviews": reviews,
             "review_filter": review_filter,
