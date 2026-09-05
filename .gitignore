@@ -57,3 +57,6 @@ LOCAL_NOTES.md
 
 backend/test_results.txt
 backend/test_stderr.txt
+
+# Seed SQL chứa dữ liệu thật (từng lộ password hash) — không commit
+database/sql/02_INSERT_DATA.sql
