@@ -156,7 +156,7 @@
                                placeholder="Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"
                                {% if not form.gift_wrap.value %}disabled{% endif %}>
                     </label>
-                    <script>
+                    <script nonce="{{ request.csp_nonce }}">
                     (function() {
                         var chk = document.getElementById('id_gift_wrap');
                         var note = document.getElementById('id_gift_note');
@@ -198,8 +198,8 @@
     </div>
 </section>
 
-{{ banks|json_script:"banks-data" }}
-<script>
+{% json_script_nonce banks "banks-data" %}
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var paymentSelect = document.getElementById("id_payment_method");
     var bankSelect = document.getElementById("id_bank_code");
@@ -384,7 +384,7 @@
 })();
 </script>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var btn = document.getElementById('locate-btn');
     var mapBox = document.getElementById('checkout-map');
@@ -518,7 +518,7 @@
 })();
 </script>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var chips = document.querySelectorAll('.saved-addr-chip');
     if (!chips.length) return;

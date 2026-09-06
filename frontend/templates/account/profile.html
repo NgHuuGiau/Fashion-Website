@@ -164,7 +164,7 @@
     </div>
 </section>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var toggle = document.getElementById('addr-toggle');
     var form = document.getElementById('addr-form');
@@ -181,7 +181,7 @@
 })();
 </script>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .account-layout {
     display: grid;
     grid-template-columns: 240px 1fr;

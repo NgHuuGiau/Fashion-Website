@@ -192,7 +192,7 @@
     </div>
 </section>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var expiresAt = new Date("{{ expires_at_iso }}");
     var statusUrl = "{% url 'orders:bank_payment_status' order.id %}";
@@ -285,7 +285,7 @@
 })();
 </script>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .payment-layout {
     display: grid;
     grid-template-columns: 1fr 340px;

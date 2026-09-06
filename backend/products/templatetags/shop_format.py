@@ -3,12 +3,28 @@ from decimal import Decimal, InvalidOperation
 
 from django import template
 from django.utils import timezone
+from django.utils.safestring import mark_safe
+import json
 
 from products.constants import get_category_type_label
 from core.text_utils import normalize_vn_text, repair_mojibake_text
 
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def json_script_nonce(context, value, element_id):
+    """Render JSON script tag với CSP nonce từ request context."""
+    request = context.get("request")
+    nonce = getattr(request, "csp_nonce", "") if request else ""
+    nonce_attr = f' nonce="{nonce}"' if nonce else ""
+    data = json.dumps(value, ensure_ascii=False)
+    # Escape for safe embedding in script tag
+    data = data.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    return mark_safe(
+        f'<script type="application/json" id="{element_id}"{nonce_attr}>{data}</script>'
+    )
 
 
 @register.filter

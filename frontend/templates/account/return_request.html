@@ -68,7 +68,7 @@
     </form>
 </section>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .return-form .form-group { margin-bottom: 1.25rem; }
 .radio-line, .checkbox-line { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; cursor: pointer; }
 .radio-line input, .checkbox-line input { width: auto; }

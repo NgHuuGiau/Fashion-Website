@@ -35,7 +35,7 @@
     </div>
 </main>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .promo-list { display: grid; gap: 0.75rem; }
 .promo-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.1rem 1.25rem; }
 .promo-badge {
@@ -52,7 +52,7 @@
 }
 </style>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.querySelectorAll('[data-copy-code]').forEach(function (btn) {
     btn.addEventListener('click', function () {
         var code = btn.getAttribute('data-copy-code');

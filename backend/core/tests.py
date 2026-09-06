@@ -64,7 +64,9 @@ class CSPMiddlewareTest(TestCase):
         csp = response.headers["Content-Security-Policy"]
         self.assertIn("default-src 'self'", csp)
         self.assertIn("img-src 'self' data: https:", csp)
-        self.assertIn("style-src 'self' 'unsafe-inline'", csp)
+        # CSP now uses nonce instead of unsafe-inline
+        self.assertIn("style-src 'self' 'nonce-", csp)
+        self.assertIn("script-src 'self' 'nonce-", csp)
 
     @override_settings(DEBUG=True)
     def test_csp_header_omitted_in_debug(self):

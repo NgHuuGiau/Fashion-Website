@@ -92,7 +92,7 @@
   </div>
 </div>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .referral-grid { display: grid; grid-template-columns: 1fr 350px; gap: 1.5rem; margin-bottom: 1.5rem; }
 @media (max-width: 900px) { .referral-grid { grid-template-columns: 1fr; } }
 .referral-card { padding: 1.5rem; }

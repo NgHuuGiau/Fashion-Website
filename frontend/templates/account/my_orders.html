@@ -118,7 +118,7 @@
     {% endif %}
 </section>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .order-list {
     display: grid;
     gap: 1rem;

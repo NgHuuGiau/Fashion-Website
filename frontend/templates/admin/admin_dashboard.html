@@ -1191,7 +1191,7 @@
   </div>
 </section>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-switch-to]');
   if (!btn) return;
@@ -1222,7 +1222,7 @@ document.addEventListener('click', function(e) {
 });
 </script>
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 
 .adm-shell {
   display: grid;

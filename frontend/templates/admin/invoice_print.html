@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Hoá đơn #{{ order.id }} - HUUGIAU</title>
-<style>
+<style nonce="{{ request.csp_nonce }}">
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Segoe UI", Arial, sans-serif; color: #1d1a17; background: #f4f1ec; padding: 24px; }
     .sheet { max-width: 720px; margin: 0 auto; background: #fff; padding: 40px 44px; border-radius: 14px; box-shadow: 0 8px 30px rgba(60,40,20,.10); }
@@ -90,6 +90,6 @@
         Cảm ơn bạn đã tin tưởng HUUGIAU!
     </div>
 </div>
-<script>window.onload = function () { window.print(); };</script>
+<script nonce="{{ request.csp_nonce }}">window.onload = function () { window.print(); };</script>
 </body>
 </html>

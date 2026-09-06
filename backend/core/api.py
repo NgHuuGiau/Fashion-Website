@@ -781,3 +781,304 @@ def api_root(request: HttpRequest) -> JsonResponse:
     return api_json(
         {"name": "HUUGIAU Fashion API", "version": "1.0", "endpoints": endpoints}
     )
+
+
+@login_required
+@require_GET
+def api_gdpr_export(request: HttpRequest) -> JsonResponse:
+    """GDPR Art. 15/20: Xuất toàn bộ dữ liệu cá nhân của user."""
+    from orders.models import Order, CouponRedemption, ReturnRequest, GiftCardUsage
+    from products.models import (
+        Review,
+        WishlistItem,
+        ProductQuestion,
+        BackInStock,
+        NewsletterSubscriber,
+    )
+    from users.models import (
+        UserAddress,
+        UserProfile,
+        VisitorSession,
+        UserActivity,
+        ReferralCode,
+        ReferralReward,
+    )
+
+    user = request.user
+
+    # Basic user data
+    data = {
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "date_joined": user.date_joined.isoformat() if user.date_joined else None,
+            "last_login": user.last_login.isoformat() if user.last_login else None,
+            "is_active": user.is_active,
+        },
+        "profile": {},
+        "addresses": [],
+        "orders": [],
+        "coupon_redemptions": [],
+        "returns": [],
+        "gift_card_usages": [],
+        "reviews": [],
+        "wishlist": [],
+        "questions": [],
+        "back_in_stock_requests": [],
+        "newsletter": [],
+        "visitor_sessions": [],
+        "activities": [],
+        "referral_codes": [],
+        "referral_rewards": [],
+    }
+
+    # Profile
+    try:
+        profile = UserProfile.objects.get(user=user)
+        data["profile"] = {
+            "phone_number": profile.phone_number,
+            "birthday": profile.birthday.isoformat() if profile.birthday else None,
+            "points": profile.points,
+            "points_expire_at": profile.points_expire_at.isoformat()
+            if profile.points_expire_at
+            else None,
+        }
+    except Exception:
+        pass
+
+    # Addresses
+    for addr in UserAddress.objects.filter(user=user).values():
+        data["addresses"].append(addr)
+
+    # Orders
+    for order in Order.objects.filter(user=user).prefetch_related(
+        "items__product", "items__variant"
+    ):
+        data["orders"].append(
+            {
+                "id": order.id,
+                "status": order.status,
+                "total_amount": str(order.total_amount),
+                "created_at": order.created_at.isoformat(),
+                "items": [
+                    {
+                        "product_id": item.product_id,
+                        "variant_id": item.variant_id,
+                        "quantity": item.quantity,
+                        "price": str(item.price),
+                    }
+                    for item in order.items.all()
+                ],
+            }
+        )
+
+    # Coupon redemptions
+    for cr in CouponRedemption.objects.filter(user=user).select_related("coupon"):
+        data["coupon_redemptions"].append(
+            {
+                "coupon_code": cr.coupon.code,
+                "order_id": cr.order_id,
+                "redeemed_at": cr.redeemed_at.isoformat() if cr.redeemed_at else None,
+            }
+        )
+
+    # Returns
+    for ret in ReturnRequest.objects.filter(order__user=user).select_related("order"):
+        data["returns"].append(
+            {
+                "id": ret.id,
+                "order_id": ret.order_id,
+                "return_type": ret.return_type,
+                "reason": ret.reason,
+                "status": ret.status,
+                "created_at": ret.created_at.isoformat(),
+            }
+        )
+
+    # Gift card usages
+    for gcu in GiftCardUsage.objects.filter(user=user).select_related("gift_card"):
+        data["gift_card_usages"].append(
+            {
+                "gift_card_code": gcu.gift_card.code,
+                "amount": str(gcu.amount),
+                "used_at": gcu.used_at.isoformat() if gcu.used_at else None,
+            }
+        )
+
+    # Reviews
+    for rev in Review.objects.filter(user=user).select_related("product"):
+        data["reviews"].append(
+            {
+                "product_id": rev.product_id,
+                "rating": rev.rating,
+                "comment": rev.comment,
+                "created_at": rev.created_at.isoformat(),
+            }
+        )
+
+    # Wishlist
+    for wi in WishlistItem.objects.filter(user=user).select_related("product"):
+        data["wishlist"].append(
+            {
+                "product_id": wi.product_id,
+                "created_at": wi.created_at.isoformat(),
+            }
+        )
+
+    # Questions
+    for q in ProductQuestion.objects.filter(user=user).select_related("product"):
+        data["questions"].append(
+            {
+                "product_id": q.product_id,
+                "question": q.question,
+                "answer": q.answer,
+                "created_at": q.created_at.isoformat(),
+            }
+        )
+
+    # Back in stock
+    for bs in BackInStock.objects.filter(user=user).select_related("product"):
+        data["back_in_stock_requests"].append(
+            {
+                "product_id": bs.product_id,
+                "created_at": bs.created_at.isoformat(),
+            }
+        )
+
+    # Newsletter
+    try:
+        from products.models import NewsletterSubscriber
+
+        ns = NewsletterSubscriber.objects.filter(email=user.email).first()
+        if ns:
+            data["newsletter"] = {
+                "email": ns.email,
+                "is_active": ns.is_active,
+                "subscribed_at": ns.subscribed_at.isoformat()
+                if ns.subscribed_at
+                else None,
+            }
+    except Exception:
+        pass
+
+    # Visitor sessions
+    for vs in VisitorSession.objects.filter(user=user).values():
+        data["visitor_sessions"].append(vs)
+
+    # Activities
+    for act in UserActivity.objects.filter(user=user).values():
+        data["activities"].append(act)
+
+    # Referral codes
+    for rc in ReferralCode.objects.filter(user=user).values():
+        data["referral_codes"].append(rc)
+
+    # Referral rewards
+    for rr in (
+        ReferralReward.objects.filter(user=user)
+        .select_related("referral_code")
+        .values()
+    ):
+        data["referral_rewards"].append(rr)
+
+    # Return as downloadable JSON
+    from django.http import HttpResponse
+    import json
+
+    filename = f"gdpr-export-user-{user.id}-{timezone.now().strftime('%Y%m%d')}.json"
+    resp = HttpResponse(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        content_type="application/json; charset=utf-8",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp
+
+
+@login_required
+@require_POST
+def api_gdpr_delete(request: HttpRequest) -> JsonResponse:
+    """GDPR Art. 17: Xóa tài khoản và dữ liệu liên quan (Right to be Forgotten)."""
+    user = request.user
+
+    # Confirm password
+    import json
+
+    try:
+        payload = json.loads(request.body)
+        password = payload.get("password", "")
+    except Exception:
+        password = request.POST.get("password", "")
+
+    if not user.check_password(password):
+        return api_error("Mật khẩu không đúng.", status=400)
+
+    user_id = user.id
+    username = user.username
+    email = user.email
+
+    # Soft delete: anonymize instead of hard delete to preserve referential integrity
+    user.username = f"deleted_{user_id}"
+    user.email = f"deleted_{user_id}@example.com"
+    user.first_name = ""
+    user.last_name = ""
+    user.is_active = False
+    user.set_unusable_password()
+    user.save()
+
+    return api_json(
+        {
+            "success": True,
+            "message": f"Tài khoản {username} ({email}) đã được ẩn danh và vô hiệu hóa.",
+        }
+    )
+
+
+@require_GET
+def api_gdpr_guest_export(request: HttpRequest) -> JsonResponse:
+    """GDPR export cho guest order (tra cứu bằng order_id + phone/email)."""
+    order_id = request.GET.get("order_id")
+    phone = request.GET.get("phone")
+    email = request.GET.get("email")
+
+    if not order_id or not (phone or email):
+        return api_error("Thiếu order_id và phone/email.", status=400)
+
+    from orders.models import Order
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Exception:
+        return api_error("Không tìm thấy đơn hàng.", status=404)
+
+    # Verify identity
+    if phone and order.phone != phone:
+        return api_error("Số điện thoại không khớp.", status=403)
+    if email and order.customer_email != email:
+        return api_error("Email không khớp.", status=403)
+
+    data = {
+        "order": {
+            "id": order.id,
+            "customer_name": order.customer_name,
+            "customer_email": order.customer_email,
+            "phone": order.phone,
+            "shipping_address": order.shipping_address,
+            "status": order.status,
+            "total_amount": str(order.total_amount),
+            "created_at": order.created_at.isoformat(),
+        }
+    }
+
+    from django.http import HttpResponse
+    import json
+
+    filename = f"gdpr-guest-order-{order.id}.json"
+    resp = HttpResponse(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        content_type="application/json; charset=utf-8",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp

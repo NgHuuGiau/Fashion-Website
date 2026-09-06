@@ -13,8 +13,8 @@
 {% block content %}
 {% include "shop/_product_schema.html" %}
 {% include "shop/_breadcrumb_schema.html" %}
-{{ product_schema|json_script:"product-schema" }}
-<script id="product-data" type="application/json">{
+{% json_script_nonce product_schema "product-schema" %}
+<script nonce="{{ request.csp_nonce }}" id="product-data" type="application/json">{
   "id": {{ product.id }},
   "name": "{{ product.name|repair_text|escapejs }}",
   "slug": "{{ product.slug|escapejs }}",
@@ -108,7 +108,7 @@
                     </div>
                     <p class="variant-stock-text" id="variant-stock-text"></p>
                     <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
-                    {{ variant_data_json|json_script:"variant-data" }}
+                    {% json_script_nonce variant_data_json "variant-data" %}
                 </div>
             </div>
             {% endif %}
@@ -492,7 +492,7 @@
     <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" id="lightbox-image">
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var lightbox = document.getElementById('lightbox');
     var lightboxImg = document.getElementById('lightbox-image');

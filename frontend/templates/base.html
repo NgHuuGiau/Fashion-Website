@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% if GA4_MEASUREMENT_ID %}
-    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
-    <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('consent', 'default', {analytics_storage: 'denied', ad_storage: 'denied'}); gtag('config', '{{ GA4_MEASUREMENT_ID }}');</script>
+    <script nonce="{{ request.csp_nonce }}" async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
+    <script nonce="{{ request.csp_nonce }}">window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('consent', 'default', {analytics_storage: 'denied', ad_storage: 'denied'}); gtag('config', '{{ GA4_MEASUREMENT_ID }}');</script>
     {% endif %}
     {% include "shop/_ga4_datalayer.html" %}
     <meta name="description" content="{% block meta_description %}HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.{% endblock %}">
@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="{% static 'css/skeleton.css' %}">
     {% endcompress %}
     {% compress js %}
-    <script defer src="{% static 'js/site_interactions.js' %}?v=20260903"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/site_interactions.js' %}?v=20260903"></script>
     {% endcompress %}
 
 </head>
@@ -392,11 +392,11 @@
     </aside>
 
     {% compress js %}
-    <script defer src="{% static 'js/base_interactions.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/base_interactions.js' %}"></script>
     {% endcompress %}
-    <script defer src="{% static 'js/cookie_consent.js' %}"></script>
-    <script defer src="{% static 'js/recently_viewed.js' %}"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/cookie_consent.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/recently_viewed.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}">
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('{% static "sw.js" %}').catch(() => {});

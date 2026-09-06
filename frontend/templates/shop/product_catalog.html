@@ -366,7 +366,7 @@
         <a href="https://www.instagram.com" target="_blank" rel="noopener" class="btn ghost">Theo dõi chúng tôi</a>
     </div>
     <div class="social-grid" id="social-grid" data-social-grid></div>
-<script type="application/json" id="social-data">[
+<script nonce="{{ request.csp_nonce }}" type="application/json" id="social-data">[
     {% for item in products|slice:":6" %}
     {"name": "{{ item.name|repair_text|escapejs }}", "img": "{{ item.get_image|escapejs }}", "url": "{% url 'products:product_detail' item.id item.slug %}"}{% if not forloop.last %},{% endif %}
     {% endfor %}
@@ -374,7 +374,7 @@
 </section>
 {% endif %}
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .catalog-layout {
     display: grid;
     grid-template-columns: 250px minmax(0, 1fr);
@@ -699,7 +699,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var toggle = document.querySelector('[data-filters-toggle]');
     var panel = document.getElementById('catalog-filter-panel');

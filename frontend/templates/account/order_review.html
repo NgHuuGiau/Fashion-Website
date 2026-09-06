@@ -297,7 +297,7 @@
 </section>
 
 {% if can_edit and order.payment_method == "bank" and not order.is_paid %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
     var bankSelect = document.getElementById("review-bank-code");
     var qrImage = document.getElementById("review-bank-qr");
@@ -327,7 +327,7 @@
 </script>
 {% endif %}
 
-<style>
+<style nonce="{{ request.csp_nonce }}">
 .review-summary-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
