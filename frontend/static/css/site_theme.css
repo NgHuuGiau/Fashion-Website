@@ -1688,6 +1688,139 @@ button {
     margin-top: 1.25rem;
 }
 
+.password-requirements {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-soft);
+}
+
+.password-requirements li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.password-requirements li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.65em;
+    height: 0.65em;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+}
+
+.password-requirements li.valid::before {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 0.65em;
+    color: var(--success);
+    background: var(--success);
+    border-color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-form {
+    margin-top: 1.25rem;
+}
+
+/* Password requirements for reset password page */
+.fp-req {
+    list-style: none;
+    margin: 0.75rem 0 1rem;
+    padding: 0;
+}
+
+.fp-req li {
+    position: relative;
+    padding-left: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-soft);
+    transition: color 0.2s;
+}
+
+.fp-req li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.85em;
+    height: 0.85em;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    transition: all 0.2s;
+}
+
+.fp-req li.met {
+    color: var(--success);
+}
+
+.fp-req li.met::before {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 0.7em;
+    color: #fff;
+    background: var(--success);
+    border-color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Password strength indicator */
+.fp-strength {
+    margin-top: 0.75rem;
+    display: none;
+}
+
+.fp-strength-bar {
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.fp-strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s, background 0.3s;
+    border-radius: 3px;
+}
+
+.fp-strength-fill.weak { width: 25%; background: #d94a34; }
+.fp-strength-fill.fair { width: 50%; background: #d97706; }
+.fp-strength-fill.good { width: 75%; background: #c9a06c; }
+.fp-strength-fill.strong { width: 100%; background: #1f8a4d; }
+
+.fp-strength-text {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--text-soft);
+}
+
+.fp-match {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--success);
+}
+
+.fp-match.error {
+    color: var(--danger);
+}
+
 .auth-footnote {
     margin-top: 1.25rem;
 }
@@ -3298,6 +3431,7 @@ button {
     border: 1px solid var(--line);
     border-radius: 28px;
     box-shadow: var(--shadow);
+    color: var(--text);  /* Thêm color đen cho nền sáng */
 }
 
 .auth-form,

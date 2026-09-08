@@ -93,6 +93,9 @@ api_urlpatterns = [
     path("gdpr/guest-export/", api.api_gdpr_guest_export, name="api_gdpr_guest_export"),
     # OpenAPI schema file
     path("schema/file/", api.api_schema_file, name="api_schema_file"),
+    # Health checks
+    path("health/", views.health_live, name="health_live"),
+    path("health/ready/", views.health_ready, name="health_ready"),
 ]
 
 

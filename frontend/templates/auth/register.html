@@ -18,25 +18,36 @@
             {% if form.non_field_errors %}
             <div class="message error">{{ form.non_field_errors|striptags }}</div>
             {% endif %}
-            {% for field in form %}
-            <div class="form-group{% if field.errors %} has-error{% endif %}">
-                <label for="{{ field.id_for_label }}">
-                    {% if "email" in field.name %}<i class="fa-regular fa-envelope"></i>
-                    {% elif "password" in field.name %}<i class="fa-solid fa-lock"></i>
-                    {% elif "phone" in field.name or "số" in field.label %}<i class="fa-solid fa-phone"></i>
-                    {% elif "name" in field.name or "tên" in field.label %}<i class="fa-regular fa-user"></i>
-                    {% else %}<i class="fa-regular fa-circle"></i>{% endif %}
-                    {{ field.label }}
-                </label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="help-text">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <small class="error-text">{{ field.errors|striptags }}</small>
-                {% endif %}
-            </div>
-            {% endfor %}
+{% for field in form %}
+                <div class="form-group{% if field.errors %} has-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">
+                        {% if "email" in field.name %}<i class="fa-regular fa-envelope"></i>
+                        {% elif "password" in field.name %}<i class="fa-solid fa-lock"></i>
+                        {% elif "phone" in field.name or "số" in field.label %}<i class="fa-solid fa-phone"></i>
+                        {% elif "name" in field.name or "tên" in field.label %}<i class="fa-regular fa-user"></i>
+                        {% else %}<i class="fa-regular fa-circle"></i>{% endif %}
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.name == "password1" %}
+                    <ul class="password-requirements" id="register-req-list">
+                        <li data-req="length"><i class="fa-regular fa-circle"></i> Ít nhất 8 ký tự</li>
+                        <li data-req="upper"><i class="fa-regular fa-circle"></i> Có chữ in hoa (A-Z)</li>
+                        <li data-req="num"><i class="fa-regular fa-circle"></i> Có chữ số (0-9)</li>
+                        <li data-req="sym"><i class="fa-regular fa-circle"></i> Có ký tự đặc biệt (!@#$...)</li>
+                    </ul>
+                    <div class="fp-strength" id="register-strength-box" style="display:none">
+                        <div class="fp-strength-bar"><div class="fp-strength-fill" id="register-strength-fill"></div></div>
+                        <div class="fp-strength-text" id="register-strength-text"></div>
+                    </div>
+                    {% elif field.help_text %}
+                    <small class="help-text">{{ field.help_text|safe }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <small class="error-text">{{ field.errors|striptags }}</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
             <button type="submit" class="btn">
                 <i class="fa-solid fa-user-plus"></i>
                 Đăng ký
@@ -80,4 +91,78 @@
         </ul>
     </aside>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function () {
+    var p1 = document.querySelector('input[name="password1"]');
+    var p2 = document.querySelector('input[name="password2"]');
+    var btn = document.querySelector('button[type="submit"]');
+    var fill = document.getElementById('register-strength-fill');
+    var sText = document.getElementById('register-strength-text');
+    var sBox = document.getElementById('register-strength-box');
+    var reqItems = document.querySelectorAll('#register-req-list li');
+
+    function check(val) {
+        return {
+            length: val.length >= 8,
+            upper: /[A-Z]/.test(val),
+            num: /[0-9]/.test(val),
+            sym: /[^A-Za-z0-9]/.test(val)
+        };
+    }
+
+    function strength(checks) {
+        var n = Object.values(checks).filter(Boolean).length;
+        if (n <= 1) return { label: 'Rất yếu', color: '#d94a34', width: 25 };
+        if (n === 2) return { label: 'Yếu', color: '#d97706', width: 50 };
+        if (n === 3) return { label: 'Trung bình', color: '#c9a06c', width: 75 };
+        return { label: 'Mạnh', color: '#1f8a4d', width: 100 };
+    }
+
+    function update() {
+        var val = p1.value;
+        var c = check(val);
+        var all = Object.values(c).every(Boolean);
+
+        reqItems.forEach(function (li) {
+            var icon = li.querySelector('i');
+            if (c[li.dataset.req]) {
+                li.classList.add('met');
+                icon.className = 'fa-solid fa-circle-check';
+            } else {
+                li.classList.remove('met');
+                icon.className = 'fa-regular fa-circle';
+            }
+        });
+
+        var s = strength(c);
+        if (sBox) sBox.style.display = 'block';
+        if (fill) {
+            fill.style.width = s.width + '%';
+            fill.style.background = s.color;
+        }
+        if (sText) {
+            sText.textContent = s.label;
+            sText.style.color = s.color;
+        }
+
+        if (p2 && btn) {
+            if (all && p1.value === p2.value && p2.value.length > 0) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+    }
+
+    if (p1) {
+        p1.addEventListener('input', update);
+    }
+    if (p2) {
+        p2.addEventListener('input', update);
+    }
+});
+</script>
 {% endblock %}
