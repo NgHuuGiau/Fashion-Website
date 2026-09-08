@@ -9,7 +9,7 @@ import json
 
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -1082,3 +1082,26 @@ def api_gdpr_guest_export(request: HttpRequest) -> JsonResponse:
     )
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
     return resp
+
+
+@require_GET
+def api_schema_file(request: HttpRequest) -> HttpResponse:
+    """Serve the generated OpenAPI schema file (YAML)."""
+    import os
+    from django.conf import settings
+    from django.http import HttpResponse, Http404
+
+    schema_path = os.path.join(settings.BASE_DIR, "openapi.yaml")
+    if not os.path.exists(schema_path):
+        raise Http404(
+            "OpenAPI schema file not found. Run `python manage.py generate_schema` first."
+        )
+
+    with open(schema_path, "rb") as f:
+        content = f.read()
+
+    response = HttpResponse(
+        content, content_type="application/vnd.oai.openapi; charset=utf-8"
+    )
+    response["Content-Disposition"] = 'attachment; filename="openapi.yaml"'
+    return response

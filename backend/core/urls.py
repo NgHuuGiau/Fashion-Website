@@ -4,6 +4,11 @@ from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.http import HttpResponse
 from django.urls import include, path, reverse
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 from . import api, views
 from .sitemaps import BlogSitemap, CategorySitemap, ProductSitemap, StaticSitemap
@@ -86,12 +91,22 @@ api_urlpatterns = [
     path("gdpr/export/", api.api_gdpr_export, name="api_gdpr_export"),
     path("gdpr/delete/", api.api_gdpr_delete, name="api_gdpr_delete"),
     path("gdpr/guest-export/", api.api_gdpr_guest_export, name="api_gdpr_guest_export"),
+    # OpenAPI schema file
+    path("schema/file/", api.api_schema_file, name="api_schema_file"),
 ]
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include((api_urlpatterns, "api"), namespace="api")),
+    # API Documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("", include("products.urls", namespace="products")),
     path("", include("users.urls", namespace="users")),
     path("", include("orders.urls", namespace="orders")),

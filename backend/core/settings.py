@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "compressor",
     "django_extensions",
+    "rest_framework",
+    "drf_spectacular",
     "products",
     "users",
     "orders",
@@ -299,4 +301,33 @@ LOGGING = {
             else "WARNING",
         },
     },
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "HUUGIAU Fashion API",
+    "DESCRIPTION": "API documentation for HUUGIAU Fashion E-commerce",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": "/api/",
+    "CONTACT": {"name": "HUUGIAU Studio", "email": "support@huugiau.local"},
+    "LICENSE": {"name": "MIT"},
+    "TAGS": [
+        {"name": "Products", "description": "Product catalog and details"},
+        {"name": "Orders", "description": "Order management and checkout"},
+        {"name": "Users", "description": "Authentication and user profile"},
+        {"name": "Admin", "description": "Admin-only endpoints"},
+    ],
 }

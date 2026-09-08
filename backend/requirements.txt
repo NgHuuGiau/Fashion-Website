@@ -1,5 +1,7 @@
 # Core Django
 django>=5.2,<5.3
+djangorestframework>=3.18,<3.19
+drf-spectacular>=0.30,<0.31
 Pillow>=12.0,<13
 
 # Database (mssql-django tự kéo pyodbc; psycopg2 cho CI PostgreSQL)

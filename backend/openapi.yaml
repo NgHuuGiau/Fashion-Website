@@ -1,0 +1,4960 @@
+openapi: 3.0.3
+info:
+  title: HUUGIAU Fashion API
+  version: 1.0.0
+  description: API documentation for HUUGIAU Fashion E-commerce
+  contact:
+    name: HUUGIAU Studio
+    email: support@huugiau.local
+  license:
+    name: MIT
+servers:
+- url: /api/
+  description: API base URL
+paths:
+  /admin/:
+    get:
+      summary: Display the main admin index page, which lists all of the installed
+      description: "Display the main admin index page, which lists all of the installed\n\
+        \        apps that have been registered in this site."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/login/:
+    get:
+      summary: Display the login form for the given HttpRequest.
+      description: Display the login form for the given HttpRequest.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/logout/:
+    get:
+      summary: Log out the user for the given HttpRequest.
+      description: "Log out the user for the given HttpRequest.\n\n        This should\
+        \ *not* assume the user is already logged in."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/password_change/:
+    get:
+      summary: Handle the "change password" task -- both form display and validation.
+      description: Handle the "change password" task -- both form display and validation.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/password_change/done/:
+    get:
+      summary: Display the "success" page after a password change.
+      description: Display the "success" page after a password change.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/autocomplete/:
+    get:
+      summary: autocomplete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/jsi18n/:
+    get:
+      summary: Display the i18n JavaScript that the Django admin requires.
+      description: "Display the i18n JavaScript that the Django admin requires.\n\n\
+        \        `extra_context` is unused but present for consistency with the other\n\
+        \        admin views."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/r/<path:content_type_id>/<path:object_id>/:
+    get:
+      summary: Redirect to an object's page based on a content-type ID and an object
+        ID.
+      description: Redirect to an object's page based on a content-type ID and an
+        object ID.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/auth/group/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/group/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/group/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/group/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/group/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/group/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/auth/user/<id>/password/:
+    get:
+      summary: user_change_password
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /admin/auth/user/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/user/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /admin/auth/user/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/user/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/user/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/auth/user/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/sites/site/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/sites/site/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/sites/site/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/sites/site/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/sites/site/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/sites/site/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/category/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/category/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/category/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/category/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/category/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/category/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/product/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/product/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/product/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/product/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/product/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/product/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/productvariant/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productvariant/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productvariant/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productvariant/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productvariant/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productvariant/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/wishlistitem/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/wishlistitem/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/wishlistitem/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/wishlistitem/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/wishlistitem/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/wishlistitem/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/supportfaq/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/supportfaq/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/supportfaq/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/supportfaq/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/supportfaq/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/supportfaq/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/review/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/review/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/review/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/review/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/review/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/review/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/blogpost/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/blogpost/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/blogpost/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/blogpost/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/blogpost/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/blogpost/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/newslettersubscriber/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/newslettersubscriber/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/newslettersubscriber/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/newslettersubscriber/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/newslettersubscriber/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/newslettersubscriber/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/productquestion/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productquestion/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productquestion/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productquestion/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productquestion/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/productquestion/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/products/backinstock/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/backinstock/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/backinstock/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/backinstock/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/backinstock/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/products/backinstock/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/users/referralcode/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralcode/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralcode/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralcode/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralcode/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralcode/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/users/referralreward/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralreward/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralreward/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralreward/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralreward/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/referralreward/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/users/visitorsession/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/visitorsession/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/visitorsession/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/visitorsession/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/visitorsession/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/visitorsession/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/users/useractivity/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/useractivity/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/useractivity/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/useractivity/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/useractivity/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/useractivity/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/users/userprofile/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/userprofile/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/userprofile/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/userprofile/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/userprofile/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/users/userprofile/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/order/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/order/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/order/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/order/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/order/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/order/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/orderitem/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/orderitem/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/orderitem/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/orderitem/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/orderitem/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/orderitem/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/coupon/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/coupon/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/coupon/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/coupon/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/coupon/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/coupon/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/couponredemption/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/couponredemption/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/couponredemption/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/couponredemption/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/couponredemption/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/couponredemption/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/returnrequest/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/returnrequest/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/returnrequest/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/returnrequest/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/returnrequest/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/returnrequest/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/orders/cartreminder/:
+    get:
+      summary: The 'change list' admin view for this model.
+      description: The 'change list' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/cartreminder/add/:
+    get:
+      summary: add_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/cartreminder/<path:object_id>/history/:
+    get:
+      summary: The 'history' admin view for this model.
+      description: The 'history' admin view for this model.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/cartreminder/<path:object_id>/delete/:
+    get:
+      summary: delete_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/cartreminder/<path:object_id>/change/:
+    get:
+      summary: change_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/orders/cartreminder/<path:object_id>/:
+    get:
+      summary: Provide a redirect on any GET request.
+      description: Provide a redirect on any GET request.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /admin/(?P<app_label>auth|sites|products|users|orders)/:
+    get:
+      summary: app_index
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /admin/(?P<url>.*):
+    get:
+      summary: catch_all_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/:
+    get:
+      summary: api_root
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/geocode/:
+    get:
+      summary: 'Geoapify Geocoding proxy: search forward or reverse without exposing
+        the key.'
+      description: 'Geoapify Geocoding proxy: search forward or reverse without exposing
+        the key.'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/products/:
+    get:
+      summary: api_product_list
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /api/products/<int:pk>/:
+    get:
+      summary: api_product_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /api/products/<int:pk>/reviews/:
+    get:
+      summary: api_product_reviews
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /api/products/<int:pk>/reviews/create/:
+    get:
+      summary: api_review_submit
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/categories/:
+    get:
+      summary: api_categories
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/orders/:
+    get:
+      summary: api_my_orders
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /api/orders/<int:pk>/:
+    get:
+      summary: api_order_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /api/orders/lookup/:
+    get:
+      summary: api_order_lookup
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /api/coupons/check/:
+    get:
+      summary: api_coupon_check
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/admin/stats/:
+    get:
+      summary: api_admin_stats
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/admin/orders/:
+    get:
+      summary: api_admin_orders
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /api/admin/orders/<int:pk>/:
+    get:
+      summary: api_admin_order_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /api/admin/orders/<int:pk>/status/:
+    get:
+      summary: api_admin_order_status
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/admin/orders/<int:pk>/refund/:
+    get:
+      summary: api_admin_order_refund
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/admin/orders/<int:pk>/invoice/:
+    get:
+      summary: api_admin_invoice
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/admin/export/:
+    get:
+      summary: api_admin_export
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/admin/products/:
+    get:
+      summary: api_admin_products
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /api/admin/users/:
+    get:
+      summary: api_admin_users
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/admin/coupons/:
+    get:
+      summary: api_admin_coupons
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/admin/reviews/:
+    get:
+      summary: api_admin_reviews
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Admin
+  /api/gdpr/export/:
+    get:
+      summary: 'GDPR Art. 15/20: Xuất toàn bộ dữ liệu cá nhân của user.'
+      description: 'GDPR Art. 15/20: Xuất toàn bộ dữ liệu cá nhân của user.'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/gdpr/delete/:
+    get:
+      summary: 'GDPR Art. 17: Xóa tài khoản và dữ liệu liên quan (Right to be Forgotten).'
+      description: 'GDPR Art. 17: Xóa tài khoản và dữ liệu liên quan (Right to be
+        Forgotten).'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/gdpr/guest-export/:
+    get:
+      summary: GDPR export cho guest order (tra cứu bằng order_id + phone/email).
+      description: GDPR export cho guest order (tra cứu bằng order_id + phone/email).
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/schema/:
+    get:
+      summary: OpenApi3 schema for this API. Format can be selected via content negotiation.
+      description: "OpenApi3 schema for this API. Format can be selected via content\
+        \ negotiation.\n\n    - YAML: application/vnd.oai.openapi\n    - JSON: application/vnd.oai.openapi+json"
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/docs/:
+    get:
+      summary: view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /api/redoc/:
+    get:
+      summary: view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /:
+    get:
+      summary: product_list
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /ho-tro/chat/:
+    get:
+      summary: support_chat_reply
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /san-pham/<int:pk>/<slug:slug>/:
+    get:
+      summary: product_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /yeu-thich/:
+    get:
+      summary: wishlist_list
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /yeu-thich/<int:product_id>/toggle/:
+    get:
+      summary: wishlist_toggle
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /danh-gia/<int:product_id>/:
+    get:
+      summary: review_submit
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /danh-gia/<int:product_id>/phan-hoi/:
+    get:
+      summary: review_customer_reply
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /hoi-dap/<int:product_id>/:
+    get:
+      summary: question_submit
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /bao-khi-co-hang/<int:product_id>/:
+    get:
+      summary: back_in_stock_submit
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /nhan-tin/dang-ky/:
+    get:
+      summary: newsletter_subscribe
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /lookbook/:
+    get:
+      summary: blog_list
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /lookbook/<slug:slug>/:
+    get:
+      summary: blog_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /so-sanh/:
+    get:
+      summary: compare_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /so-sanh/xoa-tat-ca/:
+    get:
+      summary: compare_clear
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /so-sanh/<int:product_id>/toggle/:
+    get:
+      summary: compare_toggle
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /tim-kiem/goi-y/:
+    get:
+      summary: search_suggest
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /dang-ky/:
+    get:
+      summary: register_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /dang-nhap/:
+    get:
+      summary: login_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /dang-nhap/<slug:provider>/:
+    get:
+      summary: social_login_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /dang-xuat/:
+    get:
+      summary: logout_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/:
+    get:
+      summary: profile_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/gioi-thieu/:
+    get:
+      summary: referral_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/doi-mat-khau/:
+    get:
+      summary: change_password_view
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/dia-chi/them/:
+    get:
+      summary: address_add
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/dia-chi/<int:address_id>/xoa/:
+    get:
+      summary: address_delete
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /tai-khoan/dia-chi/<int:address_id>/mac-dinh/:
+    get:
+      summary: address_set_default
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /quen-mat-khau/:
+    get:
+      summary: 'Bước 1: Nhập tài khoản -> gửi link đặt lại có token qua email.'
+      description: "Bước 1: Nhập tài khoản -> gửi link đặt lại có token qua email.\n\
+        \n    Luôn trả cùng một thông báo (kể cả tài khoản không tồn tại) để chống\n\
+        \    dò quét tài khoản (user enumeration)."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /quen-mat-khau/captcha/:
+    get:
+      summary: 'Bước 2: Xác thực CAPTCHA.'
+      description: 'Bước 2: Xác thực CAPTCHA.'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /quen-mat-khau/captcha/image/:
+    get:
+      summary: Trả về ảnh CAPTCHA PNG.
+      description: Trả về ảnh CAPTCHA PNG.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /quen-mat-khau/dat-lai/:
+    get:
+      summary: 'Bước 3: Đặt mật khẩu mới.'
+      description: 'Bước 3: Đặt mật khẩu mới.'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /quen-mat-khau/dat-lai/<uidb64>/<token>/:
+    get:
+      summary: 'Bước 2: Xác thực token trong email -> cho vào form đặt mật khẩu mới.'
+      description: 'Bước 2: Xác thực token trong email -> cho vào form đặt mật khẩu
+        mới.'
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Users
+  /admin-dashboard/:
+    get:
+      summary: admin_dashboard
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Products
+  /gio-hang/:
+    get:
+      summary: cart_detail
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /gio-hang/tom-tat/:
+    get:
+      summary: cart_summary
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /gio-hang/them/<int:product_id>/:
+    get:
+      summary: cart_add
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /gio-hang/cap-nhat/:
+    get:
+      summary: cart_update
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /gio-hang/xoa/:
+    get:
+      summary: cart_remove
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /gio-hang/xoa-tat-ca/:
+    get:
+      summary: cart_clear_all
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /thanh-toan/:
+    get:
+      summary: checkout
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /dat-hang-thanh-cong/<int:order_id>/:
+    get:
+      summary: order_success
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /cho-thanh-toan-ngan-hang/<int:order_id>/:
+    get:
+      summary: bank_payment_waiting
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /cho-thanh-toan-ngan-hang/<int:order_id>/trang-thai/:
+    get:
+      summary: bank_payment_status
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /dat-hang-chua-thanh-cong/<int:order_id>/:
+    get:
+      summary: order_failed
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/xem-lai/:
+    get:
+      summary: order_review
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/doi-tra/:
+    get:
+      summary: create_return_request
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/xac-nhan-thanh-toan/:
+    get:
+      summary: bank_payment_confirm
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/huy-thanh-toan/:
+    get:
+      summary: bank_payment_cancel
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /qr-thanh-toan/<str:token>/<int:order_id>/:
+    get:
+      summary: bank_payment_mobile
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /thanh-toan-vnpay/<int:order_id>/:
+    get:
+      summary: vnpay_payment
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /thanh-toan-vnpay/callback/:
+    get:
+      summary: VNPay chuyển hướng về đây sau khi khách thanh toán.
+      description: VNPay chuyển hướng về đây sau khi khách thanh toán.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /thanh-toan-vnpay/ipn/:
+    get:
+      summary: Server-to-server IPN của VNPay gọi lại. Trả về RspCode để VNPay xác
+        nhận.
+      description: Server-to-server IPN của VNPay gọi lại. Trả về RspCode để VNPay
+        xác nhận.
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang-cua-toi/:
+    get:
+      summary: my_orders
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /tra-cuu-don/:
+    get:
+      summary: order_lookup
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /khuyen-mai/:
+    get:
+      summary: promo_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/huy/:
+    get:
+      summary: user_cancel_order
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /don-hang/<int:order_id>/mua-lai/:
+    get:
+      summary: reorder_order
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /admin-dashboard/xuat-don/:
+    get:
+      summary: admin_export_orders
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /admin-dashboard/xuat-doanh-thu/:
+    get:
+      summary: admin_export_revenue
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /admin-dashboard/in-hoa-don/<int:order_id>/:
+    get:
+      summary: print_invoice
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - Orders
+  /sitemap.xml:
+    get:
+      summary: sitemap
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /robots.txt:
+    get:
+      summary: robots_txt
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /ve-chung-toi/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /huong-dan-chon-size/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /chinh-sach-doi-tra/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /chat-lieu-bao-quan/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /tuyen-dung/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /chinh-sach-bao-mat/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /dieu-khoan/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /lien-he/:
+    get:
+      summary: static_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /hoi-dap-chung/:
+    get:
+      summary: faq_page
+      description: ''
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /static/(?P<path>.*):
+    get:
+      summary: Serve static files below a given point in the directory structure.
+      description: "Serve static files below a given point in the directory structure.\n\
+        \n    To use, put a URL pattern such as::\n\n        from django.views.static\
+        \ import serve\n\n        path('<path:path>', serve, {'document_root': '/path/to/my/files/'})\n\
+        \n    in your URLconf. You must provide the ``document_root`` param. You may\n\
+        \    also set ``show_indexes`` to ``True`` if you'd like to serve a basic\
+        \ index\n    of the directory. This index view will use the template hardcoded\
+        \ below,\n    but if you'd like to override it, you can create a template\
+        \ called\n    ``static/directory_index.html``."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+  /media/(?P<path>.*):
+    get:
+      summary: Serve static files below a given point in the directory structure.
+      description: "Serve static files below a given point in the directory structure.\n\
+        \n    To use, put a URL pattern such as::\n\n        from django.views.static\
+        \ import serve\n\n        path('<path:path>', serve, {'document_root': '/path/to/my/files/'})\n\
+        \n    in your URLconf. You must provide the ``document_root`` param. You may\n\
+        \    also set ``show_indexes`` to ``True`` if you'd like to serve a basic\
+        \ index\n    of the directory. This index view will use the template hardcoded\
+        \ below,\n    but if you'd like to override it, you can create a template\
+        \ called\n    ``static/directory_index.html``."
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      tags:
+      - API
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        price:
+          type: integer
+        image_url:
+          type: string
+        category:
+          type: string
+        rating_avg:
+          type: number
+          format: float
+        review_count:
+          type: integer
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+        total_amount:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+tags:
+- name: Products
+  description: Product catalog and details
+- name: Orders
+  description: Order management and checkout
+- name: Users
+  description: Authentication and user profile
+- name: Admin
+  description: Admin-only endpoints
