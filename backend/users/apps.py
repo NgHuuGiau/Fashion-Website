@@ -6,3 +6,4 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         import users.signals  # noqa: F401
+        import users.tasks  # noqa
