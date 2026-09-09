@@ -82,6 +82,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "core.middleware.CSPNonceMiddleware",
     "core.middleware.CSPMiddleware",
+    "core.logging.CorrelationIdMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -294,10 +295,36 @@ STATICFILES_FINDERS = [
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s %(correlation_id)s %(request_id)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S%z",
+        },
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message} {correlation_id} {request_id}",
+            "style": "{",
+            "datefmt": "%Y-%m-%dT%H:%M:%S%z",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "correlation_id": {
+            "()": "core.logging.CorrelationIdFilter",
+        },
+        "request_id": {
+            "()": "core.logging.RequestIdFilter",
+        },
+    },
     "handlers": {
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
+            "formatter": "json",
+            "filters": ["correlation_id", "request_id"],
         },
     },
     "loggers": {
@@ -310,6 +337,16 @@ LOGGING = {
             "level": "DEBUG"
             if (DEBUG and env_bool("ENABLE_SQL_LOGGING", False))
             else "WARNING",
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
