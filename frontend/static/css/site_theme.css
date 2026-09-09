@@ -1689,14 +1689,14 @@ button {
 }
 
 .password-requirements {
-    margin: 0;
     padding: 0.75rem 1rem;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    margin: 0;
     font-size: 0.85rem;
     line-height: 1.8;
     color: var(--text-soft);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
 }
 
 .password-requirements li {
@@ -1706,28 +1706,28 @@ button {
 }
 
 .password-requirements li::before {
-    content: "";
     position: absolute;
-    left: 0;
     top: 0.55em;
+    left: 0;
     width: 0.65em;
     height: 0.65em;
+    content: "";
+    background: transparent;
     border: 2px solid var(--line);
     border-radius: 50%;
-    background: transparent;
 }
 
 .password-requirements li.valid::before {
-    content: "\f00c";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    font-size: 0.65em;
-    color: var(--success);
-    background: var(--success);
-    border-color: var(--success);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.65em;
+    font-weight: 900;
+    color: var(--success);
+    content: "\f00c";
+    background: var(--success);
+    border-color: var(--success);
 }
 
 .auth-form {
@@ -1736,9 +1736,9 @@ button {
 
 /* Password requirements for reset password page */
 .fp-req {
-    list-style: none;
-    margin: 0.75rem 0 1rem;
     padding: 0;
+    margin: 0.75rem 0 1rem;
+    list-style: none;
 }
 
 .fp-req li {
@@ -1751,15 +1751,15 @@ button {
 }
 
 .fp-req li::before {
-    content: "";
     position: absolute;
-    left: 0;
     top: 0.55em;
+    left: 0;
     width: 0.85em;
     height: 0.85em;
+    content: "";
+    background: transparent;
     border: 2px solid var(--line);
     border-radius: 50%;
-    background: transparent;
     transition: all 0.2s;
 }
 
@@ -1768,36 +1768,36 @@ button {
 }
 
 .fp-req li.met::before {
-    content: "\f00c";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    font-size: 0.7em;
-    color: #fff;
-    background: var(--success);
-    border-color: var(--success);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.7em;
+    font-weight: 900;
+    color: #fff;
+    content: "\f00c";
+    background: var(--success);
+    border-color: var(--success);
 }
 
 /* Password strength indicator */
 .fp-strength {
-    margin-top: 0.75rem;
     display: none;
+    margin-top: 0.75rem;
 }
 
 .fp-strength-bar {
     height: 6px;
+    overflow: hidden;
     background: var(--line);
     border-radius: 3px;
-    overflow: hidden;
 }
 
 .fp-strength-fill {
-    height: 100%;
     width: 0%;
-    transition: width 0.3s, background 0.3s;
+    height: 100%;
     border-radius: 3px;
+    transition: width 0.3s, background 0.3s;
 }
 
 .fp-strength-fill.weak { width: 25%; background: #d94a34; }
@@ -3427,11 +3427,11 @@ button {
 .auth-panel,
 .auth-benefits {
     padding: 28px;
+    color: var(--text);  /* Thêm color đen cho nền sáng */
     background: rgb(255 250 244 / 96%);
     border: 1px solid var(--line);
     border-radius: 28px;
     box-shadow: var(--shadow);
-    color: var(--text);  /* Thêm color đen cho nền sáng */
 }
 
 .auth-form,

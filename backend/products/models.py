@@ -3,7 +3,7 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from .constants import APPAREL_CATEGORY_SLUGS
@@ -65,6 +65,12 @@ class Product(models.Model):
             models.Index(fields=["available", "featured", "price"]),
             models.Index(fields=["available", "stock"]),
             models.Index(fields=["category", "available", "-created"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(stock__gte=0),
+                name="product_stock_non_negative",
+            ),
         ]
 
     def __str__(self):
@@ -262,6 +268,12 @@ class ProductVariant(models.Model):
     class Meta:
         ordering = ["color_name", "size"]
         unique_together = ("product", "color_name", "size")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(stock__gte=0),
+                name="productvariant_stock_non_negative",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.product.name} - {self.color_name} / {self.size}"
