@@ -1,0 +1,21 @@
+# PgBouncer HBA file
+# Format: TYPE  DATABASE  USER  ADDRESS  METHOD
+# See: https://www.pgbouncer.org/config.html#hba_file
+
+# Local connections (Unix socket)
+local   all             all                                     trust
+
+# IPv4 local connections
+host    all             all             127.0.0.1/32            md5
+host    all             all             10.0.0.0/8              md5
+host    all             all             172.16.0.0/12           md5
+host    all             all             192.168.0.0/16          md5
+
+# IPv6 local connections
+host    all             all             ::1/128                 md5
+host    all             all             fe80::/10               md5
+host    all             all             fc00::/7                md5
+
+# Reject all other connections
+host    all             all             0.0.0.0/0               reject
+host    all             all             ::/0                    reject

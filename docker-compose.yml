@@ -14,21 +14,66 @@ services:
       timeout: 5s
       retries: 10
 
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22
+    restart: unless-stopped
+    environment:
+      DATABASES_HOST: db
+      DATABASES_PORT: 5432
+      DATABASES_DBNAME: ${DB_NAME:-huugiau_fashion}
+      DATABASES_USER: ${DB_USER:-huugiau}
+      DATABASES_PASSWORD: ${DB_PASSWORD:-huugiau_pass}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 100
+      DEFAULT_POOL_SIZE: 20
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 5
+      MAX_DB_CONNECTIONS: 50
+      MAX_USER_CONNECTIONS: 50
+      SERVER_CONNECT_TIMEOUT: 10
+      SERVER_LOGIN_RETRY: 15
+      QUERY_TIMEOUT: 0
+      QUERY_WAIT_TIMEOUT: 120
+      CLIENT_IDLE_TIMEOUT: 0
+      IDLE_TRANSACTION_TIMEOUT: 300
+      LOG_CONNECTIONS: 1
+      LOG_DISCONNECTIONS: 1
+      LOG_POOLER_ERRORS: 1
+      LOG_STATS: 1
+      STATS_PERIOD: 60
+    volumes:
+      - ./config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      - ./config/pgbouncer/hba_file:/etc/pgbouncer/hba_file:ro
+    ports:
+      - "6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U huugiau"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     restart: unless-stopped
     env_file: .env
     environment:
       DB_ENGINE: postgres
-      DB_HOST: db
-      DB_PORT: "5432"
+      DB_HOST: pgbouncer
+      DB_PORT: "6432"
       DB_NAME: ${DB_NAME:-huugiau_fashion}
       DB_USER: ${DB_USER:-huugiau}
       DB_PASSWORD: ${DB_PASSWORD:-huugiau_pass}
+      PGBOUNCER_HOST: pgbouncer
+      PGBOUNCER_PORT: "6432"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
       TRUSTED_PROXY: "True"
     depends_on:
-      db:
+      pgbouncer:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]

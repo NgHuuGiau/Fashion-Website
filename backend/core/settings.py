@@ -155,6 +155,17 @@ if os.getenv("DB_USER"):
     DATABASES["default"]["USER"] = os.getenv("DB_USER")
     DATABASES["default"]["PASSWORD"] = os.getenv("DB_PASSWORD", "")
 
+# PgBouncer configuration (when using PostgreSQL via pgbouncer)
+if os.getenv("PGBOUNCER_HOST"):
+    DATABASES["default"]["HOST"] = os.getenv("PGBOUNCER_HOST")
+    DATABASES["default"]["PORT"] = os.getenv("PGBOUNCER_PORT", "6432")
+    # PgBouncer requires these settings
+    DATABASES["default"]["CONN_MAX_AGE"] = 0  # Disable Django's connection pooling
+    DATABASES["default"]["OPTIONS"] = {
+        **DATABASES["default"].get("OPTIONS", {}),
+        "connect_timeout": 10,
+    }
+
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True

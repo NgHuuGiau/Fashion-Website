@@ -12,6 +12,9 @@ redis>=5.0,<5.1
 mssql-django>=1.3.2,<2
 psycopg2-binary>=2.9,<2.10
 
+# Connection pooling
+pgbouncer>=1.22,<1.23
+
 # Cache/session (tùy chọn — đặt REDIS_URL trong .env để bật)
 redis>=5.0,<5.1
 django-redis>=5.4,<5.5

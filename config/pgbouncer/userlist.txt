@@ -1,0 +1,8 @@
+# PgBouncer userlist.txt
+# Format: "username" "password" (MD5 hash)
+; Format: "username" "md5<md5_hash>"
+; Generate with: echo -n "passwordusername" | md5sum | awk '{print "md5"$1}'
+
+"huugiau" "md5e10adc3949ba59abbe56e057f20f883e"
+"pgbouncer" "md5e10adc3949ba59abbe56e057f20f883e"
+"admin" "md5e10adc3949ba59abbe56e057f20f883e"
