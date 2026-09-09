@@ -22,6 +22,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Cho phép chạy kể cả khi DEBUG=False (mặc định từ chối để tránh seed nhầm production).",
         )
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Chỉ mô phỏng seed, không ghi dữ liệu vào DB.",
+        )
+        parser.add_argument(
+            "--no-input",
+            action="store_true",
+            help="Không hỏi xác nhận, chạy tự động (dùng cho CI/CD).",
+        )
 
     def handle(self, *args, **options):
         from django.conf import settings
@@ -30,33 +40,55 @@ class Command(BaseCommand):
             raise CommandError(
                 "Từ chối seed khi DEBUG=False. Chạy lại với --force nếu bạn chắc chắn."
             )
-        self.stdout.write("[1/6] Migrating...")
-        call_command("migrate", verbosity=0)
 
-        self.stdout.write("[2/6] Seeding products...")
-        call_command("seed_products", sync=True, verbosity=0)
+        dry_run = options.get("dry_run", False)
+        no_input = options.get("no_input", False)
 
-        self.stdout.write("[3/6] Creating users...")
-        self._create_users()
+        if not dry_run and not no_input:
+            self.stdout.write(
+                self.style.WARNING(
+                    "CẢNH BÁO: Lệnh này sẽ tạo dữ liệu mẫu vào database. "
+                    "Chạy lại với --no-input để bỏ qua xác nhận, hoặc --dry-run để mô phỏng."
+                )
+            )
+            confirm = input("Bạn có chắc chắn muốn tiếp tục? (y/N): ").strip().lower()
+            if confirm != "y":
+                self.stdout.write(self.style.ERROR("Đã hủy."))
+                return
 
-        self.stdout.write("[4/6] Creating coupons...")
-        self._create_coupons()
+        if not dry_run:
+            self.stdout.write("[1/7] Migrating...")
+            call_command("migrate", verbosity=0)
+        else:
+            self.stdout.write("[1/7] Migrating... (dry-run, skipped)")
 
-        self.stdout.write("[5/6] Creating orders...")
-        self._create_orders()
+        self.stdout.write("[2/7] Seeding products...")
+        if not dry_run:
+            call_command("seed_products", sync=True, verbosity=0)
 
-        self.stdout.write("[6/6] Creating FAQs & wishlist...")
-        self._create_faqs()
-        self._create_wishlists()
+        self.stdout.write("[3/7] Creating users...")
+        self._create_users(dry_run=dry_run)
 
-        self.stdout.write("[7/7] Creating referral codes & gift cards...")
-        self._create_referral_codes()
-        self._create_gift_cards()
-        self._create_activities()
+        self.stdout.write("[4/7] Creating coupons...")
+        self._create_coupons(dry_run=dry_run)
+
+        self.stdout.write("[4/7] Creating orders...")
+        self._create_orders(dry_run=dry_run)
+
+        self.stdout.write("[5/7] Creating FAQs...")
+        self._create_faqs(dry_run=dry_run)
+
+        self.stdout.write("[6/7] Creating wishlists...")
+        self._create_wishlists(dry_run=dry_run)
+
+        self.stdout.write("[7/7] Creating referral codes, gift cards & activities...")
+        self._create_referral_codes(dry_run=dry_run)
+        self._create_gift_cards(dry_run=dry_run)
+        self._create_activities(dry_run=dry_run)
 
         self.stdout.write(self.style.SUCCESS("Done!"))
 
-    def _create_users(self):
+    def _create_users(self, dry_run=False):
         users_data = [
             ("admin", "admin@example.com", "admin123", True, True, "Quản Trị", "Viên"),
             ("codexstaff", "staff@codex.com", "staff123", False, True, "Nhân", "Viên"),
@@ -108,25 +140,33 @@ class Command(BaseCommand):
             ),
         ]
         for username, email, pw, is_super, is_staff, first, last in users_data:
-            user, created = User.objects.get_or_create(
-                username=username,
-                defaults=dict(email=email, is_superuser=is_super, is_staff=is_staff),
-            )
-            if created:
-                user.set_password(pw)
-                user.first_name = first
-                user.last_name = last
-                user.save()
-                UserProfile.objects.get_or_create(user=user)
+            if not dry_run:
+                user, created = User.objects.get_or_create(
+                    username=username,
+                    defaults=dict(
+                        email=email, is_superuser=is_super, is_staff=is_staff
+                    ),
+                )
+                if created:
+                    user.set_password(pw)
+                    user.first_name = first
+                    user.last_name = last
+                    user.save()
+                    UserProfile.objects.get_or_create(user=user)
+            else:
+                self.stdout.write(f"  [dry-run] Would create user: {username}")
         expiry = timezone.localdate() + timedelta(days=365)
-        updated_expiry = UserProfile.objects.filter(
-            points__gt=0, points_expire_at__isnull=True
-        ).update(points_expire_at=expiry)
-        self.stdout.write(
-            f"  -> {User.objects.count()} users, {updated_expiry} profiles có hạn điểm"
-        )
+        if not dry_run:
+            updated_expiry = UserProfile.objects.filter(
+                points__gt=0, points_expire_at__isnull=True
+            ).update(points_expire_at=expiry)
+            self.stdout.write(
+                f"  -> {User.objects.count()} users, {updated_expiry} profiles có hạn điểm"
+            )
+        else:
+            self.stdout.write(f"  -> [dry-run] Would create {len(users_data)} users")
 
-    def _create_coupons(self):
+    def _create_coupons(self, dry_run=False):
         coupons = [
             Coupon(
                 code="FREESHIP",
@@ -178,20 +218,26 @@ class Command(BaseCommand):
             ),
         ]
         for c in coupons:
-            Coupon.objects.get_or_create(
-                code=c.code,
-                defaults=dict(
-                    discount_type=c.discount_type,
-                    value=c.value,
-                    is_active=c.is_active,
-                    min_order_amount=c.min_order_amount,
-                    max_discount_amount=c.max_discount_amount,
-                    usage_limit=c.usage_limit,
-                ),
-            )
-        self.stdout.write(f"  -> {Coupon.objects.count()} coupons")
+            if not dry_run:
+                Coupon.objects.get_or_create(
+                    code=c.code,
+                    defaults=dict(
+                        discount_type=c.discount_type,
+                        value=c.value,
+                        is_active=c.is_active,
+                        min_order_amount=c.min_order_amount,
+                        max_discount_amount=c.max_discount_amount,
+                        usage_limit=c.usage_limit,
+                    ),
+                )
+            else:
+                self.stdout.write(f"  [dry-run] Would create coupon: {c.code}")
+        if not dry_run:
+            self.stdout.write(f"  -> {Coupon.objects.count()} coupons")
+        else:
+            self.stdout.write(f"  -> [dry-run] Would create {len(coupons)} coupons")
 
-    def _create_orders(self):
+    def _create_orders(self, dry_run=False):
         users = list(User.objects.filter(is_superuser=False))
         products = list(Product.objects.select_related("category"))
         now = timezone.now()
@@ -234,51 +280,64 @@ class Command(BaseCommand):
                             )
                         elif coupon.discount_type == "fixed":
                             discount = coupon.value
-                total = subtotal + shipping - discount
+                    total = subtotal + shipping - discount
 
-                is_paid = status in ("delivered", "shipping")
-                created = now - timedelta(
-                    days=random.randint(1, 45),
-                    hours=random.randint(0, 23),
-                )
-
-                order = Order.objects.create(
-                    user=user,
-                    customer_name=user.get_full_name() or user.username,
-                    customer_email=user.email,
-                    phone=f"09{random.randint(10000000, 99999999)}",
-                    shipping_address=f"{random.randint(1, 999)} Đường {random.choice(['Nguyễn Huệ', 'Lê Lợi', 'Trần Hưng Đạo', 'Phạm Ngũ Lão', 'Hai Bà Trưng', 'Lý Thường Kiệt', 'Võ Văn Tần', 'Cách Mạng Tháng 8'])}, Quận {random.randint(1, 12)}, TP.HCM",
-                    note=random.choice(
-                        ["", "Giao hàng trong giờ hành chính", "Gọi trước khi giao", ""]
-                    ),
-                    payment_method=random.choice(["cod", "bank"]),
-                    bank_code="VCB" if random.random() > 0.5 else "",
-                    is_paid=is_paid,
-                    status=status,
-                    subtotal_amount=subtotal,
-                    shipping_fee=shipping,
-                    discount_amount=discount,
-                    coupon=coupon,
-                    coupon_code=coupon.code if coupon else "",
-                    total_amount=total,
-                )
-                Order.objects.filter(pk=order.pk).update(created_at=created)
-
-                for product, variant, qty, price in items_data:
-                    OrderItem.objects.create(
-                        order=order,
-                        product=product,
-                        variant=variant,
-                        selected_color=variant.color_name if variant else "",
-                        selected_size=variant.size if variant else "",
-                        quantity=qty,
-                        price=price,
+                    is_paid = status in ("delivered", "shipping")
+                    created = now - timedelta(
+                        days=random.randint(1, 45),
+                        hours=random.randint(0, 23),
                     )
-                count += 1
 
-        self.stdout.write(f"  -> {count} orders, {OrderItem.objects.count()} items")
+                    if not dry_run:
+                        order = Order.objects.create(
+                            user=user,
+                            customer_name=user.get_full_name() or user.username,
+                            customer_email=user.email,
+                            phone=f"09{random.randint(10000000, 99999999)}",
+                            shipping_address=f"{random.randint(1, 999)} Đường {random.choice(['Nguyễn Huệ', 'Lê Lợi', 'Trần Hưng Đạo', 'Phạm Ngũ Lão', 'Hai Bà Trưng', 'Lý Thường Kiệt', 'Võ Văn Tần', 'Cách Mạng Tháng 8'])}, Quận {random.randint(1, 12)}, TP.HCM",
+                            note=random.choice(
+                                [
+                                    "",
+                                    "Giao hàng trong giờ hành chính",
+                                    "Gọi trước khi giao",
+                                    "",
+                                ]
+                            ),
+                            payment_method=random.choice(["cod", "bank"]),
+                            bank_code="VCB" if random.random() > 0.5 else "",
+                            is_paid=is_paid,
+                            status=status,
+                            subtotal_amount=subtotal,
+                            shipping_fee=shipping,
+                            discount_amount=discount,
+                            coupon=coupon,
+                            coupon_code=coupon.code if coupon else "",
+                            total_amount=total,
+                        )
+                        Order.objects.filter(pk=order.pk).update(created_at=created)
 
-    def _create_faqs(self):
+                        for product, variant, qty, price in items_data:
+                            OrderItem.objects.create(
+                                order=order,
+                                product=product,
+                                variant=variant,
+                                selected_color=variant.color_name if variant else "",
+                                selected_size=variant.size if variant else "",
+                                quantity=qty,
+                                price=price,
+                            )
+                        count += 1
+                    else:
+                        self.stdout.write(
+                            f"  [dry-run] Would create order for user: {user.username}"
+                        )
+
+        if not dry_run:
+            self.stdout.write(f"  -> {count} orders, {OrderItem.objects.count()} items")
+        else:
+            self.stdout.write(f"  -> [dry-run] Would create {count} orders")
+
+    def _create_faqs(self, dry_run=False):
         faqs = [
             (
                 "Tôi có thể đổi trả hàng không?",
@@ -306,26 +365,42 @@ class Command(BaseCommand):
             ),
         ]
         for q, kw, a, pri in faqs:
-            SupportFAQ.objects.get_or_create(
-                question=q, defaults=dict(keywords=kw, answer=a, priority=pri)
-            )
-        self.stdout.write(f"  -> {SupportFAQ.objects.count()} FAQs")
+            if not dry_run:
+                SupportFAQ.objects.get_or_create(
+                    question=q, defaults=dict(keywords=kw, answer=a, priority=pri)
+                )
+            else:
+                self.stdout.write(f"  [dry-run] Would create FAQ: {q}")
+        if not dry_run:
+            self.stdout.write(f"  -> {SupportFAQ.objects.count()} FAQs")
+        else:
+            self.stdout.write(f"  -> [dry-run] Would create {len(faqs)} FAQs")
 
-    def _create_wishlists(self):
+    def _create_wishlists(self, dry_run=False):
         users = list(User.objects.filter(is_superuser=False))
         products = list(Product.objects.all())
         count = 0
         for user in users:
             for _ in range(random.randint(1, 4)):
                 product = random.choice(products)
-                _, created = WishlistItem.objects.get_or_create(
-                    user=user, product=product
-                )
-                if created:
-                    count += 1
-        self.stdout.write(f"  -> {count} wishlist items")
+                if not dry_run:
+                    _, created = WishlistItem.objects.get_or_create(
+                        user=user, product=product
+                    )
+                    if created:
+                        count += 1
+                else:
+                    self.stdout.write(
+                        f"  [dry-run] Would add wishlist for user: {user.username}"
+                    )
+        if not dry_run:
+            self.stdout.write(f"  -> {count} wishlist items")
+        else:
+            self.stdout.write(
+                f"  -> [dry-run] Would create {len(users) * 2} wishlist items"
+            )
 
-    def _create_activities(self):
+    def _create_activities(self, dry_run=False):
         users = list(User.objects.all())
         paths = ["/", "/products/", "/cart/", "/checkout/", "/orders/"]
         events = [
@@ -340,29 +415,49 @@ class Command(BaseCommand):
         for user in users:
             for _ in range(random.randint(3, 8)):
                 session_key = f"seed_session_{user.id}"
-                session, _ = VisitorSession.objects.get_or_create(
-                    session_key=session_key,
-                    defaults=dict(is_authenticated=True, user=user),
-                )
-                UserActivity.objects.create(
-                    visitor=session,
-                    user=user,
-                    event_type=random.choice(events),
-                    path=random.choice(paths),
-                    metadata={"referrer": "seed"},
-                )
-                count += 1
-        self.stdout.write(f"  -> {count} activity logs")
+                if not dry_run:
+                    session, _ = VisitorSession.objects.get_or_create(
+                        session_key=session_key,
+                        defaults=dict(is_authenticated=True, user=user),
+                    )
+                    UserActivity.objects.create(
+                        visitor=session,
+                        user=user,
+                        event_type=random.choice(events),
+                        path=random.choice(paths),
+                        metadata={"referrer": "seed"},
+                    )
+                    count += 1
+                else:
+                    self.stdout.write(
+                        f"  [dry-run] Would create activity for user: {user.username}"
+                    )
+        if not dry_run:
+            self.stdout.write(f"  -> {count} activity logs")
+        else:
+            self.stdout.write(
+                f"  -> [dry-run] Would create {len(users) * 5} activity logs"
+            )
 
-    def _create_referral_codes(self):
+    def _create_referral_codes(self, dry_run=False):
         users = list(User.objects.all())
         count = 0
         for user in users:
-            ReferralCode.objects.get_or_create(user=user)
-            count += 1
-        self.stdout.write(f"  -> {count} referral codes")
+            if not dry_run:
+                ReferralCode.objects.get_or_create(user=user)
+                count += 1
+            else:
+                self.stdout.write(
+                    f"  [dry-run] Would create referral code for user: {user.username}"
+                )
+        if not dry_run:
+            self.stdout.write(f"  -> {count} referral codes")
+        else:
+            self.stdout.write(
+                f"  -> [dry-run] Would create {len(users)} referral codes"
+            )
 
-    def _create_gift_cards(self):
+    def _create_gift_cards(self, dry_run=False):
         from decimal import Decimal
 
         users = list(User.objects.all())
@@ -370,16 +465,26 @@ class Command(BaseCommand):
         for user in users:
             if random.random() < 0.3:
                 amount = random.choice([100000, 200000, 300000, 500000])
-                GiftCard.objects.get_or_create(
-                    purchaser=user,
-                    defaults=dict(
-                        initial_balance=Decimal(str(amount)),
-                        current_balance=Decimal(str(amount)),
-                        purchaser_email=user.email,
-                        recipient_email=f"friend{random.randint(1, 99)}@example.com",
-                        recipient_name="Bạn bè",
-                        message="Chúc mừng sinh nhật! Mua sắm thoải mái nhé.",
-                    ),
-                )
-                count += 1
-        self.stdout.write(f"  -> {count} gift cards")
+                if not dry_run:
+                    GiftCard.objects.get_or_create(
+                        purchaser=user,
+                        defaults=dict(
+                            initial_balance=Decimal(str(amount)),
+                            current_balance=Decimal(str(amount)),
+                            purchaser_email=user.email,
+                            recipient_email=f"friend{random.randint(1, 99)}@example.com",
+                            recipient_name="Bạn bè",
+                            message="Chúc mừng sinh nhật! Mua sắm thoải mái nhé.",
+                        ),
+                    )
+                    count += 1
+                else:
+                    self.stdout.write(
+                        f"  [dry-run] Would create gift card for user: {user.username}"
+                    )
+        if not dry_run:
+            self.stdout.write(f"  -> {count} gift cards")
+        else:
+            self.stdout.write(
+                f"  -> [dry-run] Would create ~{int(len(users) * 0.3)} gift cards"
+            )
