@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from users.activity import log_activity
@@ -436,3 +437,134 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
         }
     )
     return render(request, "shop/bank_payment_mobile.html", ctx)
+
+
+@require_POST
+@transaction.atomic
+def vnpay_refund(request: HttpRequest) -> JsonResponse:
+    """API hoàn tiền VNPay (hỗ trợ partial refund).
+
+    POST data:
+    - order_id: ID đơn hàng
+    - amount: Số tiền hoàn (VND)
+    - trans_id: Transaction ID từ VNPay (vnp_TransactionNo)
+    - reason: Lý do hoàn tiền (optional)
+    """
+    import json
+    import re
+
+    # Check authentication and permission
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse(
+            {"success": False, "message": "Không có quyền truy cập"}, status=403
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "message": "Invalid JSON"}, status=400)
+
+    order_id = data.get("order_id")
+    amount = data.get("amount")
+    trans_id = data.get("trans_id")
+    reason = data.get("reason", "Hoàn tiền theo yêu cầu")
+
+    if not order_id or not amount or not trans_id:
+        return JsonResponse(
+            {"success": False, "message": "Thiếu tham số: order_id, amount, trans_id"},
+            status=400,
+        )
+
+    try:
+        amount = int(amount)
+        if amount <= 0:
+            return JsonResponse(
+                {"success": False, "message": "Số tiền hoàn phải lớn hơn 0"}, status=400
+            )
+    except (TypeError, ValueError):
+        return JsonResponse(
+            {"success": False, "message": "Số tiền không hợp lệ"}, status=400
+        )
+
+    order = get_object_or_404(Order, id=order_id)
+
+    # Kiểm tra đơn hàng đã thanh toán qua VNPay
+    if order.payment_method != "vnpay":
+        return JsonResponse(
+            {"success": False, "message": "Đơn hàng này không thanh toán bằng VNPay"},
+            status=400,
+        )
+
+    if not order.is_paid:
+        return JsonResponse(
+            {"success": False, "message": "Đơn hàng chưa được thanh toán"}, status=400
+        )
+
+    # Kiểm tra số tiền hoàn không vượt quá số tiền đã thanh toán
+    if amount > order.total_amount:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Số tiền hoàn không được vượt quá tổng tiền đơn hàng",
+            },
+            status=400,
+        )
+
+    # Lấy transaction ID từ VNPay (lưu trong order.note)
+    trans_id = data.get("trans_id")
+    if not trans_id:
+        # Thử tìm trong note
+        import re
+
+        match = re.search(r"vnp_TransactionNo:([^,]+)", order.note or "")
+        trans_id = match.group(1).strip() if match else None
+
+    if not trans_id:
+        return JsonResponse(
+            {"success": False, "message": "Không tìm thấy Transaction ID từ VNPay"},
+            status=400,
+        )
+
+    # Gọi API refund VNPay
+    from orders.vnpay import refund_transaction
+
+    result = refund_transaction(order, amount, trans_id, request.user.username)
+
+    if result.get("success"):
+        # Cập nhật đơn hàng: ghi chú hoàn tiền
+        refund_note = f"[REFUND {amount:,}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M} - {reason}"
+        order.note = (
+            f"{order.note}\n{refund_note}".strip() if order.note else refund_note
+        )
+        order.save(update_fields=["note", "updated_at"])
+
+        # Ghi log hoạt động
+        log_activity(
+            request,
+            event_type="refund",
+            metadata={
+                "order_id": order.id,
+                "amount": amount,
+                "trans_id": trans_id,
+                "reason": reason,
+                "vnpay_response": result.get("data"),
+            },
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Hoàn tiền thành công",
+                "refund_amount": amount,
+                "vnpay_response": result.get("data"),
+            }
+        )
+    else:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": result.get("message", "Hoàn tiền thất bại"),
+                "vnpay_response": result.get("data"),
+            },
+            status=400,
+        )

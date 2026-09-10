@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Sum, F
 from django.utils import timezone
 
 from datetime import timedelta as _timedelta
@@ -274,6 +275,68 @@ class ReturnRequest(models.Model):
 
     def __str__(self):
         return f"Đổi trả #{self.id} - {self.order}"
+
+    def save(self, *args, **kwargs):
+        # Kiểm tra nếu status thay đổi thành "approved" thì tự động restore stock
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            old = ReturnRequest.objects.filter(pk=self.pk).first()
+            if old:
+                old_status = old.status
+
+        super().save(*args, **kwargs)
+
+        # Tự động restore stock khi duyệt yêu cầu đổi trả
+        if old_status == "pending" and self.status == "approved":
+            self._restore_stock()
+
+    def _restore_stock(self):
+        """Tự động trả lại hàng về kho khi duyệt yêu cầu đổi trả."""
+        from orders.models import OrderItem, ProductVariant
+        from products.models import Product
+        from django.db import transaction
+        from django.utils import timezone
+
+        with transaction.atomic():
+            for item_data in self.items:
+                product_id = item_data.get("product")
+                variant_id = (
+                    item_data.get("variant")
+                    or item_data.get("selected_size")
+                    or item_data.get("selected_color")
+                )
+
+                if not product_id:
+                    continue
+
+                # Tìm OrderItem tương ứng
+                order_item = OrderItem.objects.filter(
+                    order=self.order,
+                    product_id=product_id,
+                    variant_id=variant_id if variant_id else None,
+                ).first()
+
+                if order_item:
+                    # Restore stock cho variant hoặc product
+                    if order_item.variant:
+                        ProductVariant.objects.filter(id=order_item.variant.id).update(
+                            stock=F("stock") + item_data.get("qty", 0)
+                        )
+                        # Cập nhật lại stock tổng của product
+                        total_stock = (
+                            order_item.product.variants.filter(
+                                is_active=True
+                            ).aggregate(total=Sum("stock"))["total"]
+                            or 0
+                        )
+                        order_item.product.stock = total_stock
+                        order_item.product.save(update_fields=["stock", "updated"])
+                    else:
+                        Product.objects.filter(id=order_item.product.id).update(
+                            stock=F("stock") + item_data.get("qty", 0),
+                            updated=timezone.now(),
+                        )
 
 
 class OrderItem(models.Model):

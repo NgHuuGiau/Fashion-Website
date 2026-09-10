@@ -28,6 +28,7 @@ from .views import (
     user_cancel_order,
     vnpay_ipn,
     vnpay_payment,
+    vnpay_refund,
     vnpay_return,
 )
 
@@ -76,6 +77,7 @@ urlpatterns = [
     path("thanh-toan-vnpay/<int:order_id>/", vnpay_payment, name="vnpay_payment"),
     path("thanh-toan-vnpay/callback/", vnpay_return, name="vnpay_return"),
     path("thanh-toan-vnpay/ipn/", vnpay_ipn, name="vnpay_ipn"),
+    path("thanh-toan-vnpay/hoan-tien/", vnpay_refund, name="vnpay_refund"),
     path("don-hang-cua-toi/", my_orders, name="my_orders"),
     path("tra-cuu-don/", order_lookup, name="order_lookup"),
     path("khuyen-mai/", promo_page, name="promo_page"),

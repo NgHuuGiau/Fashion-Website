@@ -7,9 +7,12 @@ Sandbox mặc định; chỉ hoạt động khi VNPAY_TMN_CODE + VNPAY_HASH_SECR
 import hashlib
 import hmac
 import logging
+import requests
+from datetime import datetime
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -80,3 +83,64 @@ def amount_matches(order, params: dict) -> bool:
         return int(params.get("vnp_Amount", 0)) == int(order.total_amount) * 100
     except (TypeError, ValueError):
         return False
+
+
+def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -> dict:
+    """
+    Gọi API hoàn tiền VNPay.
+
+    Args:
+        order: Order object
+        amount: Số tiền hoàn (VND)
+        trans_id: Transaction ID từ VNPay (vnp_TransactionNo)
+        user: Tên người thực hiện hoàn tiền
+
+    Returns:
+        dict: Kết quả từ VNPay API
+    """
+    if not is_configured():
+        return {"success": False, "message": "VNPay chưa được cấu hình"}
+
+    # VNPay Refund API parameters
+
+    params = {
+        "vnp_Version": VNPAY_VERSION,
+        "vnp_Command": "refund",
+        "vnp_TmnCode": settings.VNPAY_TMN_CODE,
+        "vnp_RequestId": datetime.now().strftime("%Y%m%d%H%M%S"),
+        "vnp_Amount": str(amount * 100),  # VNPay uses VND * 100
+        "vnp_OrderInfo": f"Hoan tien don hang {order.id}",
+        "vnp_CreateDate": timezone.now().strftime("%Y%m%d%H%M%S"),
+        "vnp_CurrCode": VNPAY_CURRENCY,
+        "vnp_IpAddr": "127.0.0.1",
+        "vnp_TxnRef": str(order.id),
+        "vnp_TransactionType": "02",  # 02: Partial refund
+        "vnp_TransactionNo": trans_id,
+        "vnp_Locale": "vn",
+    }
+
+    params["vnp_SecureHash"] = _secure_hash(params)
+
+    try:
+        response = requests.post(settings.VNPAY_URL, data=params, timeout=30)
+        response_data = response.json()
+
+        # Verify response signature
+        if "vnp_SecureHash" in response_data:
+            received_hash = response_data.pop("vnp_SecureHash", "")
+            expected_hash = _secure_hash(response_data)
+            if not hmac.compare_digest(received_hash, expected_hash):
+                return {"success": False, "message": "Invalid response signature"}
+
+        return {
+            "success": response_data.get("vnp_ResponseCode") == "00",
+            "response_code": response_data.get("vnp_ResponseCode"),
+            "message": response_data.get("vnp_Message"),
+            "data": response_data,
+        }
+    except requests.RequestException as e:
+        logger.error(f"VNPay refund request failed: {e}")
+        return {"success": False, "message": f"Request failed: {str(e)}"}
+    except Exception as e:
+        logger.error(f"VNPay refund error: {e}")
+        return {"success": False, "message": f"Error: {str(e)}"}
