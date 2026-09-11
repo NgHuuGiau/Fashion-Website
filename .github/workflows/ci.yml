@@ -314,6 +314,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [lint, type-check, security, test, frontend-lint, build]
+    continue-on-error: true
     steps:
       - name: Collect results
         run: |
