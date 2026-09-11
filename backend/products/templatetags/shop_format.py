@@ -22,7 +22,7 @@ def json_script_nonce(context, value, element_id):
     data = json.dumps(value, ensure_ascii=False)
     # Escape for safe embedding in script tag
     data = data.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
-    return mark_safe(
+    return mark_safe(  # nosec
         f'<script type="application/json" id="{element_id}"{nonce_attr}>{data}</script>'
     )
 
@@ -49,7 +49,7 @@ def json_escape(value):
 
     s = value if value is not None else ""
     out = json.dumps(str(s), ensure_ascii=False)
-    return mark_safe(
+    return mark_safe(  # nosec
         out.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     )
 

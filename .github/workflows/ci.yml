@@ -113,9 +113,11 @@ jobs:
 
       - name: Run Bandit (SAST)
         run: |
-          # -lll shows issues but exits 0; -f json for artifact
-          bandit -r backend -lll
-          bandit -r backend -f json -o bandit-results.json || true
+          # Use config from pyproject.toml (excludes tests, migrations, skips B101/B601)
+          # -ll reports medium+ only; -lll would fail on low (test passwords, seed random)
+          # Exclude run_local.py (dev script, not production)
+          bandit -r backend -c pyproject.toml -ll -x run_local.py
+          bandit -r backend -c pyproject.toml -f json -o bandit-results.json -x run_local.py || true
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |

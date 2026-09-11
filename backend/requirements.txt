@@ -26,3 +26,6 @@ django-extensions>=3.2,<3.3
 
 # Sinh cert HTTPS dev (run_local.py) — VNPay HMAC dùng hmac stdlib
 cryptography>=41.0
+
+# JSON logging formatter
+python-json-logger>=4.2,<5

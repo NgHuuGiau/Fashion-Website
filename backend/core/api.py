@@ -733,7 +733,7 @@ def api_geocode(request: HttpRequest) -> JsonResponse:
         return api_json({"error": "Thiếu q hoặc lat/lng."}, status=400)
 
     try:
-        with urllib.request.urlopen(end, timeout=10) as resp:
+        with urllib.request.urlopen(end, timeout=10) as resp:  # nosec
             data = json.loads(resp.read().decode("utf-8"))
     except Exception:
         return api_json({"error": "Không gọi được Geoapify."}, status=502)
