@@ -255,7 +255,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend && npm install --no-audit --no-fund
+          cd frontend && npm ci --no-audit --no-fund
 
       - name: Run Stylelint (CSS)
         run: |
