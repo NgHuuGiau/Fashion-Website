@@ -7,6 +7,7 @@ from django.db.models import Q, Sum
 from django.utils import timezone
 
 from .constants import APPAREL_CATEGORY_SLUGS
+from .validators import validate_product_image
 
 
 MAX_PRODUCT_GALLERY_IMAGES = 6
@@ -33,7 +34,10 @@ class Product(models.Model):
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
     slug = models.SlugField(max_length=200, db_index=True)
     image = models.ImageField(
-        upload_to="products/%Y/%m/%d", blank=True, verbose_name="Ảnh sản phẩm"
+        upload_to="products/%Y/%m/%d",
+        blank=True,
+        validators=[validate_product_image],
+        verbose_name="Ảnh sản phẩm",
     )
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
@@ -284,7 +288,9 @@ class ProductImage(models.Model):
         Product, related_name="gallery_images", on_delete=models.CASCADE
     )
     image = models.ImageField(
-        upload_to="products/gallery/%Y/%m/%d", verbose_name="Ảnh gallery"
+        upload_to="products/gallery/%Y/%m/%d",
+        validators=[validate_product_image],
+        verbose_name="Ảnh gallery",
     )
     sort_order = models.PositiveSmallIntegerField(
         default=0, verbose_name="Thứ tự", db_index=True
@@ -339,7 +345,10 @@ class Review(models.Model):
         blank=True, verbose_name="Khách hàng phản hồi shop"
     )
     image = models.ImageField(
-        upload_to="reviews/%Y/%m/%d", blank=True, verbose_name="Ảnh kèm đánh giá"
+        upload_to="reviews/%Y/%m/%d",
+        blank=True,
+        validators=[validate_product_image],
+        verbose_name="Ảnh kèm đánh giá",
     )
     is_published = models.BooleanField(
         default=True, verbose_name="Hiển thị", db_index=True

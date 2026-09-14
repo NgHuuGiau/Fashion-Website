@@ -32,6 +32,7 @@ from ..constants import (
     STANDARD_SHIPPING_FEE,
     TIER_DISCOUNTS,
 )
+from core.ratelimit import rate_limit
 from ..forms import CheckoutForm
 from ..models import Coupon, CouponRedemption, Order, OrderItem
 
@@ -440,6 +441,12 @@ def cart_detail(request: HttpRequest) -> HttpResponse:
     )
 
 
+@rate_limit(
+    "checkout",
+    max_requests=20,
+    window=60,
+    error_msg="Bạn thao tác checkout quá nhanh. Vui lòng thử lại sau.",
+)
 def checkout(request: HttpRequest) -> HttpResponse:
     items, subtotal = iter_cart(request)
     if not items:

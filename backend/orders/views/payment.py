@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from core.ratelimit import rate_limit
 
 from users.activity import log_activity
 
@@ -440,6 +441,12 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
 
 
 @require_POST
+@rate_limit(
+    "vnpay_refund",
+    max_requests=10,
+    window=300,
+    error_msg="Quá nhiều yêu cầu hoàn tiền. Vui lòng thử lại sau.",
+)
 @transaction.atomic
 def vnpay_refund(request: HttpRequest) -> JsonResponse:
     """API hoàn tiền VNPay (hỗ trợ partial refund).

@@ -1,6 +1,6 @@
 """Tích hợp cổng thanh toán VNPay (chuẩn v2, HMAC-SHA512).
 
-Cấu hình qua .env: VNPAY_URL, VNPAY_TMN_CODE, VNPAY_HASH_SECRET.
+Cấu hình qua .env: VNPAY_URL, VNPAY_REFUND_URL, VNPAY_TMN_CODE, VNPAY_HASH_SECRET.
 Sandbox mặc định; chỉ hoạt động khi VNPAY_TMN_CODE + VNPAY_HASH_SECRET được điền.
 """
 
@@ -100,6 +100,8 @@ def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -
     """
     if not is_configured():
         return {"success": False, "message": "VNPay chưa được cấu hình"}
+    if not settings.VNPAY_REFUND_URL:
+        return {"success": False, "message": "Chưa cấu hình endpoint hoàn tiền VNPay"}
 
     # VNPay Refund API parameters
 
@@ -122,7 +124,7 @@ def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -
     params["vnp_SecureHash"] = _secure_hash(params)
 
     try:
-        response = requests.post(settings.VNPAY_URL, data=params, timeout=30)
+        response = requests.post(settings.VNPAY_REFUND_URL, data=params, timeout=30)
         response_data = response.json()
 
         # Verify response signature
