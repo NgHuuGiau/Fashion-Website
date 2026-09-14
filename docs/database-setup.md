@@ -8,10 +8,21 @@
 
 ## 2. Kiểm tra kết nối ODBC
 
+SQL Server local phải bật TCP/IP, đặt port tĩnh `1433`, sau đó restart dịch vụ
+`MSSQLSERVER`. Kiểm tra nhanh bằng:
+
+```powershell
+sqlcmd -S localhost,1433 -E -N o -Q "SELECT DB_NAME()"
+```
+
+Nếu `sqlcmd` kết nối được nhưng Python vẫn báo lỗi TLS, cài lại ODBC Driver 18
+đúng kiến trúc 64-bit và dùng đúng driver đang cài trên máy, ví dụ
+`DB_DRIVER=ODBC Driver 17 for SQL Server` cùng `DB_EXTRA_PARAMS=TrustServerCertificate=yes;Encrypt=no`.
+
 ```powershell
 python -c "
 import pyodbc
-cn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=.;Trusted_Connection=yes;TrustServerCertificate=yes;Encrypt=yes')
+cn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost,1433;Trusted_Connection=yes;TrustServerCertificate=yes;Encrypt=no')
 print('OK')
 "
 ```
@@ -22,7 +33,7 @@ Mở **SSMS**, chạy lần lượt:
 
 ```sql
 -- database/sql/01_CREATE_TABLES.sql
--- database/sql/02_INSERT_DATA.sql
+-- database/sql/02_DEMO_DATA.sql
 ```
 
 Hoặc chạy bằng script Python:
@@ -121,14 +132,13 @@ python manage.py sync_roles
 
 ## 8. Tài khoản mặc định
 
-Database có sẵn 18 tài khoản (hash pbkdf2 — không đọc được từ SQL, dùng đúng password bên dưới):
+Database có sẵn 19 tài khoản (hash PBKDF2 — không đọc được từ SQL, dùng đúng password bên dưới):
 
 | Vai trò | Username | Password |
 |---------|----------|----------|
 | Quản trị | `admin` | `admin123` |
-| Nhân viên | `codexstaff` | `staff123` |
-| Nhân viên | `readmestaff` | `readme123` |
-| Khách hàng (15) | `nguyenvanA`, `tranthib`, `lethic`, `phamvand`, `hoangthie`, `nguyenvanE`, `phamthif`, `hoangthig`, `dothih`, `buithii`, `dangthank`, `ngothil`, `lyvanm`, `tranvann`, `vuongo` | `user123` |
+| Nhân viên (3) | `staff1`, `staff2`, `staff3` | `staff123` |
+| Khách hàng (15) | `user01` → `user15` | `user123` |
 
 > Login chấp nhận username, email hoặc SĐT (lấy từ `users_userprofile`). Chặn sau 10 lần sai/5 phút; restart server để reset.
 

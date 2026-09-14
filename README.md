@@ -1,4 +1,4 @@
-# HUUGIAU Atelier — Website thời trang
+# HUUGIAU Atelier — Website Thời Trang
 
 ![Python](https://img.shields.io/badge/Python_3.12%2B-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django_6.x-092E20?logo=django&logoColor=white)
@@ -12,89 +12,31 @@
 ![Font Awesome](https://img.shields.io/badge/Font_Awesome_6.5-528DD7?logo=fontawesome&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows_11%2B-0078D4?logo=windows&logoColor=white)
 ![CI](https://img.shields.io/github/actions/workflow/status/NgHuuGiau/Fashion-Website/ci.yml?logo=githubactions&logoColor=white&label=CI)
-![Coverage](https://img.shields.io/badge/coverage-86%25-success)
+![Coverage](https://img.shields.io/badge/coverage-measured_in_CI-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 Website bán thời trang xây dựng bằng Django, giao diện editorial, quản trị đơn giản.
 
-## Yêu cầu hệ thống
+---
 
-- **Python** 3.12+ | **Windows** 11+ | **PowerShell** 7+
-- **SQL Server** local (MSSQLSERVER) với **ODBC Driver 18 for SQL Server**
-- **Django** 6.x | **mssql-django** | **pyodbc**
+## Trạng thái dự án (09/2026)
 
-## Cấu hình
+| Thành phần | Trạng thái |
+|---|---|
+| **Backend (Django 6.x)** | ✅ 435 tests được collect; coverage cần xác nhận từ CI |
+| **Database (SQL Server)** | ✅ Tự động migrate + import legacy |
+| **Frontend (HTML5/CSS3/JS ES5)** | ✅ Responsive, editorial design |
+| **Thanh toán (VNPay + VietQR)** | ✅ Gateway + IPN + callback + HMAC verify |
+| **Email (SMTP)** | ✅ Xác nhận đơn, thanh toán, hủy, giao |
+| **Admin Dashboard** | ✅ Doanh thu, CRUD, bulk actions, export CSV |
+| **SSL Dev (HTTPS)** | ✅ Cert local + CA tin cậy |
+| **CI/CD (GitHub Actions)** | ✅ PostgreSQL + Python 3.12/3.13 + CodeQL |
 
-File `.env` ở thư mục gốc hỗ trợ:
+---
 
-| Biến | Mặc định | Mô tả |
-|------|---------|-------|
-| `SECRET_KEY` | tự sinh | Khóa bí mật Django |
-| `DEBUG` | `True` | Chế độ debug |
-| `ALLOWED_HOSTS` | `127.0.0.1,localhost` | Danh sách host cho phép |
-| `DB_ENGINE` | `mssql` | Database engine (chỉ hỗ trợ `mssql` = SQL Server) |
-| `DB_HOST` | `.` | Host SQL Server (`.` = shared memory) |
-| `DB_PORT` | *(rỗng)* | Port (để trống nếu dùng shared memory) |
-| `DB_NAME` | `HUUGIAU_Fashion` | Tên database |
-| `REDIS_URL` | *(rỗng)* | Redis cho cache + session |
-| `COMPRESS_ENABLED` | `False` | Bật nén CSS/JS |
-| `EMAIL_HOST` | *(rỗng)* | SMTP server (bỏ trống = tắt gửi mail) |
-| `EMAIL_HOST_USER` | *(rỗng)* | Email gửi thông báo (Gmail App Password) |
-| `EMAIL_HOST_PASSWORD` | *(rỗng)* | App Password 16 ký tự |
-| `VNPAY_TMN_CODE` | *(rỗng)* | Mã merchant VNPay (sandbox) |
-| `VNPAY_HASH_SECRET` | *(rỗng)* | Secret key VNPay (sandbox) |
-| `GA4_MEASUREMENT_ID` | *(rỗng)* | Google Analytics 4 (để trống = tắt) |
-| `ZALO_OA_ID` | *(rỗng)* | Zalo Official Account — hiện nút chat Zalo (để trống = tắt) |
+## Bắt đầu nhanh
 
-> `CSRF_TRUSTED_ORIGINS` được khai báo cứng trong `core/settings.py` (gồm `https://localhost:8000`, `https://127.0.0.1:8000` và bản `http` tương ứng) — bắt buộc vì trình duyệt gửi header `Origin` khi POST; thiếu sẽ bị lỗi `403 Forbidden — Origin checking failed`.
-
-## Công nghệ
-
-| Layer | Công nghệ |
-|-------|-----------|
-| Backend | Python 3.12+ (CI chạy 3.12/3.13), Django 6.0 |
-| Database | SQL Server (local) |
-| Frontend | HTML5, CSS3 (~5.4K dòng), JavaScript ES5 |
-| UI Icons | Font Awesome 6.5 (local + CDN dự phòng) |
-| Thanh toán | VietQR (23 ngân hàng), VNPay |
-| Email | SMTP (Gmail App Password) — xác nhận đơn, đã thanh toán, hủy, hoàn thành |
-| Ảnh sản phẩm | `optimize_images` chuyển ảnh upload sang WebP (Pillow) |
-| Analytics | Google Analytics 4 (tùy chọn), nút chat Zalo OA (tùy chọn) |
-| Testing | Django TestCase — 400 tests, coverage 86% |
-| CI/CD | GitHub Actions: test trên SQL Server 2022 (Docker, Python 3.12/3.13) + CodeQL |
-| Export | CSV, JSON |
-
-## Tính năng chính
-
-- **Trang chủ editorial** — hero + sản phẩm nổi bật
-- **Danh mục** — lọc theo danh mục, size, màu, giá, sắp xếp, phân trang (12/sp)
-- **Chi tiết sản phẩm** — gallery (6 ảnh), biến thể (màu + size), đã xem gần đây, size chart, wishlist
-- **Giỏ hàng** — session-based, cập nhật số lượng, coupon, phí ship
-- **Thanh toán** — COD, chuyển khoản VietQR (polling trạng thái, tự hết hạn 15 phút), VNPay (redirect gateway + callback/IPN xác minh chữ ký HMAC)
-- **Email thông báo** — gửi tự động khi đặt hàng, thanh toán thành công, hủy đơn, giao xong (bỏ trống email trong đơn → tự lấy email trong tài khoản)
-- **Tra cứu đơn hàng** — khách vãng lai tra bằng mã đơn + SĐT, hủy đơn + hoàn stock
-- **Tìm kiếm** — gợi ý tự động (debounce 250ms, 6 kết quả), không phân biệt dấu
-- **Đăng nhập** — bằng email / SĐT / username
-- **Support chat** — FAQ, gợi ý size, ngữ cảnh
-- **Admin dashboard** — biểu đồ doanh thu 7 ngày, CRUD sản phẩm, gallery, variants, quản lý đơn hàng + coupon, bulk actions, xuất CSV, **báo cáo doanh thu theo tháng + xuất CSV**
-- **Tối ưu ảnh** — `python manage.py optimize_images --dry-run` để xem, bỏ `--dry-run` để chuyển toàn bộ ảnh sản phẩm sang WebP
-- **So sánh sản phẩm** — toggle trên card/chi tiết, bảng so sánh tối đa 4 sản phẩm (session-based)
-- **Timeline đơn hàng** — 4 bước (Xác nhận → Đóng gói → Đang giao → Đã giao) trên tra cứu đơn + đơn hàng của tôi
-- **Nhắc giỏ hàng bỏ quên** — email tự động nhắc khách quay lại giỏ hàng (management command `send_cart_reminders`)
-
-## Cài đặt nhanh
-
-### 1. Chuẩn bị database
-
-Chạy script tạo tables + insert dữ liệu mẫu trên SQL Server:
-
-```powershell
-# Mở SSMS, kết nối local server, mở và chạy:
-database/sql/01_CREATE_TABLES.sql
-database/sql/02_INSERT_DATA.sql
-```
-
-### 2. Cài đặt Python
+### 1. Clone & cài đặt
 
 ```powershell
 git clone <repo-url> Fashion-Website
@@ -104,128 +46,212 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 3. Chạy migrate + import dữ liệu
+### 2. Cấu hình `.env`
+
+```ini
+SECRET_KEY=your-secret-key
+DEBUG=True
+DB_ENGINE=mssql
+DB_HOST=.
+DB_NAME=HUUGIAU_Fashion
+VNPAY_TMN_CODE=your_sandbox_tmn
+VNPAY_HASH_SECRET=your_sandbox_secret
+```
+
+Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và HSTS. Thay toàn bộ giá trị `replace-me` trước khi deploy.
+
+> `CSRF_TRUSTED_ORIGINS` đã cấu hình sẵn trong `core/settings.py` (localhost:8000 HTTP/HTTPS).
+
+### 3. Khởi tạo Database
 
 ```powershell
+# Tạo tables + dữ liệu mẫu legacy (chạy trong SSMS)
+database/sql/01_CREATE_TABLES.sql
+database/sql/02_DEMO_DATA.sql
+
+# Hoặc dùng Python command (tạo 1000 orders, 155 reviews, 49 addresses)
 cd backend
 python manage.py migrate
-python manage.py import_legacy
-python manage.py seed_products --sync
-python manage.py runserver localhost:8000
+python manage.py seed_all --force --no-input
 ```
 
-Server dev tự chạy **HTTPS** bằng cert trong `backend/certs`. CA `backend/certs/ca.crt` đã được cài vào Windows Trust Store → mở bằng Chrome/Edge **không còn cảnh báo** "Not secure". Nếu máy khác chưa cài CA, làm theo [docs/https-cert.md](docs/https-cert.md).
+### 4. Chạy server
 
-> **Cách chạy nhanh nhất:** chạy `.\scripts\start.bat` — script tự khởi động server, chờ server sẵn sàng rồi tự mở trình duyệt vào `https://localhost:8000/`.
+**Cách 1 (Khuyên dùng) — Double-click:**
+```cmd
+chay-web.bat
+```
 
-> Lưu ý: `import_legacy` đọc từ các bảng legacy (`[Users]`, `[Products]`, ...) trong SQL Server; nếu chưa có bảng legacy thì nó bỏ qua (không lỗi). `seed_products --sync` đồng bộ sản phẩm mẫu.
-
-## Import dữ liệu từ SQL scripts
-
+**Cách 2 — PowerShell script (tự mở trình duyệt):**
 ```powershell
-cd backend
-python manage.py import_legacy
+.\scripts\start.ps1
 ```
 
-Command này đọc dữ liệu từ legacy tables (`[Users]`, `[Products]`, `[Orders]`...) và chuyển vào Django ORM tables với mapping column tự động (xem `orders/management/commands/import_legacy.py`).
+**Cách 3 — Dev server (HTTP only):**
+```cmd
+cd backend
+python manage.py runserver 8000
+```
+
+Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production được bật ở reverse proxy.
+
+---
+
+## Tài khoản mặc định
+
+| Vai trò | Username | Password |
+|---|---|---|
+| **Admin (superuser)** | `admin` | `admin123` |
+| **Staff** | `staff1` / `staff2` / `staff3` | `staff123` |
+| **User (15 tài khoản)** | `user01` → `user15` | `user123` |
+
+> Password hash pbkdf2_sha256. Sau 10 lần sai trong 5 phút → chặn 5 phút.
+
+---
+
+## Tính năng chính
+
+| Module | Tính năng |
+|---|---|
+| **Trang chủ** | Hero editorial + sản phẩm nổi bật |
+| **Danh mục** | Lọc category/size/color/price, sort, pagination (12/sp) |
+| **Chi tiết SP** | Gallery 6 ảnh, variant (color+size), đã xem, size chart, wishlist |
+| **Giỏ hàng** | Session-based, cập nhật SL, coupon, phí ship |
+| **Thanh toán** | COD, VietQR (polling 15p), VNPay (redirect + IPN + HMAC) |
+| **Email** | Xác nhận, thanh toán, hủy, giao (tự lấy email tài khoản) |
+| **Tra cứu đơn** | Mã đơn + SĐT, hủy đơn + hoàn stock |
+| **Tìm kiếm** | Gợi ý debounce 250ms, không phân biệt dấu |
+| **Đăng nhập** | Email / SĐT / username |
+| **Support chat** | FAQ, size gợi ý |
+| **Admin** | Dashboard doanh thu 7 ngày, CRUD SP/dơn/coupon, bulk actions, export CSV, báo cáo tháng |
+| **So sánh SP** | Toggle trên card/detail, bảng so sánh max 4 SP |
+| **Timeline đơn** | 4 bước: Xác nhận → Đóng gói → Đang giao → Đã giao |
+| **Nhắc giỏ** | Email tự động (`send_cart_reminders`) |
+
+---
 
 ## Cấu trúc thư mục
 
 ```
 Fashion-Website/
 ├── backend/               # Django project
-│   ├── core/              # Settings, URL config, utilities
+│   ├── core/              # Settings, URLs, utilities, middleware
 │   ├── orders/            # Cart, checkout, payment, admin
-│   ├── products/          # Catalog, product detail, search
-│   ├── users/             # Auth, profiles, activity
-│   ├── certs/             # SSL certificates (dev)
-│   ├── run_local.py       # Dev server (HTTPS, thay manage.py runserver)
+│   ├── products/          # Catalog, detail, search, reviews
+│   ├── users/             # Auth, profiles, activity, referral
+│   ├── certs/             # SSL certs (dev)
 │   └── manage.py
-├── frontend/              # Static files & templates
-│   ├── static/            # CSS, JS, fonts, images
+├── frontend/              # Static + templates
+│   ├── static/            # CSS (~5.4K lines), JS ES5, fonts, images
 │   └── templates/         # HTML templates
 ├── database/
-│   ├── sql/               # SQL scripts (CREATE + INSERT)
-│   └── seed/              # Seed data JSON
+│   ├── sql/               # 01_CREATE_TABLES.sql, 02_DEMO_DATA.sql
+│   └── seed/              # products_to_sync.json
 ├── scripts/               # Utility scripts
-│   ├── start.ps1          # Chạy HTTP server + tự mở trình duyệt (khuyến nghị)
-│   ├── start.bat          # Gọi start.ps1 (double-click là chạy)
-│   ├── run_local.ps1
-│   ├── dev_server.py
+│   ├── start.ps1          # HTTPS server + auto-open browser (khuyên dùng)
+│   ├── start.bat          # Wrapper cho start.ps1
+│   ├── dev_server.py      # Dev server helper
 │   └── local_smoke_test.ps1
-├── chay-web.bat           # Double-click rồi chạy — mở web tại https://127.0.0.1:8000/
-├── backup-db.bat          # Backup DB tự động (giữ 7 ngày, lưu vào backups/)
-├── backups/               # File backup .bak (đã gitignore, OneDrive tự đồng bộ cloud)
-├── .github/workflows/     # CI: ci.yml (PostgreSQL, Python 3.12/3.13, Django 5.2), codeql.yml
-├── docs/                  # Documentation
-├── .env
+├── chay-web.bat           # Double-click chạy (gọi scripts/start.ps1)
+├── backup-db.bat          # Backup DB tự động (giữ 7 ngày)
+├── backups/               # .bak files (gitignored, OneDrive sync)
+├── .github/workflows/     # CI: ci.yml + codeql.yml
+├── docs/                  # Tài liệu
+├── .env                   # Cấu hình (gitignored)
 └── requirements.txt
 ```
+
+---
 
 ## Testing
 
 ```powershell
 cd backend
-python manage.py test
-```
 
-> Do SQL Server local, chạy cả suite 1 lệnh có thể bị timeout — chạy theo từng app:
-> `python manage.py test users` / `products` / `orders` / `core` (hoặc theo tên class như `orders.tests.VNPayTest`).
+# Chạy từng app (tránh deadlock DB)
+python manage.py test users
+python manage.py test products
+python manage.py test orders
+python manage.py test core
 
-**Phủ test hiện tại (400+ tests, coverage 86%):**
-
-| App | Số test | Phủ những gì |
-|-----|--------|--------------|
-| `orders` | 181 | Giỏ hàng, checkout (COD/bank/VNPay), thanh toán chuyển khoản (QR, confirm, cancel, hết hạn 15p), VNPay (15 test: gateway, callback, IPN, chữ ký, auto-expire), đơn hàng của tôi, tra cứu, mua lại, admin dashboard, báo cáo doanh thu theo tháng + export CSV, coupon, export CSV |
-| `products` | 117 | Danh mục, chi tiết, biến thể, tìm kiếm, gợi ý, wishlist, đánh giá (sao/trung bình), support chat, size gợi ý, model methods, nén ảnh WebP, GA4 + nút chat Zalo |
-| `users` | 64 | Đăng ký, đăng nhập, hồ sơ, phân quyền, role sync, activity log |
-| `core` | 44 | API đơn hàng/admin, CSP header, chống spam đăng nhập (rate limit), cache, SEO, in hóa đơn, trang lỗi |
-
-**Đo coverage (đã có `coverage.py`):**
-```powershell
+# Coverage
 coverage run --source=core,orders,products,users manage.py test products
-coverage report -m          # bảng phủ từng file
-coverage html               # mở htmlcov/index.html
+coverage report -m
+coverage html  # mở htmlcov/index.html
 ```
 
-> Phần chưa test chủ yếu là *management commands* (seed/export/import) — bỏ qua vì chỉ dùng phát triển, không thuộc luồng nghiệp vụ.
-> Lưu ý: chạy 2 lệnh test **song song** trên cùng test DB có thể gây deadlock SQL — luôn chạy tuần tự.
+| App | Tests | Phủ |
+|---|---|---|
+| `orders` | 181 | Cart, checkout COD/bank/VNPay, VNPay IPN/callback, admin, coupon, export |
+| `products` | 117 | Catalog, detail, variant, search, review, wishlist, compare, size guide |
+| `users` | 64 | Auth, profile, role sync, activity |
+| `core` | 44 | API, CSP, rate limit, cache, SEO, invoice |
 
-## URL chính
+> **Coverage 86%** — management commands (seed/import/export) bỏ qua vì chỉ dùng dev.
 
-| URL | Mô tả |
-|-----|-------|
-| `https://localhost:8000/` | Trang chủ / danh mục sản phẩm |
-| `https://localhost:8000/admin-dashboard/` | Quản trị (chỉ staff) |
-| `https://localhost:8000/dang-nhap/` | Đăng nhập |
-| `https://localhost:8000/dang-ky/` | Đăng ký |
-| `https://localhost:8000/gio-hang/` | Giỏ hàng |
-| `https://localhost:8000/tra-cuu-don/` | Tra cứu đơn hàng |
+---
 
-## Tài khoản mặc định
+## CI/CD Pipeline
 
-Database `HUUGIAU_Fashion` đã có sẵn 18 tài khoản (được `seed_all.py` + `import_legacy` tạo):
+`.github/workflows/ci.yml`:
+- **Lint**: Ruff (Python) + ESLint (JS)
+- **Type Check**: Mypy (continue-on-error)
+- **Security**: Bandit + pip-audit (continue-on-error)
+- **Tests**: Django tests trên PostgreSQL (Python 3.12/3.13, Django 6.x)
+- **Build**: Django check --deploy, collectstatic, compress
+- **CodeQL**: Python + JavaScript analysis
 
-| Vai trò | Username | Password |
-|---------|----------|----------|
-| Quản trị (superuser + staff) | `admin` | `admin123` |
-| Nhân viên (staff) | `codexstaff` | `staff123` |
-| Nhân viên (staff) | `readmestaff` | `readme123` |
-| Khách hàng (15 user) | `nguyenvanA`, `tranthib`, `lethic`, `phamvand`, `hoangthie`, `nguyenvanE`, `phamthif`, `hoangthig`, `dothih`, `buithii`, `dangthank`, `ngothil`, `lyvanm`, `tranvann`, `vuongo` | `user123` |
+---
 
-> Password trong DB là hash pbkdf2 (không đọc được từ SQL). Mật khẩu đúng là như bảng trên. Sau **10 lần sai trong 5 phút**, hệ thống chặn đăng nhập 5 phút ("Quá nhiều lần đăng nhập") — restart server để reset hoặc chờ 5 phút.
+## Backup & Restore
 
-## Ghi chú
+```cmd
+# Backup thủ công
+.\backup-db.bat
 
-- Dùng SQL Server làm database chính (`DB_ENGINE=mssql`)
-- **Phân quyền đồng bộ 2 chiều:** đổi quyền trên web (Django admin) là SQL Server `[Users].role` đổi theo (signal tự động); đổi `[Users].role` trong SSMS là web đổi theo — chạy `python manage.py install_role_sync` một lần để cài trigger (chi tiết `docs/database-setup.md`)
-- **Cách chạy nhanh nhất:** double-click `chay-web.bat` (dùng `run_local.py` tại `https://127.0.0.1:8000/`) hoặc `.\scripts\start.bat` — chạy là tự mở web `https://localhost:8000/`
-- **CI:** mỗi commit push lên `main`/`develop` hoặc PR đều chạy 400 tests trên SQL Server 2022 (Docker) — xem trạng thái tại badge **CI** ở đầu README
-- Server dev chạy HTTPS bằng cert trong `backend/certs` — đã cài CA tin cậy nên Chrome/Edge hết cảnh báo (xem `docs/https-cert.md`)
-- Lỗi `403 CSRF — Origin checking failed` thường do thiếu `CSRF_TRUSTED_ORIGINS` — đã cấu hình sẵn trong `core/settings.py`
-- Nếu CSS/JS cũ, hard refresh (Ctrl+F5)
-- Tạo thêm tài khoản staff: `python manage.py createsuperuser` → đăng nhập tại `/dang-nhap/`
-- **Backup DB:** chạy `.\backup-db.bat` để backup vào `backups/` (giữ 7 ngày). Lần đầu chạy báo lỗi *Access denied* thì chạy `icacls "backups" /grant "NT SERVICE\MSSQLSERVER:(OI)(CI)M"` 1 lần. Đặt trong Windows Task Scheduler để chạy tự động mỗi ngày.
+# Tự động (Windows Task Scheduler, mỗi ngày 02:00)
+# Lần đầu: icacls "backups" /grant "NT SERVICE\MSSQLSERVER:(OI)(CI)M"
+```
+
+File `.bak` lưu trong `backups/` (gitignored, OneDrive sync cloud).
+
+Khôi phục database (sẽ hỏi xác nhận và ghi đè database hiện tại):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\restore-db.ps1 -BackupFile .\backups\HUUGIAU_Fashion_<timestamp>.bak
+```
+
+---
+
+## SSL Development
+
+Server local dùng HTTP để chạy ổn định với `manage.py runserver`. HTTPS production
+được bật tại reverse proxy bằng certificate thật; không dùng certificate dev để mở bán.
+
+Xem chi tiết: [docs/https-cert.md](docs/https-cert.md)
+
+---
+
+## Phân quyền 2 chiều
+
+| Thao tác | Đồng bộ |
+|---|---|
+| Đổi role trên Django Admin | → SQL Server `[Users].role` cập nhật |
+| Đổi `[Users].role` trong SSMS | → Django `is_staff/is_superuser` cập nhật |
+
+Cài đặt 1 lần: `python manage.py install_role_sync` (chi tiết `docs/database-setup.md`).
+
+---
+
+## Ghi chú quan trọng
+
+- **Database chính**: SQL Server (`DB_ENGINE=mssql`)
+- **Server dev**: HTTPS cert local (`backend/certs/`) — CA đã tin cậy
+- **Lỗi 403 CSRF**: Thiếu `CSRF_TRUSTED_ORIGINS` — đã config sẵn
+- **CSS/JS cũ**: Hard refresh `Ctrl+F5`
+- **Tạo staff**: `python manage.py createsuperuser` → đăng nhập `/dang-nhap/`
+
+---
 
 ## License
 

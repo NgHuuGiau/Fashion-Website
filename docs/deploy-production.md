@@ -9,7 +9,7 @@ Vì code dùng `mssql-django` + `pyodbc`, giữ nguyên Windows/SQL Server là �
 1. Cài Python 3.12 (64-bit), ODBC Driver 18 for SQL Server, SQL Server Express (hoặc SQL Server chuẩn nếu dùng external DB).
 2. Copy repo, tạo venv, `pip install -r requirements.txt`.
 3. Chạy script DB (`database/sql/`), `manage.py migrate`, `manage.py import_legacy`, `manage.py seed_products --sync`.
-4. **WSGI server production:** thay `run_local.py` bằng waitress nhiều worker:
+4. **Application server production:** dùng Uvicorn/Gunicorn nhiều worker phía sau reverse proxy:
 
 ```powershell
 pip install waitress
@@ -47,6 +47,12 @@ SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
 SECURE_HSTS_SECONDS=31536000
 
+# SQL Server production
+DB_ENGINE=mssql
+DB_HOST=your-sql-server-host
+DB_NAME=HUUGIAU_Fashion
+DB_EXTRA_PARAMS=TrustServerCertificate=yes;Encrypt=yes
+
 # Redis thật cho cache + session đa worker (bắt buộc nếu có >1 worker)
 REDIS_URL=redis://127.0.0.1:6379/0
 
@@ -58,6 +64,7 @@ DEFAULT_FROM_EMAIL=HUUGIAU Studio <no-reply@yourdomain.com>
 
 # VNPay PRODUCTION (không dùng sandbox)
 VNPAY_URL=https://pay.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_REFUND_URL=<endpoint hoàn tiền do VNPay cấp>
 VNPAY_TMN_CODE=<mã merchant thật>
 VNPAY_HASH_SECRET=<khóa thật>
 

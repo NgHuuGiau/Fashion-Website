@@ -1,17 +1,19 @@
 # HTTPS cho Server Dev
 
-Server dev tự chạy **HTTPS** bằng cert trong `backend/certs/`. Cách chạy mặc định là `backend/run_local.py` (server WSGI trực tiếp — `manage.py runserver` bị reset mỗi kết nối `WinError 10054` trên máy này), gọi qua `chay-web.bat` ở gốc hoặc `scripts/start.bat`. `manage.py runserver` (override trong `core/management/commands/runserver.py`) cũng bọc SSL tự động nếu cần. Trình duyệt của bạn vẫn ép sang `https://localhost:8000`, nên chạy HTTPS là cách duy nhất dùng được ngay; kèm CA tin cậy nên **không còn cảnh báo**.
+Server local hiện chạy **HTTP** bằng `manage.py runserver` tại `http://localhost:8000/`.
+HTTPS chỉ bật ở reverse proxy production bằng certificate thật; không dùng cert dev
+cho website mở bán.
 
 Cert trong `backend/certs/`: `server.crt` + `server.key` (cho `localhost`, `127.0.0.1`, `::1`); `ca.crt` là CA `HUUGIAU Fashion Dev CA` đã cài vào Windows Trusted Root Store.
 
 ## Lưu ý về chạy HTTP
 
-Vì trình duyệt luôn ép sang `https://localhost:8000`, **không nên chuyển server sang HTTP** — sẽ bị lỗi `Bad request version` (browser gửi TLS vào cổng HTTP). Bọc SSL nằm trong `backend/run_local.py` (server chính) và `backend/core/management/commands/runserver.py`. Muốn chạy HTTP cho thật (test nội bộ), dùng `python run_local.py 127.0.0.1 8000 --http`. URL trong `scripts/start.ps1` / `scripts/run_local.ps1` phải để `https://`.
+Nếu cần HTTPS production, cấu hình SSL ở nginx/IIS hoặc load balancer rồi chuyển request
+vào Django qua HTTP nội bộ. Không mở trực tiếp `manage.py runserver` ra Internet.
 
 ## Trạng thái hiện tại
 
-- `server.crt` + `server.key`: cert phục vụ cho trình duyệt, hợp lệ cho `localhost`, `127.0.0.1`, `::1` (SAN đầy đủ).
-- `ca.crt`: CA `HUUGIAU Fashion Dev CA` đã được cài vào **Windows Trusted Root Store** → Chrome/Edge mở `https://localhost:8000/` **không còn cảnh báo**.
+- Certificate production phải được cấp cho domain thật và quản lý tại reverse proxy.
 
 ## Cài CA tin cậy (máy khác)
 
@@ -24,7 +26,8 @@ certutil -user -addstore Root backend\certs\ca.crt
 > `-user` cài cho user hiện tại (không cần admin). Cài toàn máy: chạy PowerShell với quyền admin rồi dùng
 > `Import-Certificate -FilePath .\backend\certs\ca.crt -CertStoreLocation Cert:\LocalMachine\Root`.
 
-Firefox dùng kho chứng chỉ riêng → mở `https://localhost:8000/` → **Advanced → Accept the Risk and Continue**, hoặc cài CA trong *Settings → Privacy & Security → Certificates → Import*.
+Firefox sẽ mở `http://localhost:8000/` khi chạy local. Với production, cài certificate
+domain thật trên reverse proxy và kiểm tra bằng cả Chrome lẫn Firefox.
 
 ## Tạo lại cert
 

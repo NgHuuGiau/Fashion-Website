@@ -1,5 +1,5 @@
 -- ============================================================
--- HUUGIAU Fashion - CREATE TABLES (10 bang don gian)
+-- HUUGIAU Fashion - Tạo 10 bảng đơn giản cho schema legacy
 -- Open in SSMS and press F5
 -- ============================================================
 
