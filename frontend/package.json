@@ -4,8 +4,8 @@
   "description": "HUUGIAU Fashion Website Frontend",
   "private": true,
   "scripts": {
-    "lint:css": "stylelint \"**/*.css\" --formatter=github",
-    "lint:js": "eslint \"**/*.js\" --format=github",
+    "lint:css": "stylelint \"**/*.css\" --formatter=compact",
+    "lint:js": "eslint \"**/*.js\" --format=stylish",
     "lint": "npm run lint:css && npm run lint:js",
     "format:css": "stylelint \"**/*.css\" --fix",
     "format:js": "eslint \"**/*.js\" --fix",

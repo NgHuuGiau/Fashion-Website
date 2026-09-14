@@ -23,7 +23,10 @@
     "declaration-empty-line-before": "never",
     "no-descending-specificity": null,
     "selector-max-compound-selectors": 4,
-    "selector-max-id": 0,
+    "selector-max-id": null,
+    "no-duplicate-selectors": null,
+    "declaration-block-single-line-max-declarations": null,
+    "font-family-no-missing-generic-family-keyword": null,
     "color-no-invalid-hex": true,
     "function-no-unknown": [true, {
       "ignoreFunctions": ["clamp", "min", "max", "env", "var"]
