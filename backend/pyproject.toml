@@ -151,7 +151,7 @@ output = "coverage.xml"
 
 [tool.bandit]
 exclude_dirs = ["tests", "migrations", "venv", ".venv"]
-exclude_paths = ["run_local.py"]
+exclude_paths = []
 skips = ["B101", "B601"]  # assert, shell=True (sometimes needed)
 
 [tool.pip-audit]
