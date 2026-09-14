@@ -1,5 +1,5 @@
 # Core Django
-Django>=6.0,<6.1
+Django>=5.2,<5.3
 djangorestframework>=3.18,<3.19
 drf-spectacular>=0.30,<0.31
 Pillow>=12.0,<13

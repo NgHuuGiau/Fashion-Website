@@ -117,8 +117,8 @@ jobs:
           # Use config from pyproject.toml (excludes tests, migrations, skips B101/B601)
           # -ll reports medium+ only; -lll would fail on low (test passwords, seed random)
           # Exclude run_local.py (dev script, not production)
-          bandit -r backend -c pyproject.toml -ll -x run_local.py
-          bandit -r backend -c pyproject.toml -f json -o bandit-results.json -x run_local.py
+          bandit -r backend -c backend/pyproject.toml -ll -x run_local.py
+          bandit -r backend -c backend/pyproject.toml -f json -o bandit-results.json -x run_local.py
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |
@@ -142,7 +142,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.12', '3.13']
-        django-version: ['6.0']
+        django-version: ['5.2']
     services:
       postgres:
         image: postgres:16-alpine
