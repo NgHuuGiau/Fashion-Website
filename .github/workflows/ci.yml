@@ -116,9 +116,8 @@ jobs:
         run: |
           # Use config from pyproject.toml (excludes tests, migrations, skips B101/B601)
           # -ll reports medium+ only; -lll would fail on low (test passwords, seed random)
-          # Exclude run_local.py (dev script, not production)
-          bandit -r backend -c backend/pyproject.toml -ll -x run_local.py
-          bandit -r backend -c backend/pyproject.toml -f json -o bandit-results.json -x run_local.py
+          bandit -r backend -c backend/pyproject.toml -ll
+          bandit -r backend -c backend/pyproject.toml -f json -o bandit-results.json
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |
