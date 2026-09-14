@@ -91,13 +91,13 @@ jobs:
       - name: Run mypy
         run: |
           cd backend && mypy . --config-file=pyproject.toml --ignore-missing-imports
-        continue-on-error: true
+        continue-on-error: false
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -118,11 +118,11 @@ jobs:
           # -ll reports medium+ only; -lll would fail on low (test passwords, seed random)
           # Exclude run_local.py (dev script, not production)
           bandit -r backend -c pyproject.toml -ll -x run_local.py
-          bandit -r backend -c pyproject.toml -f json -o bandit-results.json -x run_local.py || true
+          bandit -r backend -c pyproject.toml -f json -o bandit-results.json -x run_local.py
 
       - name: Run pip-audit (deps vulnerabilities)
         run: |
-          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json || true
+          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json
 
       - name: Upload security artifacts
         uses: actions/upload-artifact@v4
@@ -141,8 +141,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-        django-version: ['5.2']
+        python-version: ['3.12', '3.13']
+        django-version: ['6.0']
     services:
       postgres:
         image: postgres:16-alpine
@@ -180,7 +180,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-- name: Install dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
@@ -217,7 +217,7 @@ jobs:
             --tb=short \
             --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
             --ignore=tests/stress \
-            --ignore=tests/performance || true
+            --ignore=tests/performance
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -241,7 +241,7 @@ jobs:
     name: Frontend Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -258,21 +258,19 @@ jobs:
           cd frontend && npm install --no-audit --no-fund
 
       - name: Run Stylelint (CSS)
-        # Tạm thời không gate: CSS legacy còn ~200 lỗi cosmetic
-        # (đã dọn 1684 -> ~200). Bật lại khi dọn xong.
         run: |
-          cd frontend && npx stylelint "**/*.css" --formatter=github || true
+          cd frontend && npx stylelint "**/*.css" --formatter=compact
 
       - name: Run ESLint (JS)
         run: |
-          cd frontend && npx eslint "**/*.js" --format=unix || true
+          cd frontend && npx eslint "**/*.js" --format=stylish
 
   build:
     name: Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [lint, type-check, security, test]
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4

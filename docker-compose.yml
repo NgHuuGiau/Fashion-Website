@@ -14,6 +14,15 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   pgbouncer:
     image: edoburu/pgbouncer:1.22
     restart: unless-stopped
@@ -42,6 +51,7 @@ services:
       LOG_POOLER_ERRORS: 1
       LOG_STATS: 1
       STATS_PERIOD: 60
+      PGBOUNCER_ADMIN_PASSWORD: ${PGBOUNCER_ADMIN_PASSWORD:?Set PGBOUNCER_ADMIN_PASSWORD}
     volumes:
       - ./config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
       - ./config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
@@ -60,7 +70,7 @@ services:
   app:
     build: .
     restart: unless-stopped
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env}
     environment:
       DB_ENGINE: postgres
       DB_HOST: pgbouncer
@@ -74,6 +84,8 @@ services:
       TRUSTED_PROXY: "True"
     depends_on:
       pgbouncer:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]

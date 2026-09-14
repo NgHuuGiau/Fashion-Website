@@ -10,7 +10,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
-$url = "https://${BindHost}:${Port}/"
+$url = "http://${BindHost}:${Port}/"
 
 if (-not (Test-Path $pythonExe)) {
     throw "Không tìm thấy Python trong `.venv`: $pythonExe"
@@ -20,7 +20,7 @@ if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  HUUGIAU Fashion - HTTPS Server" -ForegroundColor Cyan
+Write-Host "  HUUGIAU Fashion - Local HTTP Server" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "URL: $url" -ForegroundColor Green
 Write-Host ""

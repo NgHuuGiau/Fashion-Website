@@ -18,7 +18,7 @@ $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
 if ($BindHost -eq "localhost") { $BindHost = "[::1]" }
 $bind = "${BindHost}:$Port"
-$openUrl = "https://localhost:$Port/"
+$openUrl = "http://localhost:$Port/"
 
 function Step($message) {
     Write-Host ""

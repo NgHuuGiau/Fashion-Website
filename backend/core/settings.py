@@ -31,6 +31,9 @@ def env_list(name, default=None):
 
 
 load_env_file(BASE_DIR / ".env")
+configured_env = os.getenv("APP_ENV_FILE")
+if configured_env:
+    load_env_file(BASE_DIR / configured_env)
 
 
 _secret_key = os.getenv("SECRET_KEY")
@@ -146,7 +149,7 @@ if _DB_BACKEND == "mssql":
         "driver": os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
         "trusted_connection": env_bool("DB_TRUSTED_CONNECTION", True),
         "extra_params": os.getenv(
-            "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=yes"
+            "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=no"
         ),
     }
 
@@ -187,6 +190,7 @@ DEFAULT_FROM_EMAIL = os.getenv(
 
 
 VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+VNPAY_REFUND_URL = os.getenv("VNPAY_REFUND_URL", "")
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
 
