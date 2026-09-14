@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Blog/Lookbook, FAQ support chat, wishlist, newsletter
 - Email thông báo SMTP Gmail App Password: đặt hàng, thanh toán, hủy đơn, giao xong, nhắc giỏ hàng bỏ quên
 - So sánh sản phẩm (session-based, tối đa 4), timeline đơn hàng 4 bước
-- Tối ưu ảnh sang WebP (`optimize_images`), server dev HTTPS cert tự sinh (`run_local.py`)
+- Tối ưu ảnh sang WebP (`optimize_images`), server dev chạy bằng `manage.py runserver`
 
 ### Technical Stack
 - Python 3.12+ / Django 5.2

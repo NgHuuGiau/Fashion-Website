@@ -26,8 +26,8 @@ python manage.py migrate
 # 6. Create superuser
 python manage.py createsuperuser
 
-# 6. Run development server
-python run_local.py
+# 7. Run development server
+python manage.py runserver 8000
 ```
 
 ## Development Workflow

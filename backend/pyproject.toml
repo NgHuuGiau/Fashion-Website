@@ -77,7 +77,6 @@ exclude = [
     "tests\\.py$",
     "test_.*\\.py$",
     ".*_test\\.py$",
-    "(^|/)run_local\\.py$",
 ]
 
 [[tool.mypy.overrides]]
