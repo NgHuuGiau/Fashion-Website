@@ -1,12 +1,12 @@
 # Deploy production
 
-Hướng dẫn đưa website thời trang lên môi trường thật (quốc tế). Stack hiện tại: Django 6 trên **Windows** với **SQL Server**. Có 2 đường triển khai khả thi.
+Hướng dẫn đưa website thời trang lên môi trường thật (quốc tế). Stack hiện tại: Django 5.2 trên **Windows** với **SQL Server**. Có 2 đường triển khai khả thi.
 
 ## Lựa chọn 1 — VPS Windows (giữ nguyên stack, dễ nhất)
 
 Vì code dùng `mssql-django` + `pyodbc`, giữ nguyên Windows/SQL Server là ít đổi nhất. Dùng VPS Windows Server 2019/2022 (VD: Azure VM B2s, Vultr Windows).
 
-1. Cài Python 3.12 (64-bit), ODBC Driver 18 for SQL Server, SQL Server Express (hoặc SQL Server chuẩn nếu dùng external DB).
+1. Cài Python 3.12 (64-bit), ODBC Driver 17 hoặc 18 for SQL Server, SQL Server Express (hoặc SQL Server chuẩn nếu dùng external DB).
 2. Copy repo, tạo venv, `pip install -r requirements.txt`.
 3. Chạy script DB (`database/sql/`), `manage.py migrate`, `manage.py import_legacy`, `manage.py seed_products --sync`.
 4. **Application server production:** dùng Uvicorn/Gunicorn nhiều worker phía sau reverse proxy:

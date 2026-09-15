@@ -3,7 +3,7 @@
 ## 1. Requirements
 
 - SQL Server local instance (MSSQLSERVER)
-- ODBC Driver 18 for SQL Server ([tải về](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server))
+- ODBC Driver 17 hoặc 18 for SQL Server ([tải về](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server))
 - Windows Authentication (mặc định)
 
 ## 2. Kiểm tra kết nối ODBC
@@ -89,26 +89,27 @@ DB_ENGINE=mssql
 
 Sau khi đổi cấu hình, cần chạy lại `migrate` và `import_legacy`.
 
-## 6b. Chạy test trên CI (SQL Server Docker)
+## 6b. Chạy test trên CI (PostgreSQL service)
 
-GitHub Actions (`.github/workflows/test.yml`) chạy 400 tests trên SQL Server 2022 **trong Docker** (không dùng Windows Authentication):
+GitHub Actions (`.github/workflows/ci.yml`) chạy test trên PostgreSQL 16 service. SQL Server/ODBC chỉ dùng cho môi trường local hoặc production khi bạn chọn `DB_ENGINE=mssql`:
 
 ```
-DB_HOST=127.0.0.1
-DB_PORT=1433
-DB_USER=sa
-DB_PASSWORD=<pass tương tự>
-DB_TRUSTED_CONNECTION=false
+DB_ENGINE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=test_fashion
+DB_USER=test
+DB_PASSWORD=test
 ```
 
-Local muốn mô phỏng y hệt CI, chạy bên ngoài:
+Local muốn mô phỏng y hệt CI, chạy PostgreSQL bằng Docker:
 
 ```powershell
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<pass>" -e "MSSQL_PID=Express" `
-  -p 1433:1433 -d --name fash-sql mcr.microsoft.com/mssql/server:2022-latest
+docker run -e "POSTGRES_DB=test_fashion" -e "POSTGRES_USER=test" -e "POSTGRES_PASSWORD=test" `
+  -p 5432:5432 -d --name fash-postgres postgres:16-alpine
 ```
 
-Rồi trỏ `.env` về `DB_HOST=127.0.0.1`, `DB_USER=sa`, `DB_PASSWORD=<pass>`, `DB_TRUSTED_CONNECTION=false`.
+Rồi trỏ `.env` về các giá trị PostgreSQL ở trên.
 
 ## 7. Đồng bộ phân quyền (role 0/1/2) giữa SQL Server và web
 

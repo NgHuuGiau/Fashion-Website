@@ -1,7 +1,7 @@
 # HUUGIAU Atelier — Website Thời Trang
 
 ![Python](https://img.shields.io/badge/Python_3.12%2B-3776AB?logo=python&logoColor=white)
-![Django](https://img.shields.io/badge/Django_6.x-092E20?logo=django&logoColor=white)
+![Django](https://img.shields.io/badge/Django_5.2-092E20?logo=django&logoColor=white)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
@@ -23,7 +23,7 @@ Website bán thời trang xây dựng bằng Django, giao diện editorial, qu�
 
 | Thành phần | Trạng thái |
 |---|---|
-| **Backend (Django 6.x)** | ✅ 435 tests được collect; coverage cần xác nhận từ CI |
+| **Backend (Django 5.2)** | ✅ 435 tests được collect; coverage cần xác nhận từ CI |
 | **Database (SQL Server)** | ✅ Tự động migrate + import legacy |
 | **Frontend (HTML5/CSS3/JS ES5)** | ✅ Responsive, editorial design |
 | **Thanh toán (VNPay + VietQR)** | ✅ Gateway + IPN + callback + HMAC verify |
@@ -65,7 +65,7 @@ Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và
 ### 3. Khởi tạo Database
 
 ```powershell
-# Tạo tables + dữ liệu mẫu legacy (chạy trong SSMS)
+# Tạo tables + 76 sản phẩm, 2 màu và dữ liệu mẫu legacy (chạy trong SSMS)
 database/sql/01_CREATE_TABLES.sql
 database/sql/02_DEMO_DATA.sql
 
@@ -197,7 +197,7 @@ coverage html  # mở htmlcov/index.html
 - **Lint**: Ruff (Python) + ESLint (JS)
 - **Type Check**: Mypy (continue-on-error)
 - **Security**: Bandit + pip-audit (continue-on-error)
-- **Tests**: Django tests trên PostgreSQL (Python 3.12/3.13, Django 6.x)
+- **Tests**: Django tests trên PostgreSQL (Python 3.12/3.13, Django 5.2)
 - **Build**: Django check --deploy, collectstatic, compress
 - **CodeQL**: Python + JavaScript analysis
 
