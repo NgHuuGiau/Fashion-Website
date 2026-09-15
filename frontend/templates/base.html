@@ -218,8 +218,9 @@
         </div>
     </header>
 
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
     <main class="container page-wrap">
-        <div id="toast-container"></div>
         <div id="messages-data" style="display:none">{% if messages %}[{% for message in messages %}{"text":"{{ message|escapejs }}","tags":"{{ message.tags }}"}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %}</div>
 
         {% block content %}{% endblock %}
