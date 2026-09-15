@@ -274,13 +274,20 @@ def product_list(request: HttpRequest) -> HttpResponse:
 
         products_qs = products_qs.filter(id__in=merged_ids)
 
+    variant_filter = Q()
     if selected_sizes:
-        products_qs = products_qs.filter(variants__size__in=selected_sizes).distinct()
+        variant_filter &= Q(variants__size__in=selected_sizes)
 
     if selected_colors:
-        products_qs = products_qs.filter(
-            variants__color_name__in=selected_colors
-        ).distinct()
+        color_aliases = set(selected_colors)
+        color_aliases.update(selected_color_keys)
+        color_filter = Q()
+        for color_name in color_aliases:
+            color_filter |= Q(variants__color_name__iexact=color_name)
+        variant_filter &= color_filter
+
+    if selected_sizes or selected_colors:
+        products_qs = products_qs.filter(variant_filter).distinct()
 
     no_filter_mode = (
         not any([category_slug, keyword, min_price_raw, max_price_raw])

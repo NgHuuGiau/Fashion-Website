@@ -110,6 +110,22 @@ class ProductViewsTest(TestCase):
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
 
+    def test_product_list_filter_by_color_without_accent(self):
+        response = self.client.get(
+            reverse("products:product_list"), {"color": "den", "sort": "name_asc"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Áo test")
+        self.assertNotContains(response, "Quần test")
+
+    def test_product_list_color_and_size_must_match_same_variant(self):
+        response = self.client.get(
+            reverse("products:product_list"),
+            {"color": "den", "size": "L", "sort": "name_asc"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Áo test")
+
     def test_product_list_sort_price_desc(self):
         response = self.client.get(
             reverse("products:product_list"), {"sort": "price_desc", "min_price": "1"}
