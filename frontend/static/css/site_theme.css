@@ -6983,6 +6983,24 @@ body {
     padding-bottom: 3rem;
 }
 
+/* Giữ trọn khung ảnh sản phẩm, không cắt hoặc phóng quá sát. */
+.card-media img,
+.product-card-media img,
+.card-media-editorial img,
+.cart-media img {
+    padding: 0.5rem;
+    object-fit: contain;
+    object-position: center;
+    background: var(--bg-soft);
+}
+
+.gallery-stage img,
+#detail-main-image {
+    padding: clamp(0.5rem, 1.5vw, 1.25rem);
+    object-fit: contain;
+    object-position: center;
+}
+
 @media (width <= 700px) {
     .container { width: min(100% - 1.25rem, 1240px); }
     .page-wrap { padding-top: 1rem; }
