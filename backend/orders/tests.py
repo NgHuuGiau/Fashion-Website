@@ -1600,6 +1600,9 @@ class CsvExportTest(TestCase):
 
 class BankPaymentMobileTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
         self.user = User.objects.create_user(
             username="buyer", password="StrongPass123!"
         )

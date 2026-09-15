@@ -3,7 +3,7 @@ from time import time
 
 from django.conf import settings
 from django.core.cache import cache
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 
 
 def get_client_ip(request):
@@ -65,7 +65,7 @@ class RateLimiter:
     def get_response(self, request):
         retry_after = self.get_retry_after(request)
         if request.headers.get("Accept", "").startswith("application/json"):
-            resp = JsonResponse(
+            resp: HttpResponse = JsonResponse(
                 {"error": self.error_msg, "retry_after": retry_after}, status=429
             )
         else:
