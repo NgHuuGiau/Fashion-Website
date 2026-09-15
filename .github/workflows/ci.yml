@@ -110,6 +110,8 @@ jobs:
 
       - name: Install security tools
         run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
           pip install bandit==1.7.8 pip-audit==2.7.0
 
       - name: Run Bandit (SAST)
@@ -140,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
         django-version: ['5.2']
     services:
       postgres:
@@ -268,7 +270,7 @@ jobs:
     name: Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, type-check, security, test]
+    needs: [lint, type-check, security, test, frontend-lint]
     continue-on-error: false
     steps:
       - name: Checkout
@@ -287,11 +289,15 @@ jobs:
 
       - name: Install deps
         run: |
+          python -m pip install --upgrade pip
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci --no-audit --no-fund
 
       - name: Django system check
         run: |
-          cd backend && python manage.py check --deploy --fail-level=ERROR
+          cd backend && DEBUG=False python manage.py check --deploy --fail-level=ERROR
 
       - name: Collect static (dry-run)
         run: |
@@ -303,15 +309,13 @@ jobs:
           DEBUG=False SECURE_SSL_REDIRECT=False ALLOWED_HOSTS=testserver python manage.py compress --force
 
       - name: Frontend build check
-        run: |
-          cd frontend && npm run build || echo "No build script - skipping"
+        run: cd frontend && npm run build --if-present
 
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
     needs: [lint, type-check, security, test, frontend-lint, build]
-    continue-on-error: true
     steps:
       - name: Collect results
         run: |
