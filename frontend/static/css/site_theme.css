@@ -6996,7 +6996,8 @@ body {
 
 .gallery-stage img,
 #detail-main-image {
-    padding: clamp(0.5rem, 1.5vw, 1.25rem);
+    display: block;
+    padding: 0;
     object-fit: contain;
     object-position: center;
 }
