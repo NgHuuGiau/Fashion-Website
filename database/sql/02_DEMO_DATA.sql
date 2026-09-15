@@ -165,7 +165,7 @@ WHILE @order <= 5000 BEGIN
     VALUES (@order,((@order-1)%76)+1,
         (SELECT TOP 1 [id] FROM [Variants] WHERE [product_id]=((@order-1)%76)+1 AND [color_name]=CASE WHEN @order%2=0 THEN N'Đen' ELSE N'Trắng' END AND [size]=CASE WHEN [product_id] <= 35 OR [product_id] BETWEEN 51 AND 54 OR [product_id] BETWEEN 57 AND 60 OR [product_id] BETWEEN 63 AND 64 OR [product_id] BETWEEN 67 AND 69 OR [product_id] BETWEEN 71 AND 72 OR [product_id]=74 THEN N'M' ELSE N'FREE' END),
         CASE WHEN @order%2=0 THEN N'Đen' ELSE N'Trắng' END,
-        CASE WHEN ((@order-1)%76)+1 <= 35 OR ((@order-1)%76)+1 IN (51,52,54,57,58,60,63,67,69,71,72,74) THEN N'M' ELSE N'FREE' END,
+        CASE WHEN ((@order-1)%76)+1 <= 35 OR ((@order-1)%76)+1 BETWEEN 51 AND 54 OR ((@order-1)%76)+1 BETWEEN 57 AND 60 OR ((@order-1)%76)+1 BETWEEN 63 AND 64 OR ((@order-1)%76)+1 BETWEEN 67 AND 69 OR ((@order-1)%76)+1 BETWEEN 71 AND 72 OR ((@order-1)%76)+1=74 THEN N'M' ELSE N'FREE' END,
         1+(@order%2),199000+(((@order-1)%8)*50000));
     IF @order%3=0 INSERT INTO [OrderItems] ([order_id],[product_id],[variant_id],[color],[size],[quantity],[price]) VALUES (@order,(@order%76)+1,(SELECT TOP 1 [id] FROM [Variants] WHERE [product_id]=(@order%76)+1 AND [color_name]=N'Đen'),N'Đen',CASE WHEN (@order%76)+1 <= 35 OR (@order%76)+1 BETWEEN 51 AND 54 OR (@order%76)+1 BETWEEN 57 AND 60 OR (@order%76)+1 BETWEEN 63 AND 64 OR (@order%76)+1 BETWEEN 67 AND 69 OR (@order%76)+1 BETWEEN 71 AND 72 OR (@order%76)+1=74 THEN N'M' ELSE N'FREE' END,1,249000);
     SET @order += 1;
