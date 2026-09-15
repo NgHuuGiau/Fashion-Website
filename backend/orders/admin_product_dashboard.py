@@ -5,6 +5,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
@@ -60,6 +61,7 @@ def _validate_uploaded_file(uploaded_file, errors, label):
 
 
 RECENT_ORDER_LIMIT = 200
+ADMIN_ORDER_PAGE_SIZE = 25
 LOW_STOCK_LIMIT = 10
 REVENUE_DAYS_LIMIT = 14
 
@@ -321,6 +323,7 @@ def build_admin_dashboard_context(
     current_user=None,
     inventory_status=None,
     inventory_q=None,
+    order_page=1,
 ):
     effective_form_data = form_data or build_admin_product_form_data()
     all_orders = Order.objects.all().prefetch_related("items__product")
@@ -333,7 +336,9 @@ def build_admin_dashboard_context(
             | Q(customer_name__icontains=order_q)
             | Q(phone__icontains=order_q)
         )
-    orders = orders_qs
+    orders_page = Paginator(
+        orders_qs.order_by("-created_at"), ADMIN_ORDER_PAGE_SIZE
+    ).get_page(order_page)
     from .views import decorate_order_tracking
 
     now = timezone.now()
@@ -647,8 +652,9 @@ def build_admin_dashboard_context(
         "today_new_accounts": today_new_accounts,
         "recent_orders": [
             decorate_order_tracking(order)
-            for order in orders.order_by("-created_at")[:RECENT_ORDER_LIMIT]
+            for order in orders_page.object_list
         ],
+        "orders_page": orders_page,
         "low_stock_products": Product.objects.filter(
             available=True, stock__lte=5
         ).order_by("stock", "name")[:LOW_STOCK_LIMIT],
@@ -918,6 +924,7 @@ def admin_dashboard(request):
 
     order_status = request.GET.get("order_status", "").strip() or None
     order_q = request.GET.get("order_q", "").strip() or None
+    order_page = request.GET.get("order_page", "1").strip() or "1"
     inventory_status = request.GET.get("inventory_status", "").strip()
     inventory_q = request.GET.get("inventory_q", "").strip()
 
@@ -1186,6 +1193,7 @@ def admin_dashboard(request):
                 current_user=request.user,
                 inventory_status=inventory_status,
                 inventory_q=inventory_q,
+                order_page=order_page,
             ),
         )
 
@@ -1209,5 +1217,6 @@ def admin_dashboard(request):
             current_user=request.user,
             inventory_status=inventory_status,
             inventory_q=inventory_q,
+            order_page=order_page,
         ),
     )

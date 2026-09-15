@@ -902,6 +902,17 @@
             </tbody>
           </table>
         </div>
+        {% if orders_page.paginator.num_pages > 1 %}
+        <nav class="pagination admin-pagination" aria-label="Phân trang đơn hàng">
+          {% if orders_page.has_previous %}
+            <a class="page-link" href="?order_page={{ orders_page.previous_page_number }}&order_status={{ request.GET.order_status|urlencode }}&order_q={{ request.GET.order_q|urlencode }}">← Trước</a>
+          {% endif %}
+          <span class="admin-pagination-summary">Trang {{ orders_page.number }}/{{ orders_page.paginator.num_pages }} · {{ orders_page.paginator.count }} đơn</span>
+          {% if orders_page.has_next %}
+            <a class="page-link" href="?order_page={{ orders_page.next_page_number }}&order_status={{ request.GET.order_status|urlencode }}&order_q={{ request.GET.order_q|urlencode }}">Sau →</a>
+          {% endif %}
+        </nav>
+        {% endif %}
       </div>
     </section>
 
