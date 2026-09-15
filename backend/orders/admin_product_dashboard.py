@@ -651,8 +651,7 @@ def build_admin_dashboard_context(
         "today_revenue": today_revenue,
         "today_new_accounts": today_new_accounts,
         "recent_orders": [
-            decorate_order_tracking(order)
-            for order in orders_page.object_list
+            decorate_order_tracking(order) for order in orders_page.object_list
         ],
         "orders_page": orders_page,
         "low_stock_products": Product.objects.filter(

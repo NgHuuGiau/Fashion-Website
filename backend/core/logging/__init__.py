@@ -15,7 +15,7 @@ def get_correlation_id() -> str:
     return _thread_local.correlation_id
 
 
-def set_correlation_id(correlation_id: str = None) -> str:
+def set_correlation_id(correlation_id: str | None = None) -> str:
     """Set correlation ID for current request."""
     if correlation_id is None:
         correlation_id = str(uuid.uuid4())
@@ -30,7 +30,7 @@ def get_request_id() -> str:
     return _thread_local.request_id
 
 
-def set_request_id(request_id: str = None) -> str:
+def set_request_id(request_id: str | None = None) -> str:
     """Set request ID for current request."""
     if request_id is None:
         request_id = str(uuid.uuid4())[:8]
