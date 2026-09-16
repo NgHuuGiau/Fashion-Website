@@ -137,11 +137,11 @@ Database có sẵn 19 tài khoản (hash PBKDF2 — không đọc được từ 
 
 | Vai trò | Username | Password |
 |---------|----------|----------|
-| Quản trị | `admin` | `admin123` |
-| Nhân viên (3) | `staff1`, `staff2`, `staff3` | `staff123` |
-| Khách hàng (15) | `user01` → `user15` | `user123` |
+| Quản trị demo | `admin` | `admin123` |
+| Nhân viên demo | `staff1`, `staff2`, `staff3` | `staff123` |
+| Khách hàng demo | `user01` → `user15` | `user123` |
 
-> Login chấp nhận username, email hoặc SĐT (lấy từ `users_userprofile`). Chặn sau 10 lần sai/5 phút; restart server để reset.
+> Chỉ dùng các tài khoản trên ở database demo/local. Không tạo hoặc dùng chúng trên production. Login chấp nhận username, email hoặc SĐT (lấy từ `users_userprofile`).
 
 ## 9. Lưu ý
 

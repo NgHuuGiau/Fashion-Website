@@ -18,11 +18,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--force",
-            action="store_true",
-            help="Cho phép chạy kể cả khi DEBUG=False (mặc định từ chối để tránh seed nhầm production).",
-        )
-        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Chỉ mô phỏng seed, không ghi dữ liệu vào DB.",
@@ -36,9 +31,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from django.conf import settings
 
-        if not settings.DEBUG and not options["force"]:
+        if not settings.DEBUG:
             raise CommandError(
-                "Từ chối seed khi DEBUG=False. Chạy lại với --force nếu bạn chắc chắn."
+                "Từ chối nạp dữ liệu demo khi DEBUG=False; dữ liệu mẫu không được ghi vào production."
             )
 
         dry_run = options.get("dry_run", False)

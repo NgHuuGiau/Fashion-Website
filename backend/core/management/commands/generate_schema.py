@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 "title": "HUUGIAU Fashion API",
                 "version": "1.0.0",
                 "description": "API documentation for HUUGIAU Fashion E-commerce",
-                "contact": {"name": "HUUGIAU Studio", "email": "support@huugiau.local"},
+                "contact": {"name": "HUUGIAU Studio"},
                 "license": {"name": "MIT"},
             },
             "servers": [{"url": "/api/", "description": "API base URL"}],

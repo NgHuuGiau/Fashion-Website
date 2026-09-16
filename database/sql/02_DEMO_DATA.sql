@@ -2,6 +2,7 @@
 -- HUUGIAU Fashion - DEMO DATA
 -- Must be run after 01_CREATE_TABLES.sql in SQL Server.
 -- Seeds the legacy schema used by import_legacy.
+-- DEMO ONLY: this inserts sample users, orders, reviews and addresses; never run on production.
 -- ============================================================
 SET NOCOUNT ON;
 USE [HUUGIAU_Fashion];

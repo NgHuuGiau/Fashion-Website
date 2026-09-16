@@ -23,14 +23,16 @@ Website bán thời trang xây dựng bằng Django, giao diện editorial, qu�
 
 | Thành phần | Trạng thái |
 |---|---|
-| **Backend (Django 5.2)** | ✅ 435 tests được collect; coverage cần xác nhận từ CI |
-| **Database (SQL Server)** | ✅ Tự động migrate + import legacy |
-| **Frontend (HTML5/CSS3/JS ES5)** | ✅ Responsive, editorial design |
-| **Thanh toán (VNPay + VietQR)** | ✅ Gateway + IPN + callback + HMAC verify |
-| **Email (SMTP)** | ✅ Xác nhận đơn, thanh toán, hủy, giao |
-| **Admin Dashboard** | ✅ Doanh thu, CRUD, bulk actions, export CSV |
-| **SSL Dev (HTTPS)** | ✅ Cert local + CA tin cậy |
-| **CI/CD (GitHub Actions)** | ✅ PostgreSQL + Python 3.12/3.13 + CodeQL |
+| **Backend (Django 5.2)** | Có các luồng cửa hàng và bộ test; xem kết quả CI mới nhất trước khi phát hành |
+| **Database (SQL Server)** | Có backend SQL Server; cần kiểm tra kết nối, migration và full test trên đúng SQL Server triển khai |
+| **Frontend (HTML5/CSS3/JS)** | Giao diện responsive; cần kiểm tra lại trên thiết bị và trình duyệt mục tiêu |
+| **Thanh toán** | Có code VNPay và VietQR; VNPay cần merchant/callback thật. VietQR là chuyển khoản cần nhân viên đối soát, không có IPN ngân hàng |
+| **Email** | Có code gửi email; cần SMTP thật và kiểm tra nhận email trước khi mở bán |
+| **Admin Dashboard** | Có dashboard, CRUD, bulk actions và export CSV |
+| **HTTPS** | Cấu hình HTTPS production tại reverse proxy; chứng chỉ local không thay cho domain/SSL public |
+| **CI (GitHub Actions)** | Workflow chạy test trên PostgreSQL và Python 3.10–3.13; không xác nhận SQL Server production. Xem trạng thái run mới nhất trên GitHub |
+
+> **Chưa xác nhận sẵn sàng mở bán:** cần hoàn tất kết nối/test SQL Server, cấu hình và thử thanh toán/email thật hoặc sandbox phù hợp, HTTPS public, backup khôi phục và giám sát. CI xanh không thay thế các bước này.
 
 ---
 
@@ -56,7 +58,12 @@ DB_HOST=.
 DB_NAME=HUUGIAU_Fashion
 VNPAY_TMN_CODE=your_sandbox_tmn
 VNPAY_HASH_SECRET=your_sandbox_secret
+BANK_TRANSFER_ENABLED=False
+SHOP_BANK_ACCOUNT=
+SHOP_ACCOUNT_NAME=
 ```
+
+Chuyển khoản ngân hàng mặc định bị tắt. Chỉ bật sau khi cấu hình đúng số tài khoản và tên chủ tài khoản; khách báo đã chuyển không được xem là bằng chứng thanh toán, nhân viên phải đối soát trước khi cập nhật đơn.
 
 Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và HSTS. Thay toàn bộ giá trị `replace-me` trước khi deploy.
 
@@ -69,10 +76,10 @@ Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và
 database/sql/01_CREATE_TABLES.sql
 database/sql/02_DEMO_DATA.sql
 
-# Hoặc dùng Python command (tạo 1000 orders, 155 reviews, 49 addresses)
+# Hoặc dùng Python command (chỉ môi trường demo với DEBUG=True; tạo dữ liệu giả)
 cd backend
 python manage.py migrate
-python manage.py seed_all --force --no-input
+python manage.py seed_all --no-input
 ```
 
 ### 4. Chạy server
@@ -105,7 +112,8 @@ Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production �
 | **Staff** | `staff1` / `staff2` / `staff3` | `staff123` |
 | **User (15 tài khoản)** | `user01` → `user15` | `user123` |
 
-> Password hash pbkdf2_sha256. Sau 10 lần sai trong 5 phút → chặn 5 phút.
+> Đây là tài khoản demo chỉ được tạo bởi lệnh seed ở môi trường `DEBUG=True`. Không dùng các mật khẩu này trên production; hãy tạo tài khoản quản trị riêng và đổi mật khẩu ngay.
+> Sau 10 lần sai trong 5 phút → chặn 5 phút.
 
 ---
 
@@ -117,8 +125,8 @@ Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production �
 | **Danh mục** | Lọc category/size/color/price, sort, pagination (12/sp) |
 | **Chi tiết SP** | Gallery 6 ảnh, variant (color+size), đã xem, size chart, wishlist |
 | **Giỏ hàng** | Session-based, cập nhật SL, coupon, phí ship |
-| **Thanh toán** | COD, VietQR (polling 15p), VNPay (redirect + IPN + HMAC) |
-| **Email** | Xác nhận, thanh toán, hủy, giao (tự lấy email tài khoản) |
+| **Thanh toán** | COD; VietQR chờ nhân viên đối soát; VNPay redirect + xác minh chữ ký callback/IPN khi đã cấu hình merchant |
+| **Email** | Mẫu xác nhận, thanh toán, hủy, giao; chỉ gửi được khi SMTP và địa chỉ nhận hợp lệ |
 | **Tra cứu đơn** | Mã đơn + SĐT, hủy đơn + hoàn stock |
 | **Tìm kiếm** | Gợi ý debounce 250ms, không phân biệt dấu |
 | **Đăng nhập** | Email / SĐT / username |
@@ -180,14 +188,14 @@ coverage report -m
 coverage html  # mở htmlcov/index.html
 ```
 
-| App | Tests | Phủ |
+| App | Phạm vi test |
 |---|---|---|
-| `orders` | 181 | Cart, checkout COD/bank/VNPay, VNPay IPN/callback, admin, coupon, export |
-| `products` | 117 | Catalog, detail, variant, search, review, wishlist, compare, size guide |
-| `users` | 64 | Auth, profile, role sync, activity |
-| `core` | 44 | API, CSP, rate limit, cache, SEO, invoice |
+| `orders` | Cart, checkout COD/bank/VNPay, callback, admin, coupon, export |
+| `products` | Catalog, detail, variant, search, review, wishlist, compare, size guide |
+| `users` | Auth, profile, role sync, activity |
+| `core` | API, CSP, rate limit, cache, SEO, invoice |
 
-> **Coverage 86%** — management commands (seed/import/export) bỏ qua vì chỉ dùng dev.
+> Số test và coverage thay đổi theo code; lấy kết quả của lần chạy test/CI hiện tại làm chuẩn, không dựa vào số liệu ghi cứng trong README.
 
 ---
 
@@ -195,11 +203,13 @@ coverage html  # mở htmlcov/index.html
 
 `.github/workflows/ci.yml`:
 - **Lint**: Ruff (Python) + ESLint (JS)
-- **Type Check**: Mypy (continue-on-error)
-- **Security**: Bandit + pip-audit (continue-on-error)
-- **Tests**: Django tests trên PostgreSQL (Python 3.12/3.13, Django 5.2)
+- **Type Check**: Mypy (bắt buộc pass)
+- **Security**: Bandit + pip-audit (bắt buộc pass)
+- **Tests**: Django tests trên PostgreSQL (Python 3.10–3.13, Django 5.2)
 - **Build**: Django check --deploy, collectstatic, compress
-- **CodeQL**: Python + JavaScript analysis
+- **CodeQL**: Python + JavaScript analysis trong workflow riêng
+
+Ma trận test hiện cấu hình Python 3.10–3.13. CI dùng PostgreSQL; dự án local/production dùng SQL Server nên vẫn cần chạy test tích hợp riêng trên SQL Server.
 
 ---
 
