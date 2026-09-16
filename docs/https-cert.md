@@ -85,4 +85,4 @@ Tạo xong: **xóa CA cũ** khỏi Trust Store nếu bạn tạo CA mới (Certi
 
 - **`403 Forbidden — CSRF verification failed — Origin checking failed`**: trình duyệt gửi header `Origin` khi POST; origin phải nằm trong `CSRF_TRUSTED_ORIGINS` (`core/settings.py` đã cấu hình `localhost` + `127.0.0.1`). Không liên quan đến HTTPS.
 - **"Not secure" trên `127.0.0.1`**: cert có SAN chứa IP, nhưng nếu CA chưa cài thì vẫn cảnh báo → cài CA như trên.
-- **`KeyError: WERKZEUG_SERVER_FD`**: đừng dùng `runserver_plus`; dùng `python manage.py runserver` (custom command `core/management/commands/runserver.py` bọc SSL tự động).
+- **`KeyError: WERKZEUG_SERVER_FD`**: đừng dùng `runserver_plus`; dùng `python manage.py runserver`. HTTP là mặc định để chạy local và Playwright; đặt `DEV_HTTPS=true` nếu cần bật HTTPS bằng cert trong `backend/certs/`.

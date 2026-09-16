@@ -3468,6 +3468,10 @@ class TimelineInLookupTest(TestCase):
         self.assertContains(resp, "order-timeline")
 
 
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    EMAIL_HOST="localhost",
+)
 class CartReminderTest(TestCase):
     def setUp(self):
         from django.core.cache import cache
