@@ -235,7 +235,7 @@ def build_stock_reply():
 def build_shipping_reply():
     return (
         "Shop free ship toàn quốc cho đơn từ 499K. Đơn dưới mức đó, phí ship hiển thị ngay ở giỏ hàng "
-        "trước khi bạn xác nhận đặt. Giao nội thành TP.HCM 1-2 ngày, các tỉnh khác 3-7 ngày làm việc."
+        "trước khi bạn xác nhận đặt. Thời gian giao dự kiến phụ thuộc khu vực và sẽ được shop xác nhận khi tiếp nhận đơn."
     )
 
 

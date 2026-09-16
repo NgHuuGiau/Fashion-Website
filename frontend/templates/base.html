@@ -35,7 +35,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     {% compress css %}
     <link rel="stylesheet" href="{% static 'css/fontawesome-all.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/site_theme.css' %}?v=20260916">
+    <link rel="stylesheet" href="{% static 'css/site_theme.css' %}?v=20260917-2">
     <link rel="stylesheet" href="{% static 'css/cookie_consent.css' %}">
     <link rel="stylesheet" href="{% static 'css/skeleton.css' %}">
     {% endcompress %}
@@ -231,7 +231,7 @@
             <div class="footer-col">
                 <h3>HUUGIAU Atelier</h3>
                 <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
-                <p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>
+                {% if STORE_ADDRESS %}<p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>{% endif %}
                 <div class="footer-social">
                     <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
                     <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
@@ -255,7 +255,8 @@
                     <li><a href="{% url 'orders:promo_page' %}">Khuyến mãi</a></li>
                     <li><a href="{% url 'faq' %}">Câu hỏi thường gặp</a></li>
                 </ul>
-                <p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hotline: <a href="tel:{{ HOTLINE }}" class="footer-email">{{ HOTLINE }}</a> · 9:00–21:30 mỗi ngày</p>
+                {% if HOTLINE %}<p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hotline: <a href="tel:{{ HOTLINE }}" class="footer-email">{{ HOTLINE }}</a></p>{% endif %}
+                {% if SUPPORT_EMAIL %}<p style="margin-top:0.35rem;font-size:0.78rem;color:var(--muted-light)">Email: <a href="mailto:{{ SUPPORT_EMAIL }}" class="footer-email">{{ SUPPORT_EMAIL }}</a></p>{% endif %}
             </div>
             <div class="footer-col">
                 <h3>Danh mục</h3>
@@ -292,10 +293,6 @@
                     <i class="fa-solid fa-building-columns" title="Chuyển khoản ngân hàng"></i>
                     <i class="fa-solid fa-truck-fast" title="COD"></i>
                 </div>
-            </div>
-            <div class="footer-legal">
-                MST: 0312 456 789 &nbsp;&middot;&nbsp; ĐKKD số 0312345678 do Sở KH&amp;ĐT TP.HCM cấp ngày 12/01/2020
-                &nbsp;&middot;&nbsp; 92 Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh
             </div>
         </div>
     </footer>
@@ -348,17 +345,6 @@
         </form>
     </section>
 
-    <div id="buy-popup" class="buy-popup hidden" aria-live="polite">
-        <div class="buy-popup-body">
-            <span class="buy-popup-thumb" id="buy-popup-thumb"></span>
-            <div class="buy-popup-copy">
-                <p class="buy-popup-name" id="buy-popup-name"></p>
-                <p class="buy-popup-meta" id="buy-popup-meta"></p>
-            </div>
-        </div>
-        <button type="button" class="buy-popup-close" id="buy-popup-close" aria-label="Đóng thông báo">×</button>
-    </div>
-
     <div id="exit-popup" class="exit-popup hidden" role="dialog" aria-modal="true" aria-label="Ưu đãi chớp nhoáng">
         <div class="exit-popup-panel panel">
             <button type="button" class="exit-popup-close" id="exit-popup-close" aria-label="Đóng">×</button>
@@ -393,7 +379,7 @@
     </aside>
 
     {% compress js %}
-    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/base_interactions.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/base_interactions.js' %}?v=20260917-2"></script>
     {% endcompress %}
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/cookie_consent.js' %}"></script>
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/recently_viewed.js' %}"></script>

@@ -66,7 +66,7 @@
                     </label>
                     <div class="field span-2 checkout-map-wrap">
                         <div class="checkout-map-tools">
-                            <input type="text" id="locate-search" class="checkout-map-search" placeholder="Tìm địa chỉ... ví dụ: 12 Nguyễn Hữu Thọ, Q7" aria-label="Tìm địa chỉ giao hàng">
+                            <input type="text" id="locate-search" class="checkout-map-search" placeholder="Địa chỉ, phường/xã, tỉnh/thành" aria-label="Tìm địa chỉ giao hàng">
                             <button type="button" class="btn ghost" id="locate-btn"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Định vị</button>
                             <a href="#" id="locate-google-link" class="checkout-map-google" target="_blank" rel="noopener">Mở Google Maps <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
                         </div>
@@ -493,7 +493,11 @@
 
         googleLink.addEventListener('click', function (e) {
             e.preventDefault();
-            var q = searchBox.value.trim() || addressInput.value.trim() || 'Nguyễn Hữu Thọ Quận 7 TP.HCM';
+            var q = searchBox.value.trim() || addressInput.value.trim();
+            if (!q) {
+                setStatus('Nhập địa chỉ trước khi mở bản đồ.', true);
+                return;
+            }
             window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank', 'noopener');
         });
 

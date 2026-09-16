@@ -9,6 +9,14 @@
         </nav>
         <h1 class="page-title">{{ page_title }}</h1>
         <div class="page-body">{{ page_body|safe }}</div>
+        {% if page_title == "Liên hệ" %}
+        <section class="panel page-body contact-channels" aria-label="Kênh liên hệ đã cấu hình">
+            {% if HOTLINE %}<p><strong>Điện thoại:</strong> <a href="tel:{{ HOTLINE }}">{{ HOTLINE }}</a></p>{% endif %}
+            {% if SUPPORT_EMAIL %}<p><strong>Email:</strong> <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a></p>{% endif %}
+            {% if STORE_ADDRESS %}<p><strong>Địa chỉ:</strong> {{ STORE_ADDRESS }}</p>{% endif %}
+            {% if not HOTLINE and not SUPPORT_EMAIL and not STORE_ADDRESS %}<p>Shop chưa cấu hình hotline, email hoặc địa chỉ liên hệ trực tiếp.</p>{% endif %}
+        </section>
+        {% endif %}
     </div>
 </main>
 {% endblock %}

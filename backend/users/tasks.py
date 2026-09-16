@@ -72,7 +72,7 @@ Tài khoản của bạn đã được tạo thành công. Bạn có thể:
 - Tích điểm thưởng mỗi đơn hàng
 - Lưu wishlist sản phẩm yêu thích
 
-Nếu có thắc mắc, hãy liên hệ: support@huugiau.local
+Nếu có thắc mắc, hãy xem các kênh liên hệ hiện có trên website.
 
 Trân trọng,
 HUUGIAU Atelier Team

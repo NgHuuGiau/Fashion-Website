@@ -218,7 +218,7 @@
     const getFallbackReply = (message) => {
       const text = (message || "").toLowerCase();
       if (/ship|giao|v[\s\S]*chuy[\s\S]n|free ship|ph[\s\S]*ship/i.test(text)) {
-        if (/bao nhi[uê]|m[\s\S]*n|ph[\s\S]*\.?.?.?\s*ship/i.test(text)) return "Phí ship tiêu chuẩn là 30K nội thành HCM và 50K toàn quốc. Freeship cho đơn từ 499K. Bạn thử add sản phẩm vào giỏ để xem phí ship chính xác nhé.";
+        if (/bao nhi[uê]|m[\s\S]*n|ph[\s\S]*\.?.?.?\s*ship/i.test(text)) return "Phí vận chuyển được tính theo khu vực và hiển thị trong giỏ hàng trước khi bạn đặt. Đơn từ 499K được miễn phí vận chuyển.";
         return "Shop có free ship toàn quốc cho đơn từ 499K. Freeship tự động áp dụng, không cần nhập mã.";
       }
       if (/thanh[\s\S]*to[\s\S]*n|chuy[\s\S]*n[\s\S]*kho[\s\S]*n|cod|qr/i.test(text)) {
@@ -237,7 +237,7 @@
         return "Bạn vào trang chi tiết sản phẩm để chọn màu và size. Nếu phân vân, gửi shop chiều cao, cân nặng và form mặc mong muốn (ôm/rộng) để shop tư vấn nhanh hơn.";
       }
       if (/đơn|theo[\s\S]*d[oõ]i|trạng[\s\S]*th[iá]i|order|don/i.test(text)) return 'Bạn vào mục "Đơn hàng của tôi" để theo dõi trạng thái. Nếu đơn đang "Chờ xử lý" nghĩa là shop chưa xác nhận, "Đang xử lý" là đã xác nhận và chuẩn bị giao.';
-      if (/đ[oô]i|tr[ảa]|hoà[n]|hủy/i.test(text)) return "Bạn có thể đổi size trong 7 ngày nếu sản phẩm còn nguyên tag và chưa qua sử dụng. Liên hệ shop qua chat hoặc gửi email kèm mã đơn và lý do để được hỗ trợ nhanh nhất.";
+      if (/đ[oô]i|tr[ảa]|hoà[n]|hủy/i.test(text)) return "Bạn có thể gửi yêu cầu đổi trả trong 7 ngày theo điều kiện tại Chính sách đổi trả. Vui lòng kèm mã đơn và lý do qua kênh liên hệ được công bố trên website.";
       if (/giỏ|cart|mua|thêm|checkout/i.test(text)) return "Bạn thêm sản phẩm vào giỏ ở trang chi tiết, sau đó vào Giỏ hàng để kiểm tra rồi bấm Thanh toán. Nếu chưa có tài khoản, bạn vẫn có thể đặt hàng và tạo tài khoản sau.";
       if (/kho|tồn|còn h|hết|hàng/i.test(text)) return 'Tồn kho được cập nhật theo thời gian thực. Nếu sản phẩm hiện "Hết hàng", bạn có thể để lại email để shop báo khi có lại.';
       if (/m[\s\S]*u|gi[\s\S]|sale|gi[ảa]m|khuy[\s\S]*n m[\s\S]*i/i.test(text)) return "Các chương trình giảm giá được cập nhật trên trang chủ. Freeship cho đơn từ 499K luôn áp dụng. Bạn cũng có thể dùng mã giảm giá (nếu có) ở bước checkout.";

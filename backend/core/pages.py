@@ -69,7 +69,7 @@ PAGES = {
 </ul>
 <h2>Các bước đổi trả</h2>
 <ol>
-<li>Liên hệ shop qua Zalo hoặc email <a href="mailto:hello@huugiau.com">hello@huugiau.com</a> kèm mã đơn hàng.</li>
+<li>Liên hệ shop qua các kênh được công bố tại <a href="/lien-he/">trang Liên hệ</a> kèm mã đơn hàng.</li>
 <li>Shop xác nhận điều kiện và gửi bạn hướng dẫn gửi hàng về.</li>
 <li>Nhận lại hàng trong 2–4 ngày (nội thành TP.HCM) hoặc 4–7 ngày (tỉnh).</li>
 <li>Hoàn tiền trong 3–5 ngày làm việc sau khi shop kiểm tra hàng đạt điều kiện.</li>
@@ -117,7 +117,7 @@ PAGES = {
 <li>Làm việc linh hoạt, có thể chủ động về giờ giấc với các vị trí part-time.</li>
 <li>Giảm giá nhân viên khi mua sản phẩm của shop.</li>
 </ul>
-<p>Gửi CV và vài dòng về bạn cho chúng tôi qua email <a href="mailto:hello@huugiau.com">hello@huugiau.com</a> với tiêu đề <em>[Ứng tuyển] - Vị trí</em>.</p>
+<p>Vui lòng dùng kênh liên hệ được công bố tại <a href="/lien-he/">trang Liên hệ</a> với tiêu đề <em>[Ứng tuyển] - Vị trí</em>.</p>
 """,
     },
     "chinh-sach-bao-mat": {
@@ -140,7 +140,7 @@ PAGES = {
 <h2>Chúng tôi không làm gì</h2>
 <p>Chúng tôi không bán hoặc cho thuê thông tin của bạn cho bên thứ ba. Thông tin thanh toán VNPay được xử lý bởi cổng thanh toán VNPay theo tiêu chuẩn bảo mật của họ — chúng tôi không lưu số thẻ.</p>
 <h2>Quyền của bạn</h2>
-<p>Bạn có thể yêu cầu xem, sửa hoặc xoá dữ liệu cá nhân của mình qua email <a href="mailto:hello@huugiau.com">hello@huugiau.com</a> bất cứ lúc nào.</p>
+<p>Bạn có thể yêu cầu xem, sửa hoặc xoá dữ liệu cá nhân qua các kênh liên hệ được công bố tại <a href="/lien-he/">trang Liên hệ</a>.</p>
 """,
     },
     "dieu-khoan": {
@@ -162,30 +162,17 @@ PAGES = {
 <h2>Về nội dung website</h2>
 <p>Toàn bộ hình ảnh, nội dung, logo thuộc quyền HUUGIAU Atelier. Không được sao chép, sử dụng lại khi chưa được đồng ý bằng văn bản.</p>
 <h2>Liên hệ</h2>
-<p>Thắc mắc về điều khoản: gửi email <a href="mailto:hello@huugiau.com">hello@huugiau.com</a>.</p>
+<p>Thắc mắc về điều khoản? Vui lòng xem thông tin tại <a href="/lien-he/">trang Liên hệ</a>.</p>
 """,
     },
     "lien-he": {
         "title": "Liên hệ",
-        "meta": "Liên hệ HUUGIAU Atelier — hỗ trợ 9:00–21:30 mỗi ngày qua Zalo, email hoặc tại studio.",
+        "meta": "Các kênh liên hệ và hỗ trợ của HUUGIAU Atelier.",
         "body_html": """
 <h2>Hỗ trợ khách hàng</h2>
-<p>Shop hỗ trợ qua hotline, Zalo và email mỗi ngày <strong>9:00–21:30</strong>. Thời gian xử lý trung bình: dưới 30 phút trong giờ làm việc.</p>
-<ul>
-<li><strong>Hotline:</strong> <a href="tel:0932047365">0932 047 365</a> — gọi trực tiếp, tư vấn size và hỗ trợ đơn hàng.</li>
-<li><strong>Zalo:</strong> chat trực tiếp qua nút Zalo góc màn hình.</li>
-<li><strong>Email:</strong> <a href="mailto:hello@huugiau.com">hello@huugiau.com</a> — đơn hàng, đổi trả, hợp tác.</li>
-</ul>
-<h2>Địa chỉ</h2>
-<p><strong>Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh</strong> — nhận hàng tại chỗ và giao nội thành TP.HCM trong 2–4 giờ (đơn trong giờ làm việc).</p>
-<div class="map-embed">
-<iframe title="Bản đồ HUUGIAU Atelier — Nguyễn Hữu Thọ, Quận 7" src="https://www.google.com/maps?q=Nguy%E1%BB%85n%20H%E1%BB%AFu%20Th%E1%BB%8D%2C%20Qu%E1%BA%ADn%207%2C%20TP.%20H%E1%BB%93%20Ch%C3%AD%20Minh&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
-</div>
-<p class="muted" style="font-size:0.85rem;">Studio online — nhận hàng tại địa chỉ trên theo lịch hẹn. Gọi hotline trước khi đến nhé!</p>
+<p>Bạn có thể dùng các kênh liên hệ được cấu hình bên dưới hoặc tra cứu đơn hàng trên website. Shop chưa công bố địa điểm nhận khách trực tiếp.</p>
 <h2>Tra cứu đơn hàng</h2>
 <p>Đã đặt hàng? Dùng <a href="/tra-cuu-don/">Tra cứu đơn hàng</a> để theo dõi trạng thái, hoặc kiểm tra trong <a href="/don-hang-cua-toi/">Đơn hàng của tôi</a> nếu đã đăng nhập.</p>
-<h2>Studio</h2>
-<p>HUUGIAU Atelier là studio online; sản phẩm hiện chỉ bán qua website. Với đơn hàng đặt trước tại TP.HCM, shop có thể sắp xếp giao tận nơi hoặc nhận tại địa chỉ <strong>Nguyễn Hữu Thọ, Quận 7</strong> trong nội thành.</p>
 """,
     },
 }
