@@ -2,7 +2,8 @@ import re
 
 from django import forms
 
-from .constants import BANK_CHOICES
+from . import vnpay
+from .constants import BANK_CHOICES, bank_transfer_is_enabled
 
 
 class CheckoutForm(forms.Form):
@@ -72,8 +73,32 @@ class CheckoutForm(forms.Form):
         label="Thiệp chúc",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not bank_transfer_is_enabled():
+            self.fields["payment_method"].choices = [
+                choice
+                for choice in self.fields["payment_method"].choices
+                if choice[0] != "bank"
+            ]
+        if not vnpay.is_configured():
+            self.fields["payment_method"].choices = [
+                choice
+                for choice in self.fields["payment_method"].choices
+                if choice[0] != "vnpay"
+            ]
+
     def clean(self):
         cleaned_data = super().clean()
+        if (
+            self.data.get("payment_method") == "vnpay"
+            and not vnpay.is_configured()
+        ):
+            self.add_error(
+                "payment_method",
+                "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
+            )
+
         if cleaned_data.get("payment_method") == "bank" and not cleaned_data.get(
             "bank_code"
         ):

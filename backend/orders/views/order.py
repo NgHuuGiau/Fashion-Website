@@ -1,5 +1,4 @@
 from datetime import timedelta
-import random
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,13 +6,17 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from core.ratelimit import rate_limit
 
 from ..admin_forms import OrderEditForm, OrderLookupForm
-from ..constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
+from ..constants import (
+    BANKS,
+    SHOP_ACCOUNT_NAME,
+    SHOP_BANK_ACCOUNT,
+    bank_transfer_is_enabled,
+)
 from ..forms import ReturnRequestForm
 from ..models import Order, ReturnRequest
 
@@ -111,36 +114,8 @@ def build_delivery_eta(order):
     return {
         "eta_days": eta_days,
         "eta_date": eta_date,
-        "eta_label": f"Dự kiến giao trong khoảng {eta_days} ngày",
+        "eta_label": f"Thời gian giao dự kiến khoảng {eta_days} ngày (tham khảo)",
     }
-
-
-def auto_advance_order_status(order):
-    now = timezone.now()
-    if order.status in ("cancelled", "delivered"):
-        return order
-    if order.status == "pending" and now > order.created_at + timedelta(hours=24):
-        order.status = "shipping"
-        order.save(update_fields=["status", "updated_at"])
-    elif (
-        order.status == "processing"
-        and order.is_paid
-        and now > order.created_at + timedelta(hours=24)
-    ):
-        order.status = "shipping"
-        order.save(update_fields=["status", "updated_at"])
-    if order.status == "shipping":
-        eta = build_delivery_eta(order)
-        if now > eta["eta_date"]:
-            order.status = "delivered"
-            if not order.is_paid:
-                order.is_paid = True
-            order.save(update_fields=["status", "is_paid", "updated_at"])
-            from ..services.order_email import send_order_email
-
-            send_order_email(order, event="delivered")
-            _grant_order_points(order)
-    return order
 
 
 def _grant_order_points(order):
@@ -156,37 +131,7 @@ def _grant_order_points(order):
     Order.objects.filter(id=order.id).update(points_earned=earned)
 
 
-def pick_carrier(shipping_address):
-    """Chọn đơn vị vận chuyển theo khu vực giao hàng."""
-    normalized = normalize_shipping_address(shipping_address)
-    if any(keyword in normalized for keyword in HCMC_KEYWORDS + NEAR_HCMC_KEYWORDS):
-        return "ghn"
-    if any(keyword in normalized for keyword in NORTHERN_KEYWORDS):
-        return "ghtk"
-    return "vnpost"
-
-
-def generate_tracking_code(carrier, order_id):
-    prefix = {"ghn": "GHD", "ghtk": "GHTK", "vnpost": "VNPN"}[carrier]
-    return f"{prefix}{order_id:05d}{random.randint(100, 999)}"
-
-
-def mark_order_shipped(order):
-    """Gán đơn vị vận chuyển + mã vận đơn khi đơn sang 'Đang giao'. Idempotent."""
-    if order.status != "shipping" or order.carrier:
-        return order
-    order.carrier = pick_carrier(order.shipping_address)
-    order.tracking_code = generate_tracking_code(order.carrier, order.id)
-    order.save(update_fields=["carrier", "tracking_code", "updated_at"])
-    from ..services.order_email import send_order_email
-
-    send_order_email(order, event="shipping")
-    return order
-
-
 def decorate_order_tracking(order):
-    auto_advance_order_status(order)
-    mark_order_shipped(order)
     eta = build_delivery_eta(order)
     order.eta_days = eta["eta_days"]
     order.eta_date = eta["eta_date"]
@@ -261,6 +206,7 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
             "qr_url": qr_url,
             "shop_bank_account": SHOP_BANK_ACCOUNT,
             "shop_account_name": SHOP_ACCOUNT_NAME,
+            "bank_transfer_enabled": bank_transfer_is_enabled(),
         },
     )
 

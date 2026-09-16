@@ -25,6 +25,7 @@ from ..constants import (
     PAYMENT_TIMEOUT_MINUTES,
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
+    bank_transfer_is_enabled,
 )
 from ..models import Order
 
@@ -134,6 +135,7 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
             "token": token,
             "expires_at_iso": expires_at.isoformat(),
             "payment_timeout_minutes": PAYMENT_TIMEOUT_MINUTES,
+            "bank_transfer_enabled": bank_transfer_is_enabled(),
         },
     )
 
@@ -183,28 +185,17 @@ def bank_payment_confirm(request: HttpRequest, order_id) -> HttpResponse:
         messages.error(request, "Mã xác nhận không hợp lệ. Vui lòng quét lại mã QR.")
         return redirect("orders:bank_payment_waiting", order_id=order.id)
 
-    order.is_paid = True
-    order.status = "processing"
-    order.save(update_fields=["is_paid", "status", "updated_at"])
-    from ..services.order_email import send_order_email
-
-    send_order_email(order, event="paid")
     logger.info(
-        "Payment confirmed. order=%s user=%s ip=%s",
+        "Customer requested bank payment verification. order=%s user=%s ip=%s",
         order.id,
         request.user.id,
         request.META.get("REMOTE_ADDR"),
     )
-    log_activity(
+    messages.info(
         request,
-        event_type="payment_confirm",
-        metadata={
-            "order_id": order.id,
-            "payment_method": "bank",
-        },
+        "Đã gửi yêu cầu kiểm tra. Đơn hàng chỉ được ghi nhận đã thanh toán sau khi shop đối soát giao dịch.",
     )
-    messages.success(request, "Đã xác nhận thanh toán chuyển khoản.")
-    return redirect("orders:order_success", order_id=order.id)
+    return redirect("orders:bank_payment_waiting", order_id=order.id)
 
 
 def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
@@ -376,11 +367,15 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
         "token": token,
         "success_url": success_url,
         "failed_url": failed_url,
+        "bank_transfer_enabled": bank_transfer_is_enabled(),
     }
 
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "confirm":
+            if not bank_transfer_is_enabled():
+                ctx.update({"bank_transfer_unavailable": True})
+                return render(request, "shop/bank_payment_mobile.html", ctx)
             if expire_bank_order_if_needed(order):
                 ctx.update({"expired": True})
                 return render(request, "shop/bank_payment_mobile.html", ctx)
@@ -390,13 +385,13 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
             if order.is_paid:
                 ctx.update({"paid": True, "just_paid": True})
                 return render(request, "shop/bank_payment_mobile.html", ctx)
-            order.is_paid = True
-            order.status = "processing"
-            order.save(update_fields=["is_paid", "status", "updated_at"])
-            from ..services.order_email import send_order_email
-
-            send_order_email(order, event="paid")
-            ctx.update({"paid": True, "just_paid": True})
+            logger.info(
+                "Customer requested bank payment verification. order=%s user=%s ip=%s",
+                order.id,
+                request.user.id,
+                request.META.get("REMOTE_ADDR"),
+            )
+            ctx.update({"verification_pending": True})
             return render(request, "shop/bank_payment_mobile.html", ctx)
         elif action == "cancel":
             if order.is_paid:
@@ -435,6 +430,7 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
             ),
             "expired": False,
             "paid": False,
+            "bank_transfer_enabled": bank_transfer_is_enabled(),
         }
     )
     return render(request, "shop/bank_payment_mobile.html", ctx)

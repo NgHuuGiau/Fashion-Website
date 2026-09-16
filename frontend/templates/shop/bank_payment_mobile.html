@@ -205,6 +205,19 @@
                     Bạn có thể đóng trang này.
                     <br><a href="{% url 'orders:order_success' order.id %}">Xem chi tiết đơn hàng</a>
                 </p>
+            {% elif verification_pending %}
+                <div class="status-box status-expired">
+                    Yêu cầu đang chờ shop đối soát
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Hệ thống chưa xác nhận đã thanh toán. Shop sẽ kiểm tra giao dịch và cập nhật đơn hàng.
+                </p>
+                <p class="close-note"><a href="{% url 'orders:order_success' order.id %}">Xem chi tiết đơn hàng</a></p>
+            {% elif bank_transfer_unavailable %}
+                <div class="status-box status-expired">Chuyển khoản chưa khả dụng</div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Không thực hiện chuyển tiền từ thông tin trên trang này. Đơn hàng chưa được ghi nhận đã thanh toán.
+                </p>
             {% elif paid %}
                 <div class="status-box status-paid">
                     <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10003;</span>
@@ -251,10 +264,11 @@
                 <div class="order-id">Đơn hàng #{{ order.id }}</div>
                 <div class="amount">{{ order.total_amount|vnd }}<span style="font-size:0.9rem;">đ</span></div>
 
+                {% if bank_transfer_enabled %}
                 <div class="bank-info">
                     <p><span>Ngân hàng</span><strong>{{ selected_bank_name }}</strong></p>
-                    <p><span>Số TK</span><strong>{{ shop_bank_account }}</strong></p>
-                    <p><span>Chủ TK</span><strong>{{ shop_account_name }}</strong></p>
+                    <p><span>Số TK</span><strong>{{ shop_bank_account|default:"Chưa cấu hình" }}</strong></p>
+                    <p><span>Chủ TK</span><strong>{{ shop_account_name|default:"Chưa cấu hình" }}</strong></p>
                     <p><span>Nội dung</span><strong>DH{{ order.id }}</strong></p>
                 </div>
 
@@ -272,7 +286,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="confirm">
                         <button type="submit" class="btn btn-primary">
-                            &#10003; Xác nhận thanh toán
+                            &#10003; Báo shop kiểm tra
                         </button>
                     </form>
                     <form method="post" action="{% url 'orders:bank_payment_mobile' token order.id %}">
@@ -285,8 +299,11 @@
                 </div>
 
                 <div class="note">
-                    Nếu đã chuyển khoản, bấm Xác nhận thanh toán để shop biết.
+                    Yêu cầu kiểm tra không tự xác nhận đã thanh toán; shop cần đối soát giao dịch.
                 </div>
+                {% else %}
+                <div class="note">Chuyển khoản ngân hàng hiện chưa được cấu hình. Đơn hàng chưa được xác nhận đã thanh toán; vui lòng liên hệ shop hoặc chọn COD khi đặt đơn mới.</div>
+                {% endif %}
             {% endif %}
         </div>
 

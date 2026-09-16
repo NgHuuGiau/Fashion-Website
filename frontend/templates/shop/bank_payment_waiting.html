@@ -5,6 +5,7 @@
 
 {% block content %}
 <section class="section-shell">
+    {% if bank_transfer_enabled %}
     <div class="payment-layout">
         <div class="payment-main">
             <div class="payment-card">
@@ -41,6 +42,7 @@
                         <p class="payment-countdown-label">Thời gian còn lại</p>
                     </div>
 
+                    {% if bank_transfer_enabled %}
                     <div class="payment-info-grid">
                         <div class="payment-info-item">
                             <span class="payment-info-label">Ngân hàng</span>
@@ -48,11 +50,11 @@
                         </div>
                         <div class="payment-info-item">
                             <span class="payment-info-label">Số tài khoản</span>
-                            <strong class="payment-info-value">{{ shop_bank_account }}</strong>
+                            <strong class="payment-info-value">{{ shop_bank_account|default:"Chưa cấu hình" }}</strong>
                         </div>
                         <div class="payment-info-item">
                             <span class="payment-info-label">Chủ tài khoản</span>
-                            <strong class="payment-info-value">{{ shop_account_name }}</strong>
+                            <strong class="payment-info-value">{{ shop_account_name|default:"Chưa cấu hình" }}</strong>
                         </div>
                         <div class="payment-info-item payment-info-item-highlight">
                             <span class="payment-info-label">Số tiền</span>
@@ -94,7 +96,7 @@
                             Quét mã để chuyển khoản
                         </p>
                         <div class="payment-qr-box">
-                            <img src="{{ qr_url }}" alt="QR chuyển khoản" class="payment-qr-img" onerror="this.onerror=null;this.alt='QR chuyển khoản';this.style.display='none';this.parentElement.innerHTML+='<div style=\'padding:0.75rem;font-size:0.75rem;color:#ab9a8b\'>QR không tải được. Vui lòng chuyển khoản thủ công.</div>'">
+                            {% if qr_url %}<img src="{{ qr_url }}" alt="QR chuyển khoản" class="payment-qr-img" onerror="this.onerror=null;this.alt='QR chuyển khoản';this.style.display='none';this.parentElement.innerHTML+='<div style=\'padding:0.75rem;font-size:0.75rem;color:#ab9a8b\'>QR không tải được.</div>'">{% else %}<p>Chuyển khoản hiện chưa được cấu hình.</p>{% endif %}
                         </div>
                         <div class="payment-qr-hint">
                             <span class="payment-qr-hint-dot"></span>
@@ -122,19 +124,27 @@
                     </div>
 
                     <div class="payment-confirm-action">
-                        <p class="payment-confirm-note">Đã chuyển khoản xong? Bấm nút dưới để xác nhận:</p>
+                        {% if bank_transfer_enabled %}
+                        <p class="payment-confirm-note">Nếu đã chuyển khoản, bạn có thể gửi yêu cầu để shop đối soát:</p>
                         <form method="post" action="{{ confirm_url }}">
                             {% csrf_token %}
                             <input type="hidden" name="token" value="{{ token }}">
                             <button type="submit" class="payment-confirm-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                                Tôi đã chuyển khoản — Xác nhận đã thanh toán
+                                Tôi đã chuyển khoản — Báo shop kiểm tra
                             </button>
                         </form>
-                        <p class="payment-confirm-hint">Hoặc bấm vào mã QR bên trên để mở trang xác nhận riêng.</p>
+                        <p class="payment-confirm-hint">Yêu cầu này không tự xác nhận đã thanh toán. Shop sẽ đối soát giao dịch trước khi cập nhật đơn.</p>
+                        {% else %}
+                        <p class="payment-confirm-note">Chuyển khoản ngân hàng chưa được cấu hình. Không thực hiện chuyển tiền theo thông tin trên trang này.</p>
+                        {% endif %}
                     </div>
+                    {% else %}
+                    <p class="payment-confirm-note">Chuyển khoản ngân hàng chưa được cấu hình. Không thực hiện chuyển tiền theo thông tin trên trang này; đơn hàng chưa được ghi nhận đã thanh toán.</p>
+                    {% endif %}
                 </div>
 
+                {% if bank_transfer_enabled %}
                 <div class="payment-summary-card">
                     <div class="payment-summary-header">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 2L22 8H2z"/></svg>
@@ -147,11 +157,11 @@
                         </div>
                         <div class="payment-summary-row">
                             <span>Số tài khoản</span>
-                            <strong>{{ shop_bank_account }}</strong>
+                            <strong>{{ shop_bank_account|default:"Chưa cấu hình" }}</strong>
                         </div>
                         <div class="payment-summary-row">
                             <span>Chủ tài khoản</span>
-                            <strong>{{ shop_account_name }}</strong>
+                            <strong>{{ shop_account_name|default:"Chưa cấu hình" }}</strong>
                         </div>
                         <div class="payment-summary-row payment-summary-row-price">
                             <span>Thành tiền</span>
@@ -183,13 +193,23 @@
                         <div class="payment-guide-number">2</div>
                         <div class="payment-guide-text">
                             <strong>Xác nhận</strong>
-                            <span>Bấm "Tôi đã chuyển khoản" để hoàn tất</span>
+                            <span>Shop đối soát giao dịch rồi cập nhật trạng thái</span>
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="payment-card">
+        <div class="payment-card-body">
+            <h1 class="payment-title">Chuyển khoản chưa khả dụng</h1>
+            <p>Thông tin tài khoản nhận tiền chưa được cấu hình. Không thực hiện chuyển tiền theo hướng dẫn trên website. Đơn hàng chưa được ghi nhận đã thanh toán.</p>
+            <a href="{% url 'orders:order_review' order.id %}" class="btn ghost">Quay lại đơn hàng</a>
+        </div>
+    </div>
+    {% endif %}
 </section>
 
 <script nonce="{{ request.csp_nonce }}">

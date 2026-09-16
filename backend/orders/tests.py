@@ -28,6 +28,11 @@ def _payment_token(order_id):
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+@override_settings(
+    BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_ACCOUNT="12345678",
+    SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+)
 class CartCheckoutAndAdminTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -471,7 +476,7 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         order.refresh_from_db()
-        self.assertTrue(order.is_paid)
+        self.assertFalse(order.is_paid)
         self.assertEqual(order.status, "processing")
 
     def test_bank_payment_cancel_sets_cancelled_and_restores_stock(self):
@@ -682,7 +687,7 @@ class CartCheckoutAndAdminTest(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, "shipping")
 
-    def test_admin_mark_shipping_assigns_carrier_and_tracking(self):
+    def test_admin_mark_shipping_does_not_fabricate_carrier_or_tracking(self):
         self.client.login(username="staff", password="StrongPass123!")
         self.client.post(
             reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
@@ -707,9 +712,31 @@ class CartCheckoutAndAdminTest(TestCase):
             },
         )
         order.refresh_from_db()
-        self.assertEqual(order.carrier, "ghn")
-        self.assertTrue(order.tracking_code.startswith("GHD"))
-        self.assertIn("donhang.ghn.vn", order.tracking_url)
+        self.assertEqual(order.status, "shipping")
+        self.assertEqual(order.carrier, "")
+        self.assertEqual(order.tracking_code, "")
+
+    def test_tracking_decoration_does_not_auto_advance_old_order(self):
+        order = Order.objects.create(
+            user=self.user,
+            customer_name="Old pending",
+            phone="0909",
+            shipping_address="HCM",
+            payment_method="cod",
+            total_amount=100000,
+            status="pending",
+            is_paid=False,
+        )
+        Order.objects.filter(id=order.id).update(
+            created_at=timezone.now() - timedelta(days=30)
+        )
+
+        from .views.order import decorate_order_tracking
+
+        decorate_order_tracking(order)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.assertFalse(order.is_paid)
 
     def test_admin_mark_delivered_grants_points(self):
         self.client.login(username="staff", password="StrongPass123!")
@@ -1598,6 +1625,11 @@ class CsvExportTest(TestCase):
         self.assertIn("Shipped", response.content.decode("utf-8-sig"))
 
 
+@override_settings(
+    BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_ACCOUNT="12345678",
+    SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+)
 class BankPaymentMobileTest(TestCase):
     def setUp(self):
         from django.core.cache import cache
@@ -1660,14 +1692,103 @@ class BankPaymentMobileTest(TestCase):
     def test_mobile_post_confirm_success(self):
         response = self.client.post(self.mobile_url, {"action": "confirm"})
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["verification_pending"])
         self.order.refresh_from_db()
-        self.assertTrue(self.order.is_paid)
+        self.assertFalse(self.order.is_paid)
 
     def test_mobile_post_cancel_success(self):
         response = self.client.post(self.mobile_url, {"action": "cancel"})
         self.assertEqual(response.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "cancelled")
+
+
+class BankTransferConfigurationTest(TestCase):
+    @override_settings(
+        BANK_TRANSFER_ENABLED=False,
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+    )
+    def test_checkout_hides_bank_transfer_when_not_configured(self):
+        from .forms import CheckoutForm
+        from .views.cart import build_vietqr_url
+
+        choices = dict(CheckoutForm().fields["payment_method"].choices)
+        self.assertNotIn("bank", choices)
+        self.assertNotIn("vnpay", choices)
+        self.assertEqual(build_vietqr_url("VCB", 10000, "DH1"), "")
+
+    @override_settings(
+        VNPAY_TMN_CODE="TESTTMN",
+        VNPAY_HASH_SECRET="test-secret",
+        VNPAY_URL="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    )
+    def test_checkout_shows_vnpay_only_when_gateway_is_configured(self):
+        from .forms import CheckoutForm
+
+        self.assertIn("vnpay", dict(CheckoutForm().fields["payment_method"].choices))
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+    )
+    def test_bank_transfer_requires_account_details_even_if_enabled(self):
+        from .constants import bank_transfer_is_enabled
+        from .forms import CheckoutForm
+
+        self.assertFalse(bank_transfer_is_enabled())
+        self.assertNotIn("bank", dict(CheckoutForm().fields["payment_method"].choices))
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=False,
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+    )
+    def test_existing_bank_order_shows_disabled_notice_without_payment_details(self):
+        user = User.objects.create_user(username="bank-disabled", password="StrongPass123!")
+        self.client.login(username="bank-disabled", password="StrongPass123!")
+        order = Order.objects.create(
+            user=user,
+            customer_name="Buyer",
+            phone="0909000000",
+            shipping_address="HCM",
+            payment_method="bank",
+            total_amount=100000,
+            status="processing",
+            is_paid=False,
+        )
+
+        response = self.client.get(
+            reverse("orders:bank_payment_waiting", kwargs={"order_id": order.id})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Chuyển khoản chưa khả dụng")
+        self.assertNotContains(response, "1234567890")
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_ACCOUNT="12345678",
+        SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+    )
+    def test_configured_bank_transfer_builds_qr_with_configured_account(self):
+        from .views.cart import build_vietqr_url
+
+        self.assertIn(
+            "970436-12345678-compact2.png",
+            build_vietqr_url("VCB", 10000, "DH1"),
+        )
+
+
+class DemoSeedGuardTest(TestCase):
+    @override_settings(DEBUG=False)
+    def test_demo_seed_is_refused_in_production_mode(self):
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        with self.assertRaisesMessage(CommandError, "không được ghi vào production"):
+            call_command("seed_all", no_input=True)
 
 
 class BankPaymentStatusTest(TestCase):
@@ -2573,6 +2694,11 @@ class ContextProcessorTest(TestCase):
         self.assertEqual(cart_count_cached(request), 0)
 
 
+@override_settings(
+    BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_ACCOUNT="12345678",
+    SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+)
 class PaymentExtraBranchesTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -2755,6 +2881,11 @@ class PaymentExtraBranchesTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+@override_settings(
+    BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_ACCOUNT="12345678",
+    SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+)
 class OrderViewExtraBranchesTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

@@ -4,7 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-def load_env_file(env_path):
+def load_env_file(env_path, *, override=False, protected_keys=frozenset()):
     if not env_path.exists():
         return
 
@@ -13,7 +13,10 @@ def load_env_file(env_path):
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ[key.strip()] = value.strip().strip('"').strip("'")
+        key = key.strip()
+        if key in protected_keys or (not override and key in os.environ):
+            continue
+        os.environ[key] = value.strip().strip('"').strip("'")
 
 
 def env_bool(name, default=False):
@@ -30,10 +33,15 @@ def env_list(name, default=None):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+_runtime_env_keys = frozenset(os.environ)
 load_env_file(BASE_DIR / ".env")
 configured_env = os.getenv("APP_ENV_FILE")
 if configured_env:
-    load_env_file(BASE_DIR / configured_env)
+    load_env_file(
+        BASE_DIR / configured_env,
+        override=True,
+        protected_keys=_runtime_env_keys,
+    )
 
 
 _secret_key = os.getenv("SECRET_KEY")
@@ -146,7 +154,7 @@ _db_config: dict = {
 
 if _DB_BACKEND == "mssql":
     _db_config["OPTIONS"] = {
-        "driver": os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
+        "driver": os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server"),
         "trusted_connection": env_bool("DB_TRUSTED_CONNECTION", True),
         "extra_params": os.getenv(
             "DB_EXTRA_PARAMS", "TrustServerCertificate=yes;Encrypt=no"
@@ -193,13 +201,22 @@ VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpa
 VNPAY_REFUND_URL = os.getenv("VNPAY_REFUND_URL", "")
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
+SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "").strip()
+SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "").strip()
+BANK_TRANSFER_ENABLED = (
+    env_bool("BANK_TRANSFER_ENABLED", False)
+    and SHOP_BANK_ACCOUNT.isdigit()
+    and 6 <= len(SHOP_BANK_ACCOUNT) <= 20
+    and bool(SHOP_ACCOUNT_NAME)
+)
 
 
 GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
 ZALO_OA_ID = os.getenv("ZALO_OA_ID", "")
-HOTLINE = os.getenv("HOTLINE", "0932047365")
-STORE_ADDRESS = os.getenv("STORE_ADDRESS", "Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh")
+HOTLINE = os.getenv("HOTLINE", "")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
+STORE_ADDRESS = os.getenv("STORE_ADDRESS", "")
 PROMO_BANNER = os.getenv("PROMO_BANNER", "FREESHIP20K")
 
 STATIC_URL = "/static/"
@@ -374,7 +391,10 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/",
-    "CONTACT": {"name": "HUUGIAU Studio", "email": "support@huugiau.local"},
+    "CONTACT": {
+        "name": "HUUGIAU Studio",
+        **({"email": SUPPORT_EMAIL} if SUPPORT_EMAIL else {}),
+    },
     "LICENSE": {"name": "MIT"},
     "TAGS": [
         {"name": "Products", "description": "Product catalog and details"},

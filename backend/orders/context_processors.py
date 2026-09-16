@@ -62,6 +62,7 @@ def shop_site_config(request):
         "GA4_MEASUREMENT_ID": settings.GA4_MEASUREMENT_ID,
         "ZALO_OA_ID": settings.ZALO_OA_ID,
         "HOTLINE": settings.HOTLINE,
+        "SUPPORT_EMAIL": settings.SUPPORT_EMAIL,
         "STORE_ADDRESS": settings.STORE_ADDRESS,
         "PROMO_BANNER": settings.PROMO_BANNER,
     }

@@ -31,7 +31,7 @@
                     <strong class="review-summary-value price">{{ order.total_amount|vnd }}đ</strong>
                 </div>
                 <div class="review-summary-item">
-                    <span class="review-summary-label">Giao dự kiến</span>
+                    <span class="review-summary-label">Giao dự kiến (tham khảo)</span>
                     <strong class="review-summary-value">{{ tracking_order.eta_date|date:"d/m/Y" }}</strong>
                 </div>
             </div>
@@ -241,6 +241,7 @@
             {% if order.payment_method == "bank" and not order.is_paid and order.status != "cancelled" %}
             <div class="review-side-section">
                 <div class="review-payment-box">
+                    {% if bank_transfer_enabled %}
                     <h3>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><rect x="2" y="8" width="20" height="14" rx="2"/><path d="M12 2L22 8H2L12 2z"/><path d="M8 15h8"/></svg>
                         Chuyển khoản ngân hàng
@@ -259,6 +260,10 @@
                         <i class="fa-solid fa-qrcode"></i>
                         Đi tới trang thanh toán
                     </a>
+                    {% else %}
+                    <h3>Chuyển khoản ngân hàng chưa khả dụng</h3>
+                    <p>Không thực hiện chuyển tiền từ thông tin tài khoản trên website. Đơn hàng chưa được ghi nhận đã thanh toán.</p>
+                    {% endif %}
                 </div>
             </div>
             {% elif order.payment_method == "vnpay" and not order.is_paid and order.status != "cancelled" %}

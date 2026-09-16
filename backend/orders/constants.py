@@ -1,9 +1,9 @@
-import os
 from decimal import Decimal
 
+from django.conf import settings
 
-SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "1234567890")
-SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "HUUGIAU LOCAL BRAND")
+SHOP_BANK_ACCOUNT = settings.SHOP_BANK_ACCOUNT
+SHOP_ACCOUNT_NAME = settings.SHOP_ACCOUNT_NAME
 PAYMENT_TIMEOUT_MINUTES = 15
 STANDARD_SHIPPING_FEE = Decimal("30000")
 FREESHIP_THRESHOLD = Decimal("499000")
@@ -109,3 +109,13 @@ BANKS = {
 BANK_CHOICES = [("", "-- Chọn ngân hàng --")] + [
     (code, meta["name"]) for code, meta in BANKS.items()
 ]
+
+
+def bank_transfer_is_enabled():
+    account = settings.SHOP_BANK_ACCOUNT
+    return (
+        settings.BANK_TRANSFER_ENABLED
+        and account.isdigit()
+        and 6 <= len(account) <= 20
+        and bool(settings.SHOP_ACCOUNT_NAME)
+    )

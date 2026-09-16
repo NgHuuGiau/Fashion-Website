@@ -42,7 +42,7 @@
             <div class="order-meta-grid">
                 <article><span>Thanh toán</span><strong>{{ order.get_payment_method_display }}</strong></article>
                 <article><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
-                <article><span>Dự kiến giao</span><strong>{{ order.eta_date|date:"d/m/Y" }}</strong></article>
+                <article><span>Dự kiến giao (tham khảo)</span><strong>{{ order.eta_date|date:"d/m/Y" }}</strong></article>
                 <article><span>Đơn hàng</span><strong>{{ order.items.all|length }} món</strong></article>
             </div>
             <div class="order-lines">

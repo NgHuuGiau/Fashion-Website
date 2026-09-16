@@ -28,6 +28,7 @@ from ..constants import (
     PAYMENT_TIMEOUT_MINUTES,
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
+    bank_transfer_is_enabled,
     SHIPPING_FEE_ZONES,
     STANDARD_SHIPPING_FEE,
     TIER_DISCOUNTS,
@@ -87,11 +88,11 @@ def _clear_cart_reminder(request):
 
 def build_vietqr_url(bank_code, amount, transfer_note):
     bank = BANKS.get(bank_code)
-    if not bank:
+    if not bank or not bank_transfer_is_enabled():
         return ""
     return (
-        f"https://img.vietqr.io/image/{bank['bin']}-{SHOP_BANK_ACCOUNT}-compact2.png"
-        f"?amount={int(amount)}&addInfo={quote(transfer_note)}&accountName={quote(SHOP_ACCOUNT_NAME)}"
+        f"https://img.vietqr.io/image/{bank['bin']}-{settings.SHOP_BANK_ACCOUNT}-compact2.png"
+        f"?amount={int(amount)}&addInfo={quote(transfer_note)}&accountName={quote(settings.SHOP_ACCOUNT_NAME)}"
     )
 
 
@@ -227,16 +228,16 @@ def apply_order_status_change(order, new_status, is_paid=False):
         order.status = new_status
         order.is_paid = bool(is_paid)
         order.save(update_fields=["status", "is_paid", "updated_at"])
-    if new_status == "shipping":
-        from .order import mark_order_shipped
-
-        mark_order_shipped(order)
-    elif new_status == "delivered":
+    if new_status == "delivered":
         from ..services.order_email import send_order_email
         from .order import _grant_order_points
 
         send_order_email(order, event="delivered")
         _grant_order_points(order)
+    elif new_status == "shipping":
+        from ..services.order_email import send_order_email
+
+        send_order_email(order, event="shipping")
     return order
 
 
@@ -539,7 +540,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     if not is_configured():
                         form.add_error(
                             "payment_method",
-                            "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn COD hoặc chuyển khoản ngân hàng.",
+                            "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
                         )
                         return render(
                             request,

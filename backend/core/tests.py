@@ -1,7 +1,45 @@
-from django.test import TestCase, override_settings
+import os
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
+from core.settings import load_env_file
 from core.ratelimit import rate_limit
+
+
+class EnvironmentFilePrecedenceTest(SimpleTestCase):
+    def test_runtime_environment_overrides_environment_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base_env = Path(temp_dir) / ".env"
+            production_env = Path(temp_dir) / ".env.production"
+            base_env.write_text(
+                "DEBUG=True\nSECRET_KEY=local-secret\nEMAIL_HOST=local.example\n",
+                encoding="utf-8",
+            )
+            production_env.write_text(
+                "DEBUG=False\nSECRET_KEY=production-secret\nEMAIL_HOST=prod.example\n",
+                encoding="utf-8",
+            )
+
+            with patch.dict(
+                os.environ,
+                {"DEBUG": "False", "SECRET_KEY": "runtime-secret"},
+                clear=True,
+            ):
+                runtime_keys = frozenset(os.environ)
+                load_env_file(base_env)
+                load_env_file(
+                    production_env,
+                    override=True,
+                    protected_keys=runtime_keys,
+                )
+
+                self.assertEqual(os.environ["DEBUG"], "False")
+                self.assertEqual(os.environ["SECRET_KEY"], "runtime-secret")
+                self.assertEqual(os.environ["EMAIL_HOST"], "prod.example")
 
 
 class ErrorPageTest(TestCase):
