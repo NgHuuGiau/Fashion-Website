@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
 
@@ -21,8 +21,8 @@ test.describe('Cart & Checkout', () => {
 
   test('should display cart summary', async ({ page }) => {
     await page.goto(`${BASE_URL}/gio-hang/`);
-    await expect(page.locator('.cart-items, .cart-table, .cart-items-list')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('.cart-total, .total-amount')).toBeVisible();
+    await expect(page.locator('.cart-list .cart-item').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.cart-summary .summary-line.total')).toBeVisible();
   });
 
   test('should update quantity', async ({ page }) => {
@@ -39,19 +39,20 @@ test.describe('Cart & Checkout', () => {
   test('should remove item from cart', async ({ page }) => {
     await page.goto(`${BASE_URL}/gio-hang/`);
     
-    const removeBtn = page.locator('button:has-text("Xóa"), a:has-text("Xóa"), button[name="remove"]').first();
-    if (await removeBtn.isVisible()) {
-      await removeBtn.click();
-      await expect(page.locator('.alert-success, .toast-success, .cart-empty')).toBeVisible({ timeout: 5000 });
-    }
+    await page.locator('button[aria-label="Xóa sản phẩm"]').first().click();
+    await expect(page.getByRole('heading', { name: 'Giỏ hàng đang trống' })).toBeVisible({ timeout: 5000 });
   });
 
   test('should proceed to checkout', async ({ page }) => {
     await page.goto(`${BASE_URL}/gio-hang/`);
-    await page.click('a:has-text("Thanh toán"), button:has-text("Thanh toán"), a[href*="thanh-toan"]');
+    await page.click('a[href^="/dang-nhap/"][href*="next="]');
+    await expect(page).toHaveURL(/\/dang-nhap\//);
+    await page.fill('input[name="username"]', 'testuser');
+    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.locator('form.auth-form button[type="submit"]').click();
     
     await expect(page).toHaveURL(/\/thanh-toan\//);
-    await expect(page.locator('form')).toBeVisible();
+    await expect(page.locator('form.checkout-form')).toBeVisible();
   });
 
   test('should fill checkout form', async ({ page }) => {
@@ -64,10 +65,7 @@ test.describe('Cart & Checkout', () => {
     await page.fill('textarea[name="shipping_address"], input[name="shipping_address"]', '123 Test Street, District 1, HCMC');
     
     // Select payment method
-    const codRadio = page.locator('input[name="payment_method"][value="cod"]');
-    if (await codRadio.isVisible()) {
-      await codRadio.check();
-    }
+    await page.selectOption('select[name="payment_method"]', 'cod');
     
     // Submit
     await page.click('button[type="submit"]:has-text("Đặt hàng"), button:has-text("Đặt hàng")');

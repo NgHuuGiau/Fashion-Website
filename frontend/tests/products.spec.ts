@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
 
@@ -8,7 +8,7 @@ test.describe('Product Browsing', () => {
   });
 
   test('should display home page with products', async ({ page }) => {
-    await expect(page.locator('h1, .hero, .product-grid, .products')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.hero-shell h1')).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to product detail', async ({ page }) => {
@@ -76,11 +76,8 @@ test.describe('Product Browsing', () => {
 
   test('should filter by category', async ({ page }) => {
     // Click category link if available
-    const categoryLink = page.locator('a[href*="category"], a[href*="danh-muc"]').first();
-    if (await categoryLink.isVisible()) {
-      await categoryLink.click();
-      await expect(page).toHaveURL(/category|danh-muc/);
-    }
+    await page.locator('a.collection-card-ao').click();
+    await expect(page).toHaveURL(/\?category=ao/);
   });
 
   test('should search products', async ({ page }) => {
@@ -88,7 +85,7 @@ test.describe('Product Browsing', () => {
     if (await searchInput.isVisible()) {
       await searchInput.fill('áo');
       await searchInput.press('Enter');
-      await expect(page).toHaveURL(/search|tim-kiem/);
+      await expect(page).toHaveURL(/[?&]q=/);
     }
   });
 });

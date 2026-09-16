@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
 
@@ -32,10 +32,7 @@ test.describe('Payment Flows', () => {
     await page.fill('textarea[name="shipping_address"]', '123 COD Street');
     
     // Select COD
-    const codRadio = page.locator('input[name="payment_method"][value="cod"]');
-    if (await codRadio.isVisible()) {
-      await codRadio.check();
-    }
+    await page.selectOption('select[name="payment_method"]', 'cod');
     
     await page.click('button[type="submit"]:has-text("Đặt hàng"), button:has-text("Đặt hàng")');
     
@@ -43,47 +40,14 @@ test.describe('Payment Flows', () => {
     await expect(page).toHaveURL(/\/dat-hang-thanh-cong\//);
   });
 
-  test('should process bank transfer', async ({ page }) => {
-    await page.fill('input[name="customer_name"]', 'Test Bank');
-    await page.fill('input[name="customer_email"]', 'bank@test.com');
-    await page.fill('input[name="phone"]', '0901234567');
-    await page.fill('textarea[name="shipping_address"]', '123 Bank Street');
-    
-    // Select bank transfer
-    const bankRadio = page.locator('input[name="payment_method"][value="bank"]');
-    if (await bankRadio.isVisible()) {
-      await bankRadio.check();
-    }
-    
-    // Select bank if dropdown
-    const bankSelect = page.locator('select[name="bank_code"]');
-    if (await bankSelect.isVisible()) {
-      await bankSelect.selectOption({ index: 1 });
-    }
-    
-    await page.click('button[type="submit"]:has-text("Đặt hàng"), button:has-text("Đặt hàng")');
-    
-    // Should redirect to bank payment waiting page
-    await expect(page).toHaveURL(/\/cho-thanh-toan-ngan-hang\//);
+  test('should hide bank transfer until real account details are configured', async ({ page }) => {
+    const paymentSelect = page.locator('select[name="payment_method"]');
+    await expect(paymentSelect.locator('option[value="bank"]')).toHaveCount(0);
   });
 
-  test('should show QR code for bank transfer', async ({ page }) => {
-    await page.fill('input[name="customer_name"]', 'Test QR');
-    await page.fill('input[name="customer_email"]', 'qr@test.com');
-    await page.fill('input[name="phone"]', '0901234567');
-    await page.fill('textarea[name="shipping_address"]', '123 QR Street');
-    
-    const bankRadio = page.locator('input[name="payment_method"][value="bank"]');
-    if (await bankRadio.isVisible()) {
-      await bankRadio.check();
-    }
-    
-    await page.click('button[type="submit"]:has-text("Đặt hàng")');
-    await expect(page).toHaveURL(/\/cho-thanh-toan-ngan-hang\//);
-    
-    // Click view QR
-    await page.click('a:has-text("QR"), a[href*="qr-thanh-toan"]');
-    
-    await expect(page.locator('img[src*="qr"], canvas, .qr-code')).toBeVisible({ timeout: 5000 });
+  test('should hide VNPay until merchant credentials are configured', async ({ page }) => {
+    const paymentSelect = page.locator('select[name="payment_method"]');
+    await expect(paymentSelect.locator('option[value="vnpay"]')).toHaveCount(0);
+    await expect(paymentSelect.locator('option[value="cod"]')).toHaveCount(1);
   });
 });

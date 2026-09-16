@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
 
@@ -20,17 +20,16 @@ test.describe('Admin Dashboard', () => {
   test('should display order statistics', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);
     
-    await expect(page.locator('.stat-card, .stats-grid, .stat-value')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-kpi-card').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should filter orders', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);
-    
-    const statusSelect = page.locator('select[name="status"], select#status');
+    await page.locator('[data-target="admin-orders"]').click();
+    const statusSelect = page.locator('select[name="order_status"]');
     if (await statusSelect.isVisible()) {
       await statusSelect.selectOption('delivered');
-      await page.click('button:has-text("Lọc"), button:has-text("Tìm kiếm")');
-      await page.waitForTimeout(1000);
+      await expect(page).toHaveURL(/order_status=delivered/);
     }
   });
 
@@ -48,29 +47,24 @@ test.describe('Admin Dashboard', () => {
 
   test('should change order status', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);
-    
-    const firstOrder = page.locator('tr[data-order-id], .order-row').first();
-    if (await firstOrder.isVisible()) {
-      await firstOrder.click();
-      
-      const statusSelect = page.locator('select[name="new_status"], select[name="status"]');
-      if (await statusSelect.isVisible()) {
-        await statusSelect.selectOption('shipping');
-        await page.click('button:has-text("Cập nhật"), button:has-text("Lưu")');
-        await expect(page.locator('.alert-success, .toast-success')).toBeVisible({ timeout: 5000 });
-      }
-    }
+    await page.locator('[data-target="admin-orders"]').click();
+    const statusForm = page.locator('form.admin-quick-form:visible').filter({
+      has: page.locator('input[name="action"][value="update_order_status"]'),
+    }).first();
+    await expect(statusForm).toBeVisible();
+    await statusForm.locator('select[name="new_status"]').selectOption('shipping');
+    const responsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST' && response.url().includes('/admin-dashboard/'),
+    );
+    await statusForm.locator('button[type="submit"]').click();
+    expect((await responsePromise).status()).toBe(302);
   });
 
   test('should print invoice', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);
-    
-    const invoiceLink = page.locator('a[href*="in-hoa-don"], a:has-text("In")').first();
-    if (await invoiceLink.isVisible()) {
-      const newPagePromise = page.waitForEvent('popup');
-      await invoiceLink.click();
-      const newPage = await newPagePromise;
-      await expect(newPage).toHaveURL(/\/in-hoa-don\//);
-    }
+    await page.locator('[data-target="admin-orders"]').click();
+    const invoiceLink = page.locator('a[href*="/admin-dashboard/in-hoa-don/"]:visible').first();
+    await expect(invoiceLink).toHaveAttribute('target', '_blank');
+    await expect(invoiceLink).toHaveAttribute('href', /\/in-hoa-don\//);
   });
 });
