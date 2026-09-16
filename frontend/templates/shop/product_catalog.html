@@ -9,7 +9,10 @@
 <section class="hero-shell" data-home-hero>
     <div class="hero-grid hero-grid-split">
         <article class="hero-cover panel">
-            <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
+            <picture class="hero-cover-image">
+                <source srcset="{% static 'images/banner.webp' %}" type="image/webp">
+                <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
+            </picture>
             <div class="hero-cover-copy">
                 <p class="eyebrow">HUUGIAU Atelier</p>
                 <h1>Gọn mà có gu, mặc mỗi ngày.</h1>
@@ -26,19 +29,19 @@
 <div class="trust-strip" aria-label="Cam kết của shop">
     <div class="trust-item">
         <i class="fa-solid fa-truck-fast" aria-hidden="true"></i>
-        <div><strong>Freeship từ 499K</strong><span>Toàn quốc, giao nhanh 2-4 ngày</span></div>
+        <div><strong>Freeship từ 499K</strong><span>Phí vận chuyển hiển thị theo địa chỉ trước khi đặt</span></div>
     </div>
     <div class="trust-item">
         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-        <div><strong>Đổi size 7 ngày</strong><span>Miễn phí, sản phẩm nguyên trạng</span></div>
+        <div><strong>Hỗ trợ đổi size 7 ngày</strong><span>Điều kiện và chi phí theo chính sách đổi trả</span></div>
     </div>
     <div class="trust-item">
         <i class="fa-solid fa-box-open" aria-hidden="true"></i>
-        <div><strong>Kiểm tra hàng</strong><span>Trước khi thanh toán khi nhận</span></div>
+        <div><strong>Thanh toán COD</strong><span>Thanh toán khi nhận hàng</span></div>
     </div>
     <div class="trust-item">
         <i class="fa-solid fa-headset" aria-hidden="true"></i>
-        <div><strong>Hỗ trợ 9:00-21:30</strong><span>Chat tư vấn size &amp; phối đồ</span></div>
+        <div><strong>Hỗ trợ mua hàng</strong><span>Chat tư vấn size &amp; phối đồ</span></div>
     </div>
 </div>
 
@@ -116,6 +119,18 @@
             {% endif %}
         </div>
     </div>
+
+    {% if active_filters %}
+    <div class="active-filter-list" aria-label="Bộ lọc đang áp dụng">
+        <span class="active-filter-heading">Đang lọc</span>
+        {% for filter in active_filters %}
+        <a class="active-filter-chip" href="{% url 'products:product_list' %}{% if filter.query %}?{{ filter.query }}{% endif %}" aria-label="Bỏ lọc {{ filter.label }}">
+            {{ filter.label }} <span aria-hidden="true">×</span>
+        </a>
+        {% endfor %}
+        <a class="active-filter-clear" href="{% url 'products:product_list' %}{% if clear_filter_query %}?{{ clear_filter_query }}{% endif %}">Xóa tất cả</a>
+    </div>
+    {% endif %}
 
     {% if is_random_home %}
     <div class="product-grid product-grid-editorial">
@@ -195,17 +210,18 @@
         <aside class="filter-sidebar panel" id="catalog-filter-panel">
             <div class="filter-sidebar-head">
                 <h3>Bộ lọc</h3>
-                <a href="{% url 'products:product_list' %}" class="filter-reset" title="Xóa bộ lọc">Xóa</a>
+                <a href="{% url 'products:product_list' %}{% if clear_filter_query %}?{{ clear_filter_query }}{% endif %}" class="filter-reset" title="Xóa bộ lọc">Xóa</a>
             </div>
 
             <form method="get" action="{% url 'products:product_list' %}" class="filter-form" data-filter-form>
                 <input type="hidden" name="sort" value="{{ selected_sort }}">
                 {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
+                {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
 
                 <div class="filter-group">
                     <span class="filter-label">Danh mục</span>
                     <div class="filter-cats">
-                        <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="filter-cat {% if not selected_category %}active{% endif %}">Tất cả</a>
+                        <a href="{% url 'products:product_list' %}{% if all_category_query %}?{{ all_category_query }}{% endif %}" class="filter-cat {% if not selected_category %}active{% endif %}">Tất cả</a>
                         {% for category in categories %}
                         <a href="{% url 'products:product_list' %}?{{ category.catalog_query }}" class="filter-cat {% if selected_category and selected_category.id == category.id %}active{% endif %}">{{ category.name|repair_text }}</a>
                         {% endfor %}

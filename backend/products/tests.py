@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -62,6 +64,7 @@ class ProductViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
+        self.assertContains(response, "images/banner.webp")
 
     def test_product_list_excludes_unavailable(self):
         response = self.client.get(reverse("products:product_list"))
@@ -73,6 +76,44 @@ class ProductViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
         self.assertNotContains(response, "Quần test")
+
+    def test_filter_form_preserves_selected_category(self):
+        response = self.client.get(
+            reverse("products:product_list"), {"category": "ao", "color": "den"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="category" value="ao"')
+
+    def test_color_only_filter_does_not_render_random_home(self):
+        response = self.client.get(reverse("products:product_list"), {"color": "pink"})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_random_home"])
+        self.assertEqual(response.context["total_products"], 0)
+
+    def test_active_filter_chips_preserve_other_query_parameters(self):
+        response = self.client.get(
+            reverse("products:product_list"),
+            {
+                "category": "ao",
+                "color": ["den", "do"],
+                "min_price": "300000",
+                "sort": "price_asc",
+            },
+        )
+        filters = response.context["active_filters"]
+        color_filter = next(item for item in filters if item["label"] == "Màu: Đen")
+        remaining = parse_qs(color_filter["query"])
+
+        self.assertContains(response, 'class="active-filter-chip"')
+        self.assertEqual(remaining["color"], ["do"])
+        self.assertEqual(remaining["category"], ["ao"])
+        self.assertEqual(remaining["min_price"], ["300000"])
+        self.assertEqual(remaining["sort"], ["price_asc"])
+
+        all_categories = parse_qs(response.context["all_category_query"])
+        self.assertNotIn("category", all_categories)
+        self.assertEqual(all_categories["color"], ["den", "do"])
+        self.assertEqual(all_categories["sort"], ["price_asc"])
 
     def test_product_list_filter_by_invalid_category_returns_404(self):
         response = self.client.get(

@@ -290,7 +290,16 @@ def product_list(request: HttpRequest) -> HttpResponse:
         products_qs = products_qs.filter(variant_filter).distinct()
 
     no_filter_mode = (
-        not any([category_slug, keyword, min_price_raw, max_price_raw])
+        not any(
+            [
+                category_slug,
+                keyword,
+                min_price_raw,
+                max_price_raw,
+                selected_sizes,
+                selected_colors,
+            ]
+        )
         and selected_sort == "newest"
     )
     if no_filter_mode:
@@ -406,6 +415,65 @@ def product_list(request: HttpRequest) -> HttpResponse:
         sidebar_color_map.values(), key=lambda item: item["label"]
     )
 
+    def filter_query_without(key: str, value: str | None = None) -> str:
+        params = request.GET.copy()
+        params.pop("page", None)
+        if value is None:
+            params.pop(key, None)
+        else:
+            remaining = [item for item in params.getlist(key) if item != value]
+            params.pop(key, None)
+            for item in remaining:
+                params.appendlist(key, item)
+        return params.urlencode()
+
+    active_filters = []
+    if selected_category:
+        active_filters.append(
+            {
+                "label": f"Danh mục: {selected_category.name}",
+                "query": filter_query_without("category"),
+            }
+        )
+    if min_price is not None:
+        active_filters.append(
+            {
+                "label": f"Từ {min_price:,}".replace(",", ".") + "đ",
+                "query": filter_query_without("min_price"),
+            }
+        )
+    if max_price is not None:
+        active_filters.append(
+            {
+                "label": f"Đến {max_price:,}".replace(",", ".") + "đ",
+                "query": filter_query_without("max_price"),
+            }
+        )
+    for size in dict.fromkeys(request.GET.getlist("size")):
+        if size.strip():
+            active_filters.append(
+                {
+                    "label": f"Size {size.strip().upper()}",
+                    "query": filter_query_without("size", size),
+                }
+            )
+    color_labels = {item["value"]: item["label"] for item in sidebar_color_options}
+    for color in dict.fromkeys(request.GET.getlist("color")):
+        color_key = normalize_vn_text(color)
+        if color_key:
+            active_filters.append(
+                {
+                    "label": f"Màu: {color_labels.get(color_key, color.strip().title())}",
+                    "query": filter_query_without("color", color),
+                }
+            )
+
+    clear_params = request.GET.copy()
+    for key in ("page", "category", "min_price", "max_price", "size", "color"):
+        clear_params.pop(key, None)
+    clear_filter_query = clear_params.urlencode()
+    all_category_query = filter_query_without("category")
+
     query_params = request.GET.copy()
     query_params.pop("page", None)
     query_without_page = query_params.urlencode()
@@ -436,6 +504,9 @@ def product_list(request: HttpRequest) -> HttpResponse:
         "selected_colors": selected_color_keys,
         "selected_color_labels": selected_colors,
         "selected_color_values": selected_color_keys,
+        "active_filters": active_filters,
+        "clear_filter_query": clear_filter_query,
+        "all_category_query": all_category_query,
         "sidebar_size_options": sidebar_size_options,
         "sidebar_color_options": sidebar_color_options,
         "sidebar_sort_links": sidebar_sort_links,

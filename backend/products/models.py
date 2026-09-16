@@ -1,4 +1,6 @@
+from html import escape
 from pathlib import Path
+from textwrap import wrap
 from urllib.parse import quote
 
 from django.conf import settings
@@ -98,7 +100,25 @@ class Product(models.Model):
             .upper()
             .replace("-", " ")
         )
-        product_label = (self.name or "HUUGIAU").upper()
+        product_label_raw = (self.name or "HUUGIAU").upper()
+        product_lines = wrap(
+            product_label_raw,
+            width=20,
+            break_long_words=False,
+            break_on_hyphens=False,
+        ) or ["HUUGIAU"]
+        product_lines = product_lines[:2]
+        if len(product_lines) == 2 and len(wrap(product_label_raw, width=20)) > 2:
+            product_lines[1] = f"{product_lines[1][:17].rstrip()}…"
+        product_lines = [escape(line) for line in product_lines]
+        title_svg = "".join(
+            f"<text x='450' y='{485 + index * 72}' text-anchor='middle' "
+            "fill='#16110f' font-family='Arial, sans-serif' "
+            f"font-size='{max(38, min(58, 860 // max(len(line), 1)))}' "
+            f"font-weight='900'>{line}</text>"
+            for index, line in enumerate(product_lines)
+        )
+        category_label = escape(category_label)
         svg = f"""
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
             <defs>
@@ -111,9 +131,9 @@ class Product(models.Model):
             <circle cx='720' cy='140' r='150' fill='#8a4a2a' fill-opacity='0.1' />
             <circle cx='170' cy='920' r='180' fill='#ffffff' fill-opacity='0.7' />
             <rect x='84' y='86' width='732' height='953' rx='34' fill='none' stroke='#d9c2b0' stroke-dasharray='18 12' />
-            <text x='450' y='420' text-anchor='middle' fill='#8a4a2a' font-family='Arial, sans-serif' font-size='56' font-weight='800' letter-spacing='8'>{category_label}</text>
-            <text x='450' y='530' text-anchor='middle' fill='#16110f' font-family='Arial, sans-serif' font-size='78' font-weight='900'>{product_label[:24]}</text>
-            <text x='450' y='620' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='30' font-weight='700'>HUUGIAU LOOKBOOK</text>
+            <text x='450' y='390' text-anchor='middle' fill='#8a4a2a' font-family='Arial, sans-serif' font-size='48' font-weight='800' letter-spacing='8'>{category_label}</text>
+            {title_svg}
+            <text x='450' y='650' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='30' font-weight='700'>HUUGIAU LOOKBOOK</text>
         </svg>
         """.strip()
         return f"data:image/svg+xml;utf8,{quote(svg)}"
