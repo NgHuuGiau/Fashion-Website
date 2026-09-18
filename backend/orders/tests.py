@@ -1,4 +1,5 @@
 import hashlib
+import json
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
@@ -19,7 +20,7 @@ from .admin_forms import (
     OrderStatusForm,
     ProductForm,
 )
-from .models import Coupon, Order, OrderItem, ReturnRequest
+from .models import Coupon, Order, OrderItem, RefundRecord, ReturnRequest
 from .vnpay import _secure_hash
 
 
@@ -30,6 +31,7 @@ def _payment_token(order_id):
 
 @override_settings(
     BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_CODE="VCB",
     SHOP_BANK_ACCOUNT="12345678",
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
@@ -222,6 +224,38 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(self.variant_black_l.stock, 3)
         self.assertEqual(self.product_ao.stock, 6)
 
+    def test_checkout_requires_review_when_cart_price_changed(self):
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        self.product_accessory.price = 250000
+        self.product_accessory.save(update_fields=["price", "updated"])
+        payload = {
+            "customer_name": "Buyer Test",
+            "phone": "0909000000",
+            "shipping_address": "1 Test Street",
+            "payment_method": "cod",
+        }
+
+        response = self.client.post(reverse("orders:checkout"), payload)
+
+        self.assertRedirects(
+            response, reverse("orders:checkout"), fetch_redirect_response=False
+        )
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(
+            self.client.session["cart"][f"{self.product_accessory.id}:0"]["price"],
+            "250000",
+        )
+
+        self.client.post(reverse("orders:checkout"), payload)
+        order = Order.objects.get()
+        self.assertEqual(order.subtotal_amount, Decimal("250000"))
+        self.assertEqual(order.items.get().price, Decimal("250000"))
+
     def test_checkout_with_percent_coupon_applies_discount(self):
         self.client.login(username="buyer", password="StrongPass123!")
         self.client.post(
@@ -304,7 +338,21 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mã giảm giá không tồn tại")
 
-    def test_checkout_bank_sets_unpaid_and_processing_with_bank_code(self):
+    @override_settings(SHOP_BANK_CODE="ICB")
+    def test_checkout_shows_fixed_shop_bank_for_qr(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
+            {"quantity": 1, "variant_id": self.variant_red_m.id},
+        )
+
+        response = self.client.get(reverse("orders:checkout"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "VietinBank")
+        self.assertContains(response, 'id="id_bank_code" value="ICB"')
+        self.assertNotContains(response, 'id="bank-picker"')
+
+    def test_checkout_bank_uses_shop_receiver_even_if_customer_posts_another_bank(self):
         self.client.login(username="buyer", password="StrongPass123!")
         self.client.post(
             reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
@@ -319,7 +367,7 @@ class CartCheckoutAndAdminTest(TestCase):
                 "phone": "0909000000",
                 "shipping_address": "1 Test Street",
                 "payment_method": "bank",
-                "bank_code": "VCB",
+                "bank_code": "TCB",
                 "coupon_code": "",
                 "note": "bank payment",
             },
@@ -353,7 +401,7 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_checkout_bank_requires_bank_code(self):
+    def test_checkout_bank_does_not_require_customer_bank_selection(self):
         self.client.login(username="buyer", password="StrongPass123!")
         self.client.post(
             reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
@@ -373,8 +421,8 @@ class CartCheckoutAndAdminTest(TestCase):
                 "note": "bank payment",
             },
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Vui l\u00f2ng ch\u1ecdn ng\u00e2n h\u00e0ng")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.first().bank_code, "VCB")
 
     @mock.patch("orders.vnpay.is_configured", return_value=False)
     def test_checkout_vnpay_unconfigured_blocks_order(self, _mock_cfg):
@@ -633,7 +681,7 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         order.refresh_from_db()
         self.assertEqual(order.customer_name, "Buyer New")
-        self.assertEqual(order.bank_code, "MB")
+        self.assertEqual(order.bank_code, "VCB")
 
     def test_my_orders_requires_login(self):
         response = self.client.get(reverse("orders:my_orders"))
@@ -1000,6 +1048,116 @@ class CartCheckoutAndAdminTest(TestCase):
         variant = self.product_ao.variants.first()
         self.assertEqual(variant.size, "XL")
 
+    def test_admin_product_update_preserves_order_variant_for_stock_restore(self):
+        self.variant_black_l.stock = 3
+        self.variant_black_l.save(update_fields=["stock"])
+        order = Order.objects.create(
+            customer_name="Buyer",
+            phone="0900000000",
+            shipping_address="Test address",
+            payment_method="cod",
+            status="pending",
+            subtotal_amount=Decimal("100000"),
+            total_amount=Decimal("100000"),
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            product=self.product_ao,
+            variant=self.variant_black_l,
+            selected_color="Den",
+            selected_size="L",
+            quantity=2,
+            price=Decimal("50000"),
+        )
+        self.client.login(username="staff", password="StrongPass123!")
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "save_product",
+                "product_id": str(self.product_ao.id),
+                "category_id": str(self.category_ao.id),
+                "name": self.product_ao.name,
+                "price": "500000",
+                "stock": "0",
+                "variant_row_key[]": ["row-1"],
+                "variant_color_name[]": ["Den"],
+                "variant_color_code[]": ["#111111"],
+                "variant_size[]": ["L"],
+                "variant_stock[]": ["3"],
+                "variant_is_active[]": ["row-1"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.variant_id, self.variant_black_l.id)
+        from .views.cart import apply_order_status_change
+
+        apply_order_status_change(order, "cancelled")
+        self.variant_black_l.refresh_from_db()
+        self.assertEqual(self.variant_black_l.stock, 5)
+
+    def test_admin_product_update_archives_removed_order_variant(self):
+        self.variant_black_l.stock = 3
+        self.variant_black_l.save(update_fields=["stock"])
+        order = Order.objects.create(
+            customer_name="Buyer",
+            phone="0900000000",
+            shipping_address="Test address",
+            payment_method="cod",
+            status="pending",
+            subtotal_amount=Decimal("100000"),
+            total_amount=Decimal("100000"),
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            product=self.product_ao,
+            variant=self.variant_black_l,
+            selected_color="Den",
+            selected_size="L",
+            quantity=2,
+            price=Decimal("50000"),
+        )
+        self.client.login(username="staff", password="StrongPass123!")
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "save_product",
+                "product_id": str(self.product_ao.id),
+                "category_id": str(self.category_ao.id),
+                "name": self.product_ao.name,
+                "price": "500000",
+                "stock": "0",
+                "variant_row_key[]": ["row-1"],
+                "variant_color_name[]": ["Den"],
+                "variant_color_code[]": ["#111111"],
+                "variant_size[]": ["XL"],
+                "variant_stock[]": ["9"],
+                "variant_is_active[]": ["row-1"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.variant_black_l.refresh_from_db()
+        self.assertEqual(item.variant_id, self.variant_black_l.id)
+        self.assertFalse(self.variant_black_l.is_active)
+        self.assertTrue(
+            ProductVariant.objects.filter(
+                product=self.product_ao, size="XL", is_active=True
+            ).exists()
+        )
+
+        from .views.cart import apply_order_status_change
+
+        apply_order_status_change(order, "cancelled")
+        self.variant_black_l.refresh_from_db()
+        self.product_ao.refresh_from_db()
+        self.assertEqual(self.variant_black_l.stock, 5)
+        self.assertEqual(self.product_ao.stock, 9)
+
     def test_admin_dashboard_cancel_order_restores_stock(self):
         self.client.login(username="staff", password="StrongPass123!")
         self.client.post(
@@ -1096,6 +1254,32 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Product.objects.filter(id=self.product_accessory.id).exists())
+
+    def test_admin_cannot_delete_product_with_order_history(self):
+        order = Order.objects.create(
+            customer_name="Buyer",
+            phone="0900000000",
+            shipping_address="Test address",
+            subtotal_amount=Decimal("200000"),
+            total_amount=Decimal("200000"),
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            product=self.product_accessory,
+            quantity=1,
+            price=Decimal("200000"),
+        )
+        User.objects.create_superuser(username="admin", password="StrongPass123!")
+        self.client.login(username="admin", password="StrongPass123!")
+
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {"action": "delete_product", "product_id": self.product_accessory.id},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Product.objects.filter(id=self.product_accessory.id).exists())
+        self.assertTrue(OrderItem.objects.filter(pk=item.pk).exists())
 
     def test_admin_dashboard_admin_set_user_role(self):
         User.objects.create_superuser(username="admin", password="StrongPass123!")
@@ -1627,6 +1811,7 @@ class CsvExportTest(TestCase):
 
 @override_settings(
     BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_CODE="VCB",
     SHOP_BANK_ACCOUNT="12345678",
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
@@ -1716,9 +1901,11 @@ class BankTransferConfigurationTest(TestCase):
         choices = dict(CheckoutForm().fields["payment_method"].choices)
         self.assertNotIn("bank", choices)
         self.assertNotIn("vnpay", choices)
-        self.assertEqual(build_vietqr_url("VCB", 10000, "DH1"), "")
+        self.assertNotIn("bank_code", CheckoutForm().fields)
+        self.assertEqual(build_vietqr_url(10000, "DH1"), "")
 
     @override_settings(
+        DEBUG=True,
         VNPAY_TMN_CODE="TESTTMN",
         VNPAY_HASH_SECRET="test-secret",
         VNPAY_URL="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
@@ -1729,11 +1916,47 @@ class BankTransferConfigurationTest(TestCase):
         self.assertIn("vnpay", dict(CheckoutForm().fields["payment_method"].choices))
 
     @override_settings(
+        DEBUG=False,
+        VNPAY_TMN_CODE="TESTTMN",
+        VNPAY_HASH_SECRET="test-secret",
+        VNPAY_URL="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    )
+    def test_production_rejects_vnpay_sandbox(self):
+        from .vnpay import is_configured
+
+        self.assertFalse(is_configured())
+
+    @override_settings(
+        DEBUG=False,
+        VNPAY_TMN_CODE="TESTTMN",
+        VNPAY_HASH_SECRET="test-secret",
+        VNPAY_URL="https://pay.vnpayment.vn/paymentv2/vpcpay.html",
+    )
+    def test_production_accepts_https_vnpay_gateway(self):
+        from .vnpay import is_configured
+
+        self.assertTrue(is_configured())
+
+    @override_settings(
         BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_CODE="ICB",
         SHOP_BANK_ACCOUNT="",
         SHOP_ACCOUNT_NAME="",
     )
     def test_bank_transfer_requires_account_details_even_if_enabled(self):
+        from .constants import bank_transfer_is_enabled
+        from .forms import CheckoutForm
+
+        self.assertFalse(bank_transfer_is_enabled())
+        self.assertNotIn("bank", dict(CheckoutForm().fields["payment_method"].choices))
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_CODE="UNKNOWN",
+        SHOP_BANK_ACCOUNT="12345678",
+        SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+    )
+    def test_bank_transfer_rejects_unknown_shop_bank_code(self):
         from .constants import bank_transfer_is_enabled
         from .forms import CheckoutForm
 
@@ -1746,7 +1969,9 @@ class BankTransferConfigurationTest(TestCase):
         SHOP_ACCOUNT_NAME="",
     )
     def test_existing_bank_order_shows_disabled_notice_without_payment_details(self):
-        user = User.objects.create_user(username="bank-disabled", password="StrongPass123!")
+        user = User.objects.create_user(
+            username="bank-disabled", password="StrongPass123!"
+        )
         self.client.login(username="bank-disabled", password="StrongPass123!")
         order = Order.objects.create(
             user=user,
@@ -1769,6 +1994,7 @@ class BankTransferConfigurationTest(TestCase):
 
     @override_settings(
         BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_CODE="ICB",
         SHOP_BANK_ACCOUNT="12345678",
         SHOP_ACCOUNT_NAME="HUUGIAU TEST",
     )
@@ -1776,8 +2002,8 @@ class BankTransferConfigurationTest(TestCase):
         from .views.cart import build_vietqr_url
 
         self.assertIn(
-            "970436-12345678-compact2.png",
-            build_vietqr_url("VCB", 10000, "DH1"),
+            "970415-12345678-compact2.png",
+            build_vietqr_url(10000, "DH1"),
         )
 
 
@@ -1789,6 +2015,44 @@ class DemoSeedGuardTest(TestCase):
 
         with self.assertRaisesMessage(CommandError, "không được ghi vào production"):
             call_command("seed_all", no_input=True)
+
+
+class FooterPaymentDisclosureTest(TestCase):
+    @override_settings(
+        BANK_TRANSFER_ENABLED=False,
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+        VNPAY_TMN_CODE="",
+        VNPAY_HASH_SECRET="",
+    )
+    def test_footer_only_advertises_cash_on_delivery_when_other_methods_disabled(self):
+        response = self.client.get("/lien-he/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "COD")
+        self.assertNotContains(response, "Visa")
+        self.assertNotContains(response, "Mastercard")
+        self.assertNotContains(response, "PayPal")
+        self.assertNotContains(response, "Chuyển khoản ngân hàng")
+        self.assertNotContains(response, "VNPay")
+
+    @override_settings(
+        DEBUG=True,
+        BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_CODE="ICB",
+        SHOP_BANK_ACCOUNT="12345678",
+        SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+        VNPAY_TMN_CODE="TESTTMN",
+        VNPAY_HASH_SECRET="test-secret",
+        VNPAY_URL="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    )
+    def test_footer_shows_only_configured_payment_methods(self):
+        response = self.client.get("/lien-he/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "COD")
+        self.assertContains(response, "Chuyển khoản")
+        self.assertContains(response, "VNPay")
 
 
 class BankPaymentStatusTest(TestCase):
@@ -2420,7 +2684,7 @@ class AdminFormsEdgeTest(TestCase):
         form = OrderSearchForm(data={"date_from": "not-a-date", "date_to": "also-bad"})
         self.assertFalse(form.is_valid())
 
-    def test_order_edit_form_unknown_bank_falls_back_vcb(self):
+    def test_order_edit_form_does_not_expose_shop_bank(self):
         from .admin_forms import OrderEditForm
 
         form = OrderEditForm(
@@ -2433,7 +2697,7 @@ class AdminFormsEdgeTest(TestCase):
             }
         )
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data["bank_code"], "VCB")
+        self.assertNotIn("bank_code", form.fields)
 
 
 class CartHelperTest(TestCase):
@@ -2696,6 +2960,7 @@ class ContextProcessorTest(TestCase):
 
 @override_settings(
     BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_CODE="VCB",
     SHOP_BANK_ACCOUNT="12345678",
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
@@ -2883,6 +3148,7 @@ class PaymentExtraBranchesTest(TestCase):
 
 @override_settings(
     BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_CODE="VCB",
     SHOP_BANK_ACCOUNT="12345678",
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
@@ -3156,6 +3422,7 @@ class ReorderTest(TestCase):
 
 
 VNPAY_CONFIG = {
+    "DEBUG": True,
     "VNPAY_URL": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
     "VNPAY_TMN_CODE": "TESTTMN",
     "VNPAY_HASH_SECRET": "tests3cret",
@@ -3212,6 +3479,7 @@ class VNPayTest(TestCase):
             "vnp_TxnRef": str(self.order.id),
             "vnp_ResponseCode": "00",
             "vnp_TransactionStatus": "00",
+            "vnp_TransactionNo": "987654321",
             "vnp_OrderInfo": "Thanh toan don hang test",
         }
         params.update(extra)
@@ -3281,6 +3549,22 @@ class VNPayTest(TestCase):
         self.order.refresh_from_db()
         self.assertTrue(self.order.is_paid)
         self.assertEqual(self.order.status, "processing")
+        self.assertEqual(self.order.vnpay_transaction_id, "987654321")
+
+    def test_late_success_callback_does_not_reopen_cancelled_order_or_reserve_stock(
+        self,
+    ):
+        self.order.status = "cancelled"
+        self.order.save(update_fields=["status"])
+        self.variant.stock = 5
+        self.variant.save(update_fields=["stock"])
+        response = self.client.get(reverse("orders:vnpay_return"), self._signed())
+        self.assertEqual(response.status_code, 302)
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)
+        self.assertEqual(self.order.status, "cancelled")
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 5)
 
     def test_return_success_idempotent_when_already_paid(self):
         self.order.is_paid = True
@@ -3329,6 +3613,120 @@ class VNPayTest(TestCase):
         self.assertEqual(response.json()["RspCode"], "00")
         self.order.refresh_from_db()
         self.assertTrue(self.order.is_paid)
+        self.assertEqual(self.order.vnpay_transaction_id, "987654321")
+
+    @override_settings(VNPAY_REFUND_URL="https://merchant.test/refund")
+    @mock.patch(
+        "orders.vnpay.refund_transaction",
+        return_value={
+            "success": True,
+            "response_code": "00",
+            "data": {"vnp_ResponseCode": "00"},
+        },
+    )
+    def test_refund_is_idempotent_and_tracks_amount(self, refund_mock):
+        User.objects.create_user(
+            username="refund_staff", password="StrongPass123!", is_staff=True
+        )
+        self.client.login(username="refund_staff", password="StrongPass123!")
+        self.order.is_paid = True
+        self.order.vnpay_transaction_id = "987654321"
+        self.order.save(update_fields=["is_paid", "vnpay_transaction_id"])
+        url = reverse("orders:vnpay_refund")
+        body = json.dumps(
+            {
+                "order_id": self.order.id,
+                "amount": 100000,
+                "trans_id": "987654321",
+                "reason": "Khách trả hàng",
+            }
+        )
+        response = self.client.post(
+            url,
+            body,
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0001",
+        )
+        self.assertEqual(response.status_code, 200)
+        replay = self.client.post(
+            url,
+            body,
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0001",
+        )
+        self.assertEqual(replay.status_code, 200)
+        changed_transaction = json.dumps(
+            {
+                "order_id": self.order.id,
+                "amount": 100000,
+                "trans_id": "different-transaction",
+            }
+        )
+        conflict = self.client.post(
+            url,
+            changed_transaction,
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0001",
+        )
+        self.assertEqual(conflict.status_code, 409)
+        refund_mock.assert_called_once()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.refunded_amount, 100000)
+        self.assertEqual(RefundRecord.objects.get().status, "succeeded")
+
+    def test_refund_rejects_fractional_amount(self):
+        User.objects.create_user(
+            username="refund_staff", password="StrongPass123!", is_staff=True
+        )
+        self.client.login(username="refund_staff", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:vnpay_refund"),
+            json.dumps(
+                {
+                    "order_id": self.order.id,
+                    "amount": 100000.5,
+                    "trans_id": "987654321",
+                }
+            ),
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0003",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(RefundRecord.objects.exists())
+
+    @override_settings(VNPAY_REFUND_URL="https://merchant.test/refund")
+    @mock.patch(
+        "orders.vnpay.refund_transaction",
+        return_value={"success": False, "ambiguous": True, "message": "timeout"},
+    )
+    def test_ambiguous_refund_stays_pending_and_is_not_retried(self, refund_mock):
+        User.objects.create_user(
+            username="refund_staff", password="StrongPass123!", is_staff=True
+        )
+        self.client.login(username="refund_staff", password="StrongPass123!")
+        self.order.is_paid = True
+        self.order.vnpay_transaction_id = "987654321"
+        self.order.save(update_fields=["is_paid", "vnpay_transaction_id"])
+        url = reverse("orders:vnpay_refund")
+        body = json.dumps(
+            {"order_id": self.order.id, "amount": 100000, "trans_id": "987654321"}
+        )
+        response = self.client.post(
+            url,
+            body,
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0002",
+        )
+        self.assertEqual(response.status_code, 202)
+        replay = self.client.post(
+            url,
+            body,
+            content_type="application/json",
+            HTTP_IDEMPOTENCY_KEY="refund-0002",
+        )
+        self.assertEqual(replay.status_code, 202)
+        refund_mock.assert_called_once()
+        self.assertEqual(RefundRecord.objects.get().status, "pending")
 
     def test_ipn_bad_signature_returns_97(self):
         params = self._signed()
@@ -3421,7 +3819,7 @@ class ReturnRequestTest(TestCase):
             status="delivered",
             is_paid=True,
         )
-        OrderItem.objects.create(
+        self.order_item = OrderItem.objects.create(
             order=self.order, product=self.product, quantity=2, price=300000
         )
 
@@ -3445,6 +3843,34 @@ class ReturnRequestTest(TestCase):
         self.assertEqual(rr.refund_amount, Decimal("600000"))
         self.assertEqual(rr.status, "pending")
         self.assertEqual(len(rr.items), 1)
+        self.assertEqual(rr.items[0]["order_item_id"], self.order_item.id)
+
+    def test_stock_is_only_restored_after_received_and_inspected(self):
+        self.product.stock = 3
+        self.product.save(update_fields=["stock"])
+        response = self.client.post(
+            reverse("orders:create_return", kwargs={"order_id": self.order.id}),
+            {"return_type": "refund", "reason": "defective"},
+        )
+        self.assertEqual(response.status_code, 302)
+        rr = ReturnRequest.objects.get(order=self.order)
+        rr.status = "approved"
+        rr.save(update_fields=["status"])
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+        rr.receive_and_restock()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+        self.assertEqual(rr.status, "received")
+        self.assertIsNotNone(rr.stock_restored_at)
+        rr.receive_and_restock()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+    def test_return_window_expires_seven_days_after_delivery(self):
+        self.order.delivered_at = timezone.now() - timedelta(days=8)
+        self.order.save(update_fields=["delivered_at"])
+        self.assertFalse(self.order.can_request_return)
 
     def test_create_return_rejected_for_non_delivered(self):
         self.order.status = "shipping"
@@ -3458,11 +3884,17 @@ class ReturnRequestTest(TestCase):
         )
         self.assertEqual(ReturnRequest.objects.count(), 0)
 
-    def test_admin_approves_and_refunds(self):
+    def test_return_requires_receipt_before_refund_status(self):
         url = reverse("orders:create_return", kwargs={"order_id": self.order.id})
         self.client.post(url, {"return_type": "refund", "reason": "defective"})
         rr = ReturnRequest.objects.get(order=self.order)
+        rr.status = "approved"
+        rr.save(update_fields=["status"])
+        rr.receive_and_restock()
+        rr.refresh_from_db()
+        self.assertEqual(rr.status, "received")
         rr.status = "refunded"
+        rr.refund_reference = "MANUAL-REF-001"
         rr.save(update_fields=["status"])
         rr.refresh_from_db()
         self.assertEqual(rr.status, "refunded")
@@ -3675,4 +4107,25 @@ class CartReminderTest(TestCase):
 
         call_command("send_cart_reminders")
         reminder.refresh_from_db()
+        self.assertIsNotNone(reminder.reminded_at)
+
+    def test_celery_task_uses_the_supported_reminder_command(self):
+        from django.utils import timezone as tz
+
+        from orders.models import CartReminder
+        from orders.tasks import send_cart_reminders
+
+        reminder = CartReminder.objects.create(
+            session_key="celery_old_session",
+            email="celery-old@test.com",
+            cart_snapshot='[{"name":"Áo","quantity":1,"subtotal":100000}]',
+        )
+        CartReminder.objects.filter(pk=reminder.pk).update(
+            updated_at=tz.now() - tz.timedelta(hours=4)
+        )
+
+        result = send_cart_reminders.run()
+
+        reminder.refresh_from_db()
+        self.assertEqual(result, {"status": "completed"})
         self.assertIsNotNone(reminder.reminded_at)

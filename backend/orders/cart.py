@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from products.models import Product, ProductVariant
 
@@ -129,7 +129,15 @@ def iter_cart(request):
 
         variant = variants_by_id.get(variant_id) if variant_id else None
         quantity = safe_int(item.get("quantity", 1), default=1, minimum=1)
-        price = Decimal(item.get("price", product.price))
+        try:
+            stored_price = Decimal(str(item.get("price", product.price)))
+        except (InvalidOperation, TypeError, ValueError):
+            stored_price = product.price
+        price = product.price
+        price_changed = stored_price != price
+        if price_changed:
+            item["price"] = str(price)
+            request.session.modified = True
         subtotal = price * quantity
         total += subtotal
 
@@ -140,6 +148,7 @@ def iter_cart(request):
                 "variant": variant,
                 "quantity": quantity,
                 "price": price,
+                "price_changed": price_changed,
                 "subtotal": subtotal,
             }
         )

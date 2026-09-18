@@ -884,12 +884,12 @@
                     <button type="submit" class="btn small ghost">Lưu</button>
                   </form>
                   <div class="admin-order-extra">
-                    {% if order.status != "cancelled" %}
+                    {% if order.status != "cancelled" and not order.is_paid %}
                     <form method="post" class="admin-quick-form">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="refund_order">
                       <input type="hidden" name="order_id" value="{{ order.id }}">
-                      <button type="submit" class="btn small ghost danger" onclick="return confirm('Hoàn tiền cho đơn #{{ order.id }}?')">Hoàn tiền</button>
+                      <button type="submit" class="btn small ghost danger" onclick="return confirm('Hủy đơn chưa thanh toán #{{ order.id }} và trả hàng về kho?')">Hủy đơn</button>
                     </form>
                     {% endif %}
                     <a href="{% url 'orders:admin_print_invoice' order.id %}" target="_blank" rel="noopener" class="btn small ghost">In hoá đơn</a>

@@ -58,6 +58,9 @@ def cart_info(request):
 def shop_site_config(request):
     from django.conf import settings
 
+    from orders.constants import bank_transfer_is_enabled
+    from orders.vnpay import is_configured as vnpay_is_configured
+
     return {
         "GA4_MEASUREMENT_ID": settings.GA4_MEASUREMENT_ID,
         "ZALO_OA_ID": settings.ZALO_OA_ID,
@@ -65,4 +68,6 @@ def shop_site_config(request):
         "SUPPORT_EMAIL": settings.SUPPORT_EMAIL,
         "STORE_ADDRESS": settings.STORE_ADDRESS,
         "PROMO_BANNER": settings.PROMO_BANNER,
+        "BANK_TRANSFER_AVAILABLE": bank_transfer_is_enabled(),
+        "VNPAY_AVAILABLE": vnpay_is_configured(),
     }

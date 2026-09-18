@@ -5,7 +5,6 @@ from django import forms
 
 from products.models import Product
 from .models import Coupon, Order
-from .constants import BANKS
 
 
 class ProductForm(forms.ModelForm):
@@ -191,7 +190,6 @@ class OrderEditForm(forms.ModelForm):
             "phone",
             "shipping_address",
             "note",
-            "bank_code",
         ]
 
     def clean_phone(self):
@@ -201,13 +199,6 @@ class OrderEditForm(forms.ModelForm):
                 "Số điện thoại không hợp lệ, vui lòng chỉ nhập số từ 9 đến 15 chữ số."
             )
         return phone
-
-    def clean(self):
-        cleaned_data = super().clean()
-        bank_code = cleaned_data.get("bank_code")
-        if bank_code and bank_code not in BANKS:
-            cleaned_data["bank_code"] = "VCB"
-        return cleaned_data
 
 
 class OrderLookupForm(forms.Form):

@@ -140,16 +140,6 @@
                                 <span>Địa chỉ nhận hàng</span>
                                 <textarea name="shipping_address" rows="3" required>{{ order.shipping_address|repair_text }}</textarea>
                             </label>
-                            {% if order.payment_method == "bank" and not order.is_paid %}
-                            <label class="review-field">
-                                <span>Chọn ngân hàng</span>
-                                <select name="bank_code" id="review-bank-code">
-                                    {% for code, item in bank_choices %}
-                                    <option value="{{ code }}" {% if order.bank_code == code %}selected{% endif %}>{{ item.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            {% endif %}
                             <label class="review-field">
                                 <span>Ghi chú</span>
                                 <textarea name="note" rows="2">{{ order.note|repair_text }}</textarea>
@@ -300,37 +290,6 @@
         </aside>
     </div>
 </section>
-
-{% if can_edit and order.payment_method == "bank" and not order.is_paid %}
-<script nonce="{{ request.csp_nonce }}">
-(function () {
-    var bankSelect = document.getElementById("review-bank-code");
-    var qrImage = document.getElementById("review-bank-qr");
-    if (!bankSelect || !qrImage) return;
-
-    var bankMap = {
-        VCB: { bin: "970436", name: "Vietcombank" },
-        TCB: { bin: "970407", name: "Techcombank" },
-        MB: { bin: "970422", name: "MBBank" },
-        ACB: { bin: "970416", name: "ACB" },
-        BIDV: { bin: "970418", name: "BIDV" },
-        VPB: { bin: "970432", name: "VPBank" }
-    };
-    var accountNo = "{{ shop_bank_account }}";
-    var accountName = "{{ shop_account_name|urlencode }}";
-    var amount = "{{ order.total_amount|floatformat:0 }}";
-    var note = "DH{{ order.id }}";
-
-    function refreshQr() {
-        var bankCode = bankSelect.value || "VCB";
-        var bank = bankMap[bankCode] || bankMap.VCB;
-        qrImage.src = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
-    }
-    bankSelect.addEventListener("change", refreshQr);
-    refreshQr();
-})();
-</script>
-{% endif %}
 
 <style nonce="{{ request.csp_nonce }}">
 .review-summary-grid {

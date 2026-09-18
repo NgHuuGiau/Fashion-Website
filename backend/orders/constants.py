@@ -82,6 +82,7 @@ NORTHERN_KEYWORDS = (
 
 BANKS = {
     "VCB": {"name": "Vietcombank", "bin": "970436"},
+    "ICB": {"name": "VietinBank", "bin": "970415"},
     "TCB": {"name": "Techcombank", "bin": "970407"},
     "MB": {"name": "MBBank", "bin": "970422"},
     "ACB": {"name": "ACB", "bin": "970416"},
@@ -106,15 +107,22 @@ BANKS = {
     "KLB": {"name": "KienLongBank", "bin": "970452"},
 }
 
-BANK_CHOICES = [("", "-- Chọn ngân hàng --")] + [
-    (code, meta["name"]) for code, meta in BANKS.items()
-]
+
+def shop_bank_code():
+    return settings.SHOP_BANK_CODE.strip().upper()
+
+
+def shop_bank_meta():
+    """Ngân hàng nhận tiền cố định của shop, không phụ thuộc ngân hàng khách dùng."""
+    return BANKS.get(shop_bank_code(), {})
 
 
 def bank_transfer_is_enabled():
     account = settings.SHOP_BANK_ACCOUNT
+    bank_code = shop_bank_code()
     return (
         settings.BANK_TRANSFER_ENABLED
+        and bank_code in BANKS
         and account.isdigit()
         and 6 <= len(account) <= 20
         and bool(settings.SHOP_ACCOUNT_NAME)

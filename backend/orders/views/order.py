@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
@@ -12,10 +13,10 @@ from core.ratelimit import rate_limit
 
 from ..admin_forms import OrderEditForm, OrderLookupForm
 from ..constants import (
-    BANKS,
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
     bank_transfer_is_enabled,
+    shop_bank_meta,
 )
 from ..forms import ReturnRequestForm
 from ..models import Order, ReturnRequest
@@ -179,7 +180,7 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
         return redirect("orders:order_review", order_id=order.id)
 
     if order.payment_method == "bank" and not order.bank_code:
-        order.bank_code = "VCB"
+        order.bank_code = settings.SHOP_BANK_CODE
 
     qr_url = ""
     selected_bank_name = ""
@@ -188,11 +189,9 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
         and not order.is_paid
         and order.status != "cancelled"
     ):
-        bank_meta = BANKS.get(order.bank_code) or BANKS["VCB"]
-        selected_bank_name = bank_meta["name"]
-        qr_url = build_vietqr_url(
-            order.bank_code or "VCB", order.total_amount, f"DH{order.id}"
-        )
+        bank_meta = shop_bank_meta()
+        selected_bank_name = bank_meta.get("name", "")
+        qr_url = build_vietqr_url(order.total_amount, f"DH{order.id}")
 
     return render(
         request,
@@ -201,7 +200,6 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
             "order": order,
             "can_edit": can_edit,
             "tracking_order": order,
-            "bank_choices": BANKS.items(),
             "selected_bank_name": selected_bank_name,
             "qr_url": qr_url,
             "shop_bank_account": SHOP_BANK_ACCOUNT,
@@ -265,8 +263,12 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
                 refund_amount=refund_amount,
                 items=[
                     {
-                        "product": item.product.name,
-                        "variant": item.selected_size,
+                        "order_item_id": item.id,
+                        "product_id": item.product_id,
+                        "variant_id": item.variant_id,
+                        "product_name": item.product.name,
+                        "selected_color": item.selected_color,
+                        "selected_size": item.selected_size,
                         "qty": item.quantity,
                         "price": str(item.price),
                     }
@@ -347,6 +349,11 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
         restore_order_stock(order)
         order.status = "cancelled"
         order.is_paid = False
+        order._status_changed_by_id = request.user.pk
+        order._status_change_source = "customer_cancel"
+        order._status_change_note = (
+            "Khách hủy đơn chưa thanh toán; tồn kho đã hoàn lại."
+        )
         order.save(update_fields=["status", "is_paid"])
         from ..services.order_email import send_order_email
 

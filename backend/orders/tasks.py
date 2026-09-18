@@ -5,11 +5,11 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
+from django.core.management import call_command
 from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
-from .models import CartReminder
 from .services.order_email import send_order_email
 
 logger = logging.getLogger(__name__)
@@ -19,36 +19,8 @@ logger = logging.getLogger(__name__)
 def send_cart_reminders(self):
     """Gửi email nhắc giỏ hàng bị bỏ (chạy hàng giờ)."""
     try:
-        threshold = timezone.now() - timedelta(hours=1)
-        reminders = CartReminder.objects.filter(
-            sent_at__isnull=True,
-            created_at__lte=threshold,
-        ).select_related("user")[:100]
-
-        sent_count = 0
-        for reminder in reminders:
-            try:
-                if reminder.user:
-                    send_order_email(
-                        reminder.user,
-                        event="cart_reminder",
-                        context={
-                            "items": reminder.items,
-                            "total": reminder.total_amount,
-                        },
-                    )
-                else:
-                    # Guest cart reminder - need email from session
-                    pass
-
-                reminder.sent_at = timezone.now()
-                reminder.save(update_fields=["sent_at"])
-                sent_count += 1
-            except Exception as e:
-                logger.error(f"Failed to send cart reminder {reminder.id}: {e}")
-
-        logger.info(f"Sent {sent_count} cart reminder emails")
-        return {"sent_count": sent_count}
+        call_command("send_cart_reminders", no_input=True)
+        return {"status": "completed"}
     except Exception as exc:
         logger.error(f"send_cart_reminders failed: {exc}")
         raise self.retry(exc=exc)
@@ -58,7 +30,7 @@ def send_cart_reminders(self):
 def process_vnpay_ipn(self, params):
     """Xử lý VNPay IPN (server-to-server)."""
     from orders.models import Order
-    from orders.vnpay import verify_return
+    from orders.vnpay import amount_matches, verify_return
 
     try:
         if not verify_return(params):
@@ -69,47 +41,52 @@ def process_vnpay_ipn(self, params):
         response_code = params.get("vnp_ResponseCode")
         transaction_status = params.get("vnp_TransactionStatus")
 
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            logger.warning(f"VNPay IPN: Order {order_id} not found")
-            return {"RspCode": "01", "Message": "Order not found"}
+        with transaction.atomic():
+            order = Order.objects.select_for_update().filter(id=order_id).first()
+            if order is None:
+                logger.warning("VNPay IPN: order not found id=%s", order_id)
+                return {"RspCode": "01", "Message": "Order not found"}
+            if order.payment_method != "vnpay" or not amount_matches(order, params):
+                return {"RspCode": "97", "Message": "Invalid payment or amount"}
+            if order.is_paid:
+                return {"RspCode": "02", "Message": "Order already confirmed"}
 
-        if order.payment_method != "vnpay":
-            logger.warning(f"VNPay IPN: Order {order_id} not a VNPay order")
-            return {"RspCode": "97", "Message": "Invalid payment method"}
-
-        if order.is_paid:
-            logger.info(f"VNPay IPN: Order {order_id} already paid")
-            return {"RspCode": "02", "Message": "Order already confirmed"}
-
-        if response_code == "00" and transaction_status == "00":
-            with transaction.atomic():
-                if order.status == "cancelled":
-                    # Restore stock if previously cancelled
-                    restore_order_stock(order)
-
+            transaction_id = params.get("vnp_TransactionNo", "").strip()
+            if response_code == "00" and transaction_status == "00" and transaction_id:
                 order.is_paid = True
-                order.status = "processing"
-                order.save(update_fields=["is_paid", "status", "updated_at"])
-
-                send_order_email(order.user, event="paid", order=order)
-
-                logger.info(f"VNPay IPN: Order {order_id} marked as paid")
+                order.vnpay_transaction_id = transaction_id
+                fields = ["is_paid", "vnpay_transaction_id", "updated_at"]
+                if order.status == "cancelled":
+                    logger.error(
+                        "Late VNPay task callback for cancelled order %s; reconcile manually",
+                        order.id,
+                    )
+                else:
+                    order.status = "processing"
+                    fields.append("status")
+                    order._status_change_source = "vnpay_ipn_task"
+                    order._status_change_transaction_id = transaction_id
+                    order._status_change_note = "Celery xác nhận VNPay thành công."
+                    send_order_email(order, event="paid")
+                order.save(update_fields=fields)
                 return {"RspCode": "00", "Message": "Confirm Success"}
-        else:
-            # Payment failed
-            restore_order_stock(order)
-            order.status = "cancelled"
-            order.save(update_fields=["status", "updated_at"])
 
-            send_order_email(order.user, event="cancelled", order=order)
-
-            logger.warning(f"VNPay IPN: Order {order_id} payment failed")
+            if order.status != "cancelled":
+                restore_order_stock(order)
+                order.status = "cancelled"
+                order._status_change_source = "vnpay_ipn_task"
+                order._status_change_transaction_id = transaction_id
+                order._status_change_note = (
+                    f"Celery nhận IPN thất bại, mã phản hồi {response_code}."
+                )
+                order.save(update_fields=["status", "updated_at"])
+                send_order_email(order, event="cancelled")
             return {"RspCode": "97", "Message": "Payment not successful"}
 
     except Exception as exc:
-        logger.error(f"process_vnpay_ipn failed for {params.get('vnp_TxnRef')}: {exc}")
+        logger.exception(
+            "process_vnpay_ipn failed for order %s", params.get("vnp_TxnRef")
+        )
         raise self.retry(exc=exc)
 
 
@@ -146,6 +123,8 @@ def restore_order_stock(order):
                 item.product.save(update_fields=["stock", "updated"])
 
         order.status = "cancelled"
+        order._status_change_source = "stock_restore_task"
+        order._status_change_note = "Tác vụ hệ thống hoàn tồn kho khi hủy đơn."
         order.save(update_fields=["status", "updated_at"])
 
 

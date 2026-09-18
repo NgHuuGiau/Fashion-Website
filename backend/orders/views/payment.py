@@ -6,7 +6,6 @@ from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.ratelimit import rate_limit
 
@@ -16,16 +15,15 @@ from .cart import (
     build_vietqr_url,
     expire_bank_order_if_needed,
     _payment_token,
-    reserve_order_stock,
     restore_order_stock,
 )
 from .order import decorate_order_tracking
 from ..constants import (
-    BANKS,
     PAYMENT_TIMEOUT_MINUTES,
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
     bank_transfer_is_enabled,
+    shop_bank_meta,
 )
 from ..models import Order
 
@@ -79,9 +77,9 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
 
     qr_url = ""
     selected_bank_name = ""
-    if order.payment_method == "bank" and order.bank_code in BANKS:
-        selected_bank_name = BANKS[order.bank_code]["name"]
-        qr_url = build_vietqr_url(order.bank_code, order.total_amount, f"DH{order.id}")
+    if order.payment_method == "bank" and shop_bank_meta():
+        selected_bank_name = shop_bank_meta()["name"]
+        qr_url = build_vietqr_url(order.total_amount, f"DH{order.id}")
 
     return render(
         request,
@@ -111,9 +109,9 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
     if order.status == "cancelled":
         return redirect("orders:order_failed", order_id=order.id)
 
-    selected_bank = BANKS.get(order.bank_code) or BANKS["VCB"]
+    selected_bank = shop_bank_meta()
     expires_at = order.created_at + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
-    qr_url = build_vietqr_url(order.bank_code, order.total_amount, f"DH{order.id}")
+    qr_url = build_vietqr_url(order.total_amount, f"DH{order.id}")
     token = _payment_token(order.id)
     mobile_url = request.build_absolute_uri(
         reverse(
@@ -126,7 +124,7 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
         "shop/bank_payment_waiting.html",
         {
             "order": order,
-            "selected_bank_name": selected_bank["name"],
+            "selected_bank_name": selected_bank.get("name", ""),
             "shop_bank_account": SHOP_BANK_ACCOUNT,
             "shop_account_name": SHOP_ACCOUNT_NAME,
             "qr_url": qr_url,
@@ -227,6 +225,7 @@ def vnpay_payment(request: HttpRequest, order_id) -> HttpResponse:
     return redirect(payment_url)
 
 
+@transaction.atomic
 def vnpay_return(request: HttpRequest) -> HttpResponse:
     """VNPay chuyển hướng về đây sau khi khách thanh toán."""
     from ..vnpay import amount_matches, verify_return
@@ -238,7 +237,7 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
 
     txn_ref = params.get("vnp_TxnRef", "")
     response_code = params.get("vnp_ResponseCode", "")
-    order = Order.objects.filter(id=txn_ref).first()
+    order = Order.objects.select_for_update().filter(id=txn_ref).first()
     if not order:
         messages.error(request, "Không tìm thấy đơn hàng.")
         return redirect("orders:my_orders")
@@ -246,18 +245,43 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Số tiền thanh toán không khớp đơn hàng.")
         return redirect("orders:my_orders")
 
+    transaction_id = params.get("vnp_TransactionNo", "").strip()
+    succeeded = (
+        response_code == "00"
+        and params.get("vnp_TransactionStatus") == "00"
+        and bool(transaction_id)
+    )
     if order.is_paid:
+        if transaction_id and order.vnpay_transaction_id not in (None, transaction_id):
+            logger.error("VNPay transaction mismatch for paid order %s", order.id)
+            messages.error(request, "Giao dịch không khớp; shop cần đối soát đơn hàng.")
+            return redirect("orders:my_orders")
         messages.info(request, "Đơn hàng đã được thanh toán trước đó.")
         return redirect("orders:order_success", order_id=order.id)
-    if response_code == "00":
-        if order.status == "cancelled":
-            reserve_order_stock(order)
+    if succeeded:
         order.is_paid = True
-        order.status = "processing"
-        order.save(update_fields=["is_paid", "status", "updated_at"])
-        from ..services.order_email import send_order_email
+        order.vnpay_transaction_id = transaction_id
+        fields = ["is_paid", "vnpay_transaction_id", "updated_at"]
+        if order.status == "cancelled":
+            logger.error(
+                "Late VNPay payment captured for cancelled order %s; manual reconciliation required",
+                order.id,
+            )
+            messages.warning(
+                request,
+                "VNPay đã thu tiền nhưng đơn đã bị hủy. Shop cần đối soát và xử lý hoàn tiền; đơn chưa được mở giao lại.",
+            )
+        else:
+            order.status = "processing"
+            fields.append("status")
+            from ..services.order_email import send_order_email
 
-        send_order_email(order, event="paid")
+            send_order_email(order, event="paid")
+            messages.success(request, "Thanh toán VNPay thành công.")
+            order._status_change_source = "vnpay_return"
+            order._status_change_transaction_id = transaction_id
+            order._status_change_note = "VNPay xác nhận thanh toán thành công."
+        order.save(update_fields=fields)
         log_activity(
             request,
             event_type="payment_confirm",
@@ -265,17 +289,23 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
                 "order_id": order.id,
                 "payment_method": "vnpay",
                 "vnp_ResponseCode": response_code,
+                "vnp_TransactionNo": transaction_id,
             },
         )
-        messages.success(request, "Thanh toán VNPay thành công.")
         return redirect("orders:order_success", order_id=order.id)
 
-    restore_order_stock(order)
-    order.status = "cancelled"
-    order.save(update_fields=["status", "updated_at"])
-    from ..services.order_email import send_order_email
+    if order.status != "cancelled":
+        restore_order_stock(order)
+        order.status = "cancelled"
+        order._status_change_source = "vnpay_return"
+        order._status_change_transaction_id = transaction_id
+        order._status_change_note = (
+            f"VNPay từ chối giao dịch, mã phản hồi {response_code}."
+        )
+        order.save(update_fields=["status", "updated_at"])
+        from ..services.order_email import send_order_email
 
-    send_order_email(order, event="cancelled")
+        send_order_email(order, event="cancelled")
     return redirect("orders:order_failed", order_id=order.id)
 
 
@@ -288,26 +318,60 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     order_id = params.get("vnp_TxnRef", "")
     if not verify_return(params):
         return JsonResponse({"RspCode": "97", "Message": "Invalid signature"})
-    order = Order.objects.filter(id=order_id).first()
-    if order is None:
-        return JsonResponse({"RspCode": "01", "Message": "Order not found"})
-    if order.payment_method != "vnpay" or not amount_matches(order, params):
-        return JsonResponse({"RspCode": "97", "Message": "Amount mismatch"})
-    response_code = params.get("vnp_ResponseCode", "")
-    transaction_status = params.get("vnp_TransactionStatus", "")
-    if response_code == "00" and transaction_status == "00" and not order.is_paid:
-        if order.status == "cancelled":
-            reserve_order_stock(order)
-        order.is_paid = True
-        order.status = "processing"
-        order.save(update_fields=["is_paid", "status", "updated_at"])
-        from ..services.order_email import send_order_email
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(id=order_id).first()
+        if order is None:
+            return JsonResponse({"RspCode": "01", "Message": "Order not found"})
+        if order.payment_method != "vnpay" or not amount_matches(order, params):
+            return JsonResponse({"RspCode": "97", "Message": "Amount mismatch"})
+        response_code = params.get("vnp_ResponseCode", "")
+        transaction_status = params.get("vnp_TransactionStatus", "")
+        transaction_id = params.get("vnp_TransactionNo", "").strip()
+        if order.is_paid:
+            if transaction_id and order.vnpay_transaction_id not in (
+                None,
+                transaction_id,
+            ):
+                logger.error("VNPay transaction mismatch for paid order %s", order.id)
+                return JsonResponse(
+                    {"RspCode": "97", "Message": "Transaction mismatch"}
+                )
+            return JsonResponse({"RspCode": "02", "Message": "Order already confirmed"})
+        if response_code != "00" or transaction_status != "00" or not transaction_id:
+            if order.status != "cancelled":
+                restore_order_stock(order)
+                order.status = "cancelled"
+                order._status_change_source = "vnpay_ipn"
+                order._status_change_transaction_id = transaction_id
+                order._status_change_note = (
+                    f"VNPay IPN thất bại, mã phản hồi {response_code}."
+                )
+                order.save(update_fields=["status", "updated_at"])
+                from ..services.order_email import send_order_email
 
-        send_order_email(order, event="paid")
+                send_order_email(order, event="cancelled")
+            return JsonResponse({"RspCode": "97", "Message": "Payment not successful"})
+
+        order.is_paid = True
+        order.vnpay_transaction_id = transaction_id
+        fields = ["is_paid", "vnpay_transaction_id", "updated_at"]
+        if order.status != "cancelled":
+            order.status = "processing"
+            fields.append("status")
+            from ..services.order_email import send_order_email
+
+            send_order_email(order, event="paid")
+        else:
+            logger.error(
+                "Late VNPay IPN for cancelled order %s; manual reconciliation required",
+                order.id,
+            )
+        if "status" in fields:
+            order._status_change_source = "vnpay_ipn"
+            order._status_change_transaction_id = transaction_id
+            order._status_change_note = "VNPay IPN xác nhận thanh toán thành công."
+        order.save(update_fields=fields)
         return JsonResponse({"RspCode": "00", "Message": "Confirm Success"})
-    if order.is_paid:
-        return JsonResponse({"RspCode": "02", "Message": "Order already confirmed"})
-    return JsonResponse({"RspCode": "97", "Message": "Payment not successful"})
 
 
 @require_POST
@@ -326,6 +390,11 @@ def bank_payment_cancel(request: HttpRequest, order_id) -> HttpResponse:
 
     restore_order_stock(order)
     order.status = "cancelled"
+    order._status_changed_by_id = (
+        request.user.pk if request.user.is_authenticated else None
+    )
+    order._status_change_source = "bank_payment_cancel"
+    order._status_change_note = "Khách hủy giao dịch chuyển khoản."
     order.save(update_fields=["status", "updated_at"])
     messages.warning(request, "Đơn hàng chưa thành công do bạn đã hủy thanh toán.")
     return redirect("orders:order_failed", order_id=order.id)
@@ -402,6 +471,13 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
                 return render(request, "shop/bank_payment_mobile.html", ctx)
             restore_order_stock(order)
             order.status = "cancelled"
+            order._status_changed_by_id = (
+                request.user.pk if request.user.is_authenticated else None
+            )
+            order._status_change_source = "bank_payment_cancel"
+            order._status_change_note = (
+                "Khách hủy giao dịch chuyển khoản trên điện thoại."
+            )
             order.save(update_fields=["status", "updated_at"])
             from ..services.order_email import send_order_email
 
@@ -419,15 +495,13 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
         ctx.update({"cancelled": True})
         return render(request, "shop/bank_payment_mobile.html", ctx)
 
-    selected_bank = BANKS.get(order.bank_code) or BANKS["VCB"]
+    selected_bank = shop_bank_meta()
     ctx.update(
         {
-            "selected_bank_name": selected_bank["name"],
+            "selected_bank_name": selected_bank.get("name", ""),
             "shop_bank_account": SHOP_BANK_ACCOUNT,
             "shop_account_name": SHOP_ACCOUNT_NAME,
-            "qr_url": build_vietqr_url(
-                order.bank_code, order.total_amount, f"DH{order.id}"
-            ),
+            "qr_url": build_vietqr_url(order.total_amount, f"DH{order.id}"),
             "expired": False,
             "paid": False,
             "bank_transfer_enabled": bank_transfer_is_enabled(),
@@ -443,7 +517,6 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
     window=300,
     error_msg="Quá nhiều yêu cầu hoàn tiền. Vui lòng thử lại sau.",
 )
-@transaction.atomic
 def vnpay_refund(request: HttpRequest) -> JsonResponse:
     """API hoàn tiền VNPay (hỗ trợ partial refund).
 
@@ -456,8 +529,10 @@ def vnpay_refund(request: HttpRequest) -> JsonResponse:
     import json
     import re
 
-    # Check authentication and permission
-    if not request.user.is_authenticated or not request.user.is_staff:
+    # Refunds are financial operations and require the order-management role.
+    from users.permissions import can_manage_orders
+
+    if not request.user.is_authenticated or not can_manage_orders(request.user):
         return JsonResponse(
             {"success": False, "message": "Không có quyền truy cập"}, status=403
         )
@@ -471,77 +546,187 @@ def vnpay_refund(request: HttpRequest) -> JsonResponse:
     amount = data.get("amount")
     trans_id = data.get("trans_id")
     reason = data.get("reason", "Hoàn tiền theo yêu cầu")
+    request_id = request.headers.get("Idempotency-Key") or data.get("request_id")
 
-    if not order_id or not amount or not trans_id:
-        return JsonResponse(
-            {"success": False, "message": "Thiếu tham số: order_id, amount, trans_id"},
-            status=400,
-        )
-
-    try:
-        amount = int(amount)
-        if amount <= 0:
-            return JsonResponse(
-                {"success": False, "message": "Số tiền hoàn phải lớn hơn 0"}, status=400
-            )
-    except (TypeError, ValueError):
-        return JsonResponse(
-            {"success": False, "message": "Số tiền không hợp lệ"}, status=400
-        )
-
-    order = get_object_or_404(Order, id=order_id)
-
-    # Kiểm tra đơn hàng đã thanh toán qua VNPay
-    if order.payment_method != "vnpay":
-        return JsonResponse(
-            {"success": False, "message": "Đơn hàng này không thanh toán bằng VNPay"},
-            status=400,
-        )
-
-    if not order.is_paid:
-        return JsonResponse(
-            {"success": False, "message": "Đơn hàng chưa được thanh toán"}, status=400
-        )
-
-    # Kiểm tra số tiền hoàn không vượt quá số tiền đã thanh toán
-    if amount > order.total_amount:
+    if not order_id or amount is None or not trans_id or not request_id:
         return JsonResponse(
             {
                 "success": False,
-                "message": "Số tiền hoàn không được vượt quá tổng tiền đơn hàng",
+                "message": "Cần order_id, amount, trans_id và Idempotency-Key (8–32 ký tự).",
             },
             status=400,
         )
-
-    # Lấy transaction ID từ VNPay (lưu trong order.note)
-    trans_id = data.get("trans_id")
-    if not trans_id:
-        # Thử tìm trong note
-        import re
-
-        match = re.search(r"vnp_TransactionNo:([^,]+)", order.note or "")
-        trans_id = match.group(1).strip() if match else None
-
-    if not trans_id:
+    request_id = str(request_id).strip()
+    trans_id = str(trans_id).strip()
+    if isinstance(order_id, bool) or not str(order_id).isdecimal():
         return JsonResponse(
-            {"success": False, "message": "Không tìm thấy Transaction ID từ VNPay"},
-            status=400,
+            {"success": False, "message": "Mã đơn hàng không hợp lệ."}, status=400
+        )
+    order_id = int(order_id)
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,32}", request_id):
+        return JsonResponse(
+            {"success": False, "message": "Idempotency-Key không hợp lệ."}, status=400
+        )
+    if not trans_id or len(trans_id) > 64:
+        return JsonResponse(
+            {"success": False, "message": "Mã giao dịch không hợp lệ."}, status=400
+        )
+
+    if isinstance(amount, bool) or not (
+        isinstance(amount, int) or isinstance(amount, str) and amount.isdecimal()
+    ):
+        return JsonResponse(
+            {"success": False, "message": "Số tiền không hợp lệ"}, status=400
+        )
+    amount = int(amount)
+    if amount <= 0:
+        return JsonResponse(
+            {"success": False, "message": "Số tiền hoàn phải lớn hơn 0"}, status=400
+        )
+
+    from ..models import RefundRecord
+
+    with transaction.atomic():
+        order = get_object_or_404(Order.objects.select_for_update(), id=order_id)
+        existing = RefundRecord.objects.filter(request_id=request_id).first()
+        if existing:
+            if (
+                existing.order_id != order.id
+                or int(existing.amount) != amount
+                or existing.transaction_id != trans_id
+            ):
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Idempotency-Key đã dùng cho yêu cầu khác.",
+                    },
+                    status=409,
+                )
+            if existing.status == "succeeded":
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Yêu cầu này đã hoàn trước đó.",
+                        "refund_amount": int(existing.amount),
+                        "request_id": request_id,
+                    }
+                )
+            if existing.status == "pending":
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "pending": True,
+                        "message": "Yêu cầu đang chờ đối soát; không gửi lại để tránh hoàn trùng.",
+                        "request_id": request_id,
+                    },
+                    status=202,
+                )
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "VNPay đã từ chối yêu cầu này; dùng mã yêu cầu mới sau khi kiểm tra.",
+                    "request_id": request_id,
+                },
+                status=409,
+            )
+
+        if order.payment_method != "vnpay" or not order.is_paid:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Đơn phải được thanh toán thành công qua VNPay.",
+                },
+                status=400,
+            )
+        if order.vnpay_transaction_id and order.vnpay_transaction_id != trans_id:
+            return JsonResponse(
+                {"success": False, "message": "Mã giao dịch không khớp đơn hàng."},
+                status=400,
+            )
+        return_request = None
+        if order.status in {"shipping", "delivered"}:
+            return_request = order.return_requests.filter(
+                status="received", return_type="refund"
+            ).first()
+            if return_request is None:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Chỉ hoàn đơn đang giao/đã giao sau khi shop nhận và kiểm tra hàng trả.",
+                    },
+                    status=409,
+                )
+        reserved_amount = sum(
+            RefundRecord.objects.filter(
+                order=order, status__in=["pending", "succeeded"]
+            ).values_list("amount", flat=True)
+        )
+        if amount + reserved_amount > order.total_amount:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Tổng tiền hoàn vượt quá số tiền đơn đã thanh toán.",
+                },
+                status=400,
+            )
+        if return_request and amount + reserved_amount > return_request.refund_amount:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Số tiền hoàn vượt giá trị các sản phẩm đã nhận trả.",
+                },
+                status=400,
+            )
+        record = RefundRecord.objects.create(
+            order=order,
+            request_id=request_id,
+            transaction_id=trans_id,
+            amount=amount,
+            reason=str(reason)[:255],
+            requested_by=request.user,
         )
 
     # Gọi API refund VNPay
     from orders.vnpay import refund_transaction
 
-    result = refund_transaction(order, amount, trans_id, request.user.username)
+    result = refund_transaction(
+        order, amount, trans_id, request.user.username, request_id=request_id
+    )
+    with transaction.atomic():
+        record = RefundRecord.objects.select_for_update().get(pk=record.pk)
+        record.gateway_code = str(result.get("response_code") or "")[:20]
+        record.gateway_response = result.get("data") or {}
+        if result.get("success"):
+            record.status = "succeeded"
+        elif not result.get("ambiguous"):
+            record.status = "failed"
+        record.save(
+            update_fields=["status", "gateway_code", "gateway_response", "updated_at"]
+        )
+        if record.status == "succeeded":
+            order = Order.objects.select_for_update().get(pk=record.order_id)
+            order.refunded_amount = sum(
+                RefundRecord.objects.filter(
+                    order=order, status="succeeded"
+                ).values_list("amount", flat=True)
+            )
+            fields = ["refunded_amount", "updated_at"]
+            if order.refunded_amount >= order.total_amount and order.status in {
+                "pending",
+                "processing",
+            }:
+                restore_order_stock(order)
+                order.status = "cancelled"
+                order._status_changed_by_id = request.user.pk
+                order._status_change_source = "vnpay_refund"
+                order._status_change_transaction_id = trans_id
+                order._status_change_note = (
+                    f"Hoàn toàn bộ đơn qua VNPay; mã yêu cầu {request_id}."
+                )
+                fields.append("status")
+            order.save(update_fields=fields)
 
     if result.get("success"):
-        # Cập nhật đơn hàng: ghi chú hoàn tiền
-        refund_note = f"[REFUND {amount:,}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M} - {reason}"
-        order.note = (
-            f"{order.note}\n{refund_note}".strip() if order.note else refund_note
-        )
-        order.save(update_fields=["note", "updated_at"])
-
-        # Ghi log hoạt động
         log_activity(
             request,
             event_type="refund",
@@ -549,6 +734,7 @@ def vnpay_refund(request: HttpRequest) -> JsonResponse:
                 "order_id": order.id,
                 "amount": amount,
                 "trans_id": trans_id,
+                "request_id": request_id,
                 "reason": reason,
                 "vnpay_response": result.get("data"),
             },
@@ -557,17 +743,31 @@ def vnpay_refund(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {
                 "success": True,
-                "message": "Hoàn tiền thành công",
+                "message": "VNPay đã xác nhận hoàn tiền.",
                 "refund_amount": amount,
-                "vnpay_response": result.get("data"),
+                "refunded_total": int(order.refunded_amount),
+                "request_id": request_id,
             }
         )
-    else:
+    if result.get("ambiguous"):
+        logger.error(
+            "VNPay refund outcome unknown; manual reconciliation required: %s",
+            request_id,
+        )
         return JsonResponse(
             {
                 "success": False,
-                "message": result.get("message", "Hoàn tiền thất bại"),
-                "vnpay_response": result.get("data"),
+                "pending": True,
+                "message": "Chưa xác định được kết quả từ VNPay; cần đối soát, không gửi lại yêu cầu.",
+                "request_id": request_id,
             },
-            status=400,
+            status=202,
         )
+    return JsonResponse(
+        {
+            "success": False,
+            "message": result.get("message", "VNPay từ chối hoàn tiền."),
+            "request_id": request_id,
+        },
+        status=400,
+    )

@@ -7,10 +7,10 @@ Sandbox mặc định; chỉ hoạt động khi VNPAY_TMN_CODE + VNPAY_HASH_SECR
 import hashlib
 import hmac
 import logging
-import requests
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
+import requests
 from django.conf import settings
 from django.utils import timezone
 
@@ -23,9 +23,13 @@ VNPAY_CURRENCY = "VND"
 
 
 def is_configured():
-    return bool(
-        settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET and settings.VNPAY_URL
-    )
+    if not (settings.VNPAY_TMN_CODE and settings.VNPAY_HASH_SECRET):
+        return False
+
+    gateway = urlsplit(settings.VNPAY_URL.strip())
+    if gateway.scheme != "https" or not gateway.hostname:
+        return False
+    return settings.DEBUG or "sandbox" not in gateway.hostname.lower()
 
 
 def _secure_hash(params: dict) -> str:
@@ -85,7 +89,9 @@ def amount_matches(order, params: dict) -> bool:
         return False
 
 
-def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -> dict:
+def refund_transaction(
+    order, amount: int, trans_id: str, user: str = "admin", *, request_id=None
+) -> dict:
     """
     Gọi API hoàn tiền VNPay.
 
@@ -109,7 +115,7 @@ def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -
         "vnp_Version": VNPAY_VERSION,
         "vnp_Command": "refund",
         "vnp_TmnCode": settings.VNPAY_TMN_CODE,
-        "vnp_RequestId": datetime.now().strftime("%Y%m%d%H%M%S"),
+        "vnp_RequestId": request_id or datetime.now().strftime("%Y%m%d%H%M%S"),
         "vnp_Amount": str(amount * 100),  # VNPay uses VND * 100
         "vnp_OrderInfo": f"Hoan tien don hang {order.id}",
         "vnp_CreateDate": timezone.now().strftime("%Y%m%d%H%M%S"),
@@ -132,7 +138,11 @@ def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -
             received_hash = response_data.pop("vnp_SecureHash", "")
             expected_hash = _secure_hash(response_data)
             if not hmac.compare_digest(received_hash, expected_hash):
-                return {"success": False, "message": "Invalid response signature"}
+                return {
+                    "success": False,
+                    "ambiguous": True,
+                    "message": "Không xác minh được chữ ký phản hồi VNPay",
+                }
 
         return {
             "success": response_data.get("vnp_ResponseCode") == "00",
@@ -140,9 +150,21 @@ def refund_transaction(order, amount: int, trans_id: str, user: str = "admin") -
             "message": response_data.get("vnp_Message"),
             "data": response_data,
         }
-    except requests.RequestException as e:
-        logger.error(f"VNPay refund request failed: {e}")
-        return {"success": False, "message": f"Request failed: {str(e)}"}
-    except Exception as e:
-        logger.error(f"VNPay refund error: {e}")
-        return {"success": False, "message": f"Error: {str(e)}"}
+    except requests.RequestException:
+        logger.exception(
+            "VNPay refund request outcome is unknown for order %s", order.id
+        )
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Kết quả yêu cầu chưa xác định",
+        }
+    except Exception:
+        logger.exception(
+            "VNPay refund response could not be verified for order %s", order.id
+        )
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Không xác minh được phản hồi VNPay",
+        }

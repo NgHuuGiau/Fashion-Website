@@ -3,7 +3,7 @@ import re
 from django import forms
 
 from . import vnpay
-from .constants import BANK_CHOICES, bank_transfer_is_enabled
+from .constants import bank_transfer_is_enabled
 
 
 class CheckoutForm(forms.Form):
@@ -30,11 +30,6 @@ class CheckoutForm(forms.Form):
             ("vnpay", "Thanh toán VNPay"),
         ],
         label="Phương thức thanh toán",
-    )
-    bank_code = forms.ChoiceField(
-        choices=BANK_CHOICES,
-        required=False,
-        label="Ngân hàng chuyển khoản",
     )
     coupon_code = forms.CharField(
         required=False,
@@ -90,20 +85,10 @@ class CheckoutForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        if (
-            self.data.get("payment_method") == "vnpay"
-            and not vnpay.is_configured()
-        ):
+        if self.data.get("payment_method") == "vnpay" and not vnpay.is_configured():
             self.add_error(
                 "payment_method",
                 "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
-            )
-
-        if cleaned_data.get("payment_method") == "bank" and not cleaned_data.get(
-            "bank_code"
-        ):
-            self.add_error(
-                "bank_code", "Vui lòng chọn ngân hàng để quét mã chuyển khoản."
             )
 
         if cleaned_data.get("coupon_code"):

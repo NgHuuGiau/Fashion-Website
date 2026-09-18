@@ -129,7 +129,7 @@ def send_order_confirmation_email(self, order_id):
 
     try:
         order = Order.objects.select_related("user").get(id=order_id)
-        send_order_email(order.user, event="created", order=order)
+        send_order_email(order, event="created")
         logger.info(f"Order confirmation email sent for order {order_id}")
         return {"status": "sent", "order_id": order_id}
     except Exception as exc:

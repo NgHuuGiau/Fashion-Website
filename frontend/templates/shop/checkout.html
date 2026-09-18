@@ -83,20 +83,9 @@
 
                 <div class="payment-box panel-soft" id="bank-code-wrap">
                     <div class="field">
-                        <span>{{ form.bank_code.label }}</span>
-                        <div class="bank-picker" id="bank-picker">
-                            <button type="button" class="bank-picker-trigger" id="bank-picker-trigger" hidden
-                                    aria-haspopup="listbox" aria-expanded="false" aria-controls="bank-picker-menu"
-                                    aria-labelledby="bank-picker-text">
-                                <span class="bank-picker-text is-placeholder" id="bank-picker-text">-- Chọn ngân hàng --</span>
-                                <span class="bank-picker-caret" aria-hidden="true">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                                </span>
-                            </button>
-                            <div class="bank-picker-menu" id="bank-picker-menu" role="listbox" aria-label="Chọn ngân hàng" hidden></div>
-                            {{ form.bank_code }}
-                            {{ form.bank_code.errors }}
-                        </div>
+                        <span>Ngân hàng nhận tiền</span>
+                        <p><strong>{{ shop_bank.name }}</strong> — bạn có thể quét mã bằng ứng dụng ngân hàng bất kỳ.</p>
+                        <input type="hidden" id="id_bank_code" value="{{ shop_bank_code }}">
                     </div>
                 </div>
 
@@ -104,7 +93,7 @@
                     <div class="payment-qr-copy">
                         <p class="eyebrow">Chuyển khoản</p>
                         <h3>Quét QR trong 15 phút</h3>
-                        <p>Ngân hàng: <strong id="bank-name-label">Vietcombank</strong></p>
+                        <p>Ngân hàng nhận: <strong id="bank-name-label">{{ shop_bank.name }}</strong></p>
                         <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
                         <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
                         <p>Nội dung: <strong id="transfer-note-label">DH-TAM</strong></p>
@@ -186,6 +175,7 @@
             <div class="summary-list totals">
                 <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
                 <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>
+
                 {% if tier_discount_amount %}
                 <div class="summary-line discount"><span>Ưu đãi thành viên {{ tier_name }} ({{ tier_discount_pct }}%)</span><strong>-{{ tier_discount_amount|vnd }}đ</strong></div>
                 {% endif %}
@@ -215,6 +205,8 @@
     var accountNo = "{{ shop_bank_account }}";
     var accountName = "{{ shop_account_name|urlencode }}";
     var amount = "{{ total|floatformat:0 }}";
+    var shopBankCode = "{{ shop_bank_code|escapejs }}";
+    bankSelect.value = shopBankCode;
     var banksData = document.getElementById("banks-data");
     var banks = banksData ? JSON.parse(banksData.textContent) : {};
     var bankColors = {
@@ -242,8 +234,8 @@
         vnpayNoteBox.style.display = isVnpay ? "block" : "none";
         if (!isBank) return;
 
-        var bankCode = bankSelect.value || "VCB";
-        var bank = banks[bankCode] || { name: "Vietcombank", bin: "970436" };
+        var bank = banks[shopBankCode];
+        if (!bank) return;
         var note = "DH-TAM";
         bankNameLabel.textContent = bank.name;
         transferNoteLabel.textContent = note;
@@ -379,7 +371,6 @@
     }
 
     paymentSelect.addEventListener("change", updateDisplay);
-    bankSelect.addEventListener("change", updateDisplay);
     updateDisplay();
 })();
 </script>

@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from users.permissions import is_staff_member
 
-from ..constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
+from ..constants import SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT, shop_bank_meta
 from ..models import Order
 
 
@@ -21,7 +21,7 @@ def print_invoice(request: HttpRequest, order_id) -> HttpResponse:
     order = get_object_or_404(
         Order.objects.prefetch_related("items__product", "items__variant"), id=order_id
     )
-    bank_name = (BANKS.get(order.bank_code) or {}).get("name", "")
+    bank_name = shop_bank_meta().get("name", "")
     context = {
         "order": order,
         "bank_name": bank_name,

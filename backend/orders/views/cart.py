@@ -29,6 +29,7 @@ from ..constants import (
     SHOP_ACCOUNT_NAME,
     SHOP_BANK_ACCOUNT,
     bank_transfer_is_enabled,
+    shop_bank_meta,
     SHIPPING_FEE_ZONES,
     STANDARD_SHIPPING_FEE,
     TIER_DISCOUNTS,
@@ -86,8 +87,9 @@ def _clear_cart_reminder(request):
         CartReminder.objects.filter(session_key=sk).delete()
 
 
-def build_vietqr_url(bank_code, amount, transfer_note):
-    bank = BANKS.get(bank_code)
+def build_vietqr_url(amount, transfer_note):
+    """Tạo QR tới ngân hàng nhận cố định đã cấu hình cho shop."""
+    bank = shop_bank_meta()
     if not bank or not bank_transfer_is_enabled():
         return ""
     return (
@@ -181,9 +183,13 @@ def reserve_order_stock(order):
     with transaction.atomic():
         for item in order.items.select_related("product", "variant"):
             if item.variant:
-                ProductVariant.objects.filter(id=item.variant.id).update(
-                    stock=Greatest(F("stock") - item.quantity, 0)
-                )
+                updated = ProductVariant.objects.filter(
+                    id=item.variant.id, is_active=True, stock__gte=item.quantity
+                ).update(stock=F("stock") - item.quantity)
+                if not updated:
+                    raise ValueError(
+                        f"Không đủ tồn kho cho sản phẩm {item.product.name}, biến thể {item.selected_size or item.selected_color}."
+                    )
                 total_stock = (
                     item.product.variants.filter(is_active=True).aggregate(
                         total=Sum("stock")
@@ -193,41 +199,71 @@ def reserve_order_stock(order):
                 item.product.stock = total_stock
                 item.product.save(update_fields=["stock", "updated"])
             else:
-                Product.objects.filter(id=item.product.id).update(
-                    stock=Greatest(F("stock") - item.quantity, 0),
+                updated = Product.objects.filter(
+                    id=item.product.id, stock__gte=item.quantity
+                ).update(
+                    stock=F("stock") - item.quantity,
                     updated=timezone.now(),
                 )
+                if not updated:
+                    raise ValueError(
+                        f"Không đủ tồn kho cho sản phẩm {item.product.name}."
+                    )
 
 
-def apply_order_status_change(order, new_status, is_paid=False):
+def apply_order_status_change(
+    order,
+    new_status,
+    is_paid=False,
+    *,
+    actor=None,
+    source="staff_dashboard",
+    transaction_id="",
+    note="",
+):
     """Cập nhật trạng thái đơn và đồng bộ tồn kho.
 
     - Chuyển sang trạng thái 'cancelled': trả lại hàng về kho.
     - Bỏ huỷ (từ 'cancelled' sang trạng thái khác): trừ lại hàng khỏi kho.
-    - 'delivered' là trạng thái cuối: không chuyển đi đâu (hoàn hàng
-      dùng luồng đổi/trả), và chỉ được đánh dấu khi đã thanh toán.
+    - Đơn đã giao chỉ xử lý qua luồng đổi/trả; không dùng hủy để giả lập hoàn tiền.
+    - Hủy chỉ áp dụng cho đơn chưa thanh toán; kho chỉ được trả lại một lần.
     """
-    old_status = order.status
-    if old_status == "delivered" and new_status != "delivered":
-        # Cho phép chuyển sang 'cancelled' NẾU đơn đã thanh toán (was_paid)
-        # -> đây là luồng hoàn tiền (refund): khách trả hàng, lấy tiền lại.
-        if not (new_status == "cancelled" and not is_paid and order.is_paid):
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        old_status = order.status
+        if old_status == "delivered" and new_status != "delivered":
             raise ValueError(
-                f"Đơn #{order.id} đã hoàn thành, không thể chuyển sang '{new_status}'. "
+                f"Đơn #{order.id} đã giao, không thể chuyển trạng thái bằng thao tác hủy. "
                 "Dùng luồng đổi/trả để xử lý."
             )
-    if new_status == "delivered" and not is_paid:
-        raise ValueError(
-            f"Đơn #{order.id} chưa thanh toán, không thể đánh dấu hoàn thành."
-        )
-    with transaction.atomic():
+        if new_status == "cancelled" and (order.is_paid or is_paid):
+            raise ValueError(
+                f"Đơn #{order.id} đã thanh toán; không thể xác nhận hoàn tiền bằng thao tác hủy. "
+                "Hãy hoàn tiền qua cổng hoặc xác nhận hoàn thủ công trước."
+            )
+        if old_status == "cancelled" and new_status != "cancelled" and order.is_paid:
+            raise ValueError(
+                f"Đơn #{order.id} đã thanh toán nhưng đang hủy; cần đối soát thủ công trước khi mở lại."
+            )
+        if new_status == "delivered" and not is_paid:
+            raise ValueError(
+                f"Đơn #{order.id} chưa thanh toán, không thể đánh dấu hoàn thành."
+            )
         if old_status != "cancelled" and new_status == "cancelled":
             restore_order_stock(order)
         elif old_status == "cancelled" and new_status != "cancelled":
             reserve_order_stock(order)
         order.status = new_status
         order.is_paid = bool(is_paid)
-        order.save(update_fields=["status", "is_paid", "updated_at"])
+        order._status_changed_by_id = getattr(actor, "pk", None)
+        order._status_change_source = source
+        order._status_change_transaction_id = transaction_id
+        order._status_change_note = note
+        fields = ["status", "is_paid", "updated_at"]
+        if new_status == "delivered" and old_status != "delivered":
+            order.delivered_at = timezone.now()
+            fields.append("delivered_at")
+        order.save(update_fields=fields)
     if new_status == "delivered":
         from ..services.order_email import send_order_email
         from .order import _grant_order_points
@@ -267,6 +303,8 @@ def expire_bank_order_if_needed(order):
         locked.note = (
             f"{locked.note}\n{timeout_note}".strip() if locked.note else timeout_note
         )
+        locked._status_change_source = "payment_timeout"
+        locked._status_change_note = "Thanh toán quá hạn; tồn kho đã được hoàn lại."
         locked.save(update_fields=["status", "note", "updated_at"])
     order.status = "cancelled"
     order.note = locked.note
@@ -454,6 +492,13 @@ def checkout(request: HttpRequest) -> HttpResponse:
         messages.warning(request, "Giỏ hàng đang trống.")
         return redirect("products:product_list")
 
+    if request.method == "POST" and any(item["price_changed"] for item in items):
+        messages.warning(
+            request,
+            "Giá sản phẩm vừa thay đổi. Vui lòng kiểm tra lại giỏ hàng trước khi đặt.",
+        )
+        return redirect("orders:checkout")
+
     is_guest = not request.user.is_authenticated
 
     if is_guest:
@@ -490,11 +535,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         form = CheckoutForm(request.POST)
         if form.is_valid():
             payment_method = form.cleaned_data["payment_method"]
-            bank_code = (
-                form.cleaned_data.get("bank_code", "")
-                if payment_method == "bank"
-                else ""
-            )
+            bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
             coupon_code = form.cleaned_data.get("coupon_code", "")
             shipping_fee = calculate_shipping_fee(
                 subtotal, form.cleaned_data["shipping_address"]
@@ -554,8 +595,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                 "form": form,
                                 "shop_bank_account": SHOP_BANK_ACCOUNT,
                                 "shop_account_name": SHOP_ACCOUNT_NAME,
+                                "shop_bank": shop_bank_meta(),
+                                "shop_bank_code": settings.SHOP_BANK_CODE,
                                 "demo_qr_url": build_vietqr_url(
-                                    bank_code or "VCB",
                                     subtotal + shipping_fee,
                                     "DH-TAM",
                                 ),
@@ -594,8 +636,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "form": form,
                                     "shop_bank_account": SHOP_BANK_ACCOUNT,
                                     "shop_account_name": SHOP_ACCOUNT_NAME,
+                                    "shop_bank": shop_bank_meta(),
+                                    "shop_bank_code": settings.SHOP_BANK_CODE,
                                     "demo_qr_url": build_vietqr_url(
-                                        bank_code or "VCB",
                                         subtotal + shipping_fee,
                                         "DH-TAM",
                                     ),
@@ -613,7 +656,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             updated_at=timezone.now(),
                         )
 
-                    order = Order.objects.create(
+                    order = Order(
                         user=None if is_guest else request.user,
                         customer_name=form.cleaned_data["customer_name"],
                         customer_email=form.cleaned_data["customer_email"],
@@ -639,6 +682,14 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         if payment_method in ("bank", "vnpay")
                         else "pending",
                     )
+                    order._status_changed_by_id = (
+                        request.user.pk if not is_guest else None
+                    )
+                    order._status_change_source = "checkout"
+                    order._status_change_note = (
+                        "Đơn hàng được tạo từ quy trình thanh toán."
+                    )
+                    order.save()
 
                     if points_to_use and not is_guest:
                         # Trừ atomic có điều kiện: hết điểm giữa chừng thì hủy
@@ -763,12 +814,6 @@ def checkout(request: HttpRequest) -> HttpResponse:
     else:
         form = CheckoutForm(initial=initial)
 
-    demo_bank_code = (
-        request.POST.get("bank_code") if request.method == "POST" else "VCB"
-    )
-    if demo_bank_code not in BANKS:
-        demo_bank_code = "VCB"
-
     if request.method == "POST" and form.is_valid() and not coupon_error:
         discount_amount = calculate_coupon_discount(
             selected_coupon, subtotal, shipping_fee
@@ -801,7 +846,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
             "form": form,
             "shop_bank_account": SHOP_BANK_ACCOUNT,
             "shop_account_name": SHOP_ACCOUNT_NAME,
-            "demo_qr_url": build_vietqr_url(demo_bank_code, total, "DH-TAM"),
+            "shop_bank": shop_bank_meta(),
+            "shop_bank_code": settings.SHOP_BANK_CODE,
+            "demo_qr_url": build_vietqr_url(total, "DH-TAM"),
             "freeship_threshold": FREESHIP_THRESHOLD,
             "banks": BANKS,
             "user_points": user_points,

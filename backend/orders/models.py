@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum, F
 from django.utils import timezone
 
@@ -154,6 +154,12 @@ class Order(models.Model):
     )
     bank_code = models.CharField(max_length=20, blank=True)
     is_paid = models.BooleanField(default=False, db_index=True)
+    vnpay_transaction_id = models.CharField(
+        max_length=64, unique=True, null=True, blank=True
+    )
+    refunded_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=Decimal("0")
+    )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
     )
@@ -166,6 +172,7 @@ class Order(models.Model):
     tracking_code = models.CharField(
         max_length=40, blank=True, verbose_name="Mã vận đơn"
     )
+    delivered_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     subtotal_amount = models.DecimalField(
         max_digits=12, decimal_places=0, default=Decimal("0")
@@ -207,6 +214,44 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} - {self.user.username if self.user else '(guest)'}"
 
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        should_track_status = update_fields is None or "status" in update_fields
+        previous_status = None
+        if self.pk:
+            previous_status = (
+                type(self)
+                .objects.using(kwargs.get("using") or self._state.db)
+                .filter(pk=self.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+        super().save(*args, **kwargs)
+        if not should_track_status or previous_status == self.status:
+            return
+
+        OrderStatusHistory.objects.using(self._state.db).create(
+            order_id=self.pk,
+            from_status=previous_status or "",
+            to_status=self.status,
+            actor_id=getattr(self, "_status_changed_by_id", None),
+            source=getattr(self, "_status_change_source", "application"),
+            transaction_id=(
+                getattr(self, "_status_change_transaction_id", "")
+                or self.vnpay_transaction_id
+                or ""
+            )[:64],
+            note=getattr(self, "_status_change_note", "")[:255],
+        )
+        for attribute in (
+            "_status_changed_by_id",
+            "_status_change_source",
+            "_status_change_transaction_id",
+            "_status_change_note",
+        ):
+            if hasattr(self, attribute):
+                delattr(self, attribute)
+
     @property
     def carrier_label(self):
         return self.CARRIER_LABELS.get(self.carrier, "")
@@ -222,9 +267,10 @@ class Order(models.Model):
     def can_request_return(self):
         if self.status != "delivered":
             return False
-        if self.return_requests.filter(status__in=["pending", "approved"]).exists():
+        if self.return_requests.exclude(status="rejected").exists():
             return False
-        return True
+        delivered_at = self.delivered_at or self.updated_at
+        return delivered_at >= timezone.now() - _timedelta(days=7)
 
     def get_delivery_slot_display(self):
         return dict(self.DELIVERY_SLOT_CHOICES).get(self.delivery_time_slot, "")
@@ -245,8 +291,10 @@ class ReturnRequest(models.Model):
     STATUS_CHOICES = [
         ("pending", "Chờ duyệt"),
         ("approved", "Đã duyệt"),
+        ("received", "Đã nhận và kiểm tra hàng"),
         ("rejected", "Từ chối"),
         ("refunded", "Đã hoàn tiền"),
+        ("exchanged", "Đã đổi hàng"),
     ]
     STATUS_LABELS = dict(STATUS_CHOICES)
     REASON_LABELS = dict(REASON_CHOICES)
@@ -267,6 +315,8 @@ class ReturnRequest(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
     )
+    stock_restored_at = models.DateTimeField(null=True, blank=True)
+    refund_reference = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -277,75 +327,147 @@ class ReturnRequest(models.Model):
         return f"Đổi trả #{self.id} - {self.order}"
 
     def save(self, *args, **kwargs):
-        # Kiểm tra nếu status thay đổi thành "approved" thì tự động restore stock
-        is_new = self.pk is None
-        old_status = None
-        if not is_new:
-            old = ReturnRequest.objects.filter(pk=self.pk).first()
-            if old:
-                old_status = old.status
-
         super().save(*args, **kwargs)
 
-        # Tự động restore stock khi duyệt yêu cầu đổi trả
-        if old_status == "pending" and self.status == "approved":
-            self._restore_stock()
-
-    def _restore_stock(self):
-        """Tự động trả lại hàng về kho khi duyệt yêu cầu đổi trả."""
-        from orders.models import OrderItem, ProductVariant
-        from products.models import Product
-        from django.db import transaction
-        from django.utils import timezone
+    def receive_and_restock(self):
+        """Ghi nhận hàng đã nhận/kiểm tra rồi mới cộng lại đúng biến thể vào kho."""
+        from products.models import Product, ProductVariant
 
         with transaction.atomic():
-            for item_data in self.items:
-                product_id = item_data.get("product")
-                variant_id = (
-                    item_data.get("variant")
-                    or item_data.get("selected_size")
-                    or item_data.get("selected_color")
+            request = type(self).objects.select_for_update().get(pk=self.pk)
+            if request.stock_restored_at:
+                self.status = request.status
+                self.stock_restored_at = request.stock_restored_at
+                return self
+            if request.status != "approved":
+                raise ValueError("Chỉ nhận hàng sau khi yêu cầu đã được duyệt.")
+
+            for item_data in request.items:
+                order_item_id = item_data.get("order_item_id")
+                quantity = item_data.get("qty")
+                if not isinstance(order_item_id, int) or not isinstance(quantity, int):
+                    raise ValueError(
+                        "Yêu cầu cũ thiếu mã dòng hàng; cần kiểm tra thủ công, không tự cộng kho."
+                    )
+                order_item = (
+                    OrderItem.objects.select_for_update()
+                    .select_related("product", "variant")
+                    .filter(pk=order_item_id, order_id=request.order_id)
+                    .first()
                 )
+                if not order_item or quantity < 1 or quantity > order_item.quantity:
+                    raise ValueError("Dữ liệu sản phẩm trả lại không hợp lệ.")
 
-                if not product_id:
-                    continue
+                if order_item.variant_id:
+                    ProductVariant.objects.filter(pk=order_item.variant_id).update(
+                        stock=F("stock") + quantity
+                    )
+                    total_stock = (
+                        order_item.product.variants.filter(is_active=True).aggregate(
+                            total=Sum("stock")
+                        )["total"]
+                        or 0
+                    )
+                    Product.objects.filter(pk=order_item.product_id).update(
+                        stock=total_stock, updated=timezone.now()
+                    )
+                else:
+                    Product.objects.filter(pk=order_item.product_id).update(
+                        stock=F("stock") + quantity, updated=timezone.now()
+                    )
 
-                # Tìm OrderItem tương ứng
-                order_item = OrderItem.objects.filter(
-                    order=self.order,
-                    product_id=product_id,
-                    variant_id=variant_id if variant_id else None,
-                ).first()
+            request.status = "received"
+            request.stock_restored_at = timezone.now()
+            request.save(update_fields=["status", "stock_restored_at", "updated_at"])
+            self.status = request.status
+            self.stock_restored_at = request.stock_restored_at
+            return self
 
-                if order_item:
-                    # Restore stock cho variant hoặc product
-                    if order_item.variant:
-                        ProductVariant.objects.filter(id=order_item.variant.id).update(
-                            stock=F("stock") + item_data.get("qty", 0)
-                        )
-                        # Cập nhật lại stock tổng của product
-                        total_stock = (
-                            order_item.product.variants.filter(
-                                is_active=True
-                            ).aggregate(total=Sum("stock"))["total"]
-                            or 0
-                        )
-                        order_item.product.stock = total_stock
-                        order_item.product.save(update_fields=["stock", "updated"])
-                    else:
-                        Product.objects.filter(id=order_item.product.id).update(
-                            stock=F("stock") + item_data.get("qty", 0),
-                            updated=timezone.now(),
-                        )
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="status_history"
+    )
+    from_status = models.CharField(max_length=20, blank=True)
+    to_status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="order_status_changes",
+    )
+    source = models.CharField(max_length=32, default="system")
+    transaction_id = models.CharField(max_length=64, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [models.Index(fields=["order", "created_at"])]
+        verbose_name = "Lịch sử trạng thái đơn hàng"
+        verbose_name_plural = "Lịch sử trạng thái đơn hàng"
+
+
+def record_order_status_change(
+    order,
+    from_status,
+    *,
+    actor=None,
+    source="system",
+    transaction_id="",
+    note="",
+):
+    if from_status == order.status:
+        return None
+    return OrderStatusHistory.objects.create(
+        order=order,
+        from_status=from_status or "",
+        to_status=order.status,
+        actor=actor,
+        source=source,
+        transaction_id=transaction_id[:64],
+        note=note[:255],
+    )
+
+
+class RefundRecord(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Đang xác nhận"),
+        ("succeeded", "Đã hoàn qua cổng"),
+        ("failed", "Cổng từ chối"),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="refunds")
+    request_id = models.CharField(max_length=32, unique=True)
+    transaction_id = models.CharField(max_length=64)
+    amount = models.DecimalField(max_digits=12, decimal_places=0)
+    reason = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="pending")
+    gateway_code = models.CharField(max_length=20, blank=True)
+    gateway_response = models.JSONField(default=dict, blank=True)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="refund_records",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["order", "status"])]
 
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(
-        "products.Product", on_delete=models.CASCADE, related_name="order_items"
+        "products.Product", on_delete=models.PROTECT, related_name="order_items"
     )
     variant = models.ForeignKey(
-        "products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True
+        "products.ProductVariant", on_delete=models.PROTECT, null=True, blank=True
     )
     selected_color = models.CharField(max_length=50, blank=True)
     selected_size = models.CharField(max_length=20, blank=True)

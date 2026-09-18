@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
@@ -191,8 +192,18 @@ def build_admin_product_form_data(request=None):
 
 
 def build_admin_product_form_from_instance(product):
-    variants = list(product.variants.order_by("color_name", "size"))
-    if not variants:
+    all_variants = list(product.variants.order_by("color_name", "size"))
+    historical_variant_ids = set(
+        OrderItem.objects.filter(
+            variant_id__in=[v.pk for v in all_variants]
+        ).values_list("variant_id", flat=True)
+    )
+    variants = [
+        variant
+        for variant in all_variants
+        if variant.is_active or variant.pk not in historical_variant_ids
+    ]
+    if not variants and not all_variants:
         variants = [None]
 
     form_data = {
@@ -848,7 +859,6 @@ def save_admin_product(request, product=None):
             product.available = cd.get("available", False)
             product.featured = cd.get("featured", False)
             product.save()
-            product.variants.all().delete()
             if remove_gallery_image_ids:
                 product.gallery_images.filter(id__in=remove_gallery_image_ids).delete()
             if slot_remove_indexes:
@@ -856,15 +866,57 @@ def save_admin_product(request, product=None):
                     sort_order__in=slot_remove_indexes
                 ).delete()
 
+        existing_variants = {
+            (variant.color_name.casefold(), variant.size.casefold()): variant
+            for variant in product.variants.select_for_update().all()
+        }
+        retained_variant_ids = set()
         for row in variant_rows:
-            ProductVariant.objects.create(
-                product=product,
-                color_name=row["color_name"],
-                color_code=row["color_code"],
-                size=row["size"],
-                stock=row["stock"],
-                is_active=row["is_active"],
-            )
+            key = (row["color_name"].casefold(), row["size"].casefold())
+            variant = existing_variants.get(key)
+            if variant:
+                variant.color_name = row["color_name"]
+                variant.color_code = row["color_code"]
+                variant.size = row["size"]
+                variant.stock = row["stock"]
+                variant.is_active = row["is_active"]
+                variant.save(
+                    update_fields=(
+                        "color_name",
+                        "color_code",
+                        "size",
+                        "stock",
+                        "is_active",
+                    )
+                )
+                retained_variant_ids.add(variant.pk)
+            else:
+                variant = ProductVariant.objects.create(
+                    product=product,
+                    color_name=row["color_name"],
+                    color_code=row["color_code"],
+                    size=row["size"],
+                    stock=row["stock"],
+                    is_active=row["is_active"],
+                )
+                retained_variant_ids.add(variant.pk)
+
+        removed_variants = [
+            variant
+            for variant in existing_variants.values()
+            if variant.pk not in retained_variant_ids
+        ]
+        referenced_variant_ids = set(
+            OrderItem.objects.filter(
+                variant_id__in=[variant.pk for variant in removed_variants]
+            ).values_list("variant_id", flat=True)
+        )
+        for variant in removed_variants:
+            if variant.pk in referenced_variant_ids:
+                variant.is_active = False
+                variant.save(update_fields=["is_active"])
+            else:
+                variant.delete()
 
         existing_images_by_sort = {
             item.sort_order: item
@@ -942,10 +994,12 @@ def admin_dashboard(request):
             if order_status_form.is_valid():
                 order = get_object_or_404(Order, id=order_id)
                 try:
-                    apply_order_status_change(
+                    order = apply_order_status_change(
                         order,
                         order_status_form.cleaned_data["status"],
                         order_status_form.cleaned_data.get("is_paid", False),
+                        actor=request.user,
+                        source="staff_dashboard",
                     )
                 except ValueError as exc:
                     messages.error(request, str(exc))
@@ -971,24 +1025,27 @@ def admin_dashboard(request):
                     request, f"Đơn #{order.id} đã được hủy/hoàn tiền trước đó."
                 )
                 return redirect("orders:admin_dashboard")
-            was_paid = order.is_paid
-            amount = int(order.total_amount)
+            if order.is_paid:
+                messages.error(
+                    request,
+                    f"Đơn #{order.id} đã thanh toán. Thao tác này không hoàn tiền; hãy dùng quy trình VNPay hoặc hoàn thủ công và lưu mã tham chiếu.",
+                )
+                return redirect("orders:admin_dashboard")
             try:
-                apply_order_status_change(order, "cancelled", is_paid=False)
+                order = apply_order_status_change(
+                    order,
+                    "cancelled",
+                    is_paid=False,
+                    actor=request.user,
+                    source="staff_dashboard",
+                    note="Đơn chưa thanh toán được hủy; tồn kho đã hoàn lại.",
+                )
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("orders:admin_dashboard")
-            refund_note = f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
-            order.note = (
-                f"{order.note}\n{refund_note}".strip() if order.note else refund_note
+            messages.success(
+                request, f"Đã hủy đơn chưa thanh toán #{order.id} và trả hàng về kho."
             )
-            order.save(update_fields=["note", "updated_at"])
-            if was_paid:
-                messages.success(
-                    request, f"Đã hoàn tiền {amount:,}đ cho đơn #{order.id}."
-                )
-            else:
-                messages.success(request, f"Đã hủy đơn #{order.id} và trả hàng về kho.")
             return redirect("orders:admin_dashboard")
 
         if action == "save_coupon":
@@ -1154,8 +1211,16 @@ def admin_dashboard(request):
                 return redirect("orders:admin_dashboard")
             product = get_object_or_404(Product, id=request.POST.get("product_id"))
             product_name = product.name
-            product.delete()
-            messages.success(request, f"Đã xóa sản phẩm '{product_name}'.")
+            try:
+                product.delete()
+            except ProtectedError:
+                messages.error(
+                    request,
+                    "Không thể xóa sản phẩm đã có trong đơn hàng. "
+                    "Hãy ẩn sản phẩm để giữ lịch sử giao dịch.",
+                )
+            else:
+                messages.success(request, f"Đã xóa sản phẩm '{product_name}'.")
             return redirect("orders:admin_dashboard")
 
         if action == "mark_out_of_stock":
