@@ -10,6 +10,7 @@ from django.core.management.base import BaseCommand
 from django.test import Client
 from django.utils.text import slugify
 
+from core.demo_data import refuse_demo_seed_in_production
 from products.constants import APPAREL_CATEGORY_SLUGS, FEATURED_PRODUCT_LIMIT
 from products.models import Category, Product, ProductVariant
 
@@ -76,6 +77,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        refuse_demo_seed_in_production()
+
         json_path = (
             Path(settings.BASE_DIR) / "database" / "seed" / "products_to_sync.json"
         )

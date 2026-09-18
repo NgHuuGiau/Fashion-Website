@@ -1,10 +1,29 @@
 from urllib.parse import parse_qs
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
+
+
+class DemoSeedCommandSafetyTests(TestCase):
+    @override_settings(DEBUG=False)
+    def test_demo_seed_commands_are_refused_outside_debug(self):
+        commands = (
+            ("seed_products", {"sync": True}),
+            ("seed_blog", {}),
+            ("seed_reviews", {}),
+            ("seed_review_photos", {}),
+            ("seed_descriptions", {}),
+        )
+
+        for command, options in commands:
+            with self.subTest(command=command):
+                with self.assertRaisesMessage(CommandError, "DEBUG=False"):
+                    call_command(command, **options)
 
 
 class ProductViewsTest(TestCase):
@@ -664,7 +683,35 @@ class ChatServiceCoverageTest(TestCase):
         from .services.chat_service import find_support_reply
 
         result = find_support_reply("thanh toan sao")
-        self.assertIn("chuyển khoản ngân hàng", result)
+        self.assertIn("Chuyển khoản chỉ khả dụng", result)
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=False,
+        SHOP_BANK_CODE="",
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+    )
+    def test_payment_reply_does_not_offer_unconfigured_bank_transfer(self):
+        from .services.chat_service import find_support_reply
+
+        result = find_support_reply("shop nhận chuyển khoản ngân hàng không")
+
+        self.assertIn("Hiện shop hỗ trợ COD", result)
+        self.assertIn("chỉ khả dụng khi được cấu hình", result)
+
+    @override_settings(
+        BANK_TRANSFER_ENABLED=True,
+        SHOP_BANK_CODE="VCB",
+        SHOP_BANK_ACCOUNT="12345678",
+        SHOP_ACCOUNT_NAME="SHOP TEST",
+    )
+    def test_payment_reply_explains_manual_transfer_reconciliation(self):
+        from .services.chat_service import find_support_reply
+
+        result = find_support_reply("thanh toán bằng chuyển khoản được không")
+
+        self.assertIn("hỗ trợ COD và chuyển khoản ngân hàng", result)
+        self.assertIn("đối soát thủ công", result)
 
     def test_faq_track_reply(self):
         from .services.chat_service import find_support_reply

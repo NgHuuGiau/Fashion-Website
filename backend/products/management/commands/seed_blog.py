@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from core.demo_data import refuse_demo_seed_in_production
 from products.models import BlogPost
 
 POSTS = [
@@ -84,6 +85,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        refuse_demo_seed_in_production()
+
         if options["force"]:
             BlogPost.objects.all().delete()
         created = 0

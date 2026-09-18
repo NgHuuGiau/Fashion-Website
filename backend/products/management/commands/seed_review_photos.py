@@ -3,6 +3,7 @@ from pathlib import Path
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
+from core.demo_data import refuse_demo_seed_in_production
 from products.models import Review
 
 
@@ -26,6 +27,8 @@ class Command(BaseCommand):
     help = "Gán ảnh thực tế cho một số đánh giá để demo"
 
     def handle(self, *args, **options):
+        refuse_demo_seed_in_production()
+
         reviews = list(
             Review.objects.filter(is_published=True, image="")
             .select_related("product")

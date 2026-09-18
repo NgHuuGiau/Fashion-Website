@@ -13,7 +13,7 @@ DEFAULT_SUPPORT_FAQS = [
     {
         "question": "Có thanh toán chuyển khoản không?",
         "keywords": "thanh toan,chuyen khoan,cod,ngan hang",
-        "answer": "Shop hỗ trợ COD và chuyển khoản ngân hàng. Bạn có thể chọn ở bước checkout.",
+        "answer": "Shop hỗ trợ COD. Chuyển khoản chỉ khả dụng nếu được hiển thị ở bước thanh toán; shop cần đối soát tiền trước khi xác nhận.",
     },
     {
         "question": "Làm sao theo dõi đơn?",
@@ -240,9 +240,16 @@ def build_shipping_reply():
 
 
 def build_payment_reply():
+    from orders.constants import bank_transfer_is_enabled
+
+    if bank_transfer_is_enabled():
+        return (
+            "Shop hỗ trợ COD và chuyển khoản ngân hàng. Chuyển khoản cần shop đối soát "
+            "thủ công trước khi xác nhận đã thanh toán; bạn chọn phương thức đang hiển thị ở checkout."
+        )
     return (
-        "Shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng (quét QR hoặc chuyển thủ công). "
-        "Bạn chọn phương thức ở bước thanh toán. Với COD, bạn trả tiền khi nhận được hàng."
+        "Hiện shop hỗ trợ COD. Chuyển khoản chỉ khả dụng khi được cấu hình và hiển thị ở checkout. "
+        "Với COD, bạn thanh toán khi nhận hàng."
     )
 
 
@@ -507,6 +514,10 @@ def build_support_reply(message, state=None):
     if has_any_keyword(normalized_message, STOCK_KEYWORDS):
         state["topic"] = "stock"
         return {"reply": build_stock_reply(), "suggestions": _SUGGESTIONS["stock"]}
+
+    if detect_topic(normalized_message) == "payment":
+        state["topic"] = "payment"
+        return {"reply": build_payment_reply(), "suggestions": _SUGGESTIONS["order"]}
 
     faq_answer = match_faq(normalized_message)
     if faq_answer:

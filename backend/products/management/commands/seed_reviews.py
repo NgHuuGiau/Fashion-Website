@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from core.demo_data import refuse_demo_seed_in_production
 from products.models import Product, Review
 
 FIVE_OPENERS = [
@@ -179,6 +180,8 @@ class Command(BaseCommand):
         return updated
 
     def handle(self, *args, **options):
+        refuse_demo_seed_in_production()
+
         per_product = options["per_product"]
         if options["force"]:
             Review.objects.all().delete()
