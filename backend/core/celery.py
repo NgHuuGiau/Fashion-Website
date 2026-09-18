@@ -38,6 +38,10 @@ app.conf.beat_schedule = {
         "task": "core.tasks.cleanup_sessions",
         "schedule": crontab(hour=4, minute=0),
     },
+    "cleanup-old-logs": {
+        "task": "core.tasks.cleanup_old_logs",
+        "schedule": crontab(hour=4, minute=30),
+    },
     # Health check every 5 minutes
     "health-check": {
         "task": "core.tasks.health_check",

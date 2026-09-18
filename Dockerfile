@@ -27,4 +27,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://127.0.0.1:8000/ || exit 1
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py compress --force && python manage.py collectstatic --noinput --clear && exec uvicorn core.asgi:application --host 0.0.0.0 --port 8000"]
+CMD ["uvicorn", "core.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

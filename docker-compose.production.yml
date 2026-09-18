@@ -1,0 +1,41 @@
+services:
+  app:
+    environment:
+      BEHIND_PROXY: "True"
+      TRUSTED_PROXY: "True"
+      SECURE_SSL_REDIRECT: "True"
+      SESSION_COOKIE_SECURE: "True"
+      CSRF_COOKIE_SECURE: "True"
+      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-31536000}
+
+  celery-worker:
+    environment:
+      BEHIND_PROXY: "True"
+      TRUSTED_PROXY: "True"
+
+  celery-beat:
+    environment:
+      BEHIND_PROXY: "True"
+      TRUSTED_PROXY: "True"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN to the DNS name pointing at this server}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL for TLS certificate notices}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      nginx:
+        condition: service_started
+
+volumes:
+  caddy_data:
+  caddy_config:

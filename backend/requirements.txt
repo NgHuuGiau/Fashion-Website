@@ -3,17 +3,18 @@ Django>=5.2,<5.3
 djangorestframework>=3.18,<3.19
 drf-spectacular>=0.30,<0.31
 Pillow>=12.0,<13
+sqlparse>=0.6.0
 
 # Celery + Redis (async tasks)
 celery>=5.6,<5.7
 redis>=5.0,<5.1
+requests>=2.32,<3
 
 # Database (mssql-django tự kéo pyodbc; psycopg2 cho CI PostgreSQL)
 mssql-django>=1.7,<2
 psycopg2-binary>=2.9,<2.10
 
 # Cache/session (tùy chọn — đặt REDIS_URL trong .env để bật)
-redis>=5.0,<5.1
 django-redis>=5.4,<5.5
 
 # Nén CSS/JS + tiện ích manage.py
@@ -23,7 +24,7 @@ Django-extensions>=4.1,<5
 uvicorn>=0.34,<1
 
 # Hỗ trợ certificate và mã hóa khi cần tích hợp hạ tầng HTTPS
-cryptography>=41.0
+cryptography>=50.0.0
 
 # JSON logging formatter
 python-json-logger>=4.2,<5

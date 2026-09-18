@@ -28,6 +28,9 @@ staticfiles/
 .env.production
 .env.*
 !.env.example
+!.env.docker.example
+!.env.compose.production.example
+!.env.production.example
 
 # IDE/editor
 .vscode/

@@ -50,6 +50,8 @@ pip install -r requirements.txt
 
 ### 2. Cấu hình `.env`
 
+Sao chép `.env.example` thành `.env` ở thư mục gốc dự án. Django chỉ nạp file ở vị trí này; không đặt `.env` trong `backend/`. Mẫu production nằm ở `.env.production.example`.
+
 ```ini
 SECRET_KEY=your-secret-key
 DEBUG=True
@@ -59,20 +61,21 @@ DB_NAME=HUUGIAU_Fashion
 VNPAY_TMN_CODE=your_sandbox_tmn
 VNPAY_HASH_SECRET=your_sandbox_secret
 BANK_TRANSFER_ENABLED=False
+SHOP_BANK_CODE=ICB
 SHOP_BANK_ACCOUNT=
 SHOP_ACCOUNT_NAME=
 ```
 
-Chuyển khoản ngân hàng mặc định bị tắt. Chỉ bật sau khi cấu hình đúng số tài khoản và tên chủ tài khoản; khách báo đã chuyển không được xem là bằng chứng thanh toán, nhân viên phải đối soát trước khi cập nhật đơn.
+Chuyển khoản ngân hàng mặc định bị tắt. Khi dùng VietinBank, đặt `SHOP_BANK_CODE=ICB`; điền **số tài khoản** (không phải số thẻ) vào `SHOP_BANK_ACCOUNT` và tên chủ tài khoản đúng như ngân hàng vào `SHOP_ACCOUNT_NAME`. Chỉ đặt `BANK_TRANSFER_ENABLED=True` sau khi xác minh đủ thông tin. QR luôn trỏ về ngân hàng/tài khoản của shop; khách có thể quét bằng ứng dụng ngân hàng bất kỳ. Khách báo đã chuyển không được xem là bằng chứng thanh toán, nhân viên phải đối soát trước khi cập nhật đơn.
 
-Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và HSTS. Thay toàn bộ giá trị `replace-me` trước khi deploy.
+Production dùng `.env.production` với `DEBUG=False`, HTTPS, cookie secure và HSTS. Chỉ bật HSTS `includeSubDomains`/`preload` sau khi mọi subdomain đều dùng HTTPS ổn định.
 
 > `CSRF_TRUSTED_ORIGINS` đã cấu hình sẵn trong `core/settings.py` (localhost:8000 HTTP/HTTPS).
 
 ### 3. Khởi tạo Database
 
 ```powershell
-# Tạo tables + 76 sản phẩm, 2 màu và dữ liệu mẫu legacy (chạy trong SSMS)
+# Chỉ dùng trên database demo bỏ được; bật cờ xác nhận trong file trước khi chạy.
 database/sql/01_CREATE_TABLES.sql
 database/sql/02_DEMO_DATA.sql
 
@@ -81,6 +84,18 @@ cd backend
 python manage.py migrate
 python manage.py seed_all --no-input
 ```
+
+`products_to_sync.json` và `02_DEMO_DATA.sql` giữ cùng danh mục 76 sản phẩm mẫu; đây không phải hàng thật và không tự tạo ảnh thật. Không chạy script reset/seed trên production. Khi bán thật, tạo dữ liệu hàng, biến thể/tồn kho và tải ảnh thật riêng.
+
+### Docker Compose (PostgreSQL local/demo)
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+# Mở .env.docker, thay SECRET_KEY, DB_PASSWORD, REDIS_PASSWORD và PGBOUNCER_ADMIN_PASSWORD
+docker compose --env-file .env.docker up --build
+```
+
+Web local được bind tại `http://127.0.0.1:8001`. PostgreSQL/PgBouncer không công khai cổng host; Compose chạy cả Celery worker và beat. Không dùng secrets mẫu trên Internet.
 
 ### 4. Chạy server
 

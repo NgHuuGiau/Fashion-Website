@@ -2,10 +2,12 @@
 # Restore script for HUUGIAU Fashion Website
 # Usage: ./scripts/restore.sh [db|media] [backup_file]
 
-set -e
+set -euo pipefail
 
 # Configuration
-BACKUP_DIR="/backups"
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+BACKUP_DIR="${BACKUP_DIR:-${PROJECT_ROOT}/backups}"
+DB_PORT="${DB_PORT:-5432}"
 PROJECT_NAME="fashion-website"
 
 # Colors for output
@@ -35,9 +37,14 @@ restore_database() {
         exit 1
     fi
     
-    log_warn "This will REPLACE the current database. Are you sure? (y/N)"
+    if [[ "${DB_ENGINE:-postgres}" == "mssql" ]]; then
+        log_error "Use scripts/restore-db.ps1 to restore a SQL Server .bak file."
+        exit 1
+    fi
+
+    log_warn "This replaces database ${DB_NAME:?Set DB_NAME}. Type RESTORE to continue:"
     read -r confirm
-    if [[ ! "${confirm}" =~ ^[Yy]$ ]]; then
+    if [[ "${confirm}" != "RESTORE" ]]; then
         log_info "Restore cancelled"
         exit 0
     fi
@@ -47,36 +54,24 @@ restore_database() {
     if [[ "${backup_file}" == *.dump.gz ]] || [[ "${backup_file}" == *.dump ]]; then
         # PostgreSQL restore
         local dump_file="${backup_file}"
+        local temp_dump=""
         if [[ "${backup_file}" == *.gz ]]; then
-            gunzip -c "${backup_file}" > "${backup_file%.gz}"
-            dump_file="${backup_file%.gz}"
-        else
-            dump_file="${backup_file}"
+            temp_dump=$(mktemp)
+            gunzip -c "${backup_file}" > "${temp_dump}"
+            dump_file="${temp_dump}"
         fi
-        
-        pg_restore -h "${DB_HOST}" \
-                   -p "${DB_PORT}" \
-                   -U "${DB_USER}" \
-                   -d "${DB_NAME}" \
-                   --clean --if-exists --no-owner --no-acl \
-                   "${dump_file}"
-    elif [[ "${backup_file}" == *.sql.gz ]] || [[ "${backup_file}" == *.sql ]]; then
-        # SQL Server restore
-        local sql_file="${backup_file}"
-        if [[ "${backup_file}" == *.gz ]]; then
-            gunzip -c "${backup_file}" > "${backup_file%.gz}"
-            sql_file="${backup_file%.gz}"
-        else
-            sql_file="${backup_file}"
+        if ! pg_restore --list "${dump_file}" >/dev/null; then
+            if [[ -n "${temp_dump}" ]]; then rm -f -- "${temp_dump}"; fi
+            log_error "Backup archive is invalid."
+            exit 1
         fi
-        
-        sqlcmd -S "${DB_HOST},${DB_PORT}" \
-               -U "${DB_USER}" \
-               -P "${DB_PASSWORD}" \
-               -d "${DB_NAME}" \
-               -i "${sql_file}"
+        PGPASSWORD="${DB_PASSWORD:-}" pg_restore -h "${DB_HOST:?Set DB_HOST}" \
+            -p "${DB_PORT}" -U "${DB_USER:?Set DB_USER}" \
+            -d "${DB_NAME}" --clean --if-exists --no-owner --no-acl \
+            "${dump_file}"
+        if [[ -n "${temp_dump}" ]]; then rm -f -- "${temp_dump}"; fi
     else
-        log_error "Unsupported backup file format: ${backup_file}"
+        log_error "Expected a PostgreSQL .dump/.dump.gz backup; SQL Server requires a .bak file and restore-db.ps1."
         exit 1
     fi
     
@@ -99,17 +94,30 @@ restore_media() {
         exit 0
     fi
     
-    local media_path="${PROJECT_ROOT}/backend/frontend/static/images"
+    local media_path="${PROJECT_ROOT}/frontend/static/images"
+    local staging_dir
+    staging_dir=$(mktemp -d)
+
+    while IFS= read -r member; do
+        if [[ "${member}" == /* || "${member}" == *"../"* || ( "${member}" != "images" && "${member}" != images/* ) ]]; then
+            rmdir "${staging_dir}"
+            log_error "Unsafe or unexpected path in media archive: ${member}"
+            exit 1
+        fi
+    done < <(tar -tzf "${backup_file}")
     
     log_info "Restoring media from ${backup_file}..."
     
-    # Backup current media first
+    tar -xzf "${backup_file}" -C "${staging_dir}"
+
+    # Keep current media recoverable before replacing it.
     if [ -d "${media_path}" ]; then
         mv "${media_path}" "${media_path}.backup.$(date +%s)"
     fi
-    
+
     mkdir -p "$(dirname "${media_path}")"
-    tar -xzf "${backup_file}" -C "$(dirname "${media_path}")"
+    mv "${staging_dir}/images" "${media_path}"
+    rmdir "${staging_dir}"
     
     log_info "Media restore completed successfully!"
 }
@@ -144,13 +152,5 @@ main() {
     
     log_info "Restore completed successfully!"
 }
-
-# Load environment variables
-if [ -f "${PROJECT_ROOT}/.env" ]; then
-    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
-fi
-
-PROJECT_ROOT="${PROJECT_ROOT:-$(dirname "$0")/..}"
-BACKUP_DIR="${BACKUP_DIR:-${PROJECT_ROOT}/backups}"
 
 main "$@"
