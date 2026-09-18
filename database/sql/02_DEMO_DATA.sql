@@ -4,6 +4,10 @@
 -- Seeds the legacy schema used by import_legacy.
 -- DEMO ONLY: this inserts sample users, orders, reviews and addresses; never run on production.
 -- ============================================================
+DECLARE @ALLOW_DEMO_SEED bit = 0;
+IF @ALLOW_DEMO_SEED <> 1
+    THROW 51001, 'Stopped: set @ALLOW_DEMO_SEED = 1 only for a disposable demo database.', 1;
+GO
 SET NOCOUNT ON;
 USE [HUUGIAU_Fashion];
 

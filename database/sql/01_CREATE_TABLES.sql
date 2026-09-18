@@ -10,6 +10,12 @@ GO
 USE [HUUGIAU_Fashion];
 GO
 
+-- DEMO RESET ONLY: set to 1 explicitly after confirming this is a disposable database.
+DECLARE @ALLOW_DEMO_RESET bit = 0;
+IF @ALLOW_DEMO_RESET <> 1
+    THROW 51000, 'Stopped: set @ALLOW_DEMO_RESET = 1 only for a disposable demo database.', 1;
+GO
+
 -- Tài khoản người dùng
 DROP TABLE IF EXISTS [Users];
 CREATE TABLE [Users] (
