@@ -1,3 +1,5 @@
+from core.ratelimit import get_client_ip
+
 from .activity import log_activity
 from .models import VisitorSession
 
@@ -20,9 +22,7 @@ class VisitorTrackingMiddleware:
             log_activity(
                 request,
                 event_type=event_type,
-                metadata={
-                    "query": request.GET.dict() if request.method == "GET" else {}
-                },
+                metadata={},
                 status_code=getattr(response, "status_code", 200),
             )
 
@@ -71,7 +71,4 @@ class VisitorTrackingMiddleware:
 
     @staticmethod
     def _get_ip(request):
-        forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR")
+        return get_client_ip(request)

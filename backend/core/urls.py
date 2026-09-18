@@ -85,7 +85,6 @@ api_urlpatterns = [
     path("admin/products/", api.api_admin_products, name="api_admin_products"),
     path("admin/users/", api.api_admin_users, name="api_admin_users"),
     path("admin/coupons/", api.api_admin_coupons, name="api_admin_coupons"),
-    path("admin/coupons/", api.api_admin_coupons, name="api_admin_coupons"),
     path("admin/reviews/", api.api_admin_reviews, name="api_admin_reviews"),
     # GDPR endpoints
     path("gdpr/export/", api.api_gdpr_export, name="api_gdpr_export"),

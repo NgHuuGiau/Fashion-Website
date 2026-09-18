@@ -185,7 +185,7 @@ class LoginRateLimitIntegrationTest(TestCase):
         response = self.client.post(
             "/dang-nhap/", {"username": "testuser", "password": "wrong"}
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 429)
 
     def test_login_rate_limit_resets_after_success(self):
         from django.core.cache import cache
@@ -211,7 +211,7 @@ class LoginRateLimitIntegrationTest(TestCase):
         response = self.client.post(
             "/dang-nhap/", {"username": "testuser", "password": "StrongPass123!"}
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 429)
 
     @override_settings(TRUSTED_PROXY=True)
     def test_login_allows_different_ip_after_rate_limit(self):
@@ -414,6 +414,30 @@ class ApiTest(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_guest_gdpr_export_checks_identity_and_hides_mismatch(self):
+        url = reverse("api:api_gdpr_guest_export")
+        response = self.client.get(
+            url, {"order_id": self.order.id, "phone": self.order.phone}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["order"]["id"], self.order.id)
+
+        response = self.client.get(
+            url, {"order_id": self.order.id, "phone": "0000000000"}
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["error"], "Không tìm thấy đơn hàng.")
+
+    def test_guest_gdpr_export_is_rate_limited(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        url = reverse("api:api_gdpr_guest_export")
+        params = {"order_id": self.order.id, "phone": self.order.phone}
+        for _ in range(5):
+            self.assertEqual(self.client.get(url, params).status_code, 200)
+        self.assertEqual(self.client.get(url, params).status_code, 429)
+
     def test_api_coupon_check(self):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.post(
@@ -431,6 +455,18 @@ class ApiTest(TestCase):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("api:api_admin_stats"))
         self.assertEqual(response.status_code, 403)
+
+    def test_global_api_write_rate_limit(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        for _ in range(120):
+            response = self.client.post(
+                "/api/rate-limit-probe/", REMOTE_ADDR="10.0.0.20"
+            )
+            self.assertEqual(response.status_code, 404)
+        response = self.client.post("/api/rate-limit-probe/", REMOTE_ADDR="10.0.0.20")
+        self.assertEqual(response.status_code, 429)
 
     def test_api_admin_stats(self):
         self.client.login(username="adminstaff", password="StrongPass123!")
@@ -460,19 +496,36 @@ class ApiTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "shipping")
+        event = self.order.status_history.get(to_status="shipping")
+        self.assertEqual(event.from_status, "pending")
+        self.assertEqual(event.actor.username, "adminstaff")
+        self.assertEqual(event.source, "admin_api")
 
     def test_api_admin_order_refund(self):
         self.client.login(username="adminstaff", password="StrongPass123!")
-        self.order.status = "delivered"
+        self.order.status = "processing"
         self.order.is_paid = True
         self.order.save()
         response = self.client.post(
             reverse("api:api_admin_order_refund", kwargs={"pk": self.order.id})
         )
+        self.assertEqual(response.status_code, 409)
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)
+        self.assertEqual(self.order.status, "processing")
+
+    def test_api_admin_cancel_unpaid_order_does_not_claim_refund(self):
+        self.client.login(username="adminstaff", password="StrongPass123!")
+        self.order.status = "processing"
+        self.order.is_paid = False
+        self.order.save()
+        response = self.client.post(
+            reverse("api:api_admin_order_refund", kwargs={"pk": self.order.id})
+        )
         self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertTrue(payload["refunded"])
-        self.assertEqual(payload["status"], "cancelled")
+        self.assertFalse(response.json()["refunded"])
+        self.assertEqual(response.json()["refund_amount"], 0)
+        self.assertEqual(response.json()["status"], "cancelled")
 
     def test_api_admin_invoice(self):
         self.client.login(username="adminstaff", password="StrongPass123!")

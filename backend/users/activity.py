@@ -1,6 +1,13 @@
 from .models import UserActivity
 
 
+def _safe_activity_path(request):
+    match = getattr(request, "resolver_match", None)
+    if getattr(match, "url_name", None) == "password_reset_confirm":
+        return "/quen-mat-khau/dat-lai/[redacted]/"
+    return getattr(request, "path", "")[:255]
+
+
 def log_activity(request, event_type="action", metadata=None, status_code=200):
     if metadata is None:
         metadata = {}
@@ -16,7 +23,7 @@ def log_activity(request, event_type="action", metadata=None, status_code=200):
         visitor=visitor,
         user=user,
         event_type=event_type,
-        path=getattr(request, "path", "")[:255],
+        path=_safe_activity_path(request),
         method=getattr(request, "method", ""),
         status_code=status_code,
         metadata=metadata,

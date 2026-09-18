@@ -16,10 +16,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from core.text_utils import repair_mojibake_text
+from core.ratelimit import rate_limit
 from products.models import Category, Product, Review
 from users.permissions import is_staff_member
 
-from orders.constants import BANKS, SHOP_ACCOUNT_NAME, SHOP_BANK_ACCOUNT
+from orders.constants import (
+    SHOP_ACCOUNT_NAME,
+    SHOP_BANK_ACCOUNT,
+    shop_bank_code,
+    shop_bank_meta,
+)
 from orders.models import Coupon, Order
 from orders.views.cart import apply_order_status_change, build_vietqr_url
 from orders.views.order import build_delivery_eta, expire_bank_order_if_needed
@@ -99,7 +105,7 @@ def _serialize_order(order, include_items=False):
         "shipping_address": order.shipping_address,
         "payment_method": order.payment_method,
         "payment_method_label": order.get_payment_method_display(),
-        "bank_code": order.bank_code,
+        "bank_code": shop_bank_code() if order.payment_method == "bank" else "",
         "is_paid": order.is_paid,
         "status": order.status,
         "status_label": order.get_status_display(),
@@ -307,14 +313,13 @@ def api_order_detail(request: HttpRequest, pk: int) -> JsonResponse:
     expire_bank_order_if_needed(order)
     data = _serialize_order(order, include_items=True)
     if order.payment_method == "bank":
+        bank = shop_bank_meta()
         data["bank"] = {
-            "code": order.bank_code,
-            "name": (BANKS.get(order.bank_code) or {}).get("name", ""),
+            "code": shop_bank_code(),
+            "name": bank.get("name", ""),
         }
         if not order.is_paid and order.status != "cancelled":
-            data["qr_url"] = build_vietqr_url(
-                order.bank_code or "VCB", order.total_amount, f"DH{order.id}"
-            )
+            data["qr_url"] = build_vietqr_url(order.total_amount, f"DH{order.id}")
     eta = build_delivery_eta(order)
     data["eta_label"] = eta["eta_label"]
     data["eta_date"] = eta["eta_date"].isoformat()
@@ -458,9 +463,10 @@ def api_admin_order_detail(request: HttpRequest, pk: int) -> JsonResponse:
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), id=pk)
     data = _serialize_admin_order(order)
     if order.payment_method == "bank":
+        bank = shop_bank_meta()
         data["bank"] = {
-            "code": order.bank_code,
-            "name": (BANKS.get(order.bank_code) or {}).get("name", ""),
+            "code": shop_bank_code(),
+            "name": bank.get("name", ""),
         }
     return api_json(data)
 
@@ -477,7 +483,13 @@ def api_admin_order_status(request: HttpRequest, pk: int) -> JsonResponse:
         return api_error("Trạng thái không hợp lệ.")
     is_paid = request.POST.get("is_paid", "").strip() in ("1", "true", "on")
     try:
-        apply_order_status_change(order, new_status, is_paid=is_paid)
+        order = apply_order_status_change(
+            order,
+            new_status,
+            is_paid=is_paid,
+            actor=request.user,
+            source="admin_api",
+        )
     except ValueError as exc:
         return api_error(str(exc))
     return api_json(
@@ -499,26 +511,31 @@ def api_admin_order_refund(request: HttpRequest, pk: int) -> JsonResponse:
         return denied
     order = get_object_or_404(Order, id=pk)
     if order.status == "cancelled":
-        return api_error("Đơn hàng này đã được hủy/hoàn tiền trước đó.")
-    was_paid = order.is_paid
-    amount = int(order.total_amount)
+        return api_error("Đơn hàng này đã bị hủy trước đó.", status=409)
+    if order.is_paid:
+        return api_error(
+            "Đơn đã thanh toán; API này chỉ hủy đơn chưa thanh toán và không thực hiện hoàn tiền.",
+            status=409,
+        )
     try:
-        apply_order_status_change(order, "cancelled", is_paid=False)
+        order = apply_order_status_change(
+            order,
+            "cancelled",
+            is_paid=False,
+            actor=request.user,
+            source="admin_api",
+            note="Đơn chưa thanh toán được hủy; tồn kho đã hoàn lại.",
+        )
     except ValueError as exc:
         return api_error(str(exc))
-    refund_note = (
-        f"[REFUND {amount}đ] {request.user.username} {timezone.now():%d/%m/%Y %H:%M}"
-    )
-    order.note = f"{order.note}\n{refund_note}".strip() if order.note else refund_note
-    order.save(update_fields=["note", "updated_at"])
     return api_json(
         {
             "success": True,
             "id": order.id,
             "status": order.status,
-            "was_paid": was_paid,
-            "refund_amount": amount,
-            "refunded": was_paid,
+            "was_paid": False,
+            "refund_amount": 0,
+            "refunded": False,
         }
     )
 
@@ -1000,7 +1017,7 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
 @login_required
 @require_POST
 def api_gdpr_delete(request: HttpRequest) -> JsonResponse:
-    """GDPR Art. 17: Xóa tài khoản và dữ liệu liên quan (Right to be Forgotten)."""
+    """Deactivate an account; this endpoint does not erase retained order records."""
     user = request.user
 
     # Confirm password
@@ -1016,10 +1033,7 @@ def api_gdpr_delete(request: HttpRequest) -> JsonResponse:
         return api_error("Mật khẩu không đúng.", status=400)
 
     user_id = user.id
-    username = user.username
-    email = user.email
-
-    # Soft delete: anonymize instead of hard delete to preserve referential integrity
+    # Preserve order history; order records may still contain personal data.
     user.username = f"deleted_{user_id}"
     user.email = f"deleted_{user_id}@example.com"
     user.first_name = ""
@@ -1031,33 +1045,38 @@ def api_gdpr_delete(request: HttpRequest) -> JsonResponse:
     return api_json(
         {
             "success": True,
-            "message": f"Tài khoản {username} ({email}) đã được ẩn danh và vô hiệu hóa.",
+            "message": "Tài khoản đã được vô hiệu hóa. Thông tin trong hồ sơ và đơn hàng liên quan có thể vẫn được lưu.",
         }
     )
 
 
+@rate_limit(
+    "gdpr_guest_export",
+    max_requests=5,
+    window=60,
+    error_msg="Quá nhiều yêu cầu xuất dữ liệu. Vui lòng thử lại sau.",
+    methods=("GET",),
+)
 @require_GET
 def api_gdpr_guest_export(request: HttpRequest) -> JsonResponse:
     """GDPR export cho guest order (tra cứu bằng order_id + phone/email)."""
-    order_id = request.GET.get("order_id")
-    phone = request.GET.get("phone")
-    email = request.GET.get("email")
+    order_id = request.GET.get("order_id", "").strip()
+    phone = request.GET.get("phone", "").strip()
+    email = request.GET.get("email", "").strip()
 
-    if not order_id or not (phone or email):
-        return api_error("Thiếu order_id và phone/email.", status=400)
+    if not order_id.isdecimal() or not (phone or email):
+        return api_error("Không tìm thấy đơn hàng.", status=404)
 
     from orders.models import Order
 
-    try:
-        order = Order.objects.get(id=order_id)
-    except Exception:
+    order = Order.objects.filter(id=order_id).first()
+    if order is None:
         return api_error("Không tìm thấy đơn hàng.", status=404)
 
-    # Verify identity
-    if phone and order.phone != phone:
-        return api_error("Số điện thoại không khớp.", status=403)
-    if email and order.customer_email != email:
-        return api_error("Email không khớp.", status=403)
+    if (phone and order.phone != phone) or (
+        email and order.customer_email.casefold() != email.casefold()
+    ):
+        return api_error("Không tìm thấy đơn hàng.", status=404)
 
     data = {
         "order": {

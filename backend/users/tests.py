@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .forms import (
@@ -666,6 +666,7 @@ class MiddlewareVisitorTest(TestCase):
     def setUp(self):
         cache.clear()
 
+    @override_settings(TRUSTED_PROXY=True)
     def test_x_forwarded_for_external_ip_used_and_updated(self):
         response = self.client.get(
             reverse("products:product_list"), HTTP_X_FORWARDED_FOR="8.8.8.8"
@@ -679,6 +680,14 @@ class MiddlewareVisitorTest(TestCase):
         )
         visitor.refresh_from_db()
         self.assertEqual(visitor.ip_address, "9.9.9.9")
+
+    @override_settings(TRUSTED_PROXY=False)
+    def test_untrusted_forwarded_ip_is_ignored(self):
+        self.client.get(
+            reverse("products:product_list"), HTTP_X_FORWARDED_FOR="8.8.8.8"
+        )
+        visitor = VisitorSession.objects.order_by("-id").first()
+        self.assertEqual(visitor.ip_address, "127.0.0.1")
 
     def test_user_agent_captured_and_updated(self):
         self.client.get(reverse("products:product_list"), HTTP_USER_AGENT="TestAgent-1")
@@ -694,6 +703,20 @@ class MiddlewareVisitorTest(TestCase):
             reverse("users:login"), {"username": "nobody", "password": "nope"}
         )
         self.assertTrue(UserActivity.objects.filter(event_type="action").exists())
+
+    def test_password_reset_activity_redacts_token_and_omits_query(self):
+        url = reverse(
+            "users:password_reset_confirm",
+            kwargs={"uidb64": "invalid-uid", "token": "sensitive-reset-token"},
+        )
+
+        response = self.client.get(url, {"email": "private@example.com"})
+
+        self.assertEqual(response.status_code, 302)
+        activity = UserActivity.objects.get(event_type="page_view")
+        self.assertEqual(activity.path, "/quen-mat-khau/dat-lai/[redacted]/")
+        self.assertEqual(activity.metadata, {})
+        self.assertNotIn("sensitive-reset-token", activity.path)
 
     def test_login_updates_visitor_user_and_auth_state(self):
         from django.contrib.auth.models import AnonymousUser

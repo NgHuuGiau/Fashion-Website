@@ -75,16 +75,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
             user = form.save()
             login(request, user)
             _sync_visitor_auth_state(request, user)
-            log_activity(
-                request,
-                event_type="register",
-                metadata={
-                    "username": user.username,
-                    "email": user.email,
-                    "phone_number": getattr(user.profile, "phone_number", ""),
-                },
-                status_code=201,
-            )
+            log_activity(request, event_type="register", status_code=201)
             messages.success(request, "Tạo tài khoản thành công.")
             return redirect("products:product_list")
     else:

@@ -53,6 +53,33 @@ if not _secret_key:
 SECRET_KEY = _secret_key
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
+if not DEBUG:
+    from django.core.exceptions import ImproperlyConfigured
+
+    _secret_key_lower = SECRET_KEY.lower()
+    if (
+        len(SECRET_KEY) < 50
+        or len(set(SECRET_KEY)) < 5
+        or _secret_key_lower.startswith("django-insecure-")
+        or any(
+            marker in _secret_key_lower
+            for marker in (
+                "change-me",
+                "changeme",
+                "your-secret",
+                "thay-bang",
+                "replace-me",
+            )
+        )
+    ):
+        raise ImproperlyConfigured(
+            "SECRET_KEY production phải là chuỗi ngẫu nhiên riêng, tối thiểu 50 ký tự."
+        )
+    _allowed_hosts_setting = os.getenv("ALLOWED_HOSTS", "").strip()
+    if not _allowed_hosts_setting or "*" in ALLOWED_HOSTS:
+        raise ImproperlyConfigured(
+            "ALLOWED_HOSTS production phải chứa tên miền cụ thể, không dùng '*'."
+        )
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     [
@@ -96,6 +123,7 @@ MIDDLEWARE = [
     "core.logging.CorrelationIdMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "core.middleware.ApiRateLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "users.middleware.VisitorTrackingMiddleware",
@@ -203,6 +231,7 @@ VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
 SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "").strip()
 SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "").strip()
+SHOP_BANK_CODE = os.getenv("SHOP_BANK_CODE", "").strip().upper()
 BANK_TRANSFER_ENABLED = (
     env_bool("BANK_TRANSFER_ENABLED", False)
     and SHOP_BANK_ACCOUNT.isdigit()
@@ -234,7 +263,7 @@ if not DEBUG:
     COMPRESS_OFFLINE = True
     COMPRESS_OFFLINE_CONTEXT: dict = {}
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "frontend/static/images"
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", str(BASE_DIR / "frontend/static/images")))
 
 TRUSTED_PROXY = env_bool("TRUSTED_PROXY", False)
 LOGIN_URL = "users:login"
@@ -244,23 +273,11 @@ LOGOUT_REDIRECT_URL = "products:product_list"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 _redis_url = os.getenv("REDIS_URL", "")
+if not DEBUG and not _redis_url:
+    raise ImproperlyConfigured("REDIS_URL phải được cấu hình trong production.")
 
 
-def _redis_available():
-    if not _redis_url:
-        return False
-    try:
-        import redis as _redis_lib
-
-        client = _redis_lib.from_url(
-            _redis_url, socket_connect_timeout=0.5, socket_timeout=0.5
-        )
-        return bool(client.ping())
-    except Exception:
-        return False
-
-
-_use_redis = _redis_available()
+_use_redis = bool(_redis_url)
 
 if _use_redis:
     CACHES = {
@@ -289,19 +306,12 @@ SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
 
 if not DEBUG:
-    if os.getenv("ALLOWED_HOSTS", "").strip() in ("", "*"):
-        import warnings
-
-        warnings.warn(
-            "ALLOWED_HOSTS không được để trống hoặc '*' khi DEBUG=False. Đặt giá trị cụ thể trong .env"
-        )
-
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
     CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
-    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", True)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
     STATICFILES_STORAGE = (
         "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
     )

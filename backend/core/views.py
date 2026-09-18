@@ -28,8 +28,9 @@ def health_ready(request):
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         checks["database"] = "ok"
-    except Exception as e:
-        checks["database"] = f"error: {e}"
+    except Exception:
+        logger.exception("Readiness check: database unavailable")
+        checks["database"] = "unavailable"
         healthy = False
 
     # Cache
@@ -38,10 +39,11 @@ def health_ready(request):
         if cache.get("healthcheck") == "ok":
             checks["cache"] = "ok"
         else:
-            checks["cache"] = "error: get failed"
+            checks["cache"] = "unavailable"
             healthy = False
-    except Exception as e:
-        checks["cache"] = f"error: {e}"
+    except Exception:
+        logger.exception("Readiness check: cache unavailable")
+        checks["cache"] = "unavailable"
         healthy = False
 
     status = 200 if healthy else 503
