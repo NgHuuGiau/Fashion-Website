@@ -47,8 +47,8 @@ test.describe('Cart & Checkout', () => {
     await page.goto(`${BASE_URL}/gio-hang/`);
     await page.click('a[href^="/dang-nhap/"][href*="next="]');
     await expect(page).toHaveURL(/\/dang-nhap\//);
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="username"]', 'nguyenvanA');
+    await page.fill('input[name="password"]', 'user123');
     await page.locator('form.auth-form button[type="submit"]').click();
     
     await expect(page).toHaveURL(/\/thanh-toan\//);

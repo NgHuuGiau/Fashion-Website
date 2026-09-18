@@ -10,7 +10,6 @@
     "format:css": "stylelint \"**/*.css\" --fix",
     "format:js": "eslint \"**/*.js\" --fix",
     "format": "npm run format:css && npm run format:js",
-    "build": "echo \"No build step configured\" && exit 0",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",

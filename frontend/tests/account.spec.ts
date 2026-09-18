@@ -6,8 +6,8 @@ test.describe('User Account', () => {
   test.beforeEach(async ({ page }) => {
     // Login first
     await page.goto(`${BASE_URL}/dang-nhap/`);
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="username"]', 'nguyenvanA');
+    await page.fill('input[name="password"]', 'user123');
     await page.click('button[type="submit"]');
     await page.waitForURL(/^(?!.*dang-nhap).*/);
   });

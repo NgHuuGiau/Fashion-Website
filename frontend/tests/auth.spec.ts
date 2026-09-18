@@ -22,9 +22,8 @@ test.describe('Authentication Flows', () => {
   });
 
   test('should login successfully with valid credentials', async ({ page }) => {
-    // Assuming test user exists: testuser / TestPass123!
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="username"]', 'nguyenvanA');
+    await page.fill('input[name="password"]', 'user123');
     await page.click('button[type="submit"]');
     
     // Should redirect to home or account page
@@ -33,8 +32,8 @@ test.describe('Authentication Flows', () => {
 
   test('should logout successfully', async ({ page }) => {
     // Login first
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="username"]', 'nguyenvanA');
+    await page.fill('input[name="password"]', 'user123');
     await page.click('button[type="submit"]');
     
     // Click logout

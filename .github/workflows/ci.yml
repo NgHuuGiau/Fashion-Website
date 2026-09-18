@@ -25,7 +25,7 @@ env:
   PYTHON_VERSION: '3.12'
   DJANGO_SETTINGS_MODULE: 'core.settings'
   DEBUG: 'True'
-  SECRET_KEY: 'ci-insecure-key-for-tests-only'
+  SECRET_KEY: 'ci-test-only-not-for-production-7gH4bY9mP2kR8xV6sT1qW3cN5dF0aLZp'
   ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
   EMAIL_BACKEND: 'django.core.mail.backends.locmem.EmailBackend'
   EMAIL_HOST: 'localhost'
@@ -275,11 +275,84 @@ jobs:
         run: |
           cd frontend && npx eslint "**/*.js" --format=stylish
 
+  frontend-e2e:
+    name: Frontend E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TRUSTED_PROXY: 'True'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_fashion
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d test_fashion"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unixodbc-dev
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
+      - name: Prepare database and browser test accounts
+        run: |
+          cd backend
+          python manage.py migrate --noinput
+          python manage.py seed_all --no-input
+          python manage.py shell -c "from django.contrib.auth import get_user_model; U=get_user_model(); u,_=U.objects.get_or_create(username='testuser'); u.set_password('TestPass123!'); u.save()"
+
+      - name: Set up Node and install frontend dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Playwright browser
+        run: |
+          cd frontend
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Run desktop and mobile browser tests
+        env:
+          BASE_URL: http://127.0.0.1:8000
+        run: cd frontend && npm test -- --project=chromium --project="Mobile Chrome"
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
+
   build:
     name: Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, type-check, security, test, frontend-lint]
+    needs: [lint, type-check, security, test, frontend-lint, frontend-e2e]
     continue-on-error: false
     steps:
       - name: Checkout
@@ -306,7 +379,7 @@ jobs:
 
       - name: Django system check
         run: |
-          cd backend && DEBUG=False python manage.py check --deploy --fail-level=ERROR
+          cd backend && DEBUG=False REDIS_URL=redis://localhost:6379/0 python manage.py check --deploy --fail-level=ERROR
 
       - name: Collect static (dry-run)
         run: |
@@ -315,16 +388,13 @@ jobs:
       - name: Compress CSS/JS (offline manifest, production path)
         run: |
           cd backend
-          DEBUG=False SECURE_SSL_REDIRECT=False ALLOWED_HOSTS=testserver python manage.py compress --force
-
-      - name: Frontend build check
-        run: cd frontend && npm run build --if-present
+          DEBUG=False REDIS_URL=redis://localhost:6379/0 SECURE_SSL_REDIRECT=False ALLOWED_HOSTS=testserver python manage.py compress --force
 
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, type-check, security, test, frontend-lint, build]
+    needs: [lint, type-check, security, test, frontend-lint, frontend-e2e, build]
     steps:
       - name: Collect results
         run: |
@@ -337,6 +407,7 @@ jobs:
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Lint | ${{ needs.frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend E2E | ${{ needs.frontend-e2e.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**All checks must pass for merge.**" >> $GITHUB_STEP_SUMMARY

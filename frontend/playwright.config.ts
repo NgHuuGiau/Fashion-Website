@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers:
+    process.env.CI || process.env.DJANGO_SETTINGS_MODULE === 'core.test_settings_sqlite'
+      ? 1
+      : undefined,
   reporter: 'html',
   use: {
     baseURL,
@@ -23,9 +26,9 @@ export default defineConfig({
     { name: 'Mobile Safari', use: { ...devices['iPhone 12'] } },
   ],
   webServer: {
-    command: `python ../backend/manage.py runserver 127.0.0.1:${port}`,
+    command: `python ../backend/manage.py runserver 127.0.0.1:${port} --noreload`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     timeout: 120000,
   },
 });
