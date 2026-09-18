@@ -232,11 +232,6 @@
                 <h3>HUUGIAU Atelier</h3>
                 <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
                 {% if STORE_ADDRESS %}<p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>{% endif %}
-                <div class="footer-social">
-                    <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
-                    <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
-                    <a href="https://www.tiktok.com/" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
-                </div>
                 <form class="footer-newsletter" method="post" action="{% url 'products:newsletter_subscribe' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.path }}">
@@ -287,11 +282,9 @@
                     <a href="{% url 'terms' %}">Điều khoản</a>
                 </div>
                 <div class="footer-payments">
-                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
-                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-                    <i class="fa-brands fa-cc-paypal" title="PayPal"></i>
-                    <i class="fa-solid fa-building-columns" title="Chuyển khoản ngân hàng"></i>
-                    <i class="fa-solid fa-truck-fast" title="COD"></i>
+                    <span title="Thanh toán tiền mặt khi nhận hàng"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> COD</span>
+                    {% if BANK_TRANSFER_AVAILABLE %}<span title="Chuyển khoản ngân hàng"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> Chuyển khoản</span>{% endif %}
+                    {% if VNPAY_AVAILABLE %}<span title="Thanh toán qua VNPay">VNPay</span>{% endif %}
                 </div>
             </div>
         </div>
