@@ -1,4 +1,8 @@
-﻿Set-StrictMode -Version Latest
+﻿param(
+    [switch]$SyncDemoData
+)
+
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $env:PYTHONIOENCODING = "utf-8"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -30,8 +34,12 @@ try {
     Step "Chạy migrate"
     & $pythonExe manage.py migrate
 
-    Step "Đồng bộ sản phẩm"
-    & $pythonExe manage.py seed_products --sync
+    if ($SyncDemoData) {
+        Step "Đồng bộ sản phẩm demo"
+        & $pythonExe manage.py seed_products --sync
+    } else {
+        Write-Host "Bỏ qua đồng bộ dữ liệu demo. Dùng -SyncDemoData nếu thật sự cần cập nhật demo." -ForegroundColor Yellow
+    }
 
     Step "Bật server tạm trên cổng 8010"
     $serverProcess = Start-Process -FilePath $pythonExe -ArgumentList "manage.py","runserver","127.0.0.1:8010","--noreload" -WorkingDirectory $backendDir -WindowStyle Hidden -PassThru
