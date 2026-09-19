@@ -351,7 +351,6 @@ class ReturnRequest(models.Model):
                     )
                 order_item = (
                     OrderItem.objects.select_for_update()
-                    .select_related("product", "variant")
                     .filter(pk=order_item_id, order_id=request.order_id)
                     .first()
                 )
