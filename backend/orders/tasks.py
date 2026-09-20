@@ -205,6 +205,43 @@ def daily_reconciliation(self):
         raise self.retry(exc=exc)
 
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def notify_low_stock(self):
+    """Mail ngay cho shop khi co SP sap het/het hang (chay moi sang)."""
+    from products.models import Product
+
+    try:
+        if not settings.EMAIL_HOST or not settings.SUPPORT_EMAIL:
+            return {"status": "skipped_no_mail_config"}
+        low = list(
+            Product.objects.filter(available=True, stock__lte=10)
+            .order_by("stock", "name")
+            .values_list("id", "name", "stock")[:20]
+        )
+        out = list(
+            Product.objects.filter(available=True, stock=0)
+            .order_by("name")
+            .values_list("id", "name")[:20]
+        )
+        if not low and not out:
+            return {"status": "ok_empty"}
+        from django.core.mail import send_mail
+
+        lines = [f"HET HANG #{pid} {name}" for pid, name in out]
+        lines += [f"SAP HET #{pid} {name} (ton {stock})" for pid, name, stock in low]
+        send_mail(
+            "[HUUGIAU] Canh bao ton kho",
+            "\n".join(lines),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.SUPPORT_EMAIL],
+            fail_silently=True,
+        )
+        return {"status": "sent", "lines": len(lines)}
+    except Exception as exc:
+        logger.error(f"notify_low_stock failed: {exc}")
+        raise self.retry(exc=exc)
+
+
 @shared_task
 def health_check():
     """Health check task for monitoring."""

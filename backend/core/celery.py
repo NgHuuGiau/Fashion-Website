@@ -28,6 +28,11 @@ app.conf.beat_schedule = {
         "task": "orders.tasks.daily_reconciliation",
         "schedule": crontab(hour=2, minute=0),
     },
+    # Canh bao ton kho moi sang 8h
+    "notify-low-stock-daily": {
+        "task": "orders.tasks.notify_low_stock",
+        "schedule": crontab(hour=8, minute=0),
+    },
     # Expire points daily at 3 AM
     "expire-points-daily": {
         "task": "users.tasks.expire_points",
@@ -61,6 +66,7 @@ app.conf.task_routes = {
     "orders.tasks.process_vnpay_ipn": {"queue": "payments"},
     "orders.tasks.process_bank_ipn": {"queue": "payments"},
     "orders.tasks.daily_reconciliation": {"queue": "reconciliation"},
+    "orders.tasks.notify_low_stock": {"queue": "maintenance"},
     "users.tasks.expire_points": {"queue": "maintenance"},
     "core.tasks.cleanup_sessions": {"queue": "maintenance"},
 }

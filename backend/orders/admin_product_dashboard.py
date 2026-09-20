@@ -1,4 +1,3 @@
-import re
 from datetime import timedelta
 
 from django import forms
@@ -34,295 +33,23 @@ from users.permissions import (
 )
 
 from .admin_forms import CouponForm, OrderStatusForm, ProductForm, ProductVariantFormSet
+from .admin_product_forms import (  # P1.1: form/matrix builders tach rieng
+    _matrix_post_to_arrays,
+    _validate_uploaded_file,
+    build_admin_product_form_data,
+    build_admin_product_form_from_instance,
+    build_gallery_slot_rows,
+    build_variant_matrix,
+    build_variant_rows,
+)
 from .cart import safe_int
 from .models import Coupon, Order, OrderItem
 from .views.cart import apply_order_status_change
-
-ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_IMAGE_SIZE = 5 * 1024 * 1024
-
-DEFAULT_MATRIX_COLORS = [{"name": "Đen", "code": "#111111"}]
-DEFAULT_MATRIX_SIZES = ["S", "M", "L", "XL"]
-
-
-def _validate_uploaded_file(uploaded_file, errors, label):
-    if not uploaded_file:
-        return
-    if uploaded_file.size > MAX_IMAGE_SIZE:
-        errors.append(f"{label}: File không được quá 5MB.")
-        return
-    try:
-        from PIL import Image
-        import io
-
-        Image.open(io.BytesIO(uploaded_file.read()))
-        uploaded_file.seek(0)
-    except Exception:
-        errors.append(f"{label}: File không phải là ảnh hợp lệ.")
-
 
 RECENT_ORDER_LIMIT = 200
 ADMIN_ORDER_PAGE_SIZE = 25
 LOW_STOCK_LIMIT = 10
 REVENUE_DAYS_LIMIT = 14
-
-
-def build_gallery_slot_rows(product=None):
-    slots = []
-    images_by_sort_order = {}
-    if product:
-        images_by_sort_order = {
-            item.sort_order: item
-            for item in product.gallery_images.order_by("sort_order", "id")[
-                :MAX_PRODUCT_GALLERY_IMAGES
-            ]
-        }
-
-    for index in range(MAX_PRODUCT_GALLERY_IMAGES):
-        slots.append(
-            {
-                "slot_index": index,
-                "label": f"Slot {index + 1}",
-                "image": images_by_sort_order.get(index),
-            }
-        )
-    return slots
-
-
-def _size_token(size: str) -> str:
-    return re.sub(r"[^A-Za-z0-9]+", "_", (size or "").strip()) or "size"
-
-
-def _matrix_post_to_arrays(post_data):
-    sizes = [
-        size.strip()
-        for size in post_data.getlist("matrix_sizes")
-        if size and size.strip()
-    ]
-    color_names = post_data.getlist("matrix_color_name[]")
-    color_codes = post_data.getlist("matrix_color_code[]")
-    active_indexes = {
-        value.strip()
-        for value in post_data.getlist("matrix_color_active[]")
-        if value.strip()
-    }
-
-    row_keys, names, codes, size_list, stocks, active_keys = [], [], [], [], [], []
-    for index, color_name in enumerate(color_names):
-        color_code = color_codes[index] if index < len(color_codes) else "#111111"
-        is_active = str(index) in active_indexes
-        for size in sizes:
-            token = _size_token(size)
-            stock_raw = post_data.get(f"matrix_stock_{index}_{token}", "").strip()
-            row_key = f"mat-{index}-{token}"
-            row_keys.append(row_key)
-            names.append(color_name.strip())
-            codes.append(color_code.strip())
-            size_list.append(size)
-            stocks.append(stock_raw if stock_raw else "0")
-            if is_active:
-                active_keys.append(row_key)
-
-    return {
-        "variant_row_key": row_keys,
-        "variant_color_name": names,
-        "variant_color_code": codes,
-        "variant_size": size_list,
-        "variant_stock": stocks,
-        "variant_is_active": active_keys,
-    }
-
-
-def build_admin_product_form_data(request=None):
-    if request is None:
-        return {
-            "product_id": "",
-            "category_id": "",
-            "name": "",
-            "price": "",
-            "stock": "",
-            "description": "",
-            "image_url": "",
-            "gallery_count": 0,
-            "available": True,
-            "featured": False,
-            "variant_row_key": [
-                f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))
-            ],
-            "variant_color_name": [DEFAULT_MATRIX_COLORS[0]["name"]]
-            * len(DEFAULT_MATRIX_SIZES),
-            "variant_color_code": [DEFAULT_MATRIX_COLORS[0]["code"]]
-            * len(DEFAULT_MATRIX_SIZES),
-            "variant_size": list(DEFAULT_MATRIX_SIZES),
-            "variant_stock": ["0"] * len(DEFAULT_MATRIX_SIZES),
-            "variant_is_active": [
-                f"row-{index + 1}" for index in range(len(DEFAULT_MATRIX_SIZES))
-            ],
-        }
-
-    variant_arrays = (
-        _matrix_post_to_arrays(request.POST)
-        if "matrix_sizes" in request.POST
-        else {
-            "variant_row_key": request.POST.getlist("variant_row_key[]"),
-            "variant_color_name": request.POST.getlist("variant_color_name[]"),
-            "variant_color_code": request.POST.getlist("variant_color_code[]"),
-            "variant_size": request.POST.getlist("variant_size[]"),
-            "variant_stock": request.POST.getlist("variant_stock[]"),
-            "variant_is_active": request.POST.getlist("variant_is_active[]"),
-        }
-    )
-
-    return {
-        "product_id": request.POST.get("product_id", "").strip(),
-        "category_id": request.POST.get("category_id", "").strip(),
-        "name": request.POST.get("name", "").strip(),
-        "price": request.POST.get("price", "").strip(),
-        "stock": request.POST.get("stock", "").strip(),
-        "description": request.POST.get("description", "").strip(),
-        "image_url": request.POST.get("image_url", "").strip(),
-        "gallery_count": safe_int(
-            request.POST.get("gallery_count", "0"), default=0, minimum=0
-        ),
-        "remove_gallery_image_ids": request.POST.getlist("remove_gallery_image_ids"),
-        "available": request.POST.get("available") == "on",
-        "featured": request.POST.get("featured") == "on",
-        **variant_arrays,
-    }
-
-
-def build_admin_product_form_from_instance(product):
-    all_variants = list(product.variants.order_by("color_name", "size"))
-    historical_variant_ids = set(
-        OrderItem.objects.filter(
-            variant_id__in=[v.pk for v in all_variants]
-        ).values_list("variant_id", flat=True)
-    )
-    variants = [
-        variant
-        for variant in all_variants
-        if variant.is_active or variant.pk not in historical_variant_ids
-    ]
-    if not variants and not all_variants:
-        variants = [None]
-
-    form_data = {
-        "product_id": str(product.id),
-        "category_id": str(product.category_id),
-        "name": product.name,
-        "price": str(int(product.price)),
-        "stock": str(product.stock),
-        "description": product.description,
-        "image_url": product.image_url,
-        "gallery_count": product.gallery_images.count(),
-        "remove_gallery_image_ids": [],
-        "available": product.available,
-        "featured": product.featured,
-        "variant_row_key": [],
-        "variant_color_name": [],
-        "variant_color_code": [],
-        "variant_size": [],
-        "variant_stock": [],
-        "variant_is_active": [],
-    }
-
-    for index, variant in enumerate(variants, start=1):
-        row_key = f"row-{index}"
-        form_data["variant_row_key"].append(row_key)
-        form_data["variant_color_name"].append(variant.color_name if variant else "Đen")
-        form_data["variant_color_code"].append(
-            variant.color_code if variant else "#111111"
-        )
-        form_data["variant_size"].append(variant.size if variant else "M")
-        form_data["variant_stock"].append(str(variant.stock) if variant else "0")
-        if variant is None or variant.is_active:
-            form_data["variant_is_active"].append(row_key)
-
-    return form_data
-
-
-def build_variant_rows(form_data):
-    variant_rows = []
-    max_rows = max(
-        len(form_data["variant_row_key"]),
-        len(form_data["variant_color_name"]),
-        len(form_data["variant_color_code"]),
-        len(form_data["variant_size"]),
-        len(form_data["variant_stock"]),
-        1,
-    )
-    active_keys = set(form_data["variant_is_active"])
-    for index in range(max_rows):
-        row_key = (
-            form_data["variant_row_key"][index]
-            if index < len(form_data["variant_row_key"])
-            else f"row-{index + 1}"
-        )
-        variant_rows.append(
-            {
-                "row_key": row_key,
-                "color_name": form_data["variant_color_name"][index]
-                if index < len(form_data["variant_color_name"])
-                else "",
-                "color_code": form_data["variant_color_code"][index]
-                if index < len(form_data["variant_color_code"])
-                else "#111111",
-                "size": form_data["variant_size"][index]
-                if index < len(form_data["variant_size"])
-                else "",
-                "stock": form_data["variant_stock"][index]
-                if index < len(form_data["variant_stock"])
-                else "0",
-                "is_active": row_key in active_keys,
-            }
-        )
-    return variant_rows
-
-
-def build_variant_matrix(form_data):
-    rows = build_variant_rows(form_data)
-
-    color_rows = []
-    color_index_by_key = {}
-    size_index_by_key = {}
-    sizes = []
-    cell_stock = {}
-
-    for row in rows:
-        color_name = row["color_name"].strip()
-        size = row["size"].strip().upper()
-        if not any([color_name, size, row["stock"]]):
-            continue
-        color_key = color_name.casefold()
-        if color_key not in color_index_by_key:
-            color_index_by_key[color_key] = len(color_rows)
-            color_rows.append(
-                {
-                    "index": len(color_rows),
-                    "name": color_name,
-                    "code": row["color_code"].strip() or "#111111",
-                    "is_active": row["is_active"],
-                }
-            )
-        if size and size not in size_index_by_key:
-            size_index_by_key[size] = len(sizes)
-            sizes.append(size)
-        if size:
-            cell_stock[(color_index_by_key[color_key], size_index_by_key[size])] = str(
-                row["stock"]
-            )
-
-    for color in color_rows:
-        color["stocks"] = [
-            {
-                "size": size,
-                "token": _size_token(size),
-                "stock": cell_stock.get((color["index"], index), "0"),
-            }
-            for index, size in enumerate(sizes)
-        ]
-
-    return {"colors": color_rows, "sizes": sizes}
 
 
 def build_admin_dashboard_context(
@@ -335,6 +62,7 @@ def build_admin_dashboard_context(
     inventory_status=None,
     inventory_q=None,
     order_page=1,
+    inventory_page=1,
 ):
     effective_form_data = form_data or build_admin_product_form_data()
     all_orders = Order.objects.all().prefetch_related("items__product")
@@ -604,26 +332,34 @@ def build_admin_dashboard_context(
         inventory_product_qs = inventory_product_qs.filter(
             Q(name__icontains=inventory_q) | Q(category__name__icontains=inventory_q)
         )
-    inventory_products = list(
-        inventory_product_qs.prefetch_related("variants").order_by("stock", "name")
-    )
+    inventory_products_page = Paginator(
+        inventory_product_qs.prefetch_related("variants").order_by("stock", "name"),
+        ADMIN_ORDER_PAGE_SIZE,
+    ).get_page(inventory_page)
+    inventory_products = list(inventory_products_page.object_list)
 
-    inventory_totals = Product.objects.aggregate(
-        total_units=Sum("stock"),
-        stock_value=Sum(F("stock") * F("price")),
-    )
-    inventory_stats = {
-        "total_products": Product.objects.count(),
-        "total_units": inventory_totals["total_units"] or 0,
-        "stock_value": int(inventory_totals["stock_value"] or 0),
-        "out_of_stock": Product.objects.filter(stock=0).count(),
-        "low_stock": Product.objects.filter(
-            available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT
-        ).count(),
-        "hidden_products": Product.objects.filter(
-            available=False, stock__gte=1
-        ).count(),
-    }
+    # P2.1: stat kho aggregate theo 60s (list van fresh moi request)
+    from django.core.cache import cache
+
+    inventory_stats = cache.get("adm:inventory_stats:v1")
+    if inventory_stats is None:
+        inventory_totals = Product.objects.aggregate(
+            total_units=Sum("stock"),
+            stock_value=Sum(F("stock") * F("price")),
+        )
+        inventory_stats = {
+            "total_products": Product.objects.count(),
+            "total_units": inventory_totals["total_units"] or 0,
+            "stock_value": int(inventory_totals["stock_value"] or 0),
+            "out_of_stock": Product.objects.filter(stock=0).count(),
+            "low_stock": Product.objects.filter(
+                available=True, stock__gte=1, stock__lte=LOW_STOCK_LIMIT
+            ).count(),
+            "hidden_products": Product.objects.filter(
+                available=False, stock__gte=1
+            ).count(),
+        }
+        cache.set("adm:inventory_stats:v1", inventory_stats, 60)
 
     current_user = current_user or UserModel()
     permissions = {
@@ -671,6 +407,16 @@ def build_admin_dashboard_context(
         "active_coupons": Coupon.objects.filter(is_active=True).count(),
         "product_categories": Category.objects.all(),
         "coupons": Coupon.objects.all().order_by("-created_at"),
+        # P3.3: chi phi giam gia thuc te (don delivered) + top ma theo luot dung
+        "discount_stats": all_orders.filter(status="delivered").aggregate(
+            total_discount=Sum("discount_amount"),
+            coupon_orders=Count("id", filter=~Q(coupon_code="")),
+        ),
+        "top_coupons": list(
+            Coupon.objects.order_by("-used_count").values(
+                "code", "used_count", "discount_type", "value"
+            )[:5]
+        ),
         "recent_products": Product.objects.select_related("category").order_by(
             "-created"
         ),
@@ -687,6 +433,7 @@ def build_admin_dashboard_context(
         "editing_product_gallery_slots": build_gallery_slot_rows(editing_product),
         "inventory_stats": inventory_stats,
         "inventory_products": inventory_products,
+        "inventory_page_obj": inventory_products_page,
         "inventory_status": inventory_status or "",
         "inventory_q": inventory_q or "",
         "low_stock_limit": LOW_STOCK_LIMIT,
@@ -858,6 +605,7 @@ def save_admin_product(request, product=None):
             product.stock = stock
             product.available = cd.get("available", False)
             product.featured = cd.get("featured", False)
+            product._price_changed_by = request.user.get_username()
             product.save()
             if remove_gallery_image_ids:
                 product.gallery_images.filter(id__in=remove_gallery_image_ids).delete()
@@ -958,6 +706,73 @@ def save_admin_product(request, product=None):
     return product, build_admin_product_form_data(), [], action_label
 
 
+def import_stock_csv(uploaded_file, max_rows=500):
+    """Nhap ton kho hang loat tu CSV: product_id,color_name,size,stock.
+
+    Tra ve (updated, errors). Dat ton TUYET DOI (khong cong don).
+    """
+    import csv
+    import io
+
+    errors = []
+    if not uploaded_file:
+        return 0, ["Chưa chọn file CSV."]
+    if uploaded_file.size > 1024 * 1024:
+        return 0, ["File không được quá 1MB."]
+    try:
+        text = uploaded_file.read().decode("utf-8-sig")
+    except Exception:
+        return 0, ["File phải là CSV mã UTF-8."]
+    reader = csv.DictReader(io.StringIO(text))
+    required = {"product_id", "stock"}
+    if not reader.fieldnames or not required.issubset(
+        {h.strip() for h in reader.fieldnames}
+    ):
+        return 0, [
+            "CSV cần header tối thiểu: product_id,stock (tùy chọn color_name,size)."
+        ]
+    rows = list(reader)[: max_rows + 1]
+    if len(rows) > max_rows:
+        return 0, [f"File quá {max_rows} dòng, hãy chia nhỏ."]
+
+    updated = 0
+    with transaction.atomic():
+        for lineno, row in enumerate(rows, start=2):
+            try:
+                product_id = int((row.get("product_id") or "").strip())
+                stock = int((row.get("stock") or "").strip())
+            except (TypeError, ValueError):
+                errors.append(f"Dòng {lineno}: product_id/stock phải là số.")
+                continue
+            if stock < 0 or stock > 1000000:
+                errors.append(f"Dòng {lineno}: stock phải trong 0–1000000.")
+                continue
+            color_name = (row.get("color_name") or "").strip()
+            size = (row.get("size") or "").strip()
+            product = Product.objects.select_for_update().filter(id=product_id).first()
+            if product is None:
+                errors.append(f"Dòng {lineno}: không có sản phẩm #{product_id}.")
+                continue
+            if color_name or size:
+                variant = (
+                    ProductVariant.objects.select_for_update()
+                    .filter(product=product, color_name=color_name, size=size)
+                    .first()
+                )
+                if variant is None:
+                    errors.append(
+                        f"Dòng {lineno}: không có biến thể {color_name}/{size}."
+                    )
+                    continue
+                variant.stock = stock
+                variant.save(update_fields=["stock"])
+            else:
+                product.stock = stock
+                product.save(update_fields=["stock"])
+            updated += 1
+    return updated, errors
+
+
 def mark_product_out_of_stock(product):
     with transaction.atomic():
         product.variants.update(stock=0, is_active=False)
@@ -978,6 +793,7 @@ def admin_dashboard(request):
     order_page = request.GET.get("order_page", "1").strip() or "1"
     inventory_status = request.GET.get("inventory_status", "").strip()
     inventory_q = request.GET.get("inventory_q", "").strip()
+    inventory_page = request.GET.get("inventory_page", "1").strip() or "1"
 
     if request.method == "POST":
         action = request.POST.get("action", "save_product").strip()
@@ -1046,6 +862,22 @@ def admin_dashboard(request):
             messages.success(
                 request, f"Đã hủy đơn chưa thanh toán #{order.id} và trả hàng về kho."
             )
+            return redirect("orders:admin_dashboard")
+
+        if action == "import_stock":
+            if not can_manage_inventory(request.user):
+                messages.error(request, "Bạn không có quyền quản lý kho.")
+                return redirect("orders:admin_dashboard")
+            updated, errors = import_stock_csv(request.FILES.get("stock_file"))
+            for err in errors[:20]:
+                messages.error(request, err)
+            if updated:
+                from django.core.cache import cache
+
+                cache.delete("adm:inventory_stats:v1")
+                messages.success(request, f"Đã cập nhật tồn kho cho {updated} dòng.")
+            elif not errors:
+                messages.error(request, "File không có dòng hợp lệ.")
             return redirect("orders:admin_dashboard")
 
         if action == "save_coupon":
@@ -1258,6 +1090,7 @@ def admin_dashboard(request):
                 inventory_status=inventory_status,
                 inventory_q=inventory_q,
                 order_page=order_page,
+                inventory_page=inventory_page,
             ),
         )
 
@@ -1282,5 +1115,6 @@ def admin_dashboard(request):
             inventory_status=inventory_status,
             inventory_q=inventory_q,
             order_page=order_page,
+            inventory_page=inventory_page,
         ),
     )
