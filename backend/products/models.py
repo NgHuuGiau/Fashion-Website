@@ -82,6 +82,28 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        # P3.2: ghi lich su khi gia doi (cover dashboard + admin + shell).
+        # Bo qua khi save chi update stock (checkout hot path).
+        update_fields = kwargs.get("update_fields")
+        watch_price = update_fields is None or "price" in update_fields
+        old_price = None
+        if self.pk and watch_price:
+            old_price = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list("price", flat=True)
+                .first()
+            )
+        super().save(*args, **kwargs)
+        if old_price is not None and old_price != self.price:
+            PriceHistory.objects.create(
+                product=self,
+                old_price=old_price,
+                new_price=self.price,
+                changed_by=getattr(self, "_price_changed_by", ""),
+            )
+
     def get_absolute_url(self):
         from django.urls import reverse
 
@@ -301,6 +323,26 @@ class ProductVariant(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.color_name} / {self.size}"
+
+
+class PriceHistory(models.Model):
+    """P3.2: lich su doi gia (ghi tu dong trong Product.save)."""
+
+    product = models.ForeignKey(
+        Product, related_name="price_history", on_delete=models.CASCADE
+    )
+    old_price = models.DecimalField(max_digits=10, decimal_places=0)
+    new_price = models.DecimalField(max_digits=10, decimal_places=0)
+    changed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    changed_by = models.CharField(max_length=150, blank=True)
+
+    class Meta:
+        verbose_name = "Lịch sử giá"
+        verbose_name_plural = "Lịch sử giá"
+        ordering = ["-changed_at"]
+
+    def __str__(self):
+        return f"{self.product.name}: {self.old_price} -> {self.new_price}"
 
 
 class ProductImage(models.Model):

@@ -9,6 +9,7 @@ from .models import (
     BlogPost,
     Category,
     NewsletterSubscriber,
+    PriceHistory,
     Product,
     ProductQuestion,
     ProductVariant,
@@ -48,12 +49,27 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ("name", "description")
     inlines = [ProductVariantInline]
 
+    def save_model(self, request, obj, form, change):
+        obj._price_changed_by = request.user.get_username()
+        super().save_model(request, obj, form, change)
+
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("product", "color_name", "size", "stock", "is_active")
     list_filter = ("is_active", "color_name", "size")
     search_fields = ("product__name", "color_name", "size")
+
+
+@admin.register(PriceHistory)
+class PriceHistoryAdmin(admin.ModelAdmin):
+    list_display = ("product", "old_price", "new_price", "changed_at", "changed_by")
+    list_filter = ("changed_at",)
+    search_fields = ("product__name", "changed_by")
+    readonly_fields = ("product", "old_price", "new_price", "changed_at", "changed_by")
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(WishlistItem)

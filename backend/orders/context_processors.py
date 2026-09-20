@@ -1,3 +1,5 @@
+import os
+
 from .cart import safe_int
 
 
@@ -70,4 +72,10 @@ def shop_site_config(request):
         "PROMO_BANNER": settings.PROMO_BANNER,
         "BANK_TRANSFER_AVAILABLE": bank_transfer_is_enabled(),
         "VNPAY_AVAILABLE": vnpay_is_configured(),
+        # ponytail: an nut social chua cau hinh thay vi de khach bam roi moi bao loi
+        "SOCIAL_LOGIN_AVAILABLE": {
+            "google": bool(os.getenv("GOOGLE_OAUTH_URL", "").strip()),
+            "facebook": bool(os.getenv("FACEBOOK_OAUTH_URL", "").strip()),
+            "apple": bool(os.getenv("APPLE_OAUTH_URL", "").strip()),
+        },
     }

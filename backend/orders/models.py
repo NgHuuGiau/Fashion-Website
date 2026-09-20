@@ -37,6 +37,12 @@ class Coupon(models.Model):
     max_uses_per_user = models.PositiveIntegerField(
         null=True, blank=True, verbose_name="Giới hạn mỗi người"
     )
+    stackable = models.BooleanField(
+        default=True,
+        db_index=True,
+        verbose_name="Được cộng dồn",
+        help_text="Tắt = mã độc quyền, không cộng với giảm giá hạng và điểm.",
+    )
     used_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
