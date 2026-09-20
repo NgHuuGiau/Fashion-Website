@@ -105,6 +105,8 @@ class CSPMiddlewareTest(TestCase):
         # CSP now uses nonce instead of unsafe-inline
         self.assertIn("style-src 'self' 'nonce-", csp)
         self.assertIn("script-src 'self' 'nonce-", csp)
+        # Leaflet CDN phai duoc phep de map checkout chay o prod
+        self.assertIn("https://cdnjs.cloudflare.com", csp)
 
     @override_settings(DEBUG=True)
     def test_csp_header_omitted_in_debug(self):

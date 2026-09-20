@@ -393,10 +393,14 @@
     }
 
     function reverseGeocode(lat, lng, cb) {
-        fetch('/api/geocode/?lat=' + lat + '&lng=' + lng)
+        // P-map: timeout 8s, mang yeu khong treo "Dang tim..." mai
+        var ctrl = ('AbortController' in window) ? new AbortController() : null;
+        var timer = null;
+        if (ctrl) timer = setTimeout(function () { ctrl.abort(); }, 8000);
+        fetch('/api/geocode/?lat=' + lat + '&lng=' + lng, ctrl ? { signal: ctrl.signal } : {})
             .then(function (r) { return r.json(); })
-            .then(function (data) { cb(data && data.address || null); })
-            .catch(function () { cb(null); });
+            .then(function (data) { if (timer) clearTimeout(timer); cb(data && data.address || null); })
+            .catch(function () { if (timer) clearTimeout(timer); cb(null); });
     }
 
     function initMap() {
@@ -446,9 +450,13 @@
             var q = searchBox.value.trim();
             if (!q) return;
             setStatus('Đang tìm địa chỉ...');
-            fetch('/api/geocode/?q=' + encodeURIComponent(q))
+            var sctrl = ('AbortController' in window) ? new AbortController() : null;
+            var stimer = null;
+            if (sctrl) stimer = setTimeout(function () { sctrl.abort(); }, 8000);
+            fetch('/api/geocode/?q=' + encodeURIComponent(q), sctrl ? { signal: sctrl.signal } : {})
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
+                    if (stimer) clearTimeout(stimer);
                     if (!data || !data.lat) {
                         setStatus('Không tìm thấy địa chỉ "' + q + '". Bạn thử từ khoá khác hoặc click trên map.', true);
                         return;
@@ -457,7 +465,7 @@
                     addressInput.value = data.address || '';
                     setStatus('Đã điền địa chỉ từ bản đồ.');
                 })
-                .catch(function () { setStatus('Lỗi tìm kiếm địa chỉ. Thử lại nhé.', true); });
+                .catch(function () { if (stimer) clearTimeout(stimer); setStatus('Lỗi tìm kiếm địa chỉ. Thử lại nhé.', true); });
         });
 
         map.on('click', function (e) {
@@ -502,15 +510,42 @@
         loaded = true;
         initMap();
     }
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-    document.head.appendChild(link);
-    var script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    script.onload = boot;
-    script.onerror = function () { boot(); };
-    document.head.appendChild(script);
+    // P-map: lazy-load leaflet khi map gan hien thi + timeout 10s keo CDN treo
+    function loadLeaflet() {
+        if (typeof L !== 'undefined') { boot(); return; }
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        document.head.appendChild(link);
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        var done = false;
+        function doneOnce() { if (!done) { done = true; boot(); } }
+        var kill = setTimeout(doneOnce, 10000);
+        script.onload = function () { clearTimeout(kill); doneOnce(); };
+        script.onerror = function () { clearTimeout(kill); doneOnce(); };
+        document.head.appendChild(script);
+    }
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            if (entries[0].isIntersecting) { io.disconnect(); loadLeaflet(); }
+        }, { rootMargin: '400px' });
+        io.observe(mapBox);
+        // Fallback: IO khong ban (tab an/headless) -> tu kiem tra 1 lan sau 5s
+        setTimeout(function () {
+            var r = mapBox.getBoundingClientRect();
+            if (r.top < window.innerHeight + 400 && r.bottom > -400) {
+                io.disconnect();
+                loadLeaflet();
+            }
+        }, 5000);
+    } else {
+        loadLeaflet();
+    }
+    // Tuong tac la tin hieu manh nhat: click/focus vao vung map thi nap ngay
+    function interactLoad() { loadLeaflet(); }
+    mapBox.addEventListener('pointerdown', interactLoad, { once: true });
+    searchBox.addEventListener('focus', interactLoad, { once: true });
 })();
 </script>
 

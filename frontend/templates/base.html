@@ -39,9 +39,8 @@
     <link rel="stylesheet" href="{% static 'css/cookie_consent.css' %}">
     <link rel="stylesheet" href="{% static 'css/skeleton.css' %}">
     {% endcompress %}
-    {% compress js %}
+    {# nonce doi moi request -> de ngoai compress offline, giong cookie_consent.js #}
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/site_interactions.js' %}?v=20260903"></script>
-    {% endcompress %}
 
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -371,9 +370,8 @@
         </div>
     </aside>
 
-    {% compress js %}
+    {# nonce doi moi request -> de ngoai compress offline #}
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/base_interactions.js' %}?v=20260917-2"></script>
-    {% endcompress %}
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/cookie_consent.js' %}"></script>
     <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/recently_viewed.js' %}"></script>
     <script nonce="{{ request.csp_nonce }}">

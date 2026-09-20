@@ -28,8 +28,8 @@ class CSPMiddleware:
             response["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 "img-src 'self' data: https:; "
-                f"style-src 'self' {nonce_attr} https://fonts.googleapis.com; "
-                f"script-src 'self' {nonce_attr} https://www.googletagmanager.com; "
+                f"style-src 'self' {nonce_attr} https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+                f"script-src 'self' {nonce_attr} https://www.googletagmanager.com https://cdnjs.cloudflare.com; "
                 "frame-src 'self' https://img.vietqr.io https://www.google.com/maps; "
                 "connect-src 'self' https://nominatim.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com"
             )
