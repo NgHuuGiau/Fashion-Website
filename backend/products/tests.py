@@ -679,6 +679,12 @@ class ChatServiceCoverageTest(TestCase):
         result = find_support_reply("van chuyen toan quoc khong")
         self.assertIn("freeship toàn quốc", result)
 
+    @override_settings(
+        BANK_TRANSFER_ENABLED=False,
+        SHOP_BANK_CODE="",
+        SHOP_BANK_ACCOUNT="",
+        SHOP_ACCOUNT_NAME="",
+    )
     def test_faq_payment_reply(self):
         from .services.chat_service import find_support_reply
 
