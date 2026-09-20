@@ -4237,6 +4237,7 @@ class P1FeaturesTest(TestCase):
         self.assertIn("inventory_page_obj", response.context)
         self.assertIn("inventory_stats", response.context)
 
+    @override_settings(EMAIL_HOST="", SUPPORT_EMAIL="")
     def test_notify_low_stock_skipped_without_mail(self):
         from orders.tasks import notify_low_stock
 
