@@ -378,7 +378,9 @@ class ApiTest(TestCase):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("api:api_my_orders"))
         self.assertEqual(response.status_code, 200)
-        orders = response.json()
+        payload = response.json()
+        orders = payload["results"]
+        self.assertEqual(payload["count"], 1)
         self.assertEqual(len(orders), 1)
         self.assertEqual(orders[0]["total_amount"], 530000)
 

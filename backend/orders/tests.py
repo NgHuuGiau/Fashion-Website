@@ -4129,3 +4129,229 @@ class CartReminderTest(TestCase):
         reminder.refresh_from_db()
         self.assertEqual(result, {"status": "completed"})
         self.assertIsNotNone(reminder.reminded_at)
+
+
+@override_settings(
+    BANK_TRANSFER_ENABLED=True,
+    SHOP_BANK_CODE="VCB",
+    SHOP_BANK_ACCOUNT="12345678",
+    SHOP_ACCOUNT_NAME="HUUGIAU TEST",
+)
+class P1FeaturesTest(TestCase):
+    """Bao phu P1: idempotency checkout + import ton kho CSV."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="buyer", password="StrongPass123!"
+        )
+        self.staff = User.objects.create_user(
+            username="staff", password="StrongPass123!", is_staff=True
+        )
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Ao test",
+            slug="ao-test",
+            price=500000,
+            stock=10,
+            available=True,
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            color_name="Den",
+            color_code="#111111",
+            size="L",
+            stock=5,
+            is_active=True,
+        )
+
+    def _checkout_payload(self, key="k1"):
+        return {
+            "customer_name": "Buyer",
+            "customer_email": "buyer@test.com",
+            "phone": "0909000000",
+            "shipping_address": "1 Test Street",
+            "payment_method": "cod",
+            "coupon_code": "",
+            "idempotency_key": key,
+        }
+
+    def test_double_submit_same_key_creates_one_order(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        url = reverse("orders:checkout")
+        r1 = self.client.post(url, self._checkout_payload("dup-key"))
+        self.assertEqual(r1.status_code, 302)
+        self.assertEqual(Order.objects.count(), 1)
+        # cart da xoa sau don 1; nap lai roi submit trung key
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        r2 = self.client.post(url, self._checkout_payload("dup-key"))
+        self.assertEqual(r2.status_code, 302)
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_import_stock_csv_updates_variant(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.login(username="staff", password="StrongPass123!")
+        csv_body = "product_id,color_name,size,stock\n%s,Den,L,42\n" % self.product.id
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "import_stock",
+                "stock_file": SimpleUploadedFile(
+                    "stock.csv", csv_body.encode(), content_type="text/csv"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 42)
+
+    def test_import_stock_csv_requires_inventory_perm(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.post(
+            reverse("orders:admin_dashboard"),
+            {
+                "action": "import_stock",
+                "stock_file": SimpleUploadedFile(
+                    "stock.csv", b"product_id,stock\n1,5\n", content_type="text/csv"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 5)
+
+    def test_inventory_list_is_paginated(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(reverse("orders:admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("inventory_page_obj", response.context)
+        self.assertIn("inventory_stats", response.context)
+
+    def test_notify_low_stock_skipped_without_mail(self):
+        from orders.tasks import notify_low_stock
+
+        result = notify_low_stock.run()
+        self.assertEqual(result["status"], "skipped_no_mail_config")
+
+
+class P3StackingPriceTest(TestCase):
+    """Bao phu P3: policy cong don + lich su gia + service pricing."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="buyer", password="StrongPass123!"
+        )
+        self.category = Category.objects.create(name="Ao", slug="ao")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Ao test",
+            slug="ao-test",
+            price=500000,
+            stock=20,
+            available=True,
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            color_name="Den",
+            color_code="#111111",
+            size="L",
+            stock=10,
+            is_active=True,
+        )
+        self.exclusive = Coupon.objects.create(
+            code="DOCQUYEN",
+            discount_type=Coupon.TYPE_FIXED,
+            value=Decimal("50000"),
+            is_active=True,
+            stackable=False,
+        )
+
+    def test_service_exclusive_zeroes_tier_and_points(self):
+        import types
+
+        from orders.services.checkout import apply_stacking_policy
+
+        stub = types.SimpleNamespace(stackable=False)
+        tier, pts_use, pts_disc, total = apply_stacking_policy(
+            coupon=stub,
+            subtotal=Decimal("1000000"),
+            shipping_fee=Decimal("30000"),
+            discount_amount=Decimal("50000"),
+            tier_discount_amount=Decimal("50000"),
+            points_to_use=100,
+            points_discount=Decimal("10000"),
+        )
+        self.assertEqual(tier, Decimal("0"))
+        self.assertEqual(pts_use, 0)
+        self.assertEqual(pts_disc, Decimal("0"))
+        self.assertEqual(total, Decimal("980000"))
+
+    def test_service_cap_trims_points_first(self):
+        from orders.services.checkout import apply_stacking_policy
+
+        tier, pts_use, pts_disc, total = apply_stacking_policy(
+            coupon=None,
+            subtotal=Decimal("100000"),
+            shipping_fee=Decimal("0"),
+            discount_amount=Decimal("0"),
+            tier_discount_amount=Decimal("40000"),
+            points_to_use=500,
+            points_discount=Decimal("50000"),
+        )
+        # cap 50% = 50000: cat 40000 diem truoc, giu 10000 diem + 40000 hang
+        self.assertEqual(pts_disc, Decimal("10000"))
+        self.assertEqual(pts_use, 100)
+        self.assertEqual(tier, Decimal("40000"))
+        self.assertEqual(total, Decimal("50000"))
+
+    def test_checkout_exclusive_coupon_skips_tier_and_points(self):
+        from users.models import UserProfile
+
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        profile.points = 2000
+        profile.save(update_fields=["points"])
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse("orders:cart_add", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "variant_id": self.variant.id},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "DOCQUYEN",
+                "points_to_use": 500,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        self.assertEqual(order.coupon_code, "DOCQUYEN")
+        self.assertEqual(order.discount_amount, Decimal("50000"))
+        self.assertEqual(order.points_used, 0)
+        profile.refresh_from_db()
+        self.assertEqual(profile.points, 2000)
+
+    def test_price_history_recorded_on_change_only(self):
+        from products.models import PriceHistory
+
+        self.product.price = 600000
+        self.product.save()
+        entry = PriceHistory.objects.get(product=self.product)
+        self.assertEqual(entry.old_price, 500000)
+        self.assertEqual(entry.new_price, 600000)
+        # save chi stock thi khong ghi lich su
+        self.product.save(update_fields=["stock"])
+        self.assertEqual(PriceHistory.objects.count(), 1)
