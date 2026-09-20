@@ -20,7 +20,7 @@ Hãy restore thử vào một database tạm trước khi dùng cho sự cố th
 
 ## PostgreSQL trực tiếp
 
-`scripts/backup.sh` tạo archive custom-format `.dump.gz`; script cần `DB_HOST`, `DB_NAME`, `DB_USER` và `DB_PASSWORD` được truyền qua environment. Script không tự đọc `.env` để tránh phân tích sai hoặc thực thi nội dung môi trường như shell.
+`scripts/backup.sh` tạo archive custom-format `.dump.gz`; script cần `DB_HOST`, `DB_NAME`, `DB_USER` và `DB_PASSWORD` được truyền qua environment. Script không tự đọc `.env` để tránh phân tích sai hoặc thực thi nội dụng môi trường như shell.
 
 ```bash
 DB_ENGINE=postgres DB_HOST=db DB_PORT=5432 DB_NAME=huugiau_fashion DB_USER=huugiau \
