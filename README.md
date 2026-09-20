@@ -26,9 +26,10 @@ Website bán thời trang xây dựng bằng Django, giao diện editorial, qu�
 | **Backend (Django 5.2)** | Có các luồng cửa hàng và bộ test; xem kết quả CI mới nhất trước khi phát hành |
 | **Database (SQL Server)** | Có backend SQL Server; cần kiểm tra kết nối, migration và full test trên đúng SQL Server triển khai |
 | **Frontend (HTML5/CSS3/JS)** | Giao diện responsive; cần kiểm tra lại trên thiết bị và trình duyệt mục tiêu |
-| **Thanh toán** | Có code VNPay và VietQR; VNPay cần merchant/callback thật. VietQR là chuyển khoản cần nhân viên đối soát, không có IPN ngân hàng |
-| **Email** | Có code gửi email; cần SMTP thật và kiểm tra nhận email trước khi mở bán |
-| **Admin Dashboard** | Có dashboard, CRUD, bulk actions và export CSV |
+| **Thanh toán** | COD và VietQR VietinBank đã chạy live (QR đúng STK shop); VNPay cần merchant/callback thật. VietQR là chuyển khoản cần nhân viên đối soát, không có IPN ngân hàng |
+| **Email** | Gmail SMTP đã gửi thật được (xác nhận đơn, báo tồn kho); kiểm tra nhận email trước khi mở bán |
+| **Admin Dashboard** | Có dashboard, CRUD, bulk actions, export CSV, nhập kho CSV, thống kê giảm giá |
+| **Vận hành local** | Waitress + Redis portable + Caddy (static + proxy); xem `scripts/start-windows-web.ps1` |
 | **HTTPS** | Cấu hình HTTPS production tại reverse proxy; chứng chỉ local không thay cho domain/SSL public |
 | **CI (GitHub Actions)** | Workflow chạy test trên PostgreSQL và Python 3.10–3.13; không xác nhận SQL Server production. Xem trạng thái run mới nhất trên GitHub |
 
@@ -139,14 +140,14 @@ Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production �
 | **Trang chủ** | Hero editorial + sản phẩm nổi bật |
 | **Danh mục** | Lọc category/size/color/price, sort, pagination (12/sp) |
 | **Chi tiết SP** | Gallery 6 ảnh, variant (color+size), đã xem, size chart, wishlist |
-| **Giỏ hàng** | Session-based, cập nhật SL, coupon, phí ship |
-| **Thanh toán** | COD; VietQR chờ nhân viên đối soát; VNPay redirect + xác minh chữ ký callback/IPN khi đã cấu hình merchant |
+| **Giỏ hàng** | Session-based, cập nhật SL, coupon, phí ship, chống đặt trùng khi bấm 2 lần |
+| **Thanh toán** | COD; VietQR VietinBank live (QR đúng STK shop) chờ nhân viên đối soát; VNPay redirect + xác minh chữ ký callback/IPN khi đã cấu hình merchant |
 | **Email** | Mẫu xác nhận, thanh toán, hủy, giao; chỉ gửi được khi SMTP và địa chỉ nhận hợp lệ |
 | **Tra cứu đơn** | Mã đơn + SĐT, hủy đơn + hoàn stock |
 | **Tìm kiếm** | Gợi ý debounce 250ms, không phân biệt dấu |
 | **Đăng nhập** | Email / SĐT / username |
 | **Support chat** | FAQ, size gợi ý |
-| **Admin** | Dashboard doanh thu 7 ngày, CRUD SP/dơn/coupon, bulk actions, export CSV, báo cáo tháng |
+| **Admin** | Dashboard doanh thu 7 ngày, CRUD SP/đơn/coupon, bulk actions, export CSV, nhập kho CSV, thống kê giảm giá, báo cáo tháng |
 | **So sánh SP** | Toggle trên card/detail, bảng so sánh max 4 SP |
 | **Timeline đơn** | 4 bước: Xác nhận → Đóng gói → Đang giao → Đã giao |
 | **Nhắc giỏ** | Email tự động (`send_cart_reminders`) |
@@ -158,9 +159,9 @@ Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production �
 ```
 Fashion-Website/
 ├── backend/               # Django project
-│   ├── core/              # Settings, URLs, utilities, middleware
-│   ├── orders/            # Cart, checkout, payment, admin
-│   ├── products/          # Catalog, detail, search, reviews
+│   ├── core/              # Settings, URLs, utilities, middleware, API theo domain
+│   ├── orders/            # Cart, checkout, payment, admin, coupon (có services/ pricing riêng)
+│   ├── products/          # Catalog, detail, search, reviews, lịch sử giá
 │   ├── users/             # Auth, profiles, activity, referral
 │   ├── certs/             # SSL certs (dev)
 │   └── manage.py
@@ -171,6 +172,8 @@ Fashion-Website/
 │   ├── sql/               # 01_CREATE_TABLES.sql, 02_DEMO_DATA.sql
 │   └── seed/              # products_to_sync.json
 ├── scripts/               # Utility scripts
+│   ├── start-windows-web.ps1 # Chạy prod local: check deploy + waitress (khuyên dùng khi bán)
+│   ├── verify_prod.py     # Quét blocker trước mở bán
 │   ├── start.ps1          # HTTPS server + auto-open browser (khuyên dùng)
 │   ├── start.bat          # Wrapper cho start.ps1
 │   ├── dev_server.py      # Dev server helper
@@ -205,10 +208,10 @@ coverage html  # mở htmlcov/index.html
 
 | App | Phạm vi test |
 |---|---|---|
-| `orders` | Cart, checkout COD/bank/VNPay, callback, admin, coupon, export |
-| `products` | Catalog, detail, variant, search, review, wishlist, compare, size guide |
+| `orders` | Cart, checkout idempotent, coupon stacking, bank/VNPay, IPN, admin, import CSV, export |
+| `products` | Catalog, detail, variant, search, review, wishlist, compare, size guide, price history |
 | `users` | Auth, profile, role sync, activity |
-| `core` | API, CSP, rate limit, cache, SEO, invoice |
+| `core` | API envelope/pagination, CSP, rate limit, cache, SEO, invoice |
 
 > Số test và coverage thay đổi theo code; lấy kết quả của lần chạy test/CI hiện tại làm chuẩn, không dựa vào số liệu ghi cứng trong README.
 
@@ -275,6 +278,20 @@ Cài đặt 1 lần: `python manage.py install_role_sync` (chi tiết `docs/data
 - **Lỗi 403 CSRF**: Thiếu `CSRF_TRUSTED_ORIGINS` — đã config sẵn
 - **CSS/JS cũ**: Hard refresh `Ctrl+F5`
 - **Tạo staff**: `python manage.py createsuperuser` → đăng nhập `/dang-nhap/`
+- **Chạy prod local**: Waitress + Redis portable + Caddy thay cho `runserver` (hay tự tắt)
+
+---
+
+## Tài liệu
+
+- [docs/deploy-production.md](docs/deploy-production.md) — Lên máy chủ: domain, HTTPS, Redis, waitress/Caddy
+- [docs/database-setup.md](docs/database-setup.md) — SQL Server, phân quyền 2 chiều, seed
+- [docs/https-cert.md](docs/https-cert.md) — Chứng chỉ dev vs public
+- [docs/product-images.md](docs/product-images.md) — Ảnh sản phẩm thật
+- [docs/troubleshooting.md](docs/troubleshooting.md) — Lỗi thường gặp và cách xử lý
+- [docs/ci_and_quality.md](docs/ci_and_quality.md) — CI pipeline và quality gate
+- [docs/web_auth.md](docs/web_auth.md) — Đăng nhập, phân quyền người dùng
+- [docs/runbooks/backup-restore.md](docs/runbooks/backup-restore.md) — Backup/restore định kỳ
 
 ---
 
