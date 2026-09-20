@@ -15,7 +15,7 @@
 ![Coverage](https://img.shields.io/badge/coverage-measured_in_CI-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-Website bán thời trang xây dựng bằng Django, giao diện editorial, quản trị đơn giản.
+**HUUGIAU Atelier** là website bán thời trang: nhận đơn → kiểm tra kho → tính giá khuyến mãi → thu tiền và trả trạng thái theo dõi đơn. Ứng dụng không tự nhận đã nhận tiền khi chưa có bằng chứng, không tạo đơn trùng khi khách bấm 2 lần.
 
 ---
 
@@ -23,14 +23,14 @@ Website bán thời trang xây dựng bằng Django, giao diện editorial, qu�
 
 | Thành phần | Trạng thái |
 |---|---|
-| **Backend (Django 5.2)** | Có các luồng cửa hàng và bộ test; xem kết quả CI mới nhất trước khi phát hành |
-| **Database (SQL Server)** | Có backend SQL Server; cần kiểm tra kết nối, migration và full test trên đúng SQL Server triển khai |
-| **Frontend (HTML5/CSS3/JS)** | Giao diện responsive; cần kiểm tra lại trên thiết bị và trình duyệt mục tiêu |
-| **Thanh toán** | COD và VietQR VietinBank đã chạy live (QR đúng STK shop); VNPay cần merchant/callback thật. VietQR là chuyển khoản cần nhân viên đối soát, không có IPN ngân hàng |
-| **Email** | Gmail SMTP đã gửi thật được (xác nhận đơn, báo tồn kho); kiểm tra nhận email trước khi mở bán |
-| **Admin Dashboard** | Có dashboard, CRUD, bulk actions, export CSV, nhập kho CSV, thống kê giảm giá |
-| **Vận hành local** | Waitress + Redis portable + Caddy (static + proxy); xem `scripts/start-windows-web.ps1` |
-| **HTTPS** | Cấu hình HTTPS production tại reverse proxy; chứng chỉ local không thay cho domain/SSL public |
+| **Backend (Django 5.2)** | ✅ Có các luồng cửa hàng và bộ test (**486 Django + 35 Playwright pass**); xem kết quả CI mới nhất trước khi phát hành |
+| **Database (SQL Server)** | ✅ Có backend SQL Server (`HUUGIAU_Fashion`, migrate tới `0022`); cần full test trên đúng SQL Server triển khai |
+| **Frontend (HTML5/CSS3/JS)** | ✅ Giao diện responsive, lazy ảnh + lazy bản đồ; cần kiểm tra lại trên thiết bị và trình duyệt mục tiêu |
+| **Thanh toán** | ✅ COD và VietQR VietinBank đã chạy live (QR đúng STK shop); ❌ VNPay cần merchant/callback thật. VietQR là chuyển khoản cần nhân viên đối soát, không có IPN ngân hàng |
+| **Email** | ✅ Gmail SMTP đã gửi thật được (xác nhận đơn, báo tồn kho); kiểm tra nhận email trước khi mở bán |
+| **Admin Dashboard** | ✅ Có dashboard, CRUD, bulk actions, export CSV, nhập kho CSV, thống kê giảm giá |
+| **Vận hành local** | ✅ Waitress + Redis portable + Caddy (static + proxy); xem `scripts/start-windows-web.ps1` |
+| **HTTPS** | ❌ Cấu hình HTTPS production tại reverse proxy; chứng chỉ local không thay cho domain/SSL public |
 | **CI (GitHub Actions)** | Workflow chạy test trên PostgreSQL và Python 3.10–3.13; không xác nhận SQL Server production. Xem trạng thái run mới nhất trên GitHub |
 
 > **Chưa xác nhận sẵn sàng mở bán:** cần hoàn tất kết nối/test SQL Server, cấu hình và thử thanh toán/email thật hoặc sandbox phù hợp, HTTPS public, backup khôi phục và giám sát. CI xanh không thay thế các bước này.
@@ -186,6 +186,30 @@ Fashion-Website/
 ├── .env                   # Cấu hình (gitignored)
 └── requirements.txt
 ```
+
+---
+
+## Bản đồ entrypoint
+
+| Entrypoint | Vai trò |
+|---|---|
+| `chay-web.bat` | Double-click chạy nhanh cho người vận hành |
+| `scripts/start-windows-web.ps1` | Chạy prod local: check deploy + waitress |
+| `scripts/verify_prod.py` | Quét blocker go-live, exit 1 khi còn chặn |
+| `scripts/backup-db.bat` | Backup SQL Server giữ 7 ngày |
+| `backend/manage.py` | Mọi lệnh Django (migrate, test, seed, shell) |
+
+### Luồng đơn hàng
+
+| Bước | Module | Mô tả |
+|---|---|---|
+| Pricing | `orders/services/checkout.py` | Ship theo vùng, coupon trần 50%, điểm + hạng |
+| Idempotency | `orders/views/cart.py` | Key→đơn trong session, bấm 2 lần trả đơn cũ |
+| Thu tiền | `orders/views/payment.py` | COD / VietQR chờ đối soát / VNPay IPN verify |
+| Mail | `orders/services/order_email.py` | Tạo/paid/hủy/giao qua Gmail SMTP |
+| Báo cáo | `orders/admin_product_dashboard.py` | Doanh thu, tồn kho, export CSV |
+
+> Thiếu `VNPAY_TMN_CODE` thì VNPay tự ẩn ở checkout, web không giả vờ thanh toán online.
 
 ---
 
