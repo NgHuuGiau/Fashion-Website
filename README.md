@@ -158,32 +158,36 @@ Server local chạy tại: **http://localhost:8000/** (HTTP). HTTPS production �
 
 ```
 Fashion-Website/
-├── backend/               # Django project
-│   ├── core/              # Settings, URLs, utilities, middleware, API theo domain
-│   ├── orders/            # Cart, checkout, payment, admin, coupon (có services/ pricing riêng)
-│   ├── products/          # Catalog, detail, search, reviews, lịch sử giá
-│   ├── users/             # Auth, profiles, activity, referral
-│   ├── certs/             # SSL certs (dev)
+├── backend/                 # Django project
+│   ├── core/                # Settings, middleware, Celery beat, health check
+│   │   ├── api/             # API theo domain: common/products/orders/admin/misc
+│   │   ├── logging/         # Correlation/request-id + JSON formatter
+│   │   └── management/      # generate_schema, runserver tùy biến
+│   ├── orders/              # Giỏ, checkout idempotent, coupon, thanh toán
+│   │   ├── services/        # cart_email/checkout/order_email (logic thuần)
+│   │   ├── views/           # cart/payment/order/admin (re-export tường minh)
+│   │   └── management/      # seed_all, send_cart_reminders, import_legacy
+│   ├── products/            # Catalog, variant, review, PriceHistory, chat
+│   │   ├── services/        # chat_service (FAQ/size)
+│   │   ├── templatetags/    # shop_format (vnd, json an toàn)
+│   │   └── management/      # seed_products/blog/reviews, optimize_images
+│   ├── users/               # Auth, profile, điểm/hạng, referral
+│   │   └── management/      # install_role_sync, sync_roles
+│   ├── certs/               # SSL certs (dev)
 │   └── manage.py
-├── frontend/              # Static + templates
-│   ├── static/            # CSS (~5.4K lines), JS ES5, fonts, images
-│   └── templates/         # HTML templates
+├── frontend/                # Giao diện
+│   ├── static/              # CSS, JS ES5, icons, images, webfonts, manifest, sw.js
+│   └── templates/           # account/admin/auth/emails/pages/shop + 404/500/base
 ├── database/
-│   ├── sql/               # 01_CREATE_TABLES.sql, 02_DEMO_DATA.sql
-│   └── seed/              # products_to_sync.json
-├── scripts/               # Utility scripts
-│   ├── start-windows-web.ps1 # Chạy prod local: check deploy + waitress (khuyên dùng khi bán)
-│   ├── verify_prod.py     # Quét blocker trước mở bán
-│   ├── start.ps1          # HTTPS server + auto-open browser (khuyên dùng)
-│   ├── start.bat          # Wrapper cho start.ps1
-│   ├── dev_server.py      # Dev server helper
-│   └── local_smoke_test.ps1
-├── chay-web.bat           # Double-click chạy (gọi scripts/start.ps1)
-├── backup-db.bat          # Backup DB tự động (giữ 7 ngày)
-├── backups/               # .bak files (gitignored, OneDrive sync)
-├── .github/workflows/     # CI: ci.yml + codeql.yml
-├── docs/                  # Tài liệu
-├── .env                   # Cấu hình (gitignored)
+│   ├── sql/                 # 01_CREATE_TABLES.sql, 02_DEMO_DATA.sql
+│   └── seed/                # products_to_sync.json (76 SP demo)
+├── config/pgbouncer/        # Cấu hình PgBouncer (docker)
+├── scripts/                 # start-windows-web/caddy, verify_prod, backup/restore, dev_server
+├── docs/                    # deploy/database/https/images/troubleshooting/ci/auth + runbooks/
+├── Caddyfile*               # Reverse proxy + static (prod + windows)
+├── docker-compose*.yml      # Prod (Caddy) / local (nginx + Postgres + Celery)
+├── backups/                 # .bak SQL Server (gitignored)
+├── .env / .env.production   # Cấu hình local/prod (gitignored)
 └── requirements.txt
 ```
 
