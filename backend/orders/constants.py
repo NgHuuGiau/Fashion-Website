@@ -5,6 +5,10 @@ from django.conf import settings
 SHOP_BANK_ACCOUNT = settings.SHOP_BANK_ACCOUNT
 SHOP_ACCOUNT_NAME = settings.SHOP_ACCOUNT_NAME
 PAYMENT_TIMEOUT_MINUTES = 15
+# Tran giam gia hang + diem duoc cong don (bao ve bien coupon), % tren subtotal
+MAX_STACKED_DISCOUNT_PCT = Decimal("50")
+# Ma tham chieu demo cho QR preview o trang checkout (khong phai don that)
+VIETQR_DEMO_NOTE = "DH-TAM"
 STANDARD_SHIPPING_FEE = Decimal("30000")
 FREESHIP_THRESHOLD = Decimal("499000")
 
@@ -127,3 +131,14 @@ def bank_transfer_is_enabled():
         and 6 <= len(account) <= 20
         and bool(settings.SHOP_ACCOUNT_NAME)
     )
+
+
+def shop_bank_context():
+    # ponytail: gom 4-5 key lặp ở cart/payment/order/admin thành 1 chỗ
+    return {
+        "shop_bank_account": settings.SHOP_BANK_ACCOUNT,
+        "shop_account_name": settings.SHOP_ACCOUNT_NAME,
+        "shop_bank": shop_bank_meta(),
+        "shop_bank_code": settings.SHOP_BANK_CODE,
+        "bank_transfer_enabled": bank_transfer_is_enabled(),
+    }

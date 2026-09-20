@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import quote
@@ -23,16 +24,12 @@ from ..cart import add_cart, clear_cart, iter_cart, remove_cart, safe_int
 from ..constants import (
     BANKS,
     FREESHIP_THRESHOLD,
-    HCMC_KEYWORDS,
-    NORTHERN_KEYWORDS,
     PAYMENT_TIMEOUT_MINUTES,
-    SHOP_ACCOUNT_NAME,
-    SHOP_BANK_ACCOUNT,
     bank_transfer_is_enabled,
+    shop_bank_context,
     shop_bank_meta,
-    SHIPPING_FEE_ZONES,
-    STANDARD_SHIPPING_FEE,
     TIER_DISCOUNTS,
+    VIETQR_DEMO_NOTE,
 )
 from core.ratelimit import rate_limit
 from ..forms import CheckoutForm
@@ -87,6 +84,38 @@ def _clear_cart_reminder(request):
         CartReminder.objects.filter(session_key=sk).delete()
 
 
+def _idempotency_store(request):
+    # ponytail: key->order_id trong session, gioi han 10 de session khong phi
+    store = request.session.get("checkout_idem", {})
+    if not isinstance(store, dict):
+        store = {}
+    return store
+
+
+def _replayed_order(request, key):
+    """Tra don da tao boi key (double-click/back-resubmit) hoac None."""
+    if not key or len(key) > 64:
+        return None
+    order_id = _idempotency_store(request).get(key)
+    if not order_id:
+        return None
+    try:
+        return Order.objects.get(id=int(order_id))
+    except (Order.DoesNotExist, TypeError, ValueError):
+        return None
+
+
+def _remember_idempotency(request, key, order_id):
+    if not key or len(key) > 64:
+        return
+    store = _idempotency_store(request)
+    store[key] = order_id
+    while len(store) > 10:
+        store.pop(next(iter(store)))
+    request.session["checkout_idem"] = store
+    request.session.modified = True
+
+
 def build_vietqr_url(amount, transfer_note):
     """Tạo QR tới ngân hàng nhận cố định đã cấu hình cho shop."""
     bank = shop_bank_meta()
@@ -102,58 +131,15 @@ def normalize_shipping_address(value):
     return normalize_vn_text(value)
 
 
-def shipping_zone(address):
-    text = normalize_shipping_address(address or "").lower()
-    if any(k in text for k in HCMC_KEYWORDS):
-        return "near"
-    if any(k in text for k in NORTHERN_KEYWORDS):
-        return "north"
-    return "standard"
-
-
-def calculate_shipping_fee(subtotal, address=""):
-    if subtotal >= FREESHIP_THRESHOLD:
-        return Decimal("0")
-    return SHIPPING_FEE_ZONES.get(shipping_zone(address), STANDARD_SHIPPING_FEE)
-
-
-def calculate_coupon_discount(coupon, subtotal, shipping_fee):
-    if not coupon:
-        return Decimal("0")
-
-    discount = Decimal("0")
-    if coupon.discount_type == Coupon.TYPE_PERCENT:
-        discount = (subtotal * coupon.value) / Decimal("100")
-    elif coupon.discount_type == Coupon.TYPE_FIXED:
-        discount = coupon.value
-    elif coupon.discount_type == Coupon.TYPE_FREESHIP:
-        discount = shipping_fee
-
-    if coupon.max_discount_amount is not None:
-        discount = min(discount, coupon.max_discount_amount)
-
-    max_allowed_discount = subtotal + shipping_fee
-    return max(Decimal("0"), min(discount, max_allowed_discount))
-
-
-def validate_coupon(coupon_code, subtotal, user=None):
-    if not coupon_code:
-        return None, ""
-
-    coupon = Coupon.objects.filter(code=coupon_code).first()
-    if not coupon:
-        return None, "Mã giảm giá không tồn tại."
-
-    if not coupon.is_usable_now():
-        return None, "Mã giảm giá đã hết hạn hoặc không còn hiệu lực."
-
-    if subtotal < coupon.min_order_amount:
-        return None, f"Đơn tối thiểu để dùng mã là {int(coupon.min_order_amount)} VND."
-
-    if not coupon.is_usable_by_user(user):
-        return None, "Bạn đã dùng hết lượt của mã giảm giá này."
-
-    return coupon, ""
+# P-refactor: pricing thuan tuy chuyen sang services.checkout, giu re-export
+# de test va module khac (api, payment) khong phai doi import.
+from ..services.checkout import (  # noqa: E402
+    apply_stacking_policy,
+    calculate_coupon_discount,
+    calculate_shipping_fee,
+    shipping_zone,
+    validate_coupon,
+)
 
 
 def restore_order_stock(order):
@@ -534,6 +520,16 @@ def checkout(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = CheckoutForm(request.POST)
         if form.is_valid():
+            # P1.4: double-click/back-resubmit tra ve don cu thay vi tao don moi
+            idem_key = (request.POST.get("idempotency_key") or "").strip()[:64]
+            replayed = _replayed_order(request, idem_key)
+            if replayed is not None:
+                messages.info(request, "Đơn hàng đã được tạo, không tạo trùng.")
+                if replayed.payment_method == "bank":
+                    return redirect("orders:bank_payment_waiting", order_id=replayed.id)
+                if replayed.payment_method == "vnpay":
+                    return redirect("orders:vnpay_payment", order_id=replayed.id)
+                return redirect("orders:order_success", order_id=replayed.id)
             payment_method = form.cleaned_data["payment_method"]
             bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
             coupon_code = form.cleaned_data.get("coupon_code", "")
@@ -575,6 +571,22 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     )
                     total_amount = max(Decimal("0"), total_amount - points_discount)
 
+                # P3.1/service: policy cong don tap trung o services.checkout
+                (
+                    tier_discount_amount,
+                    points_to_use,
+                    points_discount,
+                    total_amount,
+                ) = apply_stacking_policy(
+                    coupon=selected_coupon,
+                    subtotal=subtotal,
+                    shipping_fee=shipping_fee,
+                    discount_amount=discount_amount,
+                    tier_discount_amount=tier_discount_amount,
+                    points_to_use=points_to_use,
+                    points_discount=points_discount,
+                )
+
                 if payment_method == "vnpay":
                     from ..vnpay import is_configured
 
@@ -593,13 +605,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                 "discount_amount": Decimal("0"),
                                 "total": subtotal + shipping_fee,
                                 "form": form,
-                                "shop_bank_account": SHOP_BANK_ACCOUNT,
-                                "shop_account_name": SHOP_ACCOUNT_NAME,
-                                "shop_bank": shop_bank_meta(),
-                                "shop_bank_code": settings.SHOP_BANK_CODE,
+                                **shop_bank_context(),
                                 "demo_qr_url": build_vietqr_url(
                                     subtotal + shipping_fee,
-                                    "DH-TAM",
+                                    VIETQR_DEMO_NOTE,
                                 ),
                                 "banks": BANKS,
                                 "saved_addresses": saved_addresses,
@@ -607,6 +616,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                 "tier_discount_pct": tier_discount_pct_value,
                                 "tier_discount_amount": tier_discount_amount,
                                 "shipping_zone": shipping_fee,
+                                "idempotency_key": idem_key,
                             },
                         )
 
@@ -634,13 +644,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "discount_amount": Decimal("0"),
                                     "total": subtotal + shipping_fee,
                                     "form": form,
-                                    "shop_bank_account": SHOP_BANK_ACCOUNT,
-                                    "shop_account_name": SHOP_ACCOUNT_NAME,
-                                    "shop_bank": shop_bank_meta(),
-                                    "shop_bank_code": settings.SHOP_BANK_CODE,
+                                    **shop_bank_context(),
                                     "demo_qr_url": build_vietqr_url(
                                         subtotal + shipping_fee,
-                                        "DH-TAM",
+                                        VIETQR_DEMO_NOTE,
                                     ),
                                     "banks": BANKS,
                                     "saved_addresses": saved_addresses,
@@ -648,6 +655,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                     "tier_discount_pct": tier_discount_pct_value,
                                     "tier_discount_amount": tier_discount_amount,
                                     "shipping_zone": shipping_fee,
+                                    "idempotency_key": idem_key,
                                 },
                             )
                         # Tăng atomic ở DB (tránh 2 checkout đồng thời ghi đè used_count).
@@ -806,6 +814,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     status_code=201,
                 )
                 messages.success(request, "Đặt hàng thành công.")
+                _remember_idempotency(request, idem_key, order.id)
                 if payment_method == "bank":
                     return redirect("orders:bank_payment_waiting", order_id=order.id)
                 if payment_method == "vnpay":
@@ -844,16 +853,15 @@ def checkout(request: HttpRequest) -> HttpResponse:
             else shipping_zone(default_address.address if default_address else ""),
             "total": total,
             "form": form,
-            "shop_bank_account": SHOP_BANK_ACCOUNT,
-            "shop_account_name": SHOP_ACCOUNT_NAME,
-            "shop_bank": shop_bank_meta(),
-            "shop_bank_code": settings.SHOP_BANK_CODE,
-            "demo_qr_url": build_vietqr_url(total, "DH-TAM"),
+            **shop_bank_context(),
+            "demo_qr_url": build_vietqr_url(total, VIETQR_DEMO_NOTE),
             "freeship_threshold": FREESHIP_THRESHOLD,
             "banks": BANKS,
             "user_points": user_points,
             "saved_addresses": saved_addresses,
             "is_guest": is_guest,
+            "idempotency_key": (request.POST.get("idempotency_key") or "").strip()[:64]
+            or uuid.uuid4().hex,
         },
     )
 

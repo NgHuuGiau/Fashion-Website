@@ -20,9 +20,8 @@ from .cart import (
 from .order import decorate_order_tracking
 from ..constants import (
     PAYMENT_TIMEOUT_MINUTES,
-    SHOP_ACCOUNT_NAME,
-    SHOP_BANK_ACCOUNT,
     bank_transfer_is_enabled,
+    shop_bank_context,
     shop_bank_meta,
 )
 from ..models import Order
@@ -87,9 +86,8 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
         {
             "order": order,
             "tracking_order": order,
-            "shop_bank_account": SHOP_BANK_ACCOUNT,
-            "shop_account_name": SHOP_ACCOUNT_NAME,
             "selected_bank_name": selected_bank_name,
+            **shop_bank_context(),
             "qr_url": qr_url,
         },
     )
@@ -125,15 +123,13 @@ def bank_payment_waiting(request: HttpRequest, order_id) -> HttpResponse:
         {
             "order": order,
             "selected_bank_name": selected_bank.get("name", ""),
-            "shop_bank_account": SHOP_BANK_ACCOUNT,
-            "shop_account_name": SHOP_ACCOUNT_NAME,
+            **shop_bank_context(),
             "qr_url": qr_url,
             "mobile_url": mobile_url,
             "confirm_url": confirm_url,
             "token": token,
             "expires_at_iso": expires_at.isoformat(),
             "payment_timeout_minutes": PAYMENT_TIMEOUT_MINUTES,
-            "bank_transfer_enabled": bank_transfer_is_enabled(),
         },
     )
 
@@ -312,7 +308,21 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
 @transaction.atomic
 def vnpay_ipn(request: HttpRequest) -> HttpResponse:
     """Server-to-server IPN của VNPay gọi lại. Trả về RspCode để VNPay xác nhận."""
+    from django.conf import settings as dj_settings
+
+    from core.ratelimit import get_client_ip
+
     from ..vnpay import amount_matches, verify_return
+
+    # P2.3: gioi han IP goi IPN khi da cau hinh (trong = chi check chu ky)
+    allowed_ips = {
+        ip.strip()
+        for ip in (dj_settings.VNPAY_ALLOWED_IPS or "").split(",")
+        if ip.strip()
+    }
+    if allowed_ips and get_client_ip(request) not in allowed_ips:
+        logger.warning("VNPay IPN tu IP la: %s", get_client_ip(request))
+        return JsonResponse({"RspCode": "97", "Message": "Invalid IP"})
 
     params = request.GET.dict()
     order_id = params.get("vnp_TxnRef", "")
@@ -499,12 +509,10 @@ def bank_payment_mobile(request: HttpRequest, token, order_id) -> HttpResponse:
     ctx.update(
         {
             "selected_bank_name": selected_bank.get("name", ""),
-            "shop_bank_account": SHOP_BANK_ACCOUNT,
-            "shop_account_name": SHOP_ACCOUNT_NAME,
+            **shop_bank_context(),
             "qr_url": build_vietqr_url(order.total_amount, f"DH{order.id}"),
             "expired": False,
             "paid": False,
-            "bank_transfer_enabled": bank_transfer_is_enabled(),
         }
     )
     return render(request, "shop/bank_payment_mobile.html", ctx)

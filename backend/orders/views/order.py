@@ -13,9 +13,7 @@ from core.ratelimit import rate_limit
 
 from ..admin_forms import OrderEditForm, OrderLookupForm
 from ..constants import (
-    SHOP_ACCOUNT_NAME,
-    SHOP_BANK_ACCOUNT,
-    bank_transfer_is_enabled,
+    shop_bank_context,
     shop_bank_meta,
 )
 from ..forms import ReturnRequestForm
@@ -202,9 +200,7 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
             "tracking_order": order,
             "selected_bank_name": selected_bank_name,
             "qr_url": qr_url,
-            "shop_bank_account": SHOP_BANK_ACCOUNT,
-            "shop_account_name": SHOP_ACCOUNT_NAME,
-            "bank_transfer_enabled": bank_transfer_is_enabled(),
+            **shop_bank_context(),
         },
     )
 

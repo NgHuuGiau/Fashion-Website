@@ -111,6 +111,7 @@ class CouponForm(forms.ModelForm):
             "ends_at",
             "usage_limit",
             "max_uses_per_user",
+            "stackable",
         ]
 
     def clean(self):

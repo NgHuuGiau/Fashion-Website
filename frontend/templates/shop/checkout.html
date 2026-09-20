@@ -25,6 +25,7 @@
         <div class="checkout-main panel">
             <form method="post" class="checkout-form">
                 {% csrf_token %}
+                <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
                 {% if form.non_field_errors %}
                 <div class="message error">{{ form.non_field_errors|striptags }}</div>
                 {% endif %}
