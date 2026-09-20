@@ -27,7 +27,7 @@
             <article class="cart-item panel">
                 <a href="{% url 'products:product_detail' item.product.id item.product.slug %}" class="cart-media">
                     {% if item.product.get_image %}
-                    <img src="{{ item.product.get_image }}" alt="{{ item.product.name|repair_text }}">
+                    <img src="{{ item.product.get_image }}" alt="{{ item.product.name|repair_text }}" loading="lazy">
                     {% else %}
                     <div class="product-fallback">{{ item.product.category.slug|product_type_label }}</div>
                     {% endif %}

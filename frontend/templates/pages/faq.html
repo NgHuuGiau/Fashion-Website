@@ -8,7 +8,7 @@
             <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>Hỏi đáp</span>
         </nav>
         <h1 class="page-title">Câu hỏi thường gặp</h1>
-        <p class="page-lead">Chưa tìm thấy câu trả lời? Liên hệ hotline <a href="tel:{{ HOTLINE }}">{{ HOTLINE }}</a> hoặc gửi câu hỏi ngay trên trang sản phẩm để được tư vấn nhanh nhất.</p>
+        <p class="page-lead">Chưa tìm thấy câu trả lời?{% if HOTLINE %} Liên hệ hotline <a href="tel:{{ HOTLINE }}">{{ HOTLINE }}</a>{% endif %}{% if SUPPORT_EMAIL %}{% if HOTLINE %} hoặc{% endif %} gửi mail <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a>{% endif %} hoặc gửi câu hỏi ngay trên trang sản phẩm để được tư vấn nhanh nhất.</p>
 
         <div class="faq-list">
             {% for faq in faqs %}
@@ -17,7 +17,7 @@
                 <p>{{ faq.answer }}</p>
             </details>
             {% empty %}
-            <p class="muted">Chưa có câu hỏi nào. Hãy liên hệ với shop qua hotline {{ HOTLINE }}.</p>
+            <p class="muted">Chưa có câu hỏi nào. Hãy gửi câu hỏi ngay trên trang sản phẩm để được tư vấn.</p>
             {% endfor %}
         </div>
     </div>

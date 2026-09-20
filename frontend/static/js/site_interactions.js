@@ -624,6 +624,7 @@
     el("coupon-min-input").value = btn.dataset.couponMin;
     el("coupon-max-input").value = btn.dataset.couponMax || "";
     el("coupon-active-input").checked = btn.dataset.couponActive === "True";
+    el("coupon-stackable-input").checked = btn.dataset.couponStackable !== "False";
     el("coupon-form-title").textContent = "Chỉnh sửa mã";
     el("coupon-cancel-btn").style.display = "";
     const target = document.getElementById("admin-coupons");
@@ -639,6 +640,7 @@
     el("coupon-min-input").value = "0";
     el("coupon-max-input").value = "";
     el("coupon-active-input").checked = true;
+    el("coupon-stackable-input").checked = true;
     el("coupon-form-title").textContent = "Thêm mã mới";
     el("coupon-cancel-btn").style.display = "none";
   });

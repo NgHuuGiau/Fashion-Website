@@ -22,7 +22,7 @@
                     <th>Tiêu chí</th>
                     {% for p in products %}
                     <th>
-                        <img src="{{ p.get_image }}" alt="{{ p.name|repair_text }}">
+                        <img src="{{ p.get_image }}" alt="{{ p.name|repair_text }}" loading="lazy">
                         <div><a href="{% url 'products:product_detail' p.id p.slug %}">{{ p.name|repair_text }}</a></div>
                         <form method="post" action="{% url 'products:compare_toggle' p.id %}">
                             {% csrf_token %}

@@ -727,6 +727,12 @@
             <input type="search" name="inventory_q" placeholder="Tìm tên sản phẩm, danh mục..." value="{{ inventory_q }}" class="admin-input" style="width:220px;max-width:100%">
             <button type="submit" class="btn small ghost">Lọc</button>
           </form>
+          <form method="post" enctype="multipart/form-data" class="order-filter-form" title="CSV: product_id,color_name,size,stock">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import_stock">
+            <input type="file" name="stock_file" accept=".csv" required class="admin-input">
+            <button type="submit" class="btn small">Nhập tồn kho</button>
+          </form>
         </div>
         <div class="table-wrap">
           <table class="cart-table admin-inventory-table">
@@ -789,6 +795,17 @@
             </tbody>
           </table>
         </div>
+        {% if inventory_page_obj.paginator.num_pages > 1 %}
+        <div class="admin-pagination">
+          {% if inventory_page_obj.has_previous %}
+            <a class="page-link" href="?inventory_page={{ inventory_page_obj.previous_page_number }}&inventory_status={{ request.GET.inventory_status|urlencode }}&inventory_q={{ request.GET.inventory_q|urlencode }}#admin-inventory">← Trước</a>
+          {% endif %}
+          <span class="admin-pagination-summary">Trang {{ inventory_page_obj.number }}/{{ inventory_page_obj.paginator.num_pages }} · {{ inventory_page_obj.paginator.count }} sản phẩm</span>
+          {% if inventory_page_obj.has_next %}
+            <a class="page-link" href="?inventory_page={{ inventory_page_obj.next_page_number }}&inventory_status={{ request.GET.inventory_status|urlencode }}&inventory_q={{ request.GET.inventory_q|urlencode }}#admin-inventory">Sau →</a>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </section>
 
@@ -978,7 +995,7 @@
         <div class="section-head">
           <div>
             <h2>Mã giảm giá</h2>
-            <p>Tạo, sửa, xoá mã giảm giá. Mã sẽ tự động được kiểm tra khi khách áp dụng tại checkout.</p>
+            <p>Tạo, sửa, xoá mã giảm giá. Mã sẽ tự động được kiểm tra khi khách áp dụng tại checkout.{% if discount_stats %} Đã giảm tổng {{ discount_stats.total_discount|default:0|vnd }}đ trên {{ discount_stats.coupon_orders|default:0 }} đơn dùng mã.{% endif %}</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -999,6 +1016,8 @@
                 <th class="adm-num">Giá trị</th>
                 <th class="adm-num">Đơn tối thiểu</th>
                 <th class="adm-num">Giảm tối đa</th>
+                <th class="adm-num">Đã dùng</th>
+                <th class="adm-center">Cộng dồn</th>
                 <th class="adm-center">Kích hoạt</th>
                 <th>Thao tác</th>
               </tr>
@@ -1011,10 +1030,12 @@
                 <td class="adm-num">{% if coupon.discount_type == "percent" %}{{ coupon.value|vnd }}%{% elif coupon.discount_type == "fixed" %}{{ coupon.value|vnd }}đ{% else %}Miễn phí ship{% endif %}</td>
                 <td class="adm-num">{{ coupon.min_order_amount|vnd }}đ</td>
                 <td class="adm-num">{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
+                <td class="adm-num">{{ coupon.used_count }}</td>
+                <td class="adm-center">{% if coupon.stackable %}<span class="admin-badge admin-badge-ok">Có</span>{% else %}<span class="admin-badge admin-badge-warn">Độc quyền</span>{% endif %}</td>
                 <td class="adm-center">{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
                 <td>
                   <div class="admin-row-actions">
-                    <button type="button" class="btn ghost small" data-edit-coupon="{{ coupon.id }}" data-coupon-code="{{ coupon.code }}" data-coupon-type="{{ coupon.discount_type }}" data-coupon-value="{{ coupon.value }}" data-coupon-min="{{ coupon.min_order_amount }}" data-coupon-max="{{ coupon.max_discount_amount|default:'' }}" data-coupon-active="{{ coupon.is_active }}">Sửa</button>
+                    <button type="button" class="btn ghost small" data-edit-coupon="{{ coupon.id }}" data-coupon-code="{{ coupon.code }}" data-coupon-type="{{ coupon.discount_type }}" data-coupon-value="{{ coupon.value }}" data-coupon-min="{{ coupon.min_order_amount }}" data-coupon-max="{{ coupon.max_discount_amount|default:'' }}" data-coupon-active="{{ coupon.is_active }}" data-coupon-stackable="{{ coupon.stackable }}">Sửa</button>
                     <form method="post" class="admin-inline-form" onsubmit="return confirm('Xoá mã {{ coupon.code }}?')">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="delete_coupon">
@@ -1071,6 +1092,10 @@
           <label class="admin-field field-gap">
             <input type="checkbox" name="is_active" id="coupon-active-input" checked>
             <span>Kích hoạt ngay</span>
+          </label>
+          <label class="admin-field field-gap" title="Tắt = mã độc quyền, không cộng với giảm giá hạng và điểm">
+            <input type="checkbox" name="stackable" id="coupon-stackable-input" checked>
+            <span>Cộng dồn hạng/điểm</span>
           </label>
           <div class="coupon-full-width">
             <button type="submit" class="btn">Lưu mã</button>

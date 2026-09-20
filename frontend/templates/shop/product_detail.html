@@ -34,7 +34,7 @@
         <div class="gallery-rail">
             {% for item in detail_gallery_slots %}
             <button type="button" class="thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}" data-detail-image="{{ item.url }}" data-detail-alt="{{ item.alt }}" aria-label="Xem ảnh {{ forloop.counter }}">
-                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}">
+                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}" loading="lazy">
             </button>
             {% endfor %}
         </div>
@@ -397,7 +397,7 @@
         <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
             <div class="card-media card-media-editorial">
                 {% if item.get_image %}
-                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}">
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}" loading="lazy">
                 {% else %}
                 <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
                 {% endif %}
@@ -429,7 +429,7 @@
         <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
             <div class="card-media card-media-editorial">
                 {% if item.get_image %}
-                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}">
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}" loading="lazy">
                 {% else %}
                 <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
                 {% endif %}

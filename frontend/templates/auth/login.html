@@ -37,23 +37,31 @@
             </button>
         </form>
 
+        {% if SOCIAL_LOGIN_AVAILABLE.google or SOCIAL_LOGIN_AVAILABLE.facebook or SOCIAL_LOGIN_AVAILABLE.apple %}
         <div class="social-auth">
             <p class="social-auth-label">Hoặc tiếp tục bằng</p>
             <div class="social-auth-list">
+                {% if SOCIAL_LOGIN_AVAILABLE.google %}
                 <a class="social-auth-btn" href="{% url 'users:social_login' 'google' %}?next={{ request.GET.next|urlencode }}">
                     <i class="fa-brands fa-google" aria-hidden="true"></i>
                     <span>Google</span>
                 </a>
+                {% endif %}
+                {% if SOCIAL_LOGIN_AVAILABLE.facebook %}
                 <a class="social-auth-btn" href="{% url 'users:social_login' 'facebook' %}?next={{ request.GET.next|urlencode }}">
                     <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
                     <span>Facebook</span>
                 </a>
+                {% endif %}
+                {% if SOCIAL_LOGIN_AVAILABLE.apple %}
                 <a class="social-auth-btn" href="{% url 'users:social_login' 'apple' %}?next={{ request.GET.next|urlencode }}">
                     <i class="fa-brands fa-apple" aria-hidden="true"></i>
                     <span>Apple</span>
                 </a>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
 
         <p class="auth-footnote">Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
     </div>
