@@ -2,18 +2,19 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $backendPath = Join-Path $repoRoot "backend"
-$python = Join-Path $backendPath ".venv\Scripts\python.exe"
-$waitress = Join-Path $backendPath ".venv\Scripts\waitress-serve.exe"
+$venvPath = Join-Path $repoRoot ".venv"
+$python = Join-Path $venvPath "Scripts\python.exe"
+$waitress = Join-Path $venvPath "Scripts\waitress-serve.exe"
 $productionEnv = Join-Path $repoRoot ".env.production"
 
 if (-not (Test-Path -LiteralPath $productionEnv -PathType Leaf)) {
     throw "Missing $productionEnv. Create it from .env.production.example and fill verified values."
 }
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    throw "Missing backend virtualenv. Create backend\.venv and install backend requirements first."
+    throw "Missing virtualenv. Create .venv at the repository root and install backend requirements first."
 }
 if (-not (Test-Path -LiteralPath $waitress -PathType Leaf)) {
-    throw "Waitress is not installed in backend\.venv. Run: backend\.venv\Scripts\python.exe -m pip install waitress"
+    throw "Waitress is not installed in .venv. Run: .venv\Scripts\python.exe -m pip install waitress"
 }
 
 $env:APP_ENV_FILE = ".env.production"
