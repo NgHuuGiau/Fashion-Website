@@ -791,6 +791,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         OrderItem.objects.create(
                             order=order,
                             product=product,
+                            product_name=product.name,
                             variant=variant,
                             selected_color=variant.color_name if variant else "",
                             selected_size=variant.size if variant else "",

@@ -173,6 +173,38 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(response.context["shipping_fee"], Decimal("30000"))
         self.assertEqual(response.context["total"], Decimal("230000"))
 
+    def test_order_item_snapshots_product_name(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer Test",
+                "customer_email": "buyer@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.latest("id")
+        item = order.items.get()
+        self.assertEqual(item.product_name, "Non test")
+        self.product_accessory.name = "Non DOI TEN"
+        self.product_accessory.save(update_fields=["name"])
+        response = self.client.get(
+            reverse("orders:order_review", kwargs={"order_id": order.id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Non test")
+        self.assertNotContains(response, "Non DOI TEN")
+
     def test_checkout_allows_guest(self):
         self.client.post(
             reverse(
