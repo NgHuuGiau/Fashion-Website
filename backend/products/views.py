@@ -700,7 +700,13 @@ def _build_product_schema(
     return schema
 
 
-@rate_limit("chat", max_requests=30, window=60, error_msg="Quá nhiều yêu cầu chat.")
+@rate_limit(
+    "chat",
+    max_requests=30,
+    window=60,
+    error_msg="Quá nhiều yêu cầu chat.",
+    methods=("GET",),
+)
 def support_chat_reply(request: HttpRequest) -> JsonResponse:
     question = request.GET.get("q", "").strip()
     if not question:

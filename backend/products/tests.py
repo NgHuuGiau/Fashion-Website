@@ -348,6 +348,20 @@ class SupportChatApiTest(TestCase):
         response = self.client.get(reverse("products:support_chat_reply"), {"q": ""})
         self.assertEqual(response.status_code, 400)
 
+    def test_support_chat_get_is_rate_limited(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        try:
+            url = reverse("products:support_chat_reply")
+            codes = [
+                self.client.get(url, {"q": f"spam {i}"}).status_code
+                for i in range(35)
+            ]
+            self.assertIn(429, codes)
+        finally:
+            cache.clear()
+
     def test_support_chat_reply_can_recommend_size(self):
         response = self.client.get(
             reverse("products:support_chat_reply"),
