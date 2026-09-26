@@ -85,11 +85,7 @@
                     {% csrf_token %}
                     <button type="submit" class="btn ghost">Xóa toàn bộ giỏ</button>
                 </form>
-                {% if request.user.is_authenticated %}
                 <a href="{% url 'orders:checkout' %}" class="btn">Đi tới thanh toán</a>
-                {% else %}
-                <a href="{% url 'users:login' %}?next={% url 'orders:checkout' %}" class="btn">Đăng nhập để thanh toán</a>
-                {% endif %}
             </div>
         </aside>
     </div>
