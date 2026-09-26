@@ -5957,8 +5957,8 @@ textarea:focus-visible {
     flex-direction: column;
     gap: 0.4rem;
     justify-content: flex-end;
-    min-height: 210px;
-    padding: 1.75rem;
+    min-height: 168px;
+    padding: 1.25rem 1.4rem;
     overflow: hidden;
     color: #fff;
     text-decoration: none;
@@ -5988,14 +5988,19 @@ textarea:focus-visible {
 
 .collection-index {
     position: absolute;
-    top: 1.2rem;
-    right: 1.25rem;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+    padding: 0.2rem 0.6rem;
     font-family: var(--font-display);
     font-size: 0.72rem;
     font-weight: 700;
     color: #fff;
     letter-spacing: 0.14em;
-    opacity: 0.65;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgb(255 255 255 / 25%);
+    border-radius: 999px;
 }
 
 .collection-heading {
@@ -6004,11 +6009,6 @@ textarea:focus-visible {
     display: flex;
     gap: 0.75rem;
     align-items: baseline;
-}
-
-.collection-heading .collection-index {
-    position: static;
-    flex: 0 0 auto;
 }
 
 .collection-card h3 {
@@ -6404,43 +6404,7 @@ textarea:focus-visible {
 .saved-addr-chip.is-default { background: var(--accent-soft); border-color: var(--accent); }
 .saved-addr-chip.selected { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 
-.checkout-saved-list { display: grid; gap: 0.4rem; }
-
-.saved-addr-option {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0.6rem;
-    align-items: center;
-    max-width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.82rem;
-    color: var(--text);
-    cursor: pointer;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-.saved-addr-option:hover { border-color: var(--accent); }
-.saved-addr-option:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-.saved-addr-option input { width: 1rem; height: 1rem; margin: 0; accent-color: var(--accent); }
-.saved-addr-body { display: flex; flex-wrap: wrap; gap: 0.15rem 0.5rem; align-items: baseline; }
-.saved-addr-body strong { font-size: 0.82rem; }
-.saved-addr-body span { flex-basis: 100%; font-size: 0.75rem; font-weight: 400; color: var(--text-soft); }
-.saved-addr-default { font-size: 0.68rem; font-style: normal; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
-.saved-addr-option.is-new { border-style: dashed; }
-.saved-addr-option.is-new strong { color: var(--accent); }
-
-.saved-addr-del {
-    padding: 0.1rem 0.3rem;
-    font-size: 0.75rem;
-    color: var(--danger, #b3261e);
-    cursor: pointer;
-    background: none;
-    border: none;
-}
-.saved-addr-del:hover { text-decoration: underline; }
-.saved-addr-del:disabled { cursor: default; opacity: 0.5; }
+.checkout-saved-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
 .back-in-stock { padding: 1.25rem; margin-top: 1rem; }
 .back-in-stock h3 { margin: 0 0 0.3rem; font-size: 0.95rem; }
@@ -6902,7 +6866,7 @@ body {
 }
 
 .collection-card {
-    min-height: 270px;
+    min-height: 168px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     transition: transform 220ms var(--ease-out), box-shadow 220ms ease;
@@ -7082,8 +7046,8 @@ body {
 }
 
 .home-page .collection-card {
-    min-height: 230px;
-    padding: 1.5rem;
+    min-height: 168px;
+    padding: 1.25rem 1.4rem;
     border-radius: var(--radius-md);
 }
 
