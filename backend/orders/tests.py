@@ -138,14 +138,14 @@ class CartCheckoutAndAdminTest(TestCase):
     def test_cart_update_non_numeric_quantity_fallback(self):
         add_url = reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id})
         self.client.post(
-            add_url, {"quantity": 1, "variant_id": self.variant_black_l.id}
+            add_url, {"quantity": 2, "variant_id": self.variant_black_l.id}
         )
         key = f"{self.product_ao.id}:{self.variant_black_l.id}"
 
         update_url = reverse("orders:cart_update")
         self.client.post(update_url, {"item_key": key, "quantity": "abc"})
         cart = self.client.session.get("cart", {})
-        self.assertEqual(cart[key]["quantity"], 1)
+        self.assertEqual(cart[key]["quantity"], 2)
 
     def test_cart_clear_all_empties_session_cart(self):
         self.client.post(
@@ -187,6 +187,36 @@ class CartCheckoutAndAdminTest(TestCase):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("orders:checkout"))
         self.assertEqual(response.status_code, 302)
+
+    def test_cart_add_rejects_bad_quantity(self):
+        add_url = reverse(
+            "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+        )
+        for bad in ("-5", "0", "abc", ""):
+            response = self.client.post(add_url, {"quantity": bad})
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session.get("cart", {}), {})
+
+    def test_cart_update_zero_removes_item(self):
+        add_url = reverse(
+            "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+        )
+        self.client.post(add_url, {"quantity": 2})
+        key = f"{self.product_accessory.id}:0"
+        self.assertIn(key, self.client.session.get("cart", {}))
+        response = self.client.post(
+            reverse("orders:cart_update"), {"item_key": key, "quantity": 0}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn(key, self.client.session.get("cart", {}))
+
+    def test_cart_add_caps_at_stock(self):
+        add_url = reverse(
+            "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+        )
+        self.client.post(add_url, {"quantity": 999999})
+        cart = self.client.session.get("cart", {})
+        self.assertLessEqual(cart[f"{self.product_accessory.id}:0"]["quantity"], 8)
 
     def test_checkout_creates_order_and_updates_stock(self):
         self.client.login(username="buyer", password="StrongPass123!")

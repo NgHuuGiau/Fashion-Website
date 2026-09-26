@@ -20,7 +20,7 @@ from products.models import Product, ProductVariant
 from users.activity import log_activity
 from users.models import UserAddress, UserProfile
 
-from ..cart import add_cart, clear_cart, iter_cart, remove_cart, safe_int
+from ..cart import add_cart, clear_cart, iter_cart, remove_cart
 from ..constants import (
     BANKS,
     FREESHIP_THRESHOLD,
@@ -342,7 +342,16 @@ def cart_add(request: HttpRequest, product_id) -> HttpResponse:
             request.POST.get("next") or "products:product_list",
         )
 
-    quantity = safe_int(request.POST.get("quantity", 1), default=1, minimum=1)
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+    except (TypeError, ValueError):
+        quantity = 0
+    if quantity < 1:
+        return finish(
+            "Số lượng không hợp lệ.",
+            True,
+            request.POST.get("next") or product.get_absolute_url(),
+        )
     success, msg = add_cart(
         request,
         product.id,
@@ -410,7 +419,15 @@ def cart_update(request: HttpRequest) -> HttpResponse:
         return redirect("orders:cart_detail")
 
     variant_id = int(parts[1]) if parts[1].isdigit() else None
-    quantity = safe_int(request.POST.get("quantity", 1), default=1, minimum=1)
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+    except (TypeError, ValueError):
+        messages.error(request, "Số lượng không hợp lệ.")
+        return redirect("orders:cart_detail")
+    if quantity < 1:
+        remove_cart(request, item_key)
+        messages.success(request, "Đã xóa sản phẩm khỏi giỏ hàng.")
+        return redirect("orders:cart_detail")
     success, msg = add_cart(
         request,
         product_id,
