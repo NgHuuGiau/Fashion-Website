@@ -72,6 +72,9 @@ class UserAddress(models.Model):
     is_default = models.BooleanField(
         default=False, verbose_name="Mặc định", db_index=True
     )
+    is_phone_verified = models.BooleanField(
+        default=False, verbose_name="SĐT đã xác minh"
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

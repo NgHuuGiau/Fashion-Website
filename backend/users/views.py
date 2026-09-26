@@ -259,11 +259,26 @@ def address_add(request: HttpRequest) -> HttpResponse:
     address = (request.POST.get("address") or "").strip()
     label = (request.POST.get("label") or "").strip()[:40]
     is_default = request.POST.get("is_default") == "on"
+    address_id = (request.POST.get("address_id") or "").strip()
 
     if not recipient_name or not phone or not address:
         messages.error(
             request, "Vui lòng điền đầy đủ tên người nhận, số điện thoại và địa chỉ."
         )
+        return redirect("users:profile")
+
+    if address_id:
+        # Sua tai cho dia chi da luu; doi SDT thi phai xac minh lai.
+        addr = get_object_or_404(UserAddress, id=address_id, user=request.user)
+        if addr.phone != phone:
+            addr.is_phone_verified = False
+        addr.recipient_name = recipient_name
+        addr.phone = phone
+        addr.address = address
+        addr.label = label
+        addr.is_default = is_default or addr.is_default
+        addr.save()
+        messages.success(request, "Đã cập nhật địa chỉ giao hàng.")
         return redirect("users:profile")
 
     if not UserAddress.objects.filter(user=request.user).exists():

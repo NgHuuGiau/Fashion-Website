@@ -858,3 +858,88 @@ class PermissionsTest(TestCase):
         self.assertFalse(is_staff_member(self.customer))
         self.assertFalse(can_manage_orders(self.customer))
         self.assertFalse(can_manage_inventory(self.customer))
+
+
+class AddressEditTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.user = User.objects.create_user(
+            username="addruser", password="StrongPass123!"
+        )
+        self.client.login(username="addruser", password="StrongPass123!")
+
+    def test_edit_updates_in_place(self):
+        from .models import UserAddress
+
+        addr = UserAddress.objects.create(
+            user=self.user,
+            recipient_name="A",
+            phone="0909000000",
+            address="Old street",
+            is_default=True,
+            is_phone_verified=True,
+        )
+        response = self.client.post(
+            reverse("users:address_add"),
+            {
+                "address_id": addr.id,
+                "recipient_name": "A",
+                "phone": "0909000000",
+                "address": "New street",
+                "label": "Nha",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(UserAddress.objects.filter(user=self.user).count(), 1)
+        addr.refresh_from_db()
+        self.assertEqual(addr.address, "New street")
+        self.assertEqual(addr.label, "Nha")
+        self.assertTrue(addr.is_default)
+        self.assertTrue(addr.is_phone_verified)
+
+    def test_edit_phone_resets_verification(self):
+        from .models import UserAddress
+
+        addr = UserAddress.objects.create(
+            user=self.user,
+            recipient_name="A",
+            phone="0909000000",
+            address="Old street",
+            is_phone_verified=True,
+        )
+        self.client.post(
+            reverse("users:address_add"),
+            {
+                "address_id": addr.id,
+                "recipient_name": "A",
+                "phone": "0911111111",
+                "address": "Old street",
+            },
+        )
+        addr.refresh_from_db()
+        self.assertEqual(addr.phone, "0911111111")
+        self.assertFalse(addr.is_phone_verified)
+
+    def test_edit_other_users_address_404(self):
+        from django.contrib.auth.models import User
+
+        from .models import UserAddress
+
+        other = User.objects.create_user(username="other", password="StrongPass123!")
+        addr = UserAddress.objects.create(
+            user=other,
+            recipient_name="B",
+            phone="0909000000",
+            address="X street",
+        )
+        response = self.client.post(
+            reverse("users:address_add"),
+            {
+                "address_id": addr.id,
+                "recipient_name": "B",
+                "phone": "0909000000",
+                "address": "Hacked",
+            },
+        )
+        self.assertEqual(response.status_code, 404)

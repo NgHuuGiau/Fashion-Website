@@ -48,16 +48,28 @@
                     </label>
                     {% if saved_addresses %}
                     <div class="field span-2 checkout-saved-addresses">
-                        <span class="checkout-saved-label">Chọn nhanh từ sổ địa chỉ:</span>
+                        <span class="checkout-saved-label">Chọn địa chỉ nhận hàng:</span>
                         <div class="checkout-saved-list">
                             {% for addr in saved_addresses %}
-                            <button type="button" class="saved-addr-chip {% if addr.is_default %}is-default{% endif %}"
-                                    data-name="{{ addr.recipient_name }}" data-phone="{{ addr.phone }}" data-address="{{ addr.address }}">
-                                {% if addr.is_default %}<i class="fa-solid fa-star" aria-hidden="true"></i>{% endif %}
-                                {{ addr.recipient_name }} · {{ addr.phone }}<span>{{ addr.address }}</span>
-                            </button>
+                            <label class="saved-addr-option {% if addr.is_default %}is-default{% endif %}">
+                                <input type="radio" name="selected_address_id" value="{{ addr.id }}"
+                                       {% if addr.is_default %}checked{% endif %}
+                                       data-name="{{ addr.recipient_name }}" data-phone="{{ addr.phone }}" data-address="{{ addr.address }}"
+                                       data-verified="{% if addr.is_phone_verified %}1{% endif %}">
+                                <span class="saved-addr-body">
+                                    {% if addr.is_default %}<em class="saved-addr-default">Mặc định</em>{% endif %}
+                                    <strong>{{ addr.recipient_name }} · {{ addr.phone }}{% if addr.is_phone_verified %} ✓{% endif %}</strong>
+                                    <span>{{ addr.address }}</span>
+                                </span>
+                                <button type="button" class="saved-addr-del" data-url="{% url 'users:address_delete' addr.id %}" aria-label="Xóa địa chỉ này">Xóa</button>
+                            </label>
                             {% endfor %}
+                            <label class="saved-addr-option is-new">
+                                <input type="radio" name="selected_address_id" value="" {% if not saved_addresses %}checked{% endif %}>
+                                <span class="saved-addr-body"><strong>+ Địa chỉ mới</strong><span>Nhập thông tin bên dưới, sẽ được lưu sau khi đặt hàng.</span></span>
+                            </label>
                         </div>
+                        <p class="muted">Sửa thông tin bên dưới sẽ lưu thành địa chỉ mới, địa chỉ cũ vẫn giữ nguyên.</p>
                     </div>
                     {% endif %}
                     <label class="field span-2">
@@ -551,18 +563,54 @@
 
 <script nonce="{{ request.csp_nonce }}">
 (function () {
-    var chips = document.querySelectorAll('.saved-addr-chip');
-    if (!chips.length) return;
+    var radios = document.querySelectorAll('input[name="selected_address_id"]');
+    if (!radios.length) return;
     var nameInput = document.getElementById('id_customer_name');
     var phoneInput = document.getElementById('id_phone');
     var addressInput = document.getElementById('id_shipping_address');
-    Array.prototype.forEach.call(chips, function (chip) {
-        chip.addEventListener('click', function () {
-            if (nameInput) nameInput.value = chip.getAttribute('data-name');
-            if (phoneInput) phoneInput.value = chip.getAttribute('data-phone');
-            if (addressInput) addressInput.value = chip.getAttribute('data-address');
-            Array.prototype.forEach.call(chips, function (c) { c.classList.remove('selected'); });
-            chip.classList.add('selected');
+    function fillFrom(radio) {
+        if (nameInput) nameInput.value = radio.getAttribute('data-name') || '';
+        if (phoneInput) {
+            phoneInput.value = radio.getAttribute('data-phone') || '';
+        }
+        if (addressInput) addressInput.value = radio.getAttribute('data-address') || '';
+    }
+    Array.prototype.forEach.call(radios, function (radio) {
+        radio.addEventListener('change', function () {
+            if (radio.checked) fillFrom(radio);
+        });
+    });
+    Array.prototype.forEach.call(radios, function (radio) {
+        if (radio.checked && radio.value) fillFrom(radio);
+    });
+    function getCookie(name) {
+        var parts = document.cookie.split(';');
+        for (var i = 0; i < parts.length; i++) {
+            var kv = parts[i].trim().split('=');
+            if (kv[0] === name) return decodeURIComponent(kv[1] || '');
+        }
+        return '';
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('.saved-addr-del'), function (btn) {
+        btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!window.confirm('Xóa địa chỉ này khỏi sổ?')) return;
+            btn.disabled = true;
+            fetch(btn.getAttribute('data-url'), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(function () {
+                var label = btn.closest('.saved-addr-option');
+                var wasChecked = label && label.querySelector('input:checked');
+                if (label) label.remove();
+                if (wasChecked) {
+                    var fresh = document.querySelector('input[name="selected_address_id"]');
+                    if (fresh) { fresh.checked = true; fresh.dispatchEvent(new Event('change', { bubbles: true })); }
+                }
+            }).catch(function () {
+                btn.disabled = false;
+            });
         });
     });
 })();

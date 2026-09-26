@@ -119,6 +119,10 @@
                         <p class="address-phone">{{ addr.phone }}</p>
                         <p class="address-text">{{ addr.address }}</p>
                         <div class="address-actions">
+                            <button type="button" class="link-btn addr-edit-btn"
+                                    data-id="{{ addr.id }}" data-name="{{ addr.recipient_name }}"
+                                    data-phone="{{ addr.phone }}" data-address="{{ addr.address }}"
+                                    data-label="{{ addr.label }}" data-default="{% if addr.is_default %}1{% endif %}">Sửa</button>
                             {% if not addr.is_default %}
                             <form method="post" action="{% url 'users:address_set_default' addr.id %}">{% csrf_token %}<button type="submit" class="link-btn">Đặt mặc định</button></form>
                             {% endif %}
@@ -133,6 +137,7 @@
 
                 <form method="post" action="{% url 'users:address_add' %}" class="address-form hidden" id="addr-form">
                     {% csrf_token %}
+                    <input type="hidden" name="address_id" id="addr-id" value="">
                     <div class="profile-grid">
                         <label class="profile-field">
                             <span>Người nhận *</span>
@@ -170,13 +175,43 @@
     var form = document.getElementById('addr-form');
     var cancel = document.getElementById('addr-cancel');
     if (!toggle || !form) return;
+    var addrId = document.getElementById('addr-id');
+    function openForm() {
+        form.classList.remove('hidden');
+        toggle.textContent = 'Đóng';
+        form.scrollIntoView({ block: 'nearest' });
+    }
+    function resetForm() {
+        form.reset();
+        if (addrId) addrId.value = '';
+    }
     toggle.addEventListener('click', function () {
-        form.classList.toggle('hidden');
-        toggle.textContent = form.classList.contains('hidden') ? '+ Thêm địa chỉ mới' : 'Đóng';
+        if (form.classList.contains('hidden')) {
+            resetForm();
+            openForm();
+        } else {
+            form.classList.add('hidden');
+            toggle.textContent = '+ Thêm địa chỉ mới';
+        }
     });
     if (cancel) cancel.addEventListener('click', function () {
         form.classList.add('hidden');
         toggle.textContent = '+ Thêm địa chỉ mới';
+        resetForm();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.addr-edit-btn'), function (btn) {
+        btn.addEventListener('click', function () {
+            resetForm();
+            if (addrId) addrId.value = btn.getAttribute('data-id');
+            var map = { recipient_name: 'data-name', phone: 'data-phone', address: 'data-address', label: 'data-label' };
+            Object.keys(map).forEach(function (name) {
+                var input = form.querySelector('[name="' + name + '"]');
+                if (input) input.value = btn.getAttribute(map[name]) || '';
+            });
+            var def = form.querySelector('[name="is_default"]');
+            if (def) def.checked = btn.getAttribute('data-default') === '1';
+            openForm();
+        });
     });
 })();
 </script>
