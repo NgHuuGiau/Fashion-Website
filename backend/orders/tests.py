@@ -205,6 +205,68 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertContains(response, "Non test")
         self.assertNotContains(response, "Non DOI TEN")
 
+    def _checkout_payload(self, phone="0909000000"):
+        return {
+            "customer_name": "Buyer Test",
+            "customer_email": "buyer@test.com",
+            "phone": phone,
+            "shipping_address": "1 Test Street",
+            "payment_method": "cod",
+            "coupon_code": "",
+        }
+
+    def test_checkout_reuses_saved_address_without_duplicate(self):
+        from users.models import UserAddress
+
+        self.client.login(username="buyer", password="StrongPass123!")
+        UserAddress.objects.create(
+            user=self.user,
+            recipient_name="Buyer Test",
+            phone="0909000000",
+            address="1 Test Street",
+            is_default=True,
+            is_phone_verified=True,
+        )
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"), self._checkout_payload()
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            UserAddress.objects.filter(user=self.user).count(), 1
+        )
+
+    def test_checkout_edited_info_creates_new_address(self):
+        from users.models import UserAddress
+
+        self.client.login(username="buyer", password="StrongPass123!")
+        UserAddress.objects.create(
+            user=self.user,
+            recipient_name="Buyer Test",
+            phone="0909000000",
+            address="1 Test Street",
+            is_default=True,
+            is_phone_verified=True,
+        )
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        payload = self._checkout_payload(phone="0911111111")
+        response = self.client.post(reverse("orders:checkout"), payload)
+        self.assertEqual(response.status_code, 302)
+        addrs = UserAddress.objects.filter(user=self.user).order_by("id")
+        self.assertEqual(addrs.count(), 2)
+        self.assertTrue(addrs[0].is_default)
+        self.assertFalse(addrs[1].is_default)
+
     def test_checkout_allows_guest(self):
         self.client.post(
             reverse(

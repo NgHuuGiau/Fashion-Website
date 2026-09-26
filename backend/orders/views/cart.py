@@ -815,6 +815,22 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 if is_guest:
                     request.session.setdefault("guest_orders", []).append(order.id)
                     request.session.modified = True
+                else:
+                    # Luu thong tin de lan sau mua lai khong can nhap lai;
+                    # sua thong tin -> dia chi moi, dia chi cu giu nguyen.
+                    # Dia chi dau tien lam mac dinh.
+                    addr, created = UserAddress.objects.get_or_create(
+                        user=request.user,
+                        recipient_name=form.cleaned_data["customer_name"][:150],
+                        phone=form.cleaned_data["phone"],
+                        address=form.cleaned_data["shipping_address"],
+                        defaults={"is_default": False},
+                    )
+                    if created and not UserAddress.objects.filter(
+                        user=request.user, is_default=True
+                    ).exists():
+                        addr.is_default = True
+                        addr.save(update_fields=["is_default"])
                 from ..services.order_email import send_order_email
 
                 send_order_email(order, event="created")
