@@ -205,6 +205,20 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertContains(response, "Non test")
         self.assertNotContains(response, "Non DOI TEN")
 
+    def test_cart_detail_links_guest_to_checkout(self):
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        response = self.client.get(reverse("orders:cart_detail"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, reverse("orders:checkout"), msg_prefix="guest checkout link"
+        )
+        self.assertNotContains(response, "Đăng nhập để thanh toán")
+
     def _checkout_payload(self, phone="0909000000"):
         return {
             "customer_name": "Buyer Test",
