@@ -67,7 +67,7 @@
             {% for item in order.items.all %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ item.product.name|repair_text }}{% if item.selected_color %} · {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %}</td>
+                <td>{{ item.display_name|repair_text }}{% if item.selected_color %} · {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %}</td>
                 <td class="right">{{ item.price|vnd }}đ</td>
                 <td class="right">{{ item.quantity }}</td>
                 <td class="right">{{ item.subtotal|vnd }}đ</td>

@@ -101,7 +101,7 @@ def _serialize_order(order, include_items=False):
             {
                 "id": item.id,
                 "product_id": item.product_id,
-                "product_name": repair_mojibake_text(item.product.name),
+                "product_name": repair_mojibake_text(item.display_name),
                 "color": item.selected_color,
                 "size": item.selected_size,
                 "quantity": item.quantity,

@@ -48,7 +48,7 @@
             <div class="order-lines">
                 {% for item in order.items.all %}
                 <div class="order-line">
-                    <span>{{ item.product.name|repair_text }} x {{ item.quantity }}</span>
+                    <span>{{ item.display_name|repair_text }} x {{ item.quantity }}</span>
                     <strong>{{ item.subtotal|vnd }}đ</strong>
                 </div>
                 {% endfor %}

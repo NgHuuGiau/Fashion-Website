@@ -262,7 +262,7 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
                         "order_item_id": item.id,
                         "product_id": item.product_id,
                         "variant_id": item.variant_id,
-                        "product_name": item.product.name,
+                        "product_name": item.display_name,
                         "selected_color": item.selected_color,
                         "selected_size": item.selected_size,
                         "qty": item.quantity,

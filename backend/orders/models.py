@@ -478,9 +478,20 @@ class OrderItem(models.Model):
     selected_size = models.CharField(max_length=20, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=12, decimal_places=0)
+    # Snapshot ten SP luc dat hang; doi ten SP sau nay khong sua lich su don.
+    product_name = models.CharField(max_length=255, blank=True, default="")
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        return f"{self.quantity} x {self.display_name}"
+
+    @property
+    def display_name(self):
+        if self.product_name:
+            return self.product_name
+        try:
+            return self.product.name
+        except Exception:
+            return ""
 
     def subtotal(self):
         return self.price * self.quantity

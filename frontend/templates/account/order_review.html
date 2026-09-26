@@ -185,7 +185,7 @@
                     {% for item in order.items.all %}
                     <div class="review-product-item">
                         <div class="review-product-info">
-                            <span class="review-product-name">{{ item.product.name|repair_text }}</span>
+                            <span class="review-product-name">{{ item.display_name|repair_text }}</span>
                             {% if item.selected_color or item.selected_size %}
                             <span class="review-product-variant">
                                 Màu: {{ item.selected_color|default:"-"|repair_text }} · Size: {{ item.selected_size|default:"-"|repair_text }}

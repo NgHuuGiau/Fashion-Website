@@ -19,7 +19,7 @@
         <ul class="order-product-list">
             {% for item in order.items.all %}
             <li class="order-product-item">
-                <span>{{ item.product.name|repair_text }} {% if item.selected_color %} - {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %} x{{ item.quantity }}</span>
+                <span>{{ item.display_name|repair_text }} {% if item.selected_color %} - {{ item.selected_color }}{% endif %}{% if item.selected_size %} ({{ item.selected_size }}){% endif %} x{{ item.quantity }}</span>
                 <strong>{{ item.subtotal|vnd }}đ</strong>
             </li>
             {% endfor %}
