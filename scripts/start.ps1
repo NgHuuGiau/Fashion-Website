@@ -7,6 +7,10 @@
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
+# Chay local luon dung .env (DEBUG=True). Xoa APP_ENV_FILE/DEBUG lan tu terminal
+# truoc do, keo keo theo env production gay crash SECRET_KEY nhu da gap.
+Remove-Item Env:APP_ENV_FILE -ErrorAction SilentlyContinue
+Remove-Item Env:DEBUG -ErrorAction SilentlyContinue
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
