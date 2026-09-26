@@ -37,10 +37,9 @@ rem Xoa backup cu hon 7 ngay
 forfiles /p "%BACKUP_DIR%" /m *.bak /d -7 /c "cmd /c del @path" 2>nul
 
 rem ============================================================
-rem Tu dong day len cloud (mo ban, chu PRODUCT):
-rem  robocopy "%BACKUP_DIR%" "C:\Users\HUUGIAU\OneDrive\Backups\Fashion" *.bak /MIR
-rem  (hoac dung rclone:  rclone sync "%BACKUP_DIR%" remote:Backups/Fashion)
+rem Tu dong day len OneDrive (kich hoat 2026-09-28).
 rem ============================================================
+robocopy "%BACKUP_DIR%" "C:\Users\HUUGIAU\OneDrive\Backups\Fashion" *.bak /MIR /R:2 /W:5
 
 echo [%date% %time%] Xong backup.
 exit /b 0
