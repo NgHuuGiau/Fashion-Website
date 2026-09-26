@@ -205,6 +205,13 @@ if os.getenv("PGBOUNCER_HOST"):
         **DATABASES["default"].get("OPTIONS", {}),
         "connect_timeout": 10,
     }
+else:
+    # Kết nối trực tiếp (SQL Server local/prod, Postgres direct):
+    # giữ kết nối theo thread để khỏi trả ~2s mở ODBC mới mỗi request.
+    DATABASES["default"].setdefault(
+        "CONN_MAX_AGE", int(os.getenv("CONN_MAX_AGE", "60"))
+    )
+    DATABASES["default"].setdefault("CONN_HEALTH_CHECKS", True)
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
