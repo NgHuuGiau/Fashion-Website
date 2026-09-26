@@ -121,9 +121,8 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
         UserProfile,
         VisitorSession,
         UserActivity,
-        ReferralCode,
-        ReferralReward,
     )
+    from users.models_referral import ReferralCode, ReferralReward
 
     user = request.user
 
@@ -202,7 +201,7 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
             {
                 "coupon_code": cr.coupon.code,
                 "order_id": cr.order_id,
-                "redeemed_at": cr.redeemed_at.isoformat() if cr.redeemed_at else None,
+                "redeemed_at": cr.used_at.isoformat() if cr.used_at else None,
             }
         )
 
@@ -220,7 +219,9 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
         )
 
     # Gift card usages
-    for gcu in GiftCardUsage.objects.filter(user=user).select_related("gift_card"):
+    for gcu in GiftCardUsage.objects.filter(order__user=user).select_related(
+        "gift_card"
+    ):
         data["gift_card_usages"].append(
             {
                 "gift_card_code": gcu.gift_card.code,
@@ -236,7 +237,7 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
                 "product_id": rev.product_id,
                 "rating": rev.rating,
                 "comment": rev.comment,
-                "created_at": rev.created_at.isoformat(),
+                "created_at": rev.created.isoformat(),
             }
         )
 
@@ -245,7 +246,7 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
         data["wishlist"].append(
             {
                 "product_id": wi.product_id,
-                "created_at": wi.created_at.isoformat(),
+                "created_at": wi.created.isoformat(),
             }
         )
 
@@ -256,16 +257,18 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
                 "product_id": q.product_id,
                 "question": q.question,
                 "answer": q.answer,
-                "created_at": q.created_at.isoformat(),
+                "created_at": q.created.isoformat(),
             }
         )
 
     # Back in stock
-    for bs in BackInStock.objects.filter(user=user).select_related("product"):
+    for bs in BackInStock.objects.filter(email=user.email).select_related(
+        "product"
+    ):
         data["back_in_stock_requests"].append(
             {
                 "product_id": bs.product_id,
-                "created_at": bs.created_at.isoformat(),
+                "created_at": bs.created.isoformat(),
             }
         )
 
@@ -298,20 +301,23 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
         data["referral_codes"].append(rc)
 
     # Referral rewards
+    from django.db.models import Q
+
     for rr in (
-        ReferralReward.objects.filter(user=user)
+        ReferralReward.objects.filter(Q(referrer=user) | Q(referred_user=user))
         .select_related("referral_code")
         .values()
     ):
         data["referral_rewards"].append(rr)
 
     # Return as downloadable JSON
+    from django.core.serializers.json import DjangoJSONEncoder
     from django.http import HttpResponse
     import json
 
     filename = f"gdpr-export-user-{user.id}-{timezone.now().strftime('%Y%m%d')}.json"
     resp = HttpResponse(
-        json.dumps(data, ensure_ascii=False, indent=2),
+        json.dumps(data, ensure_ascii=False, indent=2, cls=DjangoJSONEncoder),
         content_type="application/json; charset=utf-8",
     )
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -414,8 +420,12 @@ def api_schema_file(request: HttpRequest) -> HttpResponse:
     from django.conf import settings
     from django.http import HttpResponse, Http404
 
-    schema_path = os.path.join(settings.BASE_DIR, "openapi.yaml")
-    if not os.path.exists(schema_path):
+    candidates = (
+        os.path.join(settings.BASE_DIR, "backend", "openapi.yaml"),
+        os.path.join(settings.BASE_DIR, "openapi.yaml"),
+    )
+    schema_path = next((p for p in candidates if os.path.exists(p)), None)
+    if schema_path is None:
         raise Http404(
             "OpenAPI schema file not found. Run `python manage.py generate_schema` first."
         )

@@ -455,6 +455,41 @@ class ApiTest(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_api_gdpr_export_requires_login(self):
+        response = self.client.get(reverse("api:api_gdpr_export"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_api_gdpr_export_returns_full_profile(self):
+        self.client.login(username="buyer", password="StrongPass123!")
+        response = self.client.get(reverse("api:api_gdpr_export"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        for key in (
+            "user",
+            "orders",
+            "coupon_redemptions",
+            "returns",
+            "gift_card_usages",
+            "reviews",
+            "wishlist",
+            "questions",
+            "back_in_stock_requests",
+            "newsletter",
+            "visitor_sessions",
+            "activities",
+            "referral_codes",
+            "referral_rewards",
+        ):
+            self.assertIn(key, payload)
+        self.assertEqual(payload["user"]["username"], "buyer")
+        self.assertEqual(len(payload["orders"]), 1)
+
+    def test_api_schema_file_serves_yaml(self):
+        response = self.client.get(reverse("api:api_schema_file"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("openapi", response.headers.get("Content-Type", ""))
+        self.assertTrue(response.content.startswith(b"openapi:"))
+
     def test_api_admin_requires_staff(self):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("api:api_admin_stats"))
