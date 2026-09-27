@@ -90,14 +90,6 @@ def process_vnpay_ipn(self, params):
         raise self.retry(exc=exc)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def process_bank_ipn(self, params):
-    """Xử lý bank transfer IPN (nếu có webhook từ ngân hàng)."""
-    # TODO: Implement bank IPN processing
-    logger.info(f"Bank IPN received: {params}")
-    return {"status": "received"}
-
-
 def restore_order_stock(order):
     """Trả lại hàng về kho khi đơn bị hủy."""
     if order.status == "cancelled":
