@@ -943,3 +943,77 @@ class AddressEditTest(TestCase):
             },
         )
         self.assertEqual(response.status_code, 404)
+
+
+class StaffTwoFATest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.staff = User.objects.create_user(
+            username="staffer", password="StrongPass123!", is_staff=True
+        )
+        self.customer = User.objects.create_user(
+            username="regular", password="StrongPass123!"
+        )
+
+    def _device(self, confirmed=False):
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+
+        return TOTPDevice.objects.create(
+            user=self.staff, name="t", confirmed=confirmed
+        )
+
+    def test_non_staff_blocked(self):
+        self.client.login(username="regular", password="StrongPass123!")
+        self.assertEqual(
+            self.client.get(reverse("users:twofa_enroll")).status_code, 404
+        )
+        self.assertEqual(
+            self.client.get(reverse("users:twofa_verify")).status_code, 404
+        )
+
+    def test_admin_redirects_to_enroll_without_device(self):
+        self.client.login(username="staffer", password="StrongPass123!")
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("users:twofa_enroll"), response.headers["Location"])
+
+    def test_enroll_rejects_wrong_code(self):
+        self.client.login(username="staffer", password="StrongPass123!")
+        self.client.get(reverse("users:twofa_enroll"))
+        response = self.client.post(
+            reverse("users:twofa_enroll"), {"code": "000000"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.staff.totpdevice_set.filter(confirmed=True).exists()
+        )
+
+    def test_enroll_and_verify_full_flow(self):
+        import time
+
+        from django_otp.oath import totp
+
+        self.client.login(username="staffer", password="StrongPass123!")
+        response = self.client.get(reverse("users:twofa_enroll"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<svg", response.content.decode())
+        device = self.staff.totpdevice_set.get(confirmed=False)
+        response = self.client.post(
+            reverse("users:twofa_enroll"), {"code": str(totp(device.bin_key))}
+        )
+        self.assertEqual(response.status_code, 302)
+        device.refresh_from_db()
+        self.assertTrue(device.confirmed)
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("users:twofa_verify"), response.headers["Location"])
+        time.sleep(32)
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+
+        device = TOTPDevice.objects.get(id=device.id)
+        response = self.client.post(
+            reverse("users:twofa_verify"), {"code": str(totp(device.bin_key))}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.get("/admin/").status_code, 200)

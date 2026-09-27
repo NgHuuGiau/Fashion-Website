@@ -13,6 +13,9 @@ urlpatterns = [
     path("tai-khoan/gioi-thieu/", views.referral_view, name="referral"),
     path("tai-khoan/doi-mat-khau/", views.change_password_view, name="change_password"),
     path("tai-khoan/dia-chi/them/", views.address_add, name="address_add"),
+    path("tai-khoan/bao-mat-2-lop/", views.twofa_enroll, name="twofa_enroll"),
+    path("tai-khoan/bao-mat-2-lop/ma/", views.twofa_verify, name="twofa_verify"),
+    path("tai-khoan/bao-mat-2-lop/tat/", views.twofa_disable, name="twofa_disable"),
     path(
         "tai-khoan/dia-chi/<int:address_id>/xoa/",
         views.address_delete,

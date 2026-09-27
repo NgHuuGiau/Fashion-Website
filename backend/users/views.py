@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -293,6 +293,79 @@ def address_add(request: HttpRequest) -> HttpResponse:
     )
     messages.success(request, "Đã lưu địa chỉ giao hàng.")
     return redirect("users:profile")
+
+
+@login_required
+def twofa_enroll(request: HttpRequest) -> HttpResponse:
+    """Dang ky TOTP cho staff (Google Authenticator...)."""
+    if not request.user.is_staff:
+        raise Http404
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device, _ = TOTPDevice.objects.get_or_create(
+        user=request.user, confirmed=False, defaults={"name": "authenticator"}
+    )
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        if code and device.verify_token(code):
+            TOTPDevice.objects.filter(user=request.user).exclude(id=device.id).delete()
+            device.confirmed = True
+            device.save(update_fields=["confirmed"])
+            messages.success(request, "Đã bật xác minh 2 bước cho tài khoản quản trị.")
+            return redirect("users:twofa_enroll")
+        messages.error(request, "Mã chưa đúng. Kiểm tra giờ trên điện thoại.")
+    import qrcode
+    import qrcode.image.svg
+    from io import BytesIO
+
+    img = qrcode.make(device.config_url, image_factory=qrcode.image.svg.SvgImage)
+    buf = BytesIO()
+    img.save(buf)
+    return render(
+        request,
+        "account/twofa_enroll.html",
+        {
+            "qr_svg": buf.getvalue().decode(),
+            "secret": device.key,
+            "has_confirmed": TOTPDevice.objects.filter(
+                user=request.user, confirmed=True
+            ).exists(),
+        },
+    )
+
+
+@login_required
+def twofa_verify(request: HttpRequest) -> HttpResponse:
+    """Nhap ma TOTP sau khi dang nhap mat khau de vao /admin/."""
+    if not request.user.is_staff:
+        raise Http404
+    from django_otp import login as otp_login
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device = (
+        TOTPDevice.objects.filter(user=request.user, confirmed=True)
+        .order_by("-last_t")
+        .first()
+    )
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        if device is not None and code and device.verify_token(code):
+            otp_login(request, device)
+            return redirect("/admin/")
+        messages.error(request, "Mã chưa đúng.")
+    return render(request, "account/twofa_verify.html", {})
+
+
+@login_required
+@require_POST
+def twofa_disable(request: HttpRequest) -> HttpResponse:
+    if not request.user.is_staff:
+        raise Http404
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    TOTPDevice.objects.filter(user=request.user).delete()
+    messages.warning(request, "Đã tắt xác minh 2 bước. Hãy bật lại sớm.")
+    return redirect("users:twofa_enroll")
 
 
 @login_required

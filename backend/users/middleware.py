@@ -1,7 +1,55 @@
+from django.shortcuts import redirect
+
 from core.ratelimit import get_client_ip
 
 from .activity import log_activity
 from .models import VisitorSession
+
+
+class Admin2FAMiddleware:
+    """Bat staff xac minh TOTP khi vao /admin/.
+
+    - Chua co thiet bi: chuyen toi trang dang ky.
+    - Co thiet bi nhung session chua verify OTP: chuyen toi trang nhap ma.
+    """
+
+    ADMIN_PREFIX = "/admin/"
+    EXEMPT_NAMES = {
+        "twofa_enroll",
+        "twofa_verify",
+        "twofa_disable",
+    }
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if self._protected(request):
+            from django_otp.plugins.otp_totp.models import TOTPDevice
+
+            has_device = TOTPDevice.objects.filter(
+                user=request.user, confirmed=True
+            ).exists()
+            if not has_device:
+                return redirect("users:twofa_enroll")
+            if not request.user.is_verified():
+                return redirect("users:twofa_verify")
+        return self.get_response(request)
+
+    def _protected(self, request):
+        if not request.path.startswith(self.ADMIN_PREFIX):
+            return False
+        user = getattr(request, "user", None)
+        if user is None or not user.is_authenticated or not user.is_staff:
+            return False
+        from django.urls import resolve
+
+        try:
+            if resolve(request.path_info).url_name in self.EXEMPT_NAMES:
+                return False
+        except Exception:
+            pass
+        return True
 
 
 class VisitorTrackingMiddleware:

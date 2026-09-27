@@ -28,3 +28,7 @@ cryptography>=50.0.0
 
 # JSON logging formatter
 python-json-logger>=4.2,<5
+
+# 2FA TOTP cho trang quan tri + QR dang ky
+django-otp>=1.5,<2
+qrcode>=8.0,<9

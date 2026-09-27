@@ -112,6 +112,8 @@ INSTALLED_APPS = [
     "products",
     "users",
     "orders",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
 ]
 
 SITE_ID = 1
@@ -126,6 +128,8 @@ MIDDLEWARE = [
     "core.middleware.ApiRateLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "users.middleware.Admin2FAMiddleware",
     "users.middleware.VisitorTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -156,6 +160,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core.wsgi.application"
+
+# 2FA TOTP cho trang /admin/ (Google Authenticator & tuong duong).
+OTP_TOTP_ISSUER = "HUUGIAU Atelier"
 
 DB_ENGINE = os.getenv("DB_ENGINE", "mssql").lower()
 
@@ -230,6 +237,15 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL", "HUUGIAU Studio <no-reply@huugiau.local>"
 )
+# Ma so thue in tren hoa don (de trong = an dong MST).
+SHOP_TAX_ID = os.getenv("SHOP_TAX_ID", "")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+ADMINS = [
+    (name.strip(), addr.strip())
+    for pair in os.getenv("ADMIN_ALERT_EMAILS", "").split(";")
+    for name, _, addr in [pair.partition(":")]
+    if addr.strip()
+]
 
 
 VNPAY_URL = os.getenv("VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
@@ -366,6 +382,10 @@ LOGGING = {
             "formatter": "json",
             "filters": ["correlation_id", "request_id"],
         },
+        "mail_admins": {
+            "level": "ERROR",
+            "class": "django.utils.log.AdminEmailHandler",
+        },
     },
     "loggers": {
         "": {
@@ -379,7 +399,7 @@ LOGGING = {
             else "WARNING",
         },
         "django.request": {
-            "handlers": ["console"],
+            "handlers": ["console", "mail_admins"],
             "level": "INFO",
             "propagate": False,
         },
