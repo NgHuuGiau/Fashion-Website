@@ -21,10 +21,13 @@ def print_invoice(request: HttpRequest, order_id) -> HttpResponse:
     order = get_object_or_404(
         Order.objects.prefetch_related("items__product", "items__variant"), id=order_id
     )
+    from django.conf import settings
+
     bank_name = shop_bank_meta().get("name", "")
     context = {
         "order": order,
         "bank_name": bank_name,
+        "shop_tax_id": getattr(settings, "SHOP_TAX_ID", ""),
         **shop_bank_context(),
     }
     return render(request, "admin/invoice_print.html", context)
