@@ -15,6 +15,52 @@ Remove-Item Env:DEBUG -ErrorAction SilentlyContinue
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
+
+function Test-TcpPortFree {
+    param([int]$Port)
+    $client = New-Object Net.Sockets.TcpClient
+    try {
+        $iar = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
+        if ($iar.AsyncWaitHandle.WaitOne(400) -and $client.Connected) { return $false }
+        return $true
+    } catch { return $true }
+    finally { $client.Close() }
+}
+
+function Get-HttpStatusFast {
+    param([string]$Url)
+    try { return (& curl.exe -k -s -o NUL -w "%{http_code}" $Url 2>$null) } catch { return "" }
+}
+
+function Get-PortOwnerPid {
+    param([int]$Port)
+    try {
+        $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($conn) { return $conn.OwningProcess }
+    } catch { }
+    return $null
+}
+
+# Port 8000 hay bi tien trinh runserver cu giu (Windows bao EACCES
+# thay vi "already in use"). Co app san thi dung lai, khong thi doi port.
+$SelectedPort = $null
+foreach ($candidate in @($Port, 8001, 8080, 5000)) {
+    if (Test-TcpPortFree $candidate) { $SelectedPort = $candidate; break }
+    if ((Get-HttpStatusFast "http://127.0.0.1:$candidate/") -eq "200") {
+        Write-Host "Port $candidate da co server dang chay - dung lai, khong khoi dong them." -ForegroundColor Yellow
+        if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$candidate/" }
+        exit 0
+    }
+}
+if (-not $SelectedPort) {
+    $owner = Get-PortOwnerPid $Port
+    $hint = if ($owner) { " (PID $owner dang giu port - tat tien trinh cu roi chay lai)" } else { "" }
+    throw "Port $Port dang ban$hint."
+}
+if ($SelectedPort -ne $Port) {
+    Write-Host "Port $Port ban - tu doi sang $SelectedPort." -ForegroundColor Yellow
+    $Port = $SelectedPort
+}
 $url = "http://${BindHost}:${Port}/"
 
 # Mo cho may khac trong LAN: bind all interfaces + nhan IP LAN vao
