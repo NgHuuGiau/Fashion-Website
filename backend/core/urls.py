@@ -11,6 +11,7 @@ from drf_spectacular.views import (
 )
 
 from . import api, views
+from .push import push_subscribe, push_unsubscribe, push_vapid_key
 from .sitemaps import BlogSitemap, CategorySitemap, ProductSitemap, StaticSitemap
 
 handler404 = views.handler404
@@ -41,6 +42,9 @@ def robots_txt(request):
 
 api_urlpatterns = [
     path("", api.api_root, name="api_root"),
+    path("push/vapid-key/", push_vapid_key, name="push_vapid_key"),
+    path("push/subscribe/", push_subscribe, name="push_subscribe"),
+    path("push/unsubscribe/", push_unsubscribe, name="push_unsubscribe"),
     path("geocode/", api.api_geocode, name="api_geocode"),
     path("products/", api.api_product_list, name="api_product_list"),
     path("products/<int:pk>/", api.api_product_detail, name="api_product_detail"),

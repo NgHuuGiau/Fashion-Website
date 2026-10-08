@@ -78,4 +78,12 @@ def shop_site_config(request):
             "facebook": bool(os.getenv("FACEBOOK_OAUTH_URL", "").strip()),
             "apple": bool(os.getenv("APPLE_OAUTH_URL", "").strip()),
         },
+        "SOCIAL_FANPAGES": {
+            "facebook": settings.SOCIAL_FACEBOOK,
+            "instagram": settings.SOCIAL_INSTAGRAM,
+            "tiktok": settings.SOCIAL_TIKTOK,
+            "youtube": settings.SOCIAL_YOUTUBE,
+        },
+        "BCT_BADGE_URL": settings.BCT_BADGE_URL,
+        "BCT_BADGE_LINK": settings.BCT_BADGE_LINK,
     }

@@ -1,4 +1,4 @@
-{% load static compress %}<!DOCTYPE html>
+{% load static compress seo_jsonld %}<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -29,6 +29,11 @@
     <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    {% jsonld_organization %}
+    {% block jsonld %}{% endblock %}
     <title>{% block title %}HUUGIAU Studio{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,7 +49,11 @@
 
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    {% if debug %}
+    <div class="topline" role="note">Bản demo · Sản phẩm và tồn kho đang dùng dữ liệu mô phỏng</div>
+    {% else %}
     <div class="topline">Chào mùa mới — <strong>giảm thêm 10%</strong> cho đơn từ 800K, mã <strong>{{ PROMO_BANNER }}</strong> · Freeship toàn quốc từ 499K</div>
+    {% endif %}
 
     <header class="site-header">
         <div class="container nav-wrap">
@@ -60,7 +69,7 @@
                 </div>
             </div>
 
-            <nav class="site-nav" id="site-nav" aria-label="Điều hướng chính">
+            <nav class="site-nav" id="site-nav" aria-label="Menu điều hướng">
                 <div class="site-nav-inner">
                 <div class="site-nav-header">
                     <a href="{% url 'products:product_list' %}" class="site-nav-logo">HUUGIAU</a>
@@ -179,6 +188,21 @@
                 </div>
             </nav>
 
+            <nav class="desktop-nav" aria-label="Điều hướng chính">
+                <a class="desktop-nav-link" href="{% url 'products:product_list' %}?sort=newest">New in</a>
+                <div class="desktop-nav-dropdown">
+                    <a class="desktop-nav-link" href="{% url 'products:product_list' %}">Cửa hàng</a>
+                    <div class="desktop-dropdown-menu">
+                        <a href="{% url 'products:product_list' %}?category=ao">Áo</a>
+                        <a href="{% url 'products:product_list' %}?category=quan">Quần</a>
+                        <a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a>
+                        <a href="{% url 'products:product_list' %}">Tất cả sản phẩm</a>
+                    </div>
+                </div>
+                <a class="desktop-nav-link" href="{% url 'products:blog_list' %}">Lookbook</a>
+                <a class="desktop-nav-link" href="{% url 'about' %}">Câu chuyện</a>
+            </nav>
+
             <div class="header-right">
                 <form class="header-search" method="get" action="{% url 'products:product_list' %}" id="header-search-form" autocomplete="off" data-suggest-url="{% url 'products:search_suggest' %}">
                     <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}" id="header-search-input">
@@ -231,6 +255,14 @@
                 <h3>HUUGIAU Atelier</h3>
                 <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
                 {% if STORE_ADDRESS %}<p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>{% endif %}
+                {% if SOCIAL_FANPAGES.facebook or SOCIAL_FANPAGES.instagram or SOCIAL_FANPAGES.tiktok or SOCIAL_FANPAGES.youtube %}
+                <p style="margin-top:0.6rem">
+                    {% if SOCIAL_FANPAGES.facebook %}<a href="{{ SOCIAL_FANPAGES.facebook }}" target="_blank" rel="noopener" class="footer-email" aria-label="Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.instagram %}<a href="{{ SOCIAL_FANPAGES.instagram }}" target="_blank" rel="noopener" class="footer-email" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.tiktok %}<a href="{{ SOCIAL_FANPAGES.tiktok }}" target="_blank" rel="noopener" class="footer-email" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.youtube %}<a href="{{ SOCIAL_FANPAGES.youtube }}" target="_blank" rel="noopener" class="footer-email" aria-label="YouTube"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>{% endif %}
+                </p>
+                {% endif %}
                 <form class="footer-newsletter" method="post" action="{% url 'products:newsletter_subscribe' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.path }}">
@@ -279,6 +311,7 @@
                     <span>&copy; 2026 HUUGIAU Atelier</span>
                     <a href="{% url 'privacy' %}">Chính sách bảo mật</a>
                     <a href="{% url 'terms' %}">Điều khoản</a>
+                    {% if BCT_BADGE_URL %}<a href="{{ BCT_BADGE_LINK|default:'https://online.gov.vn' }}" target="_blank" rel="noopener" aria-label="Đã đăng ký Bộ Công Thương"><img src="{{ BCT_BADGE_URL }}" alt="Đã thông báo Bộ Công Thương" loading="lazy" style="height:32px"></a>{% endif %}
                 </div>
                 <div class="footer-payments">
                     <span title="Thanh toán tiền mặt khi nhận hàng"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> COD</span>

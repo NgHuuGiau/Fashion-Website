@@ -668,3 +668,21 @@ class InvoicePrintTest(TestCase):
         self.assertContains(response, "HOÁ ĐƠN")
         self.assertContains(response, "230.000")
         self.assertContains(response, "DH{}".format(self.order.id))
+
+
+class FooterConfigTest(TestCase):
+    def test_footer_hides_unconfigured_social_and_bct(self):
+        response = self.client.get(reverse("products:product_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Bộ Công Thương")
+
+    @override_settings(
+        SOCIAL_FACEBOOK="https://facebook.com/shop",
+        BCT_BADGE_URL="https://example.com/bct.png",
+        BCT_BADGE_LINK="https://online.gov.vn",
+    )
+    def test_footer_shows_configured_social_and_bct(self):
+        response = self.client.get(reverse("products:product_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "https://facebook.com/shop")
+        self.assertContains(response, "Bộ Công Thương")

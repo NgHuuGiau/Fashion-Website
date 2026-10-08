@@ -158,6 +158,7 @@ button {
 .brand-block {
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
     gap: 0;
 }
 
@@ -186,6 +187,7 @@ button {
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.18em;
+    white-space: nowrap;
 }
 
 .site-nav {
@@ -567,6 +569,7 @@ button {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-pill);
+    white-space: nowrap;
     transition: border-color 0.2s ease, background 0.2s ease;
 }
 
@@ -1728,6 +1731,28 @@ button {
     content: "\f00c";
     background: var(--success);
     border-color: var(--success);
+}
+
+/* JS trang dang-ky gan class "met" (giong trang dat-lai-mat-khau). */
+.password-requirements li.met {
+    color: var(--success);
+}
+
+.password-requirements li.met::before {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.65em;
+    font-weight: 900;
+    color: #fff;
+    content: "\f00c";
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.password-requirements li.met i {
+    color: var(--success);
 }
 
 .auth-form {
@@ -3860,6 +3885,19 @@ button {
     background: linear-gradient(135deg, #a34410, #c05a1c);
     border-radius: 16px;
     box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.account-avatar-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.avatar-field input[type="file"] {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
 }
 
 .account-stats,
@@ -7260,5 +7298,317 @@ body {
 
     .catalog-page .catalog-controls {
         flex-wrap: wrap;
+    }
+}
+/* --- Marquee --- */
+.marquee-container {
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0.5rem 0;
+}
+.marquee-content {
+    display: flex;
+    animation: marquee-scroll 20s linear infinite;
+}
+.marquee-separator {
+    margin: 0 1.5rem;
+    color: var(--accent);
+}
+@keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* --- Desktop Nav --- */
+.desktop-nav {
+    display: none;
+    align-items: center;
+    gap: 2rem;
+}
+.desktop-nav-link {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-strong);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    position: relative;
+    padding: 0.5rem 0;
+    white-space: nowrap;
+}
+.desktop-nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.3s ease;
+}
+.desktop-nav-link:hover::after {
+    width: 100%;
+}
+.desktop-nav-dropdown {
+    position: relative;
+}
+.desktop-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #fff;
+    min-width: 200px;
+    padding: 1rem 0;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    border: 1px solid var(--line);
+}
+.desktop-nav-dropdown:hover .desktop-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+.desktop-dropdown-menu a {
+    display: block;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+.desktop-dropdown-menu a:hover {
+    background: var(--surface-tint);
+    color: var(--accent-strong);
+}
+@media (min-width: 1200px) {
+    .desktop-nav {
+        display: flex;
+    }
+    .mobile-only {
+        display: none !important;
+    }
+}
+/* --- Fullbleed Hero --- */
+.hero-fullbleed {
+    position: relative;
+    width: 100vw;
+    height: 85vh;
+    min-height: 600px;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    margin-bottom: 3rem;
+    margin-top: -1.5rem; /* pull up under nav if needed */
+}
+.hero-bg {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1;
+}
+.hero-bg img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+.hero-bg-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to top, rgba(15,23,42,0.8), rgba(15,23,42,0.3));
+    z-index: 2;
+}
+.hero-content {
+    position: relative;
+    z-index: 3;
+    max-width: 800px;
+    padding: 0 1.5rem;
+    color: #fff;
+    animation: fadeInUp 1s ease-out forwards;
+}
+.hero-eyebrow {
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+    color: var(--accent-gold);
+}
+.hero-title {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.hero-subtitle {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-bottom: 2.5rem;
+    color: rgba(255,255,255,0.9);
+    max-width: 600px;
+    margin-inline: auto;
+}
+.hero-btn-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+.btn-hero {
+    padding: 1rem 2rem;
+    font-size: 0.95rem;
+    border-radius: var(--radius-pill);
+}
+.btn-hero-ghost {
+    background: transparent;
+    border: 2px solid #fff;
+    color: #fff;
+}
+.btn-hero-ghost:hover {
+    background: #fff;
+    color: var(--text-strong);
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* UI unify (cuoi file = nguon dung nhat): panel auth dang toi, lookup can giua, cover blog. */
+.auth-benefits {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 2.25rem;
+    overflow: hidden;
+    color: #fff;
+    background: linear-gradient(135deg, #171310 0%, #3a2415 55%, #7c3008 130%);
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: var(--radius);
+}
+
+.auth-benefits h2 {
+    margin: 0.75rem 0 0.5rem;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #fff;
+}
+
+.auth-benefits p {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: #e8ded2;
+}
+
+.auth-benefits-brand {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.auth-benefits-list {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0;
+    margin-top: 1.5rem;
+    list-style: none;
+}
+
+.auth-benefits-list li {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #f5ede1;
+}
+
+.auth-benefits-list li i {
+    width: 20px;
+    font-size: 0.95rem;
+    color: #fbbf24;
+    text-align: center;
+}
+
+.lookup-page .section-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.lookup-page .section-head p {
+    margin-inline: auto;
+}
+
+.blog-card-img-placeholder {
+    min-height: 190px;
+    background:
+        radial-gradient(circle at 85% 15%, rgb(200 159 101 / 35%), transparent 55%),
+        linear-gradient(135deg, var(--surface-tint), var(--bg-soft));
+}
+
+/* Card footer gọn: giá 1 hàng, nút so sánh full-width, bỏ chữ thừa. */
+.card-footer {
+    flex-wrap: wrap;
+}
+
+.card-footer > span:last-child {
+    display: none;
+}
+
+.card-compare-form {
+    position: static;
+    flex-basis: 100%;
+    margin: 0.15rem 0 0;
+}
+
+.card-compare-form .compare-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.footer-col h3 {
+    color: #cbb894;
+}
+
+@media (width <= 700px) {
+    .catalog-controls {
+        max-width: 100%;
+        padding-bottom: 0.25rem;
+        overflow-x: auto;
+    }
+
+    .catalog-controls .chip {
+        flex-shrink: 0;
+    }
+}
+
+@media (width <= 480px) {
+    .hero-btn-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero-btn-group .btn-hero {
+        width: 100%;
     }
 }
