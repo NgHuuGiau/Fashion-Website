@@ -15,6 +15,61 @@ from .validators import validate_product_image
 MAX_PRODUCT_GALLERY_IMAGES = 6
 GENERATED_DETAIL_IMAGE_FILENAMES = ("detail-1.svg", "detail-2.svg")
 
+# ponytail: 1 bo line-art chung cho placeholder (card + gallery), phan biet theo loai
+# chu khong dung hop text xau. Toa do tren viewBox 900x1125.
+GARMENT_ART = {
+    # ao thun: vai - tay - than
+    "ao": (
+        "<path d='M318,300 L398,256 Q450,288 502,256 L582,300 L648,392 "
+        "L578,424 L566,378 L566,806 L334,806 L334,378 L322,424 L252,392 Z' />"
+        "<path d='M398,256 Q450,288 502,256' />"
+    ),
+    # quan dai: cap - 2 ong
+    "quan": (
+        "<path d='M336,250 L564,250 L582,806 L476,806 L450,470 L424,806 "
+        "L318,806 Z' />"
+        "<path d='M336,292 L564,292' />"
+    ),
+    # mu: vom + luoi trai + nut
+    "phukien": (
+        "<path d='M296,500 Q296,330 450,330 Q604,330 604,500 Z' />"
+        "<path d='M228,500 L672,500 L672,524 L228,524 Z' />"
+        "<circle cx='450' cy='306' r='14' />"
+    ),
+    # mac ao (hanger): dung cho loai la
+    "generic": (
+        "<circle cx='450' cy='318' r='30' />"
+        "<path d='M450,348 L450,372 M450,372 L252,640 L648,640 Z' />"
+    ),
+}
+
+GARMENT_INK = "#2e2620"
+
+
+def garment_key_for_slug(slug):
+    slug = (slug or "").lower()
+    if "quan" in slug:
+        return "quan"
+    if "phu-kien" in slug or "phukien" in slug or "mu" in slug or "tui" in slug or "giay" in slug:
+        return "phukien"
+    if "ao" in slug:
+        return "ao"
+    return "generic"
+
+
+def garment_group(slug, cx=450, cy=540, scale=1.0):
+    key = garment_key_for_slug(slug)
+    paths = GARMENT_ART.get(key, GARMENT_ART["generic"])
+    return (
+        "<g transform='translate({0},{1}) scale({2}) translate(-450,-540)' "
+        "fill='none' stroke='{3}' stroke-width='9' stroke-linecap='round' "
+        "stroke-linejoin='round'>{4}</g>"
+    ).format(cx, cy, scale, GARMENT_INK, paths)
+
+
+PLACEHOLDER_BG_TOP = "#faf7f1"
+PLACEHOLDER_BG_BOTTOM = "#ece2d2"
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên danh mục")
@@ -220,47 +275,61 @@ class Product(models.Model):
         return (Path(settings.MEDIA_ROOT) / relative_name).exists()
 
     def _build_placeholder_image(self):
+        slug = self.category.slug if self.category else ""
         category_label = (
-            (self.category.name or self.category.slug or "HUUGIAU")
+            (self.category.name or slug or "HUUGIAU")
             .upper()
             .replace("-", " ")
         )
         product_label_raw = (self.name or "HUUGIAU").upper()
         product_lines = wrap(
             product_label_raw,
-            width=20,
+            width=22,
             break_long_words=False,
             break_on_hyphens=False,
         ) or ["HUUGIAU"]
         product_lines = product_lines[:2]
-        if len(product_lines) == 2 and len(wrap(product_label_raw, width=20)) > 2:
-            product_lines[1] = "{}...".format(product_lines[1][:17].rstrip())
+        if len(product_lines) == 2 and len(wrap(product_label_raw, width=22)) > 2:
+            product_lines[1] = "{}...".format(product_lines[1][:19].rstrip())
         product_lines = [escape(line) for line in product_lines]
         title_svg = "".join(
-            "<text x='450' y='{0}' text-anchor='middle' ".format(485 + index * 72) +
-            "fill='#16110f' font-family='Arial, sans-serif' " +
-            "font-size='{0}' ".format(max(38, min(58, 860 // max(len(line), 1)))) +
-            "font-weight='900'>{0}</text>".format(line)
+            "<text x='450' y='{0}' text-anchor='middle' "
+            "fill='#241c16' font-family='Georgia, Times New Roman, serif' "
+            "font-size='46' font-weight='400' letter-spacing='2'>{1}</text>".format(
+                912 + index * 58, line
+            )
             for index, line in enumerate(product_lines)
         )
         category_label = escape(category_label)
+        art = garment_group(slug, cx=450, cy=520, scale=0.92)
         svg = """
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
             <defs>
-                <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
-                    <stop offset='0%' stop-color='#fffdf8' />
-                    <stop offset='100%' stop-color='#f1e1d0' />
+                <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='0%' stop-color='{bg_top}' />
+                    <stop offset='100%' stop-color='{bg_bottom}' />
                 </linearGradient>
+                <radialGradient id='halo' cx='50%' cy='42%' r='45%'>
+                    <stop offset='0%' stop-color='#ffffff' stop-opacity='0.85' />
+                    <stop offset='100%' stop-color='#ffffff' stop-opacity='0' />
+                </radialGradient>
             </defs>
-            <rect width='900' height='1125' rx='42' fill='url(#bg)' />
-            <circle cx='720' cy='140' r='150' fill='#8a4a2a' fill-opacity='0.1' />
-            <circle cx='170' cy='920' r='180' fill='#ffffff' fill-opacity='0.7' />
-            <rect x='84' y='86' width='732' height='953' rx='34' fill='none' stroke='#d9c2b0' stroke-dasharray='18 12' />
-            <text x='450' y='390' text-anchor='middle' fill='#8a4a2a' font-family='Arial, sans-serif' font-size='48' font-weight='800' letter-spacing='8'>{category_label}</text>
+            <rect width='900' height='1125' fill='url(#bg)' />
+            <ellipse cx='450' cy='470' rx='330' ry='330' fill='url(#halo)' />
+            <circle cx='450' cy='148' r='52' fill='none' stroke='#2e2620' stroke-width='5' />
+            <text x='450' y='166' text-anchor='middle' fill='#2e2620' font-family='Georgia, Times New Roman, serif' font-size='52'>H</text>
+            {art}
+            <text x='450' y='858' text-anchor='middle' fill='#96754f' font-family='Arial, sans-serif' font-size='30' font-weight='700' letter-spacing='10'>{category_label}</text>
             {title_svg}
-            <text x='450' y='650' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='30' font-weight='700'>HUUGIAU LOOKBOOK</text>
+            <text x='450' y='1062' text-anchor='middle' fill='#a08b74' font-family='Arial, sans-serif' font-size='22' font-weight='600' letter-spacing='6'>HUUGIAU ATELIER</text>
         </svg>
-        """.strip().format(category_label=category_label, title_svg=title_svg)
+        """.strip().format(
+            bg_top=PLACEHOLDER_BG_TOP,
+            bg_bottom=PLACEHOLDER_BG_BOTTOM,
+            art=art,
+            category_label=category_label,
+            title_svg=title_svg,
+        )
         return "data:image/svg+xml;utf8,{0}".format(quote(svg))
 
     @property

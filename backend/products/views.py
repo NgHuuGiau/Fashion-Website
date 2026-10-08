@@ -130,24 +130,31 @@ def format_color_label(color_name: str) -> str:
 
 
 def build_gallery_placeholder(product: Product, slot_index: int) -> str:
+    from .models import (
+        PLACEHOLDER_BG_BOTTOM,
+        PLACEHOLDER_BG_TOP,
+        garment_group,
+    )
 
+    slug = product.category.slug if product.category else ""
     category_label = normalize_vn_text(
         get_category_type_label(product.category.slug)
     ).upper()
     slot_label = f"{slot_index + 1:02d}"
+    art = garment_group(slug, cx=450, cy=500, scale=0.62)
     svg = f"""
     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
         <defs>
-            <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
-                <stop offset='0%' stop-color='#fffdf8' />
-                <stop offset='100%' stop-color='#f1e1d0' />
+            <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+                <stop offset='0%' stop-color='{PLACEHOLDER_BG_TOP}' />
+                <stop offset='100%' stop-color='{PLACEHOLDER_BG_BOTTOM}' />
             </linearGradient>
         </defs>
-        <rect width='900' height='1125' rx='40' fill='url(#bg)' />
-        <rect x='64' y='64' width='772' height='997' rx='36' fill='none' stroke='#d7bda8' stroke-dasharray='18 14' />
-        <text x='450' y='490' text-anchor='middle' fill='#8f4f2a' font-family='Arial, sans-serif' font-size='54' font-weight='700' letter-spacing='12'>{category_label}</text>
-        <text x='450' y='600' text-anchor='middle' fill='#4c3729' font-family='Arial, sans-serif' font-size='96' font-weight='800'>{slot_label}</text>
-        <text x='450' y='674' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='28'>CHUA CO HINH</text>
+        <rect width='900' height='1125' fill='url(#bg)' />
+        {art}
+        <text x='450' y='862' text-anchor='middle' fill='#96754f' font-family='Arial, sans-serif' font-size='32' font-weight='700' letter-spacing='10'>{category_label}</text>
+        <text x='450' y='946' text-anchor='middle' fill='#4c3729' font-family='Georgia, Times New Roman, serif' font-size='72'>{slot_label}</text>
+        <text x='450' y='1004' text-anchor='middle' fill='#a08b74' font-family='Arial, sans-serif' font-size='24' letter-spacing='4'>CHUA CO HINH</text>
     </svg>
     """.strip()
     return f"data:image/svg+xml;utf8,{quote(svg)}"

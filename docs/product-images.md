@@ -21,6 +21,25 @@ frontend/static/images/
 `ProductImage.image`; ảnh đại diện khách qua `UserProfile.avatar`. Nếu chưa upload
 file, sản phẩm có thể dùng trường `Product.image_url` để trỏ tới CDN/object storage.
 
+## Quy cách ảnh chuẩn (theo DirtyCoins / SWE / Levents)
+
+Khảo sát trực tiếp 08/10/2026 (đo pixel + khung render):
+
+| Web | Ảnh gốc upload | Lưới catalog | Trang chi tiết |
+|---|---|---|---|
+| DirtyCoins | 1638×2048 (4:5), JPG ~25KB | 275×344 (4:5), file 819×1024 | 620×775 (4:5), file gốc |
+| SWE | 2048×2048 (1:1), JPG ~48KB | 263×263 (1:1), file `_large` 480px | File gốc vuông |
+| Levents | ~4:5 (serve 685×856 webp) | 325×407 (4:5), webp | Khung 4:5 (`aspect-ratio: 4/5`) |
+
+Chốt cho shop (theo số đông 2/3 web, khung dọc tôn dáng):
+
+- **Khung hiển thị: 4:5 dọc** (card `aspect-ratio: 3/4` hiện tại gần đúng,
+  placeholder SVG đã dùng viewBox 900×1125 = 4:5).
+- **Ảnh gốc: 1600×2000px, JPG ~80%, <300KB.**
+- Serve 2 bản: 480px (lưới, như SWE `_large`) + 1024px (detail, như DirtyCoins).
+- Khi chưa có ảnh thật, site tự vẽ placeholder line-art theo loại
+  (áo/quần/mũ/móc áo) — không cần sửa gì, chỉ cần upload ảnh là tự thay.
+
 ## Cách bổ sung sau này
 
 1. Vào **Quản trị → Bảng điều khiển → Sản phẩm**.
