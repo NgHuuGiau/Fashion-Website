@@ -68,3 +68,9 @@ database/sql/02_INSERT_DATA.sql
 
 # Catalog nguồn cục bộ; không đưa sản phẩm/ảnh nhập vào GitHub
 database/seed/local_products_to_sync.json
+
+# Anh upload runtime + anh demo seed (nhi phan lon, chi de local)
+frontend/static/images/products/20*/
+frontend/static/images/products/gallery/20*/
+frontend/static/images/reviews/20*/
+frontend/static/images/avatars/20*/

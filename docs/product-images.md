@@ -40,6 +40,16 @@ Chốt cho shop (theo số đông 2/3 web, khung dọc tôn dáng):
 - Khi chưa có ảnh thật, site tự vẽ placeholder line-art theo loại
   (áo/quần/mũ/móc áo) — không cần sửa gì, chỉ cần upload ảnh là tự thay.
 
+## Ảnh demo duyệt layout (DEV only, không phải ảnh thật)
+
+Lệnh `python manage.py seed_demo_photos` tải ảnh thời trang Unsplash
+(free license) crop sẵn 1200×2000 (4:5), gắn theo nhóm danh mục để duyệt
+layout cho giống DirtyCoins/SWE/Levents. Lệnh từ chối chạy khi
+`DEBUG=False`, bỏ qua sản phẩm đã có ảnh thật (chạy lại an toàn).
+
+> Ảnh demo KHÔNG khớp từng sản phẩm (VD khẩu trang có thể hiện giày) —
+> chỉ để kiểm bố cục. Trước khi bán phải upload ảnh chụp thật từng mẫu.
+
 ## Cách bổ sung sau này
 
 1. Vào **Quản trị → Bảng điều khiển → Sản phẩm**.
