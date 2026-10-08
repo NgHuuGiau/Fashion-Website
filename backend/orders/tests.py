@@ -899,7 +899,7 @@ class CartCheckoutAndAdminTest(TestCase):
         )
         order.refresh_from_db()
         self.assertEqual(order.status, "shipping")
-        self.assertEqual(order.carrier, "")
+        self.assertEqual(order.carrier, "ghn")
         self.assertEqual(order.tracking_code, "")
 
     def test_tracking_decoration_does_not_auto_advance_old_order(self):

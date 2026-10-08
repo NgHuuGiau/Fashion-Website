@@ -6,6 +6,30 @@ from . import vnpay
 from .constants import bank_transfer_is_enabled
 
 
+def _wallet_choices():
+    # ponytail: hien nut vi nao da cau hinh, thieu env = tu an, khoi crash checkout
+    out = []
+    try:
+        from . import momo as _momo
+        if _momo.is_configured():
+            out.append(("momo", "Ví MoMo"))
+    except Exception:
+        pass
+    try:
+        from . import zalopay as _zalo
+        if _zalo.is_configured():
+            out.append(("zalopay", "Ví ZaloPay"))
+    except Exception:
+        pass
+    try:
+        from . import shopeepay as _spp
+        if _spp.is_configured():
+            out.append(("shopeepay", "Ví ShopeePay"))
+    except Exception:
+        pass
+    return out
+
+
 class CheckoutForm(forms.Form):
     customer_name = forms.CharField(max_length=150, label="Họ và tên")
     customer_email = forms.EmailField(required=False, label="Email")
@@ -28,6 +52,9 @@ class CheckoutForm(forms.Form):
             ("cod", "Thanh toán tiền mặt khi nhận hàng"),
             ("bank", "Chuyển khoản ngân hàng"),
             ("vnpay", "Thanh toán VNPay"),
+            ("momo", "Ví MoMo"),
+            ("zalopay", "Ví ZaloPay"),
+            ("shopeepay", "Ví ShopeePay"),
         ],
         label="Phương thức thanh toán",
     )
@@ -82,6 +109,13 @@ class CheckoutForm(forms.Form):
                 for choice in self.fields["payment_method"].choices
                 if choice[0] != "vnpay"
             ]
+        allowed_wallets = {c[0] for c in _wallet_choices()}
+        self.fields["payment_method"].choices = [
+            choice
+            for choice in self.fields["payment_method"].choices
+            if choice[0] not in ("momo", "zalopay", "shopeepay")
+            or choice[0] in allowed_wallets
+        ]
 
     def clean(self):
         cleaned_data = super().clean()
@@ -90,6 +124,11 @@ class CheckoutForm(forms.Form):
                 "payment_method",
                 "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
             )
+        pm = self.data.get("payment_method")
+        if pm in ("momo", "zalopay", "shopeepay"):
+            allowed = {c[0] for c in _wallet_choices()}
+            if pm not in allowed:
+                self.add_error("payment_method", "Ví điện tử chưa được cấu hình. Vui lòng chọn phương thức khác.")
 
         if cleaned_data.get("coupon_code"):
             cleaned_data["coupon_code"] = cleaned_data["coupon_code"].strip().upper()

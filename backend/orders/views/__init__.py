@@ -37,6 +37,7 @@ from .payment import (
     vnpay_refund,
     vnpay_return,
 )
+from .wallets import wallet_ipn, wallet_payment, wallet_return
 
 __all__ = [
     "admin_export_orders",
@@ -68,4 +69,7 @@ __all__ = [
     "vnpay_payment",
     "vnpay_refund",
     "vnpay_return",
+    "wallet_ipn",
+    "wallet_payment",
+    "wallet_return",
 ]

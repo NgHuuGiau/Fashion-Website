@@ -19,10 +19,27 @@ class Coupon(models.Model):
         (TYPE_FREESHIP, "Miễn phí vận chuyển"),
     ]
 
+    TRIGGER_CHOICES = [
+        ("manual", "Nhập mã thủ công"),
+        ("welcome", "Chào mừng thành viên mới"),
+        ("birthday", "Sinh nhật"),
+        ("app_only", "Chỉ App/PWA"),
+        ("abandoned_cart", "Giỏ hàng bỏ quên"),
+        ("first_order", "Đơn hàng đầu tiên"),
+    ]
+
     code = models.CharField(max_length=30, unique=True, db_index=True)
     discount_type = models.CharField(
         max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=TYPE_PERCENT
     )
+    trigger = models.CharField(
+        max_length=20, choices=TRIGGER_CHOICES, default="manual", db_index=True,
+        verbose_name="Kích hoạt tự động"
+    )
+    # Welcome/first-order: áp dụng tự động 1 lần
+    # Birthday: áp dụng trong tháng sinh nhật (cần user.birthday)
+    # App-only: check request.user_agent hoặc PWA install
+    # Abandoned-cart: gửi email sau 3h, mã tự động tạo
     value = models.DecimalField(max_digits=10, decimal_places=0, default=Decimal("0"))
     min_order_amount = models.DecimalField(
         max_digits=12, decimal_places=0, default=Decimal("0")
@@ -122,18 +139,25 @@ class Order(models.Model):
         ("cod", "Thanh toán khi nhận hàng"),
         ("bank", "Chuyển khoản ngân hàng"),
         ("vnpay", "Thanh toán VNPay"),
+        ("momo", "Ví MoMo"),
+        ("zalopay", "Ví ZaloPay"),
+        ("shopeepay", "Ví ShopeePay"),
     ]
 
     CARRIER_CHOICES = [
         ("ghn", "GHN"),
         ("ghtk", "GHTK"),
         ("vnpost", "VNPost"),
+        ("viettelpost", "Viettel Post"),
+        ("jnt", "J&T Express"),
     ]
     CARRIER_LABELS = dict(CARRIER_CHOICES)
     TRACKING_BASE_URL = {
         "ghn": "https://donhang.ghn.vn/?order_code={code}",
         "ghtk": "https://i.giaohangtietkiem.vn/ma-don-hang?code={code}",
         "vnpost": "https://www.vnpost.vn/vi-vn/tra-cuu/tra-cuu-hang",
+        "viettelpost": "https://www.viettelpost.com.vn/thong-tin-don-hang?order={code}",
+        "jnt": "https://www.jtexpress.vn/vi/tracking?billcode={code}",
     }
 
     user = models.ForeignKey(
@@ -163,6 +187,8 @@ class Order(models.Model):
     vnpay_transaction_id = models.CharField(
         max_length=64, unique=True, null=True, blank=True
     )
+    # ponytail: 1 field chung cho MoMo/ZaloPay/ShopeePay, khoi them 3 cot rieng
+    gateway_transaction_id = models.CharField(max_length=128, null=True, blank=True, db_index=True)
     refunded_amount = models.DecimalField(
         max_digits=12, decimal_places=0, default=Decimal("0")
     )
@@ -245,6 +271,7 @@ class Order(models.Model):
             transaction_id=(
                 getattr(self, "_status_change_transaction_id", "")
                 or self.vnpay_transaction_id
+                or getattr(self, "gateway_transaction_id", "")
                 or ""
             )[:64],
             note=getattr(self, "_status_change_note", "")[:255],
@@ -663,3 +690,137 @@ class CartReminder(models.Model):
 
     def __str__(self):
         return f"CartReminder {self.session_key} -> {self.email or '(chưa có email)'}"
+
+
+class ShippingOrder(models.Model):
+    """Đơn hàng vận chuyển (GHN/GHTK) - track carrier order details"""
+
+    CARRIER_CHOICES = [
+        ("ghn", "GHN"),
+        ("ghtk", "GHTK"),
+    ]
+
+    STATUS_CHOICES = [
+        ("created", "Đã tạo"),
+        ("pending_pickup", "Chờ lấy hàng"),
+        ("picked_up", "Đã lấy hàng"),
+        ("in_transit", "Đang vận chuyển"),
+        ("delivered", "Đã giao"),
+        ("failed", "Giao thất bại"),
+        ("returned", "Đã hoàn hàng"),
+        ("cancelled", "Đã hủy"),
+    ]
+
+    order = models.OneToOneField(
+        Order, on_delete=models.CASCADE, related_name="shipping_order"
+    )
+    carrier = models.CharField(max_length=10, choices=CARRIER_CHOICES)
+    carrier_order_code = models.CharField(max_length=50, unique=True, verbose_name="Mã đơn carrier")
+    tracking_code = models.CharField(max_length=50, blank=True, verbose_name="Mã tracking")
+    shipping_label_pdf = models.FileField(
+        upload_to="shipping_labels/%Y/%m/%d", blank=True, null=True, verbose_name="File tem in"
+    )
+    actual_fee = models.DecimalField(
+        max_digits=12, decimal_places=0, default=0, verbose_name="Phí ship thực tế"
+    )
+    cod_amount = models.DecimalField(
+        max_digits=12, decimal_places=0, default=0, verbose_name="Tiền thu hộ (COD)"
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="created", db_index=True
+    )
+    raw_response = models.JSONField(default=dict, blank=True, verbose_name="Raw API response")
+    error_message = models.TextField(blank=True, verbose_name="Lỗi API")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    picked_up_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Đơn vận chuyển"
+        verbose_name_plural = "Đơn vận chuyển"
+        indexes = [
+            models.Index(fields=["carrier", "status"]),
+            models.Index(fields=["carrier_order_code"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_carrier_display()} #{self.carrier_order_code} - {self.order}"
+
+    @property
+    def tracking_url(self):
+        if not self.tracking_code:
+            return ""
+        base_urls = {
+            "ghn": "https://donhang.ghn.vn/?order_code={code}",
+            "ghtk": "https://i.giaohangtietkiem.vn/ma-don-hang?code={code}",
+        }
+        template = base_urls.get(self.carrier, "")
+        return template.format(code=self.tracking_code) if template else ""
+
+    def update_from_carrier(self, carrier_data: dict):
+        """Update fields from carrier webhook/API response"""
+        mapping = {
+            "ghn": {
+                "status_map": {
+                    "ready_to_pick": "pending_pickup",
+                    "picked": "picked_up",
+                    "transporting": "in_transit",
+                    "delivered": "delivered",
+                    "returned": "returned",
+                    "cancelled": "cancelled",
+                },
+                "tracking_field": "order_code",
+                "status_field": "status",
+                "fee_field": "total_fee",
+            },
+            "ghtk": {
+                "status_map": {
+                    "1": "pending_pickup",
+                    "2": "picked_up",
+                    "3": "in_transit",
+                    "4": "delivered",
+                    "5": "returned",
+                    "6": "cancelled",
+                },
+                "tracking_field": "tracking_code",
+                "status_field": "status",
+                "fee_field": "fee",
+            },
+        }
+        cfg = mapping.get(self.carrier, {})
+        if not cfg:
+            return
+
+        # Update tracking code
+        if cfg["tracking_field"] in carrier_data:
+            self.tracking_code = str(carrier_data[cfg["tracking_field"]])
+
+        # Update status
+        carrier_status = str(carrier_data.get(cfg["status_field"], ""))
+        new_status = cfg["status_map"].get(carrier_status)
+        if new_status and new_status != self.status:
+            self.status = new_status
+            if new_status == "picked_up" and not self.picked_up_at:
+                self.picked_up_at = timezone.now()
+            elif new_status == "delivered" and not self.delivered_at:
+                self.delivered_at = timezone.now()
+                # Also update parent order
+                self.order.status = "delivered"
+                self.order.delivered_at = timezone.now()
+                self.order.save(update_fields=["status", "delivered_at", "updated_at"])
+
+        # Update actual fee
+        if cfg["fee_field"] in carrier_data:
+            self.actual_fee = carrier_data[cfg["fee_field"]]
+
+        # Update COD amount
+        if "cod_amount" in carrier_data:
+            self.cod_amount = carrier_data["cod_amount"]
+
+        self.raw_response = carrier_data
+        self.save(update_fields=[
+            "tracking_code", "status", "actual_fee", "cod_amount",
+            "raw_response", "updated_at", "picked_up_at", "delivered_at"
+        ])

@@ -264,7 +264,7 @@ def apply_order_status_change(
 
 
 def is_bank_order_expired(order):
-    if order.payment_method not in ("bank", "vnpay"):
+    if order.payment_method not in ("bank", "vnpay", "momo", "zalopay", "shopeepay"):
         return False
     if order.is_paid:
         return False
@@ -546,6 +546,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     return redirect("orders:bank_payment_waiting", order_id=replayed.id)
                 if replayed.payment_method == "vnpay":
                     return redirect("orders:vnpay_payment", order_id=replayed.id)
+                if replayed.payment_method in ("momo", "zalopay", "shopeepay"):
+                    return redirect("orders:wallet_payment", method=replayed.payment_method, order_id=replayed.id)
                 return redirect("orders:order_success", order_id=replayed.id)
             payment_method = form.cleaned_data["payment_method"]
             bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
@@ -704,7 +706,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         total_amount=total_amount,
                         is_paid=False,
                         status="processing"
-                        if payment_method in ("bank", "vnpay")
+                        if payment_method in ("bank", "vnpay", "momo", "zalopay", "shopeepay")
                         else "pending",
                     )
                     order._status_changed_by_id = (
@@ -832,6 +834,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         addr.is_default = True
                         addr.save(update_fields=["is_default"])
                 from ..services.order_email import send_order_email
+                from ..services.shipping.service import create_shipping_order
 
                 send_order_email(order, event="created")
                 log_activity(
@@ -847,12 +850,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     },
                     status_code=201,
                 )
+                # Tự động tạo đơn vận chuyển cho COD
+                if payment_method == "cod":
+                    create_shipping_order(order)
                 messages.success(request, "Đặt hàng thành công.")
                 _remember_idempotency(request, idem_key, order.id)
                 if payment_method == "bank":
                     return redirect("orders:bank_payment_waiting", order_id=order.id)
                 if payment_method == "vnpay":
                     return redirect("orders:vnpay_payment", order_id=order.id)
+                if payment_method in ("momo", "zalopay", "shopeepay"):
+                    return redirect("orders:wallet_payment", method=payment_method, order_id=order.id)
                 return redirect("orders:order_success", order_id=order.id)
     else:
         form = CheckoutForm(initial=initial)

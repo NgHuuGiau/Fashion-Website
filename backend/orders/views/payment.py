@@ -71,6 +71,20 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
             request,
             "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng thử chuyển khoản ngân hàng.",
         )
+    if (
+        order.payment_method in ("momo", "zalopay", "shopeepay")
+        and not order.is_paid
+        and order.status == "processing"
+    ):
+        from .wallets import WALLET_LABELS, _gateway
+
+        g = _gateway(order.payment_method)
+        if g and g.is_configured():
+            return redirect("orders:wallet_payment", method=order.payment_method, order_id=order.id)
+        messages.error(
+            request,
+            f"Ví {WALLET_LABELS.get(order.payment_method)} chưa được cấu hình. Vui lòng thử COD/chuyển khoản.",
+        )
     if order.status == "cancelled":
         return redirect("orders:order_failed", order_id=order.id)
 
@@ -271,8 +285,11 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
             order.status = "processing"
             fields.append("status")
             from ..services.order_email import send_order_email
+            from ..services.shipping.service import create_shipping_order
 
             send_order_email(order, event="paid")
+            # Tự động tạo đơn vận chuyển sau khi thanh toán VNPay thành công
+            create_shipping_order(order)
             messages.success(request, "Thanh toán VNPay thành công.")
             order._status_change_source = "vnpay_return"
             order._status_change_transaction_id = transaction_id
@@ -369,8 +386,11 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
             order.status = "processing"
             fields.append("status")
             from ..services.order_email import send_order_email
+            from ..services.shipping.service import create_shipping_order
 
             send_order_email(order, event="paid")
+            # Tự động tạo đơn vận chuyển sau khi thanh toán VNPay thành công (IPN)
+            create_shipping_order(order)
         else:
             logger.error(
                 "Late VNPay IPN for cancelled order %s; manual reconciliation required",
