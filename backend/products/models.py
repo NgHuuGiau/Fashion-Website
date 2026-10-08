@@ -30,11 +30,11 @@ GARMENT_ART = {
         "L318,806 Z' />"
         "<path d='M336,292 L564,292' />"
     ),
-    # mu: vom + luoi trai + nut
+    # mu cloche: vom + luoi gon + nut
     "phukien": (
-        "<path d='M296,500 Q296,330 450,330 Q604,330 604,500 Z' />"
-        "<path d='M228,500 L672,500 L672,524 L228,524 Z' />"
-        "<circle cx='450' cy='306' r='14' />"
+        "<path d='M318,500 Q318,344 450,344 Q582,344 582,500 Z' />"
+        "<path d='M282,500 L618,500 L618,522 L282,522 Z' />"
+        "<circle cx='450' cy='322' r='13' />"
     ),
     # mac ao (hanger): dung cho loai la
     "generic": (
@@ -296,12 +296,12 @@ class Product(models.Model):
             "<text x='450' y='{0}' text-anchor='middle' "
             "fill='#241c16' font-family='Georgia, Times New Roman, serif' "
             "font-size='46' font-weight='400' letter-spacing='2'>{1}</text>".format(
-                912 + index * 58, line
+                848 + index * 58, line
             )
             for index, line in enumerate(product_lines)
         )
         category_label = escape(category_label)
-        art = garment_group(slug, cx=450, cy=520, scale=0.92)
+        art = garment_group(slug, cx=450, cy=492, scale=0.60)
         svg = """
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
             <defs>
@@ -319,7 +319,7 @@ class Product(models.Model):
             <circle cx='450' cy='148' r='52' fill='none' stroke='#2e2620' stroke-width='5' />
             <text x='450' y='166' text-anchor='middle' fill='#2e2620' font-family='Georgia, Times New Roman, serif' font-size='52'>H</text>
             {art}
-            <text x='450' y='858' text-anchor='middle' fill='#96754f' font-family='Arial, sans-serif' font-size='30' font-weight='700' letter-spacing='10'>{category_label}</text>
+            <text x='450' y='794' text-anchor='middle' fill='#96754f' font-family='Arial, sans-serif' font-size='30' font-weight='700' letter-spacing='10'>{category_label}</text>
             {title_svg}
             <text x='450' y='1062' text-anchor='middle' fill='#a08b74' font-family='Arial, sans-serif' font-size='22' font-weight='600' letter-spacing='6'>HUUGIAU ATELIER</text>
         </svg>
