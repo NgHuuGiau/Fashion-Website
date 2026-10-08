@@ -4,7 +4,6 @@ ponytail: 1 file, re-use sw.js push handler, khong them app.
 import json
 import logging
 
-import pywebpush as webpush
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +12,15 @@ from django.views.decorators.http import require_GET, require_POST
 from users.models import UserProfile
 
 logger = logging.getLogger(__name__)
+
+try:
+    import pywebpush as webpush
+
+    _WebPushException = webpush.WebPushException
+except ImportError:  # ponytail: thieu lib tuy chon thi chi tat gui push, khong sap site
+    webpush = None
+    _WebPushException = Exception
+    logger.warning("pywebpush chua cai; chuc nang gui push bi tat")
 
 
 def _vapid_keys():
@@ -110,6 +118,9 @@ def send_push_to_user(user, payload: dict, ttl: int = 86400) -> int:
     if not vapid["public_key"]:
         logger.warning("VAPID not configured, skip push")
         return 0
+    if webpush is None:
+        logger.warning("pywebpush chua cai, skip push")
+        return 0
 
     sent = 0
     for sub in subs:
@@ -122,7 +133,7 @@ def send_push_to_user(user, payload: dict, ttl: int = 86400) -> int:
                 ttl=ttl,
             )
             sent += 1
-        except webpush.WebPushException as e:
+        except _WebPushException as e:
             # 410/404 = subscription expired -> xoa
             if e.response and e.response.status_code in (404, 410):
                 profile.push_subscriptions = [s for s in profile.push_subscriptions if s.get("endpoint") != sub["endpoint"]]
@@ -133,11 +144,10 @@ def send_push_to_user(user, payload: dict, ttl: int = 86400) -> int:
 
 def send_push_to_all(payload: dict, ttl: int = 86400) -> int:
     """Broadcast den tat ca subscriptions (user + guest session). Dung de thong bao flash sale."""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
     vapid = _vapid_keys()
     if not vapid["public_key"]:
+        return 0
+    if webpush is None:
         return 0
 
     sent = 0
@@ -153,7 +163,7 @@ def send_push_to_all(payload: dict, ttl: int = 86400) -> int:
                     ttl=ttl,
                 )
                 sent += 1
-            except webpush.WebPushException as e:
+            except _WebPushException as e:
                 if e.response and e.response.status_code in (404, 410):
                     profile.push_subscriptions = [s for s in profile.push_subscriptions if s.get("endpoint") != sub["endpoint"]]
                     profile.save(update_fields=["push_subscriptions"])
