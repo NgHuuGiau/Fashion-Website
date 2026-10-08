@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.utils.html import format_html
 
 from .models import (
     CartReminder,
@@ -10,6 +11,7 @@ from .models import (
     OrderStatusHistory,
     RefundRecord,
     ReturnRequest,
+    ShippingOrder,
 )
 
 
@@ -70,6 +72,25 @@ class OrderAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(self.readonly_fields)
+        if obj and obj.payment_method == "bank" and not obj.is_paid:
+            fields.append("reconciliation_checklist")
+        return fields
+
+    def reconciliation_checklist(self, obj):
+        # ponytail: checklist tĩnh cho đối soát tay, tự động hoá khi có IPN ngân hàng
+        return format_html(
+            "<ol>"
+            "<li>Mở app ngân hàng, tìm giao dịch tới STK shop đúng số tiền <b>{}</b>.</li>"
+            "<li>Khách báo đã chuyển KHÔNG phải bằng chứng — chỉ tick khi tiền đã vào.</li>"
+            "<li>Xong thì đánh dấu đã thanh toán ở form trạng thái đơn (dashboard).</li>"
+            "</ol>",
+            obj.total_amount,
+        )
+
+    reconciliation_checklist.short_description = "Checklist đối soát chuyển khoản"
 
 
 @admin.register(OrderItem)
@@ -190,3 +211,108 @@ class CartReminderAdmin(admin.ModelAdmin):
     list_display = ("session_key", "user", "email", "updated_at", "reminded_at")
     search_fields = ("email", "session_key", "user__username")
     list_filter = ("reminded_at",)
+
+
+@admin.register(ShippingOrder)
+class ShippingOrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "order",
+        "carrier",
+        "carrier_order_code",
+        "tracking_code",
+        "status",
+        "actual_fee",
+        "cod_amount",
+        "created_at",
+    )
+    list_filter = ("carrier", "status", "created_at")
+    search_fields = ("carrier_order_code", "tracking_code", "order__id", "order__customer_name", "order__phone")
+    readonly_fields = (
+        "order",
+        "carrier",
+        "carrier_order_code",
+        "tracking_code",
+        "shipping_label_pdf",
+        "actual_fee",
+        "cod_amount",
+        "status",
+        "raw_response",
+        "error_message",
+        "created_at",
+        "updated_at",
+        "picked_up_at",
+        "delivered_at",
+    )
+    actions = ["create_shipping_order_action", "print_shipping_label_action", "cancel_shipping_order_action", "sync_status_action"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description="Tạo đơn vận chuyển (GHN)")
+    def create_shipping_order_action(self, request, queryset):
+        from .services.shipping.service import create_shipping_order
+        success = 0
+        for shipping_order in queryset:
+            if shipping_order.status != "created" and shipping_order.status != "failed":
+                self.message_user(request, f"#{shipping_order.id}: Chỉ tạo được cho đơn mới/failed", level="warning")
+                continue
+            order = shipping_order.order
+            if not order.carrier:
+                order.carrier = "ghn"
+                order.save(update_fields=["carrier"])
+            try:
+                result = create_shipping_order(order)
+                if result and result.status != "failed":
+                    success += 1
+                else:
+                    self.message_user(request, f"#{order.id}: {result.error_message if result else 'Unknown error'}", level="error")
+            except Exception as e:
+                self.message_user(request, f"#{order.id}: {e}", level="error")
+        self.message_user(request, f"Đã tạo {success}/{len(queryset)} đơn vận chuyển.")
+
+    @admin.action(description="In tem vận đơn (GHN)")
+    def print_shipping_label_action(self, request, queryset):
+        from .services.shipping.service import print_shipping_label
+        success = 0
+        for shipping_order in queryset:
+            if not shipping_order.carrier_order_code:
+                self.message_user(request, f"#{shipping_order.id}: Chưa có mã đơn carrier", level="warning")
+                continue
+            try:
+                pdf_bytes = print_shipping_label(shipping_order)
+                if pdf_bytes:
+                    success += 1
+                else:
+                    self.message_user(request, f"#{shipping_order.id}: Không lấy được PDF", level="error")
+            except Exception as e:
+                self.message_user(request, f"#{shipping_order.id}: {e}", level="error")
+        self.message_user(request, f"Đã in {success}/{len(queryset)} tem.")
+
+    @admin.action(description="Hủy đơn vận chuyển (GHN)")
+    def cancel_shipping_order_action(self, request, queryset):
+        from .services.shipping.service import cancel_shipping_order
+        success = 0
+        for shipping_order in queryset:
+            if shipping_order.status in ["delivered", "cancelled"]:
+                self.message_user(request, f"#{shipping_order.id}: Không thể hủy đơn đã giao/đã hủy", level="warning")
+                continue
+            if cancel_shipping_order(shipping_order):
+                success += 1
+            else:
+                self.message_user(request, f"#{shipping_order.id}: Hủy thất bại", level="error")
+        self.message_user(request, f"Đã hủy {success}/{len(queryset)} đơn.")
+
+    @admin.action(description="Đồng bộ trạng thái từ carrier")
+    def sync_status_action(self, request, queryset):
+        from .services.shipping.service import sync_shipping_status
+        success = 0
+        for shipping_order in queryset:
+            if sync_shipping_status(shipping_order):
+                success += 1
+            else:
+                self.message_user(request, f"#{shipping_order.id}: Sync thất bại", level="error")
+        self.message_user(request, f"Đã đồng bộ {success}/{len(queryset)} đơn.")
