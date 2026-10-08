@@ -7612,6 +7612,9 @@ body {
 .variant-swatch { color: var(--text-strong); }
 .variant-size-btn { color: var(--text-strong); }
 
+/* Stepper số lượng co theo nội dung, không bè full-width trong grid. */
+.qty-row .qty-stepper { justify-self: start; }
+
 @media (width <= 480px) {
     .buy-actions { grid-template-columns: 1fr; }
 
