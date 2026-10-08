@@ -15,6 +15,13 @@ from orders.models import Coupon, Order, OrderItem
 from products.models import Product, Review
 from users.models import UserProfile, UserAddress
 from django.utils import timezone
+from django.conf import settings
+
+if not settings.DEBUG or os.environ.get("ALLOW_DESTRUCTIVE_DEMO_RESET") != "YES":
+    raise SystemExit(
+        "Refusing to reset data. Use only a disposable DEBUG database with "
+        "ALLOW_DESTRUCTIVE_DEMO_RESET=YES."
+    )
 
 # Clear existing data
 Review.objects.all().delete()

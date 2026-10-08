@@ -11,7 +11,7 @@ from django.test import Client
 from django.utils.text import slugify
 
 from core.demo_data import refuse_demo_seed_in_production
-from products.constants import APPAREL_CATEGORY_SLUGS, FEATURED_PRODUCT_LIMIT
+from products.constants import FEATURED_PRODUCT_LIMIT
 from products.models import Category, Product, ProductVariant
 
 DEFAULT_CATEGORY_NAME = "Áo"
@@ -32,11 +32,7 @@ CATEGORY_ALIASES = {
     "Áo": DEFAULT_CATEGORY_NAME,
     "Ao": DEFAULT_CATEGORY_NAME,
 }
-DEFAULT_VARIANT_COLORS = [("Đen", "#111111"), ("Trắng", "#F5F5F5")]
-APPAREL_SIZES = ["M", "L", "XL"]
-ACCESSORY_SIZES = ["FREE"]
 FEATURED_PER_CATEGORY = FEATURED_PRODUCT_LIMIT // len(CATEGORY_DISPLAY_ORDER)
-DEFAULT_VARIANT_STOCK = 50
 LOADTEST_REQUESTS_PER_USER = 10
 
 
@@ -112,13 +108,6 @@ class Command(BaseCommand):
 
         data = json.loads(json_path.read_text(encoding="utf-8"))
 
-        db_slugs = {product.slug: product for product in Product.objects.all()}
-        json_slugs = {item.get("slug") or slugify(item["name"]) for item in data}
-
-        to_delete = set(db_slugs.keys()) - json_slugs
-        if to_delete:
-            Product.objects.filter(slug__in=to_delete).delete()
-
         for item in data:
             name = item["name"].strip()
             slug = item.get("slug") or slugify(name)
@@ -140,12 +129,33 @@ class Command(BaseCommand):
                     "category": category,
                     "name": name,
                     "price": item.get("price", 0),
+                    "compare_price": item.get("compare_price"),
+                    "description": item.get("description", ""),
+                    "stock": 0,
                     "featured": bool(item.get("featured")),
                     "image_url": item.get("image_url", ""),
-                    "available": True,
+                    "available": False,
                 },
             )
-            self._seed_variants_minimal(product)
+            product.variants.update(stock=0, is_active=False)
+            total_stock = 0
+            for variant in item.get("variants", []):
+                for size, stock in variant.get("sizes", {}).items():
+                    stock = int(stock)
+                    ProductVariant.objects.update_or_create(
+                        product=product,
+                        color_name=variant["color_name"],
+                        size=size,
+                        defaults={
+                            "color_code": variant.get("color_code", "#111111"),
+                            "stock": stock,
+                            "is_active": stock > 0,
+                        },
+                    )
+                    total_stock += stock
+            product.stock = total_stock
+            product.available = total_stock > 0
+            product.save(update_fields=["stock", "available"])
 
         self.stdout.write(self.style.SUCCESS(f"Đã đồng bộ {len(data)} sản phẩm."))
 
@@ -248,25 +258,3 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Kết quả: Avg={avg:.1f}ms, P95={p95:.1f}ms")
         )
-
-    def _seed_variants_minimal(self, product):
-        if product.variants.exists():
-            return
-
-        sizes = (
-            APPAREL_SIZES
-            if product.category.slug in APPAREL_CATEGORY_SLUGS
-            else ACCESSORY_SIZES
-        )
-        for color_name, color_code in DEFAULT_VARIANT_COLORS:
-            for size in sizes:
-                ProductVariant.objects.get_or_create(
-                    product=product,
-                    color_name=color_name,
-                    color_code=color_code,
-                    size=size,
-                    defaults={"stock": DEFAULT_VARIANT_STOCK, "is_active": True},
-                )
-
-        product.stock = DEFAULT_VARIANT_STOCK * len(DEFAULT_VARIANT_COLORS) * len(sizes)
-        product.save(update_fields=["stock"])

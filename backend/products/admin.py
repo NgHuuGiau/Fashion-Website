@@ -7,7 +7,10 @@ from django.urls import reverse
 from .models import (
     BackInStock,
     BlogPost,
+    Bundle,
     Category,
+    FlashSale,
+    FlashSaleItem,
     NewsletterSubscriber,
     PriceHistory,
     Product,
@@ -17,6 +20,27 @@ from .models import (
     SupportFAQ,
     WishlistItem,
 )
+
+
+class FlashSaleItemInline(admin.TabularInline):
+    model = FlashSaleItem
+    extra = 0
+    autocomplete_fields = ("product",)
+
+
+@admin.register(FlashSale)
+class FlashSaleAdmin(admin.ModelAdmin):
+    list_display = ("name", "starts_at", "ends_at", "is_active")
+    list_filter = ("is_active",)
+    inlines = [FlashSaleItemInline]
+
+
+@admin.register(Bundle)
+class BundleAdmin(admin.ModelAdmin):
+    list_display = ("name", "bundle_price", "is_active")
+    list_filter = ("is_active",)
+    prepopulated_fields = {"slug": ("name",)}
+    filter_horizontal = ("products",)
 
 
 @admin.register(Category)

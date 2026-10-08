@@ -21,7 +21,7 @@
                 <img class="blog-article-cover" src="{{ post.cover_image_url }}" alt="{{ post.title }}">
                 {% endif %}
             </header>
-            <div class="page-body">{{ post.body|linebreaks }}</div>
+            <div class="page-body">{{ post.body|safe }}</div>
         </article>
         <p style="margin-top:2rem"><a href="{% url 'products:blog_list' %}" class="btn ghost">← Về trang Lookbook</a></p>
     </div>

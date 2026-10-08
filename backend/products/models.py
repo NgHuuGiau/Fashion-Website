@@ -29,12 +29,77 @@ class Category(models.Model):
         return self.name
 
 
+
+class Brand(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Ten thuong hieu")
+    slug = models.SlugField(max_length=100, unique=True, db_index=True)
+    logo = models.ImageField(upload_to="brands/", blank=True, verbose_name="Logo")
+    description = models.TextField(blank=True, verbose_name="Mo ta")
+    is_active = models.BooleanField(default=True, verbose_name="Hoat dong")
+    # ponytail: size guide per brand - JSON {size: {chest, waist, hip, length}}
+    size_guide = models.JSONField(default=dict, blank=True, verbose_name="Bang size")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = "Thuong hieu"
+        verbose_name_plural = "Thuong hieu"
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse("products:brand_detail", kwargs={"slug": self.slug})
+
+
+class Collection(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Ten bo suu tap")
+    slug = models.SlugField(max_length=100, unique=True, db_index=True)
+    image = models.ImageField(upload_to="collections/", blank=True, verbose_name="Anh bo suu tap")
+    description = models.TextField(blank=True, verbose_name="Mo ta")
+    is_active = models.BooleanField(default=True, verbose_name="Hoat dong")
+    featured = models.BooleanField(default=False, verbose_name="Noi bat")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created",)
+        verbose_name = "Bo suu tap"
+        verbose_name_plural = "Cac bo suu tap"
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse("products:collection_detail", kwargs={"slug": self.slug})
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True, verbose_name="Ten tag")
+    slug = models.SlugField(max_length=50, unique=True, db_index=True)
+    color = models.CharField(max_length=7, default="#6366f1", verbose_name="Mau sac")
+    is_active = models.BooleanField(default=True, verbose_name="Hoat dong")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = "Tag"
+        verbose_name_plural = "Tags"
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     category = models.ForeignKey(
         Category, related_name="products", on_delete=models.CASCADE
     )
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
     slug = models.SlugField(max_length=200, db_index=True)
+    sku = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Mã SKU", db_index=True)
     image = models.ImageField(
         upload_to="products/%Y/%m/%d",
         blank=True,
@@ -60,6 +125,27 @@ class Product(models.Model):
         default=True, verbose_name="Đang bán", db_index=True
     )
     featured = models.BooleanField(default=False, verbose_name="Nổi bật", db_index=True)
+    # SEO fields
+    meta_title = models.CharField(max_length=60, blank=True, verbose_name="SEO Title")
+    meta_description = models.CharField(max_length=160, blank=True, verbose_name="SEO Description")
+    meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="SEO Keywords")
+    # Brand & Collection
+    brand = models.ForeignKey(
+        'Brand', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='products', verbose_name="Thương hiệu"
+    )
+    collection = models.ForeignKey(
+        'Collection', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='products', verbose_name="Bộ sưu tập"
+    )
+    # Tags for filtering
+    tags = models.ManyToManyField('Tag', blank=True, related_name='products', verbose_name="Tags")
+    # Attributes for flexible filtering (color, size, material, etc.)
+    attributes = models.JSONField(default=dict, blank=True, verbose_name="Thuộc tính")
+    # Inventory tracking
+    reserved_stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng đã giữ")
+    low_stock_threshold = models.PositiveIntegerField(default=5, verbose_name="Ngưỡng cảnh báo tồn kho")
+    track_inventory = models.BooleanField(default=True, verbose_name="Theo dõi tồn kho")
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True, db_index=True)
 
@@ -68,14 +154,25 @@ class Product(models.Model):
         indexes = [
             models.Index(fields=["id", "slug"]),
             models.Index(fields=["name"]),
+            models.Index(fields=["sku"]),
             models.Index(fields=["available", "featured", "price"]),
             models.Index(fields=["available", "stock"]),
             models.Index(fields=["category", "available", "-created"]),
+            models.Index(fields=["brand", "available", "-created"]),
+            models.Index(fields=["collection", "available", "-created"]),
         ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(stock__gte=0),
                 name="product_stock_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=Q(reserved_stock__gte=0),
+                name="product_reserved_stock_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=Q(reserved_stock__lte=models.F('stock')),
+                name="product_reserved_not_exceed_stock",
             ),
         ]
 
@@ -83,6 +180,12 @@ class Product(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        # Auto-generate SKU if not provided
+        if not self.sku and self.name:
+            import re
+            base = re.sub(r'[^a-zA-Z0-9]', '', self.name.upper())[:20]
+            import uuid
+            self.sku = "{}-{}".format(base, uuid.uuid4().hex[:8].upper())
         # P3.2: ghi lich su khi gia doi (cover dashboard + admin + shell).
         # Bo qua khi save chi update stock (checkout hot path).
         update_fields = kwargs.get("update_fields")
@@ -131,17 +234,17 @@ class Product(models.Model):
         ) or ["HUUGIAU"]
         product_lines = product_lines[:2]
         if len(product_lines) == 2 and len(wrap(product_label_raw, width=20)) > 2:
-            product_lines[1] = f"{product_lines[1][:17].rstrip()}…"
+            product_lines[1] = "{}...".format(product_lines[1][:17].rstrip())
         product_lines = [escape(line) for line in product_lines]
         title_svg = "".join(
-            f"<text x='450' y='{485 + index * 72}' text-anchor='middle' "
-            "fill='#16110f' font-family='Arial, sans-serif' "
-            f"font-size='{max(38, min(58, 860 // max(len(line), 1)))}' "
-            f"font-weight='900'>{line}</text>"
+            "<text x='450' y='{0}' text-anchor='middle' ".format(485 + index * 72) +
+            "fill='#16110f' font-family='Arial, sans-serif' " +
+            "font-size='{0}' ".format(max(38, min(58, 860 // max(len(line), 1)))) +
+            "font-weight='900'>{0}</text>".format(line)
             for index, line in enumerate(product_lines)
         )
         category_label = escape(category_label)
-        svg = f"""
+        svg = """
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 1125'>
             <defs>
                 <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
@@ -157,8 +260,8 @@ class Product(models.Model):
             {title_svg}
             <text x='450' y='650' text-anchor='middle' fill='#7b6758' font-family='Arial, sans-serif' font-size='30' font-weight='700'>HUUGIAU LOOKBOOK</text>
         </svg>
-        """.strip()
-        return f"data:image/svg+xml;utf8,{quote(svg)}"
+        """.strip().format(category_label=category_label, title_svg=title_svg)
+        return "data:image/svg+xml;utf8,{0}".format(quote(svg))
 
     @property
     def requires_variants(self):
@@ -197,7 +300,7 @@ class Product(models.Model):
             return ""
 
         relative_url = str(relative_path).replace("\\", "/")
-        return f"{settings.MEDIA_URL}{relative_url}"
+        return "{0}{1}".format(settings.MEDIA_URL, relative_url)
 
     def _generated_detail_images(self):
         images = []
@@ -215,8 +318,8 @@ class Product(models.Model):
         seen_urls.add(image_url)
 
     def get_gallery_images(self, include_primary=True):
-        images: list = []
-        seen_urls: set = set()
+        images = []
+        seen_urls = set()
 
         primary_url = self.get_image() if include_primary else ""
         self._append_unique_image(images, seen_urls, primary_url, True)
@@ -271,6 +374,40 @@ class Product(models.Model):
             return variant_stock
         return self.stock
 
+    def get_effective_price(self):
+        # ponytail: gia flash sale neu dang chay, khong thi gia thuong - 1 cho duy nhat
+        try:
+            now = timezone.now()
+            item = self.flash_items.filter(sale__is_active=True, sale__starts_at__lte=now, sale__ends_at__gte=now).order_by("sale_price").first()
+            if item and item.remaining > 0:
+                return item.sale_price
+        except Exception:
+            pass
+        return self.price
+
+    def get_available_stock(self):
+        """Get stock available for sale (total - reserved)."""
+        return max(0, self.get_total_stock() - self.reserved_stock)
+
+    def reserve_stock(self, quantity):
+        """Reserve stock for an order/cart. Returns True if successful."""
+        if not self.track_inventory:
+            return True
+        if self.get_available_stock() >= quantity:
+            self.reserved_stock += quantity
+            self.save(update_fields=["reserved_stock"])
+            return True
+        return False
+
+    def release_stock(self, quantity):
+        """Release reserved stock (e.g., cart abandoned, order cancelled)."""
+        self.reserved_stock = max(0, self.reserved_stock - quantity)
+        self.save(update_fields=["reserved_stock"])
+
+    def is_low_stock(self):
+        """Check if stock is at or below threshold."""
+        return self.get_available_stock() <= self.low_stock_threshold
+
     def get_cross_sell_products(self, limit=4):
         """Sản phẩm thường được mua cùng (cross-sell) dựa trên lịch sử đơn hàng."""
         from orders.models import OrderItem
@@ -294,7 +431,6 @@ class Product(models.Model):
             "id", "name", "slug", "price", "image", "image_url"
         )
 
-
 class ProductVariant(models.Model):
     product = models.ForeignKey(
         Product, related_name="variants", on_delete=models.CASCADE
@@ -309,6 +445,19 @@ class ProductVariant(models.Model):
     )
     is_active = models.BooleanField(
         default=True, verbose_name="Hiển thị", db_index=True
+    )
+    # Shipping dimensions (grams, cm) - dùng cho tính phí GHN/GHTK
+    weight = models.PositiveIntegerField(
+        default=200, verbose_name="Trọng lượng (gram)", help_text="Trọng lượng một sản phẩm, mặc định 200g"
+    )
+    length = models.PositiveIntegerField(
+        default=30, verbose_name="Dài (cm)", help_text="Chiều dài bao bì"
+    )
+    width = models.PositiveIntegerField(
+        default=20, verbose_name="Rộng (cm)", help_text="Chiều rộng bao bì"
+    )
+    height = models.PositiveIntegerField(
+        default=10, verbose_name="Cao (cm)", help_text="Chiều cao bao bì"
     )
 
     class Meta:
@@ -401,6 +550,12 @@ class Review(models.Model):
     rating = models.PositiveSmallIntegerField(
         choices=RATING_CHOICES, verbose_name="Số sao", db_index=True
     )
+    # ponytail: review media - photo/video upload cho social proof
+    media_type = models.CharField(
+        max_length=10, choices=[("image", "Ảnh"), ("video", "Video")], blank=True
+    )
+    media_file = models.FileField(upload_to="reviews/%Y/%m/", blank=True)
+    media_thumb = models.ImageField(upload_to="reviews/thumbs/%Y/%m/", blank=True)
     comment = models.TextField(blank=True, verbose_name="Nội dung đánh giá")
     shop_reply = models.TextField(blank=True, verbose_name="Shop phản hồi")
     customer_reply = models.TextField(
@@ -528,6 +683,63 @@ class ProductQuestion(models.Model):
         if self.answer and not self.answered_at:
             self.answered_at = timezone.now()
         super().save(*args, **kwargs)
+
+
+# ponytail: flash sale + bundle toi gian - 2 model, khong tach app moi
+class FlashSale(models.Model):
+    name = models.CharField(max_length=150)
+    starts_at = models.DateTimeField(db_index=True)
+    ends_at = models.DateTimeField(db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-starts_at"]
+
+    def __str__(self):
+        return self.name
+
+    def is_running(self):
+        now = timezone.now()
+        return self.is_active and self.starts_at <= now <= self.ends_at
+
+
+class FlashSaleItem(models.Model):
+    sale = models.ForeignKey(FlashSale, related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name="flash_items", on_delete=models.CASCADE)
+    sale_price = models.DecimalField(max_digits=10, decimal_places=0)
+    quantity = models.PositiveIntegerField(default=0, verbose_name="SL flash sale")
+    sold = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = [("sale", "product")]
+
+    def __str__(self):
+        return f"{self.sale.name} - {self.product.name}"
+
+    @property
+    def remaining(self):
+        return max(0, self.quantity - self.sold)
+
+
+class Bundle(models.Model):
+    name = models.CharField(max_length=150)
+    slug = models.SlugField(unique=True)
+    products = models.ManyToManyField(Product, related_name="bundles")
+    bundle_price = models.DecimalField(max_digits=12, decimal_places=0)
+    is_active = models.BooleanField(default=True, db_index=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created"]
+
+    def __str__(self):
+        return self.name
+
+    def total_compare(self):
+        return sum((p.price for p in self.products.all()), 0)
 
 
 class BackInStock(models.Model):

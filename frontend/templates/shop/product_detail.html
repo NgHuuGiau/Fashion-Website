@@ -48,7 +48,7 @@
             <div>
                 <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
                 <h1>{{ product.name|repair_text }}</h1>
-                <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %} <span class="price-usd-hint">≈ ${{ product.price|div:25000|floatformat:0 }}</span></p>
+                <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
                 <div class="detail-social-proof">
                     {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
                     <span><i class="fa-solid fa-eye" aria-hidden="true"></i> <span data-viewers-count>{{ viewing_now }}</span> người đang xem</span>

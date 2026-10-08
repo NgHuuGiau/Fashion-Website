@@ -1,3 +1,6 @@
+import json
+import tempfile
+from pathlib import Path
 from urllib.parse import parse_qs
 
 from django.contrib.auth.models import User
@@ -7,6 +10,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Category, Product, ProductVariant, Review, SupportFAQ, WishlistItem
+from .management.commands.seed_products import Command as SeedProductsCommand
 
 
 class DemoSeedCommandSafetyTests(TestCase):
@@ -24,6 +28,45 @@ class DemoSeedCommandSafetyTests(TestCase):
             with self.subTest(command=command):
                 with self.assertRaisesMessage(CommandError, "DEBUG=False"):
                     call_command(command, **options)
+
+    def test_product_sync_preserves_unlisted_products_and_imports_realistic_fields(self):
+        category = Category.objects.create(name="Áo", slug="ao")
+        unrelated = Product.objects.create(
+            category=category, name="Giữ lại", slug="keep-this", price=100000
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            seed_path = Path(directory) / "products.json"
+            seed_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "Áo demo",
+                            "slug": "source-demo-shirt",
+                            "category_name": "Áo",
+                            "price": 200000,
+                            "compare_price": 250000,
+                            "description": "Nguồn mẫu; tồn kho demo.",
+                            "variants": [
+                                {
+                                    "color_name": "Đen",
+                                    "color_code": "#171717",
+                                    "sizes": {"M": 3},
+                                }
+                            ],
+                        }
+                    ],
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            SeedProductsCommand()._sync_from_json(seed_path)
+
+        self.assertTrue(Product.objects.filter(pk=unrelated.pk).exists())
+        imported = Product.objects.get(slug="source-demo-shirt")
+        self.assertEqual(imported.compare_price, 250000)
+        self.assertEqual(imported.stock, 3)
+        self.assertTrue(imported.available)
+        self.assertEqual(imported.variants.get().stock, 3)
 
 
 class ProductViewsTest(TestCase):
@@ -981,6 +1024,12 @@ class ProductGeneratedAssetTest(TestCase):
     def setUp(self):
         from django.conf import settings
 
+        # ponytail: MEDIA_ROOT tạm riêng mỗi test, tránh worker xdist xoá file của nhau
+        self._media_tmp = tempfile.TemporaryDirectory()
+        self._media_override = override_settings(
+            MEDIA_ROOT=Path(self._media_tmp.name)
+        )
+        self._media_override.enable()
         self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
         self.product = Product.objects.create(
             category=self.pk,
@@ -1000,6 +1049,8 @@ class ProductGeneratedAssetTest(TestCase):
         import shutil
 
         shutil.rmtree(self.gen_dir, ignore_errors=True)
+        self._media_override.disable()
+        self._media_tmp.cleanup()
 
     def test_get_image_returns_generated_cover(self):
         from django.conf import settings

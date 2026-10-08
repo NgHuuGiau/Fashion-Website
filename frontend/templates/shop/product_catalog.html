@@ -6,23 +6,20 @@
 
 {% block content %}
 {% if is_random_home %}
-<section class="hero-shell" data-home-hero>
-    <div class="hero-grid hero-grid-split">
-        <article class="hero-cover panel">
-            <picture class="hero-cover-image">
-                <source srcset="{% static 'images/banner.webp' %}" type="image/webp">
-                <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
-            </picture>
-            <div class="hero-cover-copy">
-                <p class="eyebrow">HUUGIAU Atelier</p>
-                <h1>Gọn mà có gu, mặc mỗi ngày.</h1>
-                <p class="hero-text">Nơi gói gọn mọi câu trả lời cho outfit mỗi ngày của bạn. Streetwear tối giản, sắc nét và cực dễ match. Lướt nhanh, chọn chất, chốt đơn trong một nốt nhạc.</p>
-                <div class="hero-actions">
-                    <a href="#featured-products" class="btn">Mua ngay</a>
-                    <a href="{% url 'products:product_list' %}?sort=newest" class="btn ghost">Xem catalog</a>
-                </div>
-            </div>
-        </article>
+<section class="hero-fullbleed" data-home-hero>
+    <div class="hero-bg-overlay"></div>
+    <picture class="hero-bg">
+        <source srcset="{% static 'images/banner.webp' %}" type="image/webp">
+        <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
+    </picture>
+    <div class="hero-content">
+        <p class="hero-eyebrow">HUUGIAU Atelier</p>
+        <h1 class="hero-title">Gọn mà có gu,<br>mặc mỗi ngày.</h1>
+        <p class="hero-subtitle">Streetwear tối giản, sắc nét và cực dễ match. Lướt nhanh, chọn chất, chốt đơn trong một nốt nhạc.</p>
+        <div class="hero-btn-group">
+            <a href="#featured-products" class="btn btn-hero">Mua ngay</a>
+            <a href="{% url 'products:product_list' %}?sort=newest" class="btn btn-hero btn-hero-ghost">Xem catalog</a>
+        </div>
     </div>
 </section>
 
