@@ -59,7 +59,8 @@ test.describe('Authentication Flows', () => {
     
     await page.click('button[type="submit"]');
     
-    // Should redirect after successful registration
-    await expect(page).not.toHaveURL(/\/dang-ky\//);
+    // Should redirect to email verification step after code is sent
+    await expect(page).toHaveURL(/\/dang-ky\/xac-minh\//);
+    await expect(page.locator('input[name="code"]')).toBeVisible();
   });
 });

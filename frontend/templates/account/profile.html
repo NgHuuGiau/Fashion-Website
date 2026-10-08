@@ -17,7 +17,11 @@
     <div class="account-layout">
         <div class="account-sidebar panel">
             <div class="account-avatar-box">
+                {% if profile.avatar %}
+                <img class="account-avatar-img" src="{{ profile.avatar.url }}" alt="Ảnh đại diện">
+                {% else %}
                 <div class="account-avatar" aria-hidden="true">{{ display_initials }}</div>
+                {% endif %}
                 <h2>{{ display_name }}</h2>
                 <p class="muted">{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
             </div>
@@ -64,12 +68,18 @@
         </div>
 
         <div class="account-main panel">
-            <form method="post" class="profile-form">
+            <form method="post" enctype="multipart/form-data" class="profile-form">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
                 <div class="message error">{{ form.non_field_errors|striptags }}</div>
                 {% endif %}
                 <div class="profile-grid">
+                    <label class="profile-field avatar-field">
+                        <span>{{ form.avatar.label }}</span>
+                        {{ form.avatar }}
+                        {% if form.avatar.errors %}<small class="error-text">{{ form.avatar.errors|striptags }}</small>{% endif %}
+                        {% if form.avatar.help_text %}<small class="help-text">{{ form.avatar.help_text }}</small>{% endif %}
+                    </label>
                     <label class="profile-field">
                         <span>Họ</span>
                         {{ form.first_name }}

@@ -3,6 +3,8 @@ import re
 from django import forms
 from django.contrib.auth.models import User
 
+from products.validators import validate_product_image
+
 from .models import UserProfile
 
 
@@ -12,11 +14,15 @@ class RegisterForm(forms.ModelForm):
         max_length=150,
         help_text="",
     )
+    email = forms.EmailField(
+        label="Gmail",
+        help_text="Bắt buộc. Shop gửi mã xác thực về địa chỉ này.",
+    )
     phone_number = forms.CharField(
         label="Số điện thoại",
         required=False,
         max_length=20,
-        help_text="Nhập email hoặc số điện thoại (ít nhất 1 mục).",
+        help_text="Không bắt buộc, chỉ để giao hàng liên lạc.",
         widget=forms.TextInput(
             attrs={
                 "oninput": "this.value = this.value.replace(/[^0-9]/g, '')",
@@ -54,6 +60,14 @@ class RegisterForm(forms.ModelForm):
         if User.objects.filter(username=username).exists():
             raise forms.ValidationError("Tên đăng nhập đã tồn tại.")
         return username
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise forms.ValidationError("Vui lòng nhập Gmail.")
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Gmail này đã được dùng cho tài khoản khác.")
+        return email
 
     def clean_phone_number(self):
         phone = (self.cleaned_data.get("phone_number") or "").strip()
@@ -127,6 +141,12 @@ class ProfileForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date"}),
         help_text="Để trống nếu không muốn nhận ưu đãi sinh nhật. Bạn có thể nhận mã giảm 20% vào đúng tháng sinh nhật.",
     )
+    avatar = forms.ImageField(
+        label="Ảnh đại diện",
+        required=False,
+        validators=[validate_product_image],
+        help_text="JPG, PNG hoặc WebP, tối đa 5MB.",
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
@@ -175,6 +195,13 @@ class ProfileForm(forms.Form):
                 "birthday": self.cleaned_data.get("birthday") or None,
             },
         )
+        avatar = self.cleaned_data.get("avatar")
+        if avatar:
+            profile = user.profile
+            old = profile.avatar.name if profile.avatar else ""
+            if old:
+                profile.avatar.storage.delete(old)
+            profile.avatar.save(avatar.name, avatar, save=True)
         return user
 
 

@@ -1,10 +1,14 @@
 import logging
 import os
+import secrets
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -59,6 +63,10 @@ def _build_login_candidates(identifier: str) -> list:
     return login_candidates
 
 
+REGISTER_CODE_TTL = 600
+REGISTER_MAX_ATTEMPTS = 5
+
+
 @rate_limit(
     "register",
     max_requests=5,
@@ -72,16 +80,171 @@ def register_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            _sync_visitor_auth_state(request, user)
-            log_activity(request, event_type="register", status_code=201)
-            messages.success(request, "Tạo tài khoản thành công.")
-            return redirect("products:product_list")
+            email = form.cleaned_data["email"]
+            code = f"{secrets.randbelow(1000000):06d}"
+            cache.set(_register_code_key(email), code, REGISTER_CODE_TTL)
+            cache.delete(_register_attempt_key(email))
+            request.session["pending_register"] = {
+                "username": form.cleaned_data["username"],
+                "first_name": form.cleaned_data.get("first_name", ""),
+                "last_name": form.cleaned_data.get("last_name", ""),
+                "email": email,
+                "phone_number": form.cleaned_data.get("phone_number", ""),
+                "password": form.cleaned_data["password1"],
+            }
+            try:
+                _send_register_code(email, code)
+            except Exception:
+                logger.exception("Không gửi được mã xác thực đăng ký")
+                messages.error(
+                    request,
+                    "Không gửi được mã xác thực. Vui lòng thử lại sau.",
+                )
+                return render(request, "auth/register.html", {"form": form})
+            messages.success(
+                request,
+                f"Đã gửi mã xác thực về {email}. Nhập mã để hoàn tất đăng ký.",
+            )
+            return redirect("users:register_verify")
     else:
         form = RegisterForm()
 
     return render(request, "auth/register.html", {"form": form})
+
+
+def _register_code_key(email: str) -> str:
+    return f"register_code:{email.strip().lower()}"
+
+
+def _register_attempt_key(email: str) -> str:
+    return f"register_attempts:{email.strip().lower()}"
+
+
+def _send_register_code(email: str, code: str) -> None:
+    send_mail(
+        subject="Mã xác thực đăng ký HUUGIAU Atelier",
+        message=(
+            f"Mã xác thực của bạn là: {code}\n\n"
+            "Mã hết hạn sau 10 phút. "
+            "Nếu bạn không đăng ký, hãy bỏ qua email này.\n\n"
+            "Trân trọng,\nHUUGIAU Atelier Team"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
+@rate_limit(
+    "register_verify",
+    max_requests=10,
+    window=300,
+    error_msg="Bạn nhập sai quá nhiều. Vui lòng đăng ký lại sau 5 phút.",
+)
+def register_verify_view(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    pending = request.session.get("pending_register")
+    if not pending:
+        messages.error(request, "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.")
+        return redirect("users:register")
+
+    email = pending["email"]
+    if request.method == "POST" and request.POST.get("action") == "resend":
+        code = f"{secrets.randbelow(1000000):06d}"
+        cache.set(_register_code_key(email), code, REGISTER_CODE_TTL)
+        cache.delete(_register_attempt_key(email))
+        try:
+            _send_register_code(email, code)
+            messages.success(request, f"Đã gửi lại mã mới về {email}.")
+        except Exception:
+            logger.exception("Không gửi lại được mã xác thực đăng ký")
+            messages.error(request, "Không gửi được mã. Vui lòng thử lại sau.")
+        return render(
+            request, "auth/register_verify.html", {"email": email}
+        )
+
+    if request.method == "POST":
+        expected = cache.get(_register_code_key(email))
+        if not expected:
+            messages.error(
+                request, "Mã đã hết hạn. Vui lòng đăng ký lại hoặc gửi mã mới."
+            )
+            return render(
+                request, "auth/register_verify.html", {"email": email}
+            )
+        attempts = cache.get(_register_attempt_key(email), 0)
+        if attempts >= REGISTER_MAX_ATTEMPTS:
+            _clear_pending_register(request, email)
+            messages.error(
+                request, "Bạn nhập sai quá nhiều lần. Vui lòng đăng ký lại."
+            )
+            return redirect("users:register")
+        entered = (request.POST.get("code") or "").strip()
+        if not secrets.compare_digest(entered, str(expected)):
+            cache.set(
+                _register_attempt_key(email), attempts + 1, REGISTER_CODE_TTL
+            )
+            left = REGISTER_MAX_ATTEMPTS - attempts - 1
+            messages.error(
+                request, f"Mã chưa đúng. Bạn còn {left} lượt thử."
+            )
+            return render(
+                request, "auth/register_verify.html", {"email": email}
+            )
+        form = RegisterForm(
+            {
+                "username": pending["username"],
+                "first_name": pending.get("first_name", ""),
+                "last_name": pending.get("last_name", ""),
+                "email": email,
+                "phone_number": pending.get("phone_number", ""),
+                "password1": pending["password"],
+                "password2": pending["password"],
+            }
+        )
+        if not form.is_valid():
+            _clear_pending_register(request, email)
+            messages.error(request, "Thông tin đăng ký không còn hợp lệ.")
+            return redirect("users:register")
+        user = form.save()
+        _clear_pending_register(request, email)
+        login(request, user)
+        _sync_visitor_auth_state(request, user)
+        log_activity(request, event_type="register", status_code=201)
+        try:
+            _send_welcome_mail(user)
+        except Exception:
+            logger.exception("Không gửi được mail chào mừng")
+        messages.success(request, "Tạo tài khoản thành công.")
+        return redirect("products:product_list")
+
+    return render(request, "auth/register_verify.html", {"email": email})
+
+
+def _clear_pending_register(request: HttpRequest, email: str) -> None:
+    request.session.pop("pending_register", None)
+    cache.delete(_register_code_key(email))
+    cache.delete(_register_attempt_key(email))
+
+
+def _send_welcome_mail(user) -> None:
+    send_mail(
+        subject="Chào mừng bạn đến với HUUGIAU Atelier!",
+        message=(
+            f"Chào {user.first_name or user.username},\n\n"
+            "Tài khoản của bạn đã được tạo thành công. Bạn có thể:\n"
+            "- Mua hàng nhanh hơn với thông tin đã lưu\n"
+            "- Theo dõi đơn hàng thực thời\n"
+            "- Tích điểm thưởng mỗi đơn hàng\n"
+            "- Lưu wishlist sản phẩm yêu thích\n\n"
+            "Trân trọng,\nHUUGIAU Atelier Team"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
 
 
 @rate_limit(
@@ -194,7 +357,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     )
 
     if request.method == "POST":
-        form = ProfileForm(request.POST, user=request.user)
+        form = ProfileForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Đã lưu thông tin tài khoản.")

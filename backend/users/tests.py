@@ -37,6 +37,16 @@ class UserAuthFlowTest(TestCase):
             },
         )
         self.assertEqual(register_response.status_code, 302)
+        self.assertEqual(register_response.url, reverse("users:register_verify"))
+        # Chua co tai khoan khi chua nhap ma.
+        self.assertFalse(User.objects.filter(username="newuser").exists())
+
+        code = cache.get("register_code:newuser@test.com")
+        self.assertIsNotNone(code)
+        verify_response = self.client.post(
+            reverse("users:register_verify"), {"code": code}
+        )
+        self.assertEqual(verify_response.status_code, 302)
         self.assertTrue(User.objects.filter(username="newuser").exists())
         self.assertEqual(User.objects.get(username="newuser").profile.phone_number, "")
 
@@ -54,38 +64,129 @@ class UserAuthFlowTest(TestCase):
         logout_response = self.client.get(reverse("users:logout"))
         self.assertEqual(logout_response.status_code, 302)
 
-    def test_register_with_phone_only_is_valid(self):
+    def test_register_with_phone_and_email_is_valid(self):
         response = self.client.post(
             reverse("users:register"),
             {
-                "username": "phoneonly",
+                "username": "phoneuser",
                 "first_name": "Nguyen",
                 "last_name": "Phone",
-                "email": "",
+                "email": "phoneuser@test.com",
                 "phone_number": "0912345678",
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
             },
         )
         self.assertEqual(response.status_code, 302)
-        user = User.objects.get(username="phoneonly")
+        code = cache.get("register_code:phoneuser@test.com")
+        self.client.post(reverse("users:register_verify"), {"code": code})
+        user = User.objects.get(username="phoneuser")
         self.assertEqual(user.profile.phone_number, "0912345678")
 
-    def test_register_without_email_or_phone_is_valid(self):
+    def test_register_without_email_is_invalid(self):
         response = self.client.post(
             reverse("users:register"),
             {
-                "username": "nopoint",
+                "username": "nomail",
                 "first_name": "Nguyen",
                 "last_name": "No",
                 "email": "",
+                "phone_number": "0912345678",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "bắt buộc")
+        self.assertFalse(User.objects.filter(username="nomail").exists())
+
+    def test_register_duplicate_email_shows_error(self):
+        response = self.client.post(
+            reverse("users:register"),
+            {
+                "username": "another",
+                "first_name": "Nguyen",
+                "last_name": "B",
+                "email": "existing@test.com",
+                "phone_number": "",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Gmail này đã được dùng")
+
+    def _start_register(self, username="verifyme", email="verifyme@test.com"):
+        response = self.client.post(
+            reverse("users:register"),
+            {
+                "username": username,
+                "first_name": "Verify",
+                "last_name": "Me",
+                "email": email,
                 "phone_number": "",
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
             },
         )
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(User.objects.filter(username="nopoint").exists())
+        return cache.get(f"register_code:{email}")
+
+    def test_register_sends_code_email(self):
+        from django.core import mail
+
+        self._start_register()
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("verifyme@test.com", mail.outbox[0].to)
+
+    def test_register_verify_wrong_code(self):
+        self._start_register()
+        response = self.client.post(
+            reverse("users:register_verify"), {"code": "000000"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Mã chưa đúng")
+        self.assertFalse(User.objects.filter(username="verifyme").exists())
+
+    def test_register_verify_expired_code(self):
+        self._start_register(email="expired@test.com", username="expired")
+        cache.delete("register_code:expired@test.com")
+        response = self.client.post(
+            reverse("users:register_verify"), {"code": "123456"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "hết hạn")
+        self.assertFalse(User.objects.filter(username="expired").exists())
+
+    def test_register_verify_too_many_attempts(self):
+        self._start_register(email="locked@test.com", username="locked")
+        for _ in range(5):
+            self.client.post(
+                reverse("users:register_verify"), {"code": "000000"}
+            )
+        response = self.client.post(
+            reverse("users:register_verify"), {"code": "000000"}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:register"))
+        self.assertFalse(User.objects.filter(username="locked").exists())
+
+    def test_register_resend_code(self):
+        from django.core import mail
+
+        old_code = self._start_register(email="resend@test.com", username="resend")
+        response = self.client.post(
+            reverse("users:register_verify"), {"action": "resend"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 2)
+        new_code = cache.get("register_code:resend@test.com")
+        self.assertNotEqual(old_code, new_code)
+        ok = self.client.post(
+            reverse("users:register_verify"), {"code": new_code}
+        )
+        self.assertEqual(ok.status_code, 302)
+        self.assertTrue(User.objects.filter(username="resend").exists())
 
     def test_register_password_policy_enforced(self):
         response = self.client.post(
@@ -210,6 +311,8 @@ class UserTrackingStorageTest(TestCase):
                 "password2": "StrongPass123!",
             },
         )
+        code = cache.get("register_code:track@test.com")
+        self.client.post(reverse("users:register_verify"), {"code": code})
 
         self.assertTrue(UserActivity.objects.filter(event_type="register").exists())
         self.assertTrue(
@@ -265,6 +368,54 @@ class ProfileViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Số điện thoại không hợp lệ")
+
+    def test_profile_avatar_upload_success(self):
+        from io import BytesIO
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        stream = BytesIO()
+        Image.new("RGB", (4, 4), "#d15b32").save(stream, format="PNG")
+        upload = SimpleUploadedFile(
+            "avatar.png", stream.getvalue(), content_type="image/png"
+        )
+        self.client.login(username="profileuser", password="StrongPass123!")
+        media_dir = self._media_dir()
+        with self.settings(MEDIA_ROOT=media_dir):
+            response = self.client.post(
+                reverse("users:profile"),
+                {"first_name": "Nguyen", "avatar": upload},
+            )
+        self.assertEqual(response.status_code, 302)
+        self.user.profile.refresh_from_db()
+        self.assertTrue(bool(self.user.profile.avatar))
+        # ponytail: don file upload test, khong de rac tmp
+        import shutil
+
+        self.user.profile.avatar.delete(save=False)
+        shutil.rmtree(media_dir, ignore_errors=True)
+
+    def test_profile_avatar_rejects_executable(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        upload = SimpleUploadedFile(
+            "avatar.exe", b"x" * 100, content_type="application/exe"
+        )
+        self.client.login(username="profileuser", password="StrongPass123!")
+        response = self.client.post(
+            reverse("users:profile"),
+            {"first_name": "Nguyen", "avatar": upload},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertFalse(bool(self.user.profile.avatar))
+
+    @staticmethod
+    def _media_dir():
+        import tempfile
+
+        return tempfile.mkdtemp()
 
 
 class CaptchaImageTest(TestCase):

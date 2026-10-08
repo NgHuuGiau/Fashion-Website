@@ -98,6 +98,11 @@ class UserProfile(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
     phone_number = models.CharField(max_length=20, blank=True)
+    avatar = models.ImageField(
+        upload_to="avatars/%Y/%m",
+        blank=True,
+        verbose_name="Ảnh đại diện",
+    )
     points = models.PositiveIntegerField(
         default=0, verbose_name="Điểm tích lũy", db_index=True
     )
@@ -105,6 +110,8 @@ class UserProfile(models.Model):
     points_expire_at = models.DateField(
         null=True, blank=True, verbose_name="Điểm hết hạn"
     )
+    # ponytail: web push subscriptions {endpoint, keys{p256dh,auth}}
+    push_subscriptions = models.JSONField(default=list, blank=True)
 
     class Meta:
         verbose_name = "Hồ sơ người dùng"
