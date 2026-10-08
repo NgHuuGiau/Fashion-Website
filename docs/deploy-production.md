@@ -19,6 +19,15 @@ python -m venv .venv
 3. Tạo `C:\FashionWebsite\.env.production` từ `.env.production.example` (file thật đã được Git bỏ qua). Đặt `DEBUG=False`, domain thật, `REDIS_URL`, SMTP nếu cần email, và `MEDIA_ROOT` thành thư mục riêng, ví dụ `D:/FashionMedia`.
 4. Với Windows Authentication, chạy ứng dụng bằng một tài khoản Windows riêng được cấp quyền tối thiểu trên database; dùng `DB_TRUSTED_CONNECTION=True` và không đặt `DB_USER`/`DB_PASSWORD`. Nếu dùng SQL Login thì đặt `DB_TRUSTED_CONNECTION=False` và lưu thông tin trong `.env.production`, không gửi qua chat. Không mở SQL Server cổng 1433 ra Internet.
 5. Tạo staging riêng và backup database trước khi thử migration. Chỉ sau khi migration, đăng nhập, đặt/hủy đơn và restore test đạt trên staging mới tạo database production riêng. Không chạy seed demo hoặc migration lên database demo để làm bước triển khai này.
+
+   Local đã có sẵn staging mô phỏng prod: copy `.env.staging` (file này bị Git bỏ qua), chạy waitress ở `127.0.0.1:8002` rồi Caddy với TLS internal:
+
+   ```powershell
+   .\scripts\start-staging-web.ps1
+   caddy run --config Caddyfile.staging --adapter caddyfile
+   ```
+
+   Mở `https://127.0.0.1:8443/`.
 6. Sau khi cấu hình DNS trỏ domain về VPS và mở firewall **chỉ cổng 80/443**, chạy web bằng Waitress ở loopback:
 
 ```powershell
@@ -105,11 +114,19 @@ EMAIL_HOST_PASSWORD=<App Password 16 ký tự>
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL=HUUGIAU Studio <no-reply@yourdomain.com>
 
+# Thông tin liên hệ hiển thị trên site (checklist go-live yêu cầu đủ 3 dòng này)
+HOTLINE=0900000000
+SUPPORT_EMAIL=contact@yourdomain.com
+STORE_ADDRESS=<địa chỉ cửa hàng>
+
 # Chuyển khoản thủ công — mặc định tắt; SHOP_ACCOUNT_NAME là tên chủ tài khoản.
 BANK_TRANSFER_ENABLED=False
 SHOP_BANK_CODE=ICB
 SHOP_BANK_ACCOUNT=
 SHOP_ACCOUNT_NAME=
+
+# Mã số thuế hiển thị trên hoá đơn khi đã cấu hình
+SHOP_TAX_ID=
 
 # VNPay PRODUCTION (không dùng sandbox)
 VNPAY_URL=https://pay.vnpayment.vn/paymentv2/vpcpay.html
@@ -124,7 +141,7 @@ ZALO_OA_ID=<zalo oa id>
 
 > `VNPAY_URL` cho production phải là `https://pay.vnpayment.vn/paymentv2/vpcpay.html` (cổng thanh toán VNPay thật, xác nhận lại khi đăng ký merchant). Sandbox dùng `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`.
 
-> Không chạy `database/sql/01_CREATE_TABLES.sql`, `02_DEMO_DATA.sql`, `seed_all` hoặc `seed_products --sync` trên dữ liệu production. Hai file SQL và `products_to_sync.json` được giữ cho môi trường demo; lệnh đồng bộ demo có thể xóa sản phẩm không nằm trong file nguồn. Không import tài khoản, đơn hàng, đánh giá, lượt bán hay ảnh thay thế từ demo vào cửa hàng thật.
+> Không chạy `database/sql/01_CREATE_TABLES.sql`, `02_DEMO_DATA.sql`, `seed_all` hoặc `seed_products --sync` trên dữ liệu production. `products_to_sync.json` hiện chỉ là dữ liệu seed/demo; lệnh đồng bộ thêm/cập nhật các slug trong file và không xóa sản phẩm khác. Catalog thật cục bộ (nếu có) nằm trong file bị Git bỏ qua `database/seed/local_products_to_sync.json`; kiểm tra quyền sử dụng, giá và tồn kho trước khi publish. Không import tài khoản, đơn hàng, đánh giá hay lượt bán demo vào cửa hàng thật.
 
 ## Vận hành sau release
 

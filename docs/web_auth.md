@@ -7,6 +7,22 @@
   `GOOGLE_OAUTH_URL` / `FACEBOOK_OAUTH_URL` / `APPLE_OAUTH_URL` — chưa có thì nút tự ẩn,
   không báo lỗi cho khách.
 - Sai 10 lần trong 5 phút → khóa 5 phút (chống brute-force, chung với rate limit login).
+- Đăng ký mới phải xác minh mã gửi qua email trước khi vào được tài khoản
+  (mã hết hạn sau 10 phút, sai 5 lần thì khóa 5 phút).
+
+## Bảo mật 2 lớp cho trang quản trị
+
+Mọi tài khoản staff vào `/admin/` đều phải có TOTP (Google Authenticator hoặc tương
+đương). `Admin2FAMiddleware` (`backend/users/middleware.py`) chuyển hướng khi thiếu
+thiết bị hoặc session chưa xác minh:
+
+| Tình huống | Được chuyển tới |
+|---|---|
+| Chưa đăng ký thiết bị | `/tai-khoan/bao-mat-2-lop/` |
+| Đã có thiết bị, session chưa verify | `/tai-khoan/bao-mat-2-lop/ma/` |
+
+Tắt 2 lớp tại `/tai-khoan/bao-mat-2-lop/tat/`. Nhân viên phải đăng ký lại sau khi đổi
+máy; không có mã khôi phục dùng chung.
 
 ## Vai trò
 

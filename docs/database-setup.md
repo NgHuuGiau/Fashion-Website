@@ -12,7 +12,7 @@ SQL Server local phải bật TCP/IP, đặt port tĩnh `1433`, sau đó restart
 `MSSQLSERVER`. Kiểm tra nhanh bằng:
 
 ```powershell
-sqlcmd -S localhost,1433 -E -N o -Q "SELECT DB_NAME()"
+sqlcmd -S localhost,1433 -E -C -Q "SELECT DB_NAME()"
 ```
 
 Nếu `sqlcmd` kết nối được nhưng Python vẫn báo lỗi TLS, cài lại ODBC Driver 18
@@ -81,11 +81,15 @@ python manage.py import_legacy
 
 ## 6. Database engine
 
-Hệ thống chỉ hỗ trợ **SQL Server** (`DB_ENGINE=mssql`). Không còn hỗ trợ SQLite.
+Ứng dụng và production chạy **SQL Server**:
 
 ```
 DB_ENGINE=mssql
 ```
+
+Ngoài SQL Server, repo còn hỗ trợ `DB_ENGINE=postgres` cho CI và Docker Compose (xem
+mục 6b) và SQLite chỉ dùng cho test local qua `core.test_settings_sqlite`. Không đổi
+engine trên database production đang chạy.
 
 Sau khi đổi cấu hình, cần chạy lại `migrate` và `import_legacy`.
 
@@ -133,7 +137,8 @@ python manage.py sync_roles
 
 ## 8. Tài khoản mặc định
 
-Database có sẵn 19 tài khoản (hash PBKDF2 — không đọc được từ SQL, dùng đúng password bên dưới):
+Database **không có sẵn tài khoản đăng nhập**. Lệnh `seed_all` (chỉ chạy khi `DEBUG=True`)
+tạo 19 tài khoản demo với password hash PBKDF2:
 
 | Vai trò | Username | Password |
 |---------|----------|----------|

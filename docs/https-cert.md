@@ -31,18 +31,12 @@ domain thật trên reverse proxy và kiểm tra bằng cả Chrome lẫn Firefo
 
 ## Tạo lại cert
 
-Cert hiện tại hết hạn 398 ngày (giới hạn của Chrome). Muốn tạo bộ mới:
-
-```powershell
-cd backend\certs
-python -c "from scripts.gen_cert import gen_cert; gen_cert()"  # chưa tồn tại → dùng script bên dưới
-```
-
-Thay thế bằng cách tạo thủ công bằng Python (thư viện `cryptography` đã có trong requirements):
+Cert hiện tại hết hạn 398 ngày (giới hạn của Chrome). Muốn tạo bộ mới, chạy đoạn Python
+dưới đây (thư viện `cryptography` đã có trong requirements):
 
 ```powershell
 cd backend
-python - <<'PY'
+@'
 import datetime, ipaddress
 from pathlib import Path
 from cryptography import x509
@@ -76,7 +70,7 @@ srv = (x509.CertificateBuilder().subject_name(srv_name).issuer_name(ca_name)
 (d/"server.key").write_bytes(srv_key.private_bytes(serialization.Encoding.PEM,
     serialization.PrivateFormat.TraditionalOpenSSL, serialization.NoEncryption()))
 print("done")
-PY
+'@ | & ..\.venv\Scripts\python.exe -
 ```
 
 Tạo xong: **xóa CA cũ** khỏi Trust Store nếu bạn tạo CA mới (Certificate Manager → Trusted Root Certificates), cài CA mới, rồi restart server.
@@ -85,4 +79,4 @@ Tạo xong: **xóa CA cũ** khỏi Trust Store nếu bạn tạo CA mới (Certi
 
 - **`403 Forbidden — CSRF verification failed — Origin checking failed`**: trình duyệt gửi header `Origin` khi POST; origin phải nằm trong `CSRF_TRUSTED_ORIGINS` (`core/settings.py` đã cấu hình `localhost` + `127.0.0.1`). Không liên quan đến HTTPS.
 - **"Not secure" trên `127.0.0.1`**: cert có SAN chứa IP, nhưng nếu CA chưa cài thì vẫn cảnh báo → cài CA như trên.
-- **`KeyError: WERKZEUG_SERVER_FD`**: đừng dùng `runserver_plus`; dùng `python manage.py runserver`. HTTP là mặc định để chạy local và Playwright; đặt `DEV_HTTPS=true` nếu cần bật HTTPS bằng cert trong `backend/certs/`.
+- **`KeyError: WERKZEUG_SERVER_FD`**: đừng dùng `runserver_plus`; dùng `python manage.py runserver`. HTTP là mặc định để chạy local và Playwright. Cần HTTPS local thì chạy `python scripts/dev_server.py` — script này tự nạp `backend/certs/server.crt` và `server.key`, vẫn ở cổng 8000.

@@ -32,3 +32,32 @@ python-json-logger>=4.2,<5
 # 2FA TOTP cho trang quan tri + QR dang ky
 django-otp>=1.5,<2
 qrcode>=8.0,<9
+
+# Search Engine - Meilisearch
+meilisearch>=0.28,<0.29
+
+# Image processing - WebP, optimization
+django-imagekit>=5.0,<5.1
+pillow-heif>=0.10,<0.11
+
+# WebSocket - Real-time
+channels>=4.0,<4.1
+channels-redis>=4.1,<4.2
+daphne>=4.0,<4.1
+
+# Monitoring
+sentry-sdk>=2.0,<3.0
+prometheus-client>=0.20,<0.21
+
+# SMS OTP
+phonenumbers>=8.13,<8.14
+
+# PWA
+django-pwa>=2.0,<2.1
+
+# SEO
+django-robots>=4.0,<4.1
+django-sitemaps>=1.0,<1.1
+
+# Web Push
+pywebpush>=2.0,<3.0

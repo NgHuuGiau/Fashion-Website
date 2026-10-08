@@ -1,0 +1,21 @@
+# STAGING local: https://127.0.0.1:8443 (TLS internal CA, không cần domain).
+# static/media phục vụ từ file, còn lại proxy sang waitress 8002.
+# Chạy: C:\caddy\caddy.exe run --config Caddyfile.staging --adapter caddyfile
+https://127.0.0.1:8443 {
+	tls internal
+	encode gzip
+
+	handle_path /static/* {
+		root * "C:/Users/HUUGIAU/OneDrive/Documents/GitHub/Fashion-Website/staticfiles"
+		file_server
+	}
+
+	handle_path /media/* {
+		root * "D:/FashionMedia"
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8002
+	}
+}

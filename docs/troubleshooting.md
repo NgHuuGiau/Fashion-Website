@@ -5,7 +5,7 @@ Các lỗi đã gặp thật trên máy dev và cách xử lý.
 ## Web không khởi động / cổng bị chiếm
 
 ```powershell
-netstat -ano | Select-String '8001'
+netstat -ano | Select-String '8000'
 Stop-Process -Id <PID> -Force
 ```
 
@@ -20,7 +20,7 @@ Nguyên nhân từng gặp: thẻ `<script nonce>` nằm trong `{% compress %}` 
 ## Static 404 dưới waitress
 
 Waitress không serve `/static/` — kiến trúc prod trông chờ reverse proxy.
-Chạy Caddy (`C:\caddy\caddy.exe run --config C:\caddy\Caddyfile.local`)
+Chạy Caddy qua `.\scripts\start-windows-caddy.ps1` (dùng `Caddyfile.windows`)
 hoặc kiểm tra `staticfiles/` đã có sau `collectstatic` chưa.
 
 ## Lỗi 403 CSRF

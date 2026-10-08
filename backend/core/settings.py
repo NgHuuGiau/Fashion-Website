@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -240,6 +241,12 @@ DEFAULT_FROM_EMAIL = os.getenv(
 # Ma so thue in tren hoa don (de trong = an dong MST).
 SHOP_TAX_ID = os.getenv("SHOP_TAX_ID", "")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+
+# Meilisearch search engine
+MEILISEARCH_HOST = os.getenv('MEILISEARCH_HOST', 'http://localhost:7700')
+MEILISEARCH_API_KEY = os.getenv('MEILISEARCH_API_KEY', '')
+MEILISEARCH_INDEX_NAME = os.getenv('MEILISEARCH_INDEX_NAME', 'products')
+
 ADMINS = [
     (name.strip(), addr.strip())
     for pair in os.getenv("ADMIN_ALERT_EMAILS", "").split(";")
@@ -254,6 +261,27 @@ VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
 # P2.3: IP duoc phep goi IPN (cach nhau dau phay, trong = chi check chu ky)
 VNPAY_ALLOWED_IPS = os.getenv("VNPAY_ALLOWED_IPS", "")
+# ponytail: vi dien tu VN - de trong = an nut thanh toan tuong ung
+MOMO_PARTNER_CODE = os.getenv("MOMO_PARTNER_CODE", "")
+MOMO_ACCESS_KEY = os.getenv("MOMO_ACCESS_KEY", "")
+MOMO_SECRET_KEY = os.getenv("MOMO_SECRET_KEY", "")
+MOMO_ENDPOINT = os.getenv("MOMO_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
+ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID", "")
+ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1", "")
+ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2", "")
+ZALOPAY_ENDPOINT = os.getenv("ZALOPAY_ENDPOINT", "https://sb-openapi.zalopay.vn/v2/create")
+SHOPEEPAY_PARTNER_ID = os.getenv("SHOPEEPAY_PARTNER_ID", "")
+SHOPEEPAY_KEY = os.getenv("SHOPEEPAY_KEY", "")
+SHOPEEPAY_SECRET = os.getenv("SHOPEEPAY_SECRET", "")
+SHOPEEPAY_ENDPOINT = os.getenv("SHOPEEPAY_ENDPOINT", "https://partner.uat.shopeepay.com")
+# ponytail: ship VN mo rong - de trong = skip tao don tu dong, giu GHN cu
+GHTK_TOKEN = os.getenv("GHTK_TOKEN", "")
+GHTK_SHOP_ID = os.getenv("GHTK_SHOP_ID", "")
+GHTK_ENDPOINT = os.getenv("GHTK_ENDPOINT", "https://services.giaohangtietkiem.vn/services/shipment/order")
+VIETTELPOST_TOKEN = os.getenv("VIETTELPOST_TOKEN", "")
+VIETTELPOST_SHOP_ID = os.getenv("VIETTELPOST_SHOP_ID", "")
+VIETTELPOST_ENDPOINT = os.getenv("VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder")
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "").strip()
 SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "").strip()
 SHOP_BANK_CODE = os.getenv("SHOP_BANK_CODE", "").strip().upper()
@@ -268,6 +296,13 @@ BANK_TRANSFER_ENABLED = (
 GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
 ZALO_OA_ID = os.getenv("ZALO_OA_ID", "")
+# Fanpage MXH + logo Bộ Công Thương: để trống = ẩn khỏi footer.
+SOCIAL_FACEBOOK = os.getenv("SOCIAL_FACEBOOK", "").strip()
+SOCIAL_INSTAGRAM = os.getenv("SOCIAL_INSTAGRAM", "").strip()
+SOCIAL_TIKTOK = os.getenv("SOCIAL_TIKTOK", "").strip()
+SOCIAL_YOUTUBE = os.getenv("SOCIAL_YOUTUBE", "").strip()
+BCT_BADGE_URL = os.getenv("BCT_BADGE_URL", "").strip()
+BCT_BADGE_LINK = os.getenv("BCT_BADGE_LINK", "").strip()
 HOTLINE = os.getenv("HOTLINE", "")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
 STORE_ADDRESS = os.getenv("STORE_ADDRESS", "")
@@ -318,6 +353,16 @@ else:
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "huugiau-cache",
+        }
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+if "pytest" in sys.modules:
+    # ponytail: test khong dung Redis chung — worker xdist giẫm session/cache của nhau
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "huugiau-test-cache",
         }
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.db"

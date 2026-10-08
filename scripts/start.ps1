@@ -1,7 +1,8 @@
 ﻿param(
     [int]$Port = 8000,
-    [string]$BindHost = "localhost",
-    [switch]$NoBrowser
+    [string]$BindHost = "127.0.0.1",
+    [switch]$NoBrowser,
+    [switch]$Lan
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +16,30 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $url = "http://${BindHost}:${Port}/"
+
+# Mo cho may khac trong LAN: bind all interfaces + nhan IP LAN vao
+# ALLOWED_HOSTS/CSRF (env process thang .env) + mo firewall.
+if ($Lan) {
+    $BindHost = "0.0.0.0"
+    $lanIps = Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -notmatch "^(127|169\.254)" } |
+        Select-Object -ExpandProperty IPAddress | Sort-Object -Unique
+    $env:ALLOWED_HOSTS = ((@("127.0.0.1", "localhost") + $lanIps) -join ",")
+    $origins = @("http://localhost:${Port}", "http://127.0.0.1:${Port}") +
+        ($lanIps | ForEach-Object { "http://${_}:${Port}" })
+    $env:CSRF_TRUSTED_ORIGINS = ($origins -join ",")
+    try {
+        if (-not (Get-NetFirewallRule -DisplayName "HUUGIAU Fashion Web" -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -DisplayName "HUUGIAU Fashion Web" `
+                -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
+            Write-Host "Da mo firewall port ${Port}." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Khong mo duoc firewall (can quyen admin). May khac co the khong vao duoc." -ForegroundColor Yellow
+    }
+    $url = "http://$($lanIps[0]):${Port}/"
+    Write-Host "May khac mo: $url" -ForegroundColor Green
+}
 
 if (-not (Test-Path $pythonExe)) {
     throw "Không tìm thấy Python trong `.venv`: $pythonExe"
@@ -30,7 +55,7 @@ Write-Host "URL: $url" -ForegroundColor Green
 Write-Host ""
 
 $proc = Start-Process -FilePath $pythonExe `
-    -ArgumentList "manage.py", "runserver", "[::1]:${Port}" `
+    -ArgumentList "manage.py", "runserver", "${BindHost}:${Port}" `
     -WorkingDirectory $backendDir -NoNewWindow -PassThru
 
 $ready = $false

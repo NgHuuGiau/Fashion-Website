@@ -19,6 +19,7 @@ staticfiles/
 # Database local runtime
 *.sqlite3
 *.db
+celerybeat-schedule*
 
 # Backup files
 *.bak
@@ -64,3 +65,6 @@ LOCAL_NOTES.md
 
 # Seed SQL chứa dữ liệu thật (từng lộ password hash) — không commit
 database/sql/02_INSERT_DATA.sql
+
+# Catalog nguồn cục bộ; không đưa sản phẩm/ảnh nhập vào GitHub
+database/seed/local_products_to_sync.json

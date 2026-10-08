@@ -1,7 +1,7 @@
 ﻿param(
-    [switch]$SkipMigrate,
-    [switch]$SkipSeed,
-    [switch]$SkipImport,
+    [switch]$Migrate,
+    [switch]$SeedDemo,
+    [switch]$ImportLegacy,
     [int]$Port = 8000,
     [string]$BindHost = "localhost"
 )
@@ -16,7 +16,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $repoRoot "backend"
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
-if ($BindHost -eq "localhost") { $BindHost = "[::1]" }
+if ($BindHost -eq "localhost") { $BindHost = "127.0.0.1" }
 $bind = "${BindHost}:$Port"
 $openUrl = "http://localhost:$Port/"
 
@@ -34,19 +34,21 @@ try {
     Step "Kiểm tra cấu hình"
     & $pythonExe manage.py check
 
-    if (-not $SkipMigrate) {
+    if ($Migrate) {
         Step "Chạy migrate"
         & $pythonExe manage.py migrate
     }
 
-    if (-not $SkipImport) {
+    if ($ImportLegacy) {
         Step "Import dữ liệu từ database/sql"
         & $pythonExe manage.py import_legacy
     }
 
-    if (-not $SkipSeed) {
+    if ($SeedDemo) {
         Step "Đồng bộ sản phẩm"
         & $pythonExe manage.py seed_products --sync
+    } else {
+        Write-Host "Bỏ qua thay đổi database. Dùng -Migrate, -SeedDemo hoặc -ImportLegacy nếu chủ động muốn ghi vào DB." -ForegroundColor Yellow
     }
 
     Step "Bật server local (HTTPS)"

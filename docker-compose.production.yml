@@ -36,6 +36,10 @@ services:
       nginx:
         condition: service_started
 
+  meilisearch:
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:?Set MEILISEARCH_API_KEY}
+
 volumes:
   caddy_data:
   caddy_config:

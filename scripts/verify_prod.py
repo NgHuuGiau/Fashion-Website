@@ -7,6 +7,21 @@ BASE = Path(__file__).resolve().parent.parent
 FAIL = []
 
 
+def load_env_file(path):
+    # ponytail: script check env doc lap, tu nap file env de khoi bao blocker gia
+    p = Path(path)
+    if not p.exists():
+        return
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k = k.strip()
+        if k and k not in os.environ:
+            os.environ[k] = v.strip().strip('"').strip("'")
+
+
 def need(name, hint):
     v = os.getenv(name, "").strip()
     # ponytail: chỉ check presence/format, không in giá trị thật
@@ -29,8 +44,12 @@ def check():
     need("CSRF_TRUSTED_ORIGINS", "phai https://domain-that")
     # DB + Redis + Mail
     need("DB_HOST", "SQL Server prod host")
-    need("DB_USER", "user least-privilege")
-    need("DB_PASSWORD", "mat khau DB rieng")
+    windows_auth = os.getenv("DB_TRUSTED_CONNECTION", "").lower() in (
+        "1", "true", "yes", "on",
+    )
+    if not windows_auth:
+        need("DB_USER", "user least-privilege")
+        need("DB_PASSWORD", "mat khau DB rieng")
     need("REDIS_URL", "redis co mat khau rieng")
     need("EMAIL_HOST", "SMTP that")
     need("EMAIL_HOST_USER", "tai khoan SMTP")
@@ -60,4 +79,10 @@ def check():
 
 
 if __name__ == "__main__":
+    env_file = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else os.getenv("APP_ENV_FILE", ".env.production")
+    )
+    load_env_file(BASE / env_file)
     sys.exit(check())

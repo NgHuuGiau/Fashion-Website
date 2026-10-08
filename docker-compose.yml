@@ -13,6 +13,8 @@ x-app-environment: &app-environment
   ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
   TRUSTED_PROXY: ${TRUSTED_PROXY:-True}
   BEHIND_PROXY: ${BEHIND_PROXY:-False}
+  MEILISEARCH_HOST: http://meilisearch:7700
+  MEILISEARCH_API_KEY: ${MEILISEARCH_API_KEY:?Set MEILISEARCH_API_KEY}
 
 services:
   db:
@@ -86,6 +88,21 @@ services:
       timeout: 5s
       retries: 5
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:?Set MEILISEARCH_API_KEY}
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   app:
     build: .
     restart: unless-stopped
@@ -97,8 +114,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      meilisearch:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health/ready/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -153,3 +172,4 @@ volumes:
   redisdata:
   static_volume:
   media_volume:
+  meilisearch_data:

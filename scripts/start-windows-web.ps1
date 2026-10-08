@@ -30,7 +30,9 @@ try {
     & $python manage.py collectstatic --noinput
     if ($LASTEXITCODE -ne 0) { throw "Collectstatic failed." }
 
-    & $waitress --listen=127.0.0.1:8000 --threads=8 core.wsgi:application
+    # Tin proxy localhost (Caddy) để X-Forwarded-Proto tới Django;
+    # thiếu flag này sẽ redirect-loop https->https sau proxy.
+    & $waitress --listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 core.wsgi:application
     if ($LASTEXITCODE -ne 0) { throw "Waitress stopped with an error." }
 }
 finally {
