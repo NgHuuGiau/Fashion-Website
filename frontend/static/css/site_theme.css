@@ -7615,6 +7615,66 @@ body {
 /* Stepper số lượng co theo nội dung, không bè full-width trong grid. */
 .qty-row .qty-stepper { justify-self: start; }
 
+/* Pack Levents cho trang chi tiet: tieu de nhe, nut don sac, size vien muc. */
+.detail-panel h1 {
+    font-weight: 650;
+    letter-spacing: 0;
+}
+
+.voucher-strip {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-strong);
+    text-decoration: none;
+    background: #fdf3f3;
+    border: 1.5px dashed #d8a7a7;
+    border-radius: 12px;
+}
+
+.voucher-strip i:first-child { color: #c0392b; }
+
+.voucher-strip i:last-child {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.voucher-strip:hover { border-color: #c0392b; }
+
+.detail-panel .buy-actions .btn.ghost {
+    color: var(--text-strong);
+    background: #f2f0eb;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.detail-panel .buy-actions .btn.ghost:hover {
+    color: var(--text-strong);
+    background: #e7e1d6;
+    border-color: transparent;
+}
+
+.detail-panel .buy-actions .btn:not(.ghost) {
+    background: #201a15;
+    box-shadow: 0 6px 18px rgb(20 15 10 / 25%);
+}
+
+.detail-panel .buy-actions .btn:not(.ghost):hover {
+    background: #000;
+    box-shadow: 0 10px 24px rgb(0 0 0 / 30%);
+}
+
+.variant-size-btn.is-active {
+    color: var(--text-strong);
+    background: #fff;
+    border-color: var(--text-strong);
+    box-shadow: 0 0 0 1px var(--text-strong);
+}
+
 @media (width <= 480px) {
     .buy-actions { grid-template-columns: 1fr; }
 
