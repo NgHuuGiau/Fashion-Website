@@ -4312,10 +4312,6 @@ button {
     background: var(--text-strong);
 }
 
-.qty-step:hover {
-    background: var(--accent-glow);
-}
-
 .detail-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
@@ -4512,60 +4508,6 @@ button {
     25% { transform: scale(1.3); }
     50% { transform: scale(0.95); }
     75% { transform: scale(1.15); }
-}
-
-.variant-swatch {
-    display: inline-flex;
-    gap: 0.45rem;
-    align-items: center;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-strong);
-    cursor: pointer;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-pill);
-    transition: all 0.2s ease;
-}
-
-.variant-swatch:hover {
-    background: var(--surface-tint);
-    border-color: var(--accent);
-}
-
-.variant-swatch.is-active {
-    color: var(--accent-strong);
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent);
-}
-
-.variant-size-btn {
-    min-width: 44px;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--text-strong);
-    text-align: center;
-    cursor: pointer;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.variant-size-btn:hover:not(.disabled) {
-    background: var(--surface-tint);
-    border-color: var(--accent);
-    transform: translateY(-1px);
-}
-
-.variant-size-btn.is-active {
-    color: #fff;
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 .buy-form {
@@ -7611,4 +7553,78 @@ body {
     .hero-btn-group .btn-hero {
         width: 100%;
     }
+}
+
+/* UI unify nút + bố cục (cuối file = nguồn đúng nhất). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.btn.auto { width: auto; }
+.btn.block { width: 100%; }
+
+.btn.large {
+    min-height: 54px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+}
+
+.btn.loading {
+    pointer-events: none;
+    cursor: wait;
+    opacity: 0.7;
+}
+
+/* Nút xóa nhẹ: chữ gạch chân, không tranh chỗ với nút chính. */
+.btn.subtle-danger {
+    width: auto;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.btn.subtle-danger:hover {
+    color: var(--danger);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+}
+
+.cart-summary .summary-actions .btn.subtle-danger {
+    justify-self: center;
+    width: auto;
+}
+
+.qty-step:hover {
+    color: #fff;
+    background: var(--accent);
+}
+
+/* Bù color mất khi gỡ block variant cũ trùng lặp. */
+.variant-swatch { color: var(--text-strong); }
+.variant-size-btn { color: var(--text-strong); }
+
+@media (width <= 480px) {
+    .buy-actions { grid-template-columns: 1fr; }
+
+    .buy-actions .btn { min-height: 50px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+
+    html { scroll-behavior: auto; }
 }

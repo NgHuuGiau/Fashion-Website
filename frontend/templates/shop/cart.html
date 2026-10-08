@@ -83,7 +83,7 @@
             <div class="summary-actions">
                 <form method="post" action="{% url 'orders:cart_clear_all' %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn ghost">Xóa toàn bộ giỏ</button>
+                    <button type="submit" class="btn subtle-danger">Xóa toàn bộ giỏ</button>
                 </form>
                 <a href="{% url 'orders:checkout' %}" class="btn">Đi tới thanh toán</a>
             </div>
