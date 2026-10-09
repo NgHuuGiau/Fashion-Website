@@ -8,12 +8,12 @@ test.describe('Product Browsing', () => {
   });
 
   test('should display home page with products', async ({ page }) => {
-    await expect(page.locator('.hero-shell h1')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Gọn mà có gu, mặc mỗi ngày.' })).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to product detail', async ({ page }) => {
     // Click first product link
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await expect(productLink).toBeVisible();
     await productLink.click();
     
@@ -24,7 +24,7 @@ test.describe('Product Browsing', () => {
 
   test('should display product images', async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await productLink.click();
     
     // Main image should be visible
@@ -33,7 +33,7 @@ test.describe('Product Browsing', () => {
 
   test('should select variant (color/size)', async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await productLink.click();
     
     // Wait for variant picker
@@ -58,7 +58,7 @@ test.describe('Product Browsing', () => {
 
   test('should add to cart', async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await productLink.click();
     
     // Select variant if needed

@@ -6,7 +6,7 @@ test.describe('Payment Flows', () => {
   test.beforeEach(async ({ page }) => {
     // Add to cart and go to checkout
     await page.goto(`${BASE_URL}/`);
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await productLink.click();
     
     const sizeBtn = page.locator('[data-variant-size]').first();

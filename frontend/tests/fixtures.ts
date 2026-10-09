@@ -17,6 +17,14 @@ export const test = base.extend({
     await page.setExtraHTTPHeaders({
       'X-Forwarded-For': testClientIp(`${testInfo.project.name}:${testInfo.testId}`),
     });
+    await page.addInitScript(() => {
+      localStorage.setItem('huugiau_cookie_consent', JSON.stringify({
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        timestamp: 0,
+      }));
+    });
     await use(page);
   },
 });

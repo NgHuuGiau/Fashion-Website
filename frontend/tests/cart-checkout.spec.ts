@@ -7,7 +7,7 @@ test.describe('Cart & Checkout', () => {
     await page.goto(`${BASE_URL}/`);
     // Add a product to cart first
     await page.goto(`${BASE_URL}/`);
-    const productLink = page.locator('a[href*="/san-pham/"]').first();
+    const productLink = page.locator('a[href*="/san-pham/"] h3').first();
     await productLink.click();
     
     const sizeBtn = page.locator('[data-variant-size]').first();
@@ -43,14 +43,9 @@ test.describe('Cart & Checkout', () => {
     await expect(page.getByRole('heading', { name: 'Giỏ hàng đang trống' })).toBeVisible({ timeout: 5000 });
   });
 
-  test('should proceed to checkout', async ({ page }) => {
+  test('should proceed to guest checkout', async ({ page }) => {
     await page.goto(`${BASE_URL}/gio-hang/`);
-    await page.click('a[href^="/dang-nhap/"][href*="next="]');
-    await expect(page).toHaveURL(/\/dang-nhap\//);
-    await page.fill('input[name="username"]', 'nguyenvanA');
-    await page.fill('input[name="password"]', 'user123');
-    await page.locator('form.auth-form button[type="submit"]').click();
-    
+    await page.click('a[href="/thanh-toan/"]');
     await expect(page).toHaveURL(/\/thanh-toan\//);
     await expect(page.locator('form.checkout-form')).toBeVisible();
   });
