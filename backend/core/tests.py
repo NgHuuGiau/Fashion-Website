@@ -56,6 +56,15 @@ class ErrorPageTest(TestCase):
         self.assertIn("HUUGIAU", rendered)
 
 
+class StaticPageContentTest(TestCase):
+    def test_care_page_title_renders_ampersand_as_text(self):
+        response = self.client.get("/chat-lieu-bao-quan/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Chất liệu &amp; bảo quản")
+        self.assertNotContains(response, "Chất liệu &amp;amp; bảo quản")
+
+
 class SeoTest(TestCase):
     def test_robots_txt(self):
         response = self.client.get(reverse("robots_txt"))

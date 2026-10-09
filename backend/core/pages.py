@@ -2,7 +2,7 @@ PAGE_NAV = [
     ("ve-chung-toi", "Câu chuyện thương hiệu"),
     ("huong-dan-chon-size", "Hướng dẫn chọn size"),
     ("chinh-sach-doi-tra", "Chính sách đổi trả"),
-    ("chat-lieu-bao-quan", "Chất liệu &amp; bảo quản"),
+    ("chat-lieu-bao-quan", "Chất liệu & bảo quản"),
     ("tuyen-dung", "Tuyển dụng"),
     ("lien-he", "Liên hệ"),
 ]
@@ -79,7 +79,7 @@ PAGES = {
 """,
     },
     "chat-lieu-bao-quan": {
-        "title": "Chất liệu &amp; bảo quản",
+        "title": "Chất liệu & bảo quản",
         "meta": "Hướng dẫn chăm sóc áo quần HUUGIAU — giặt đúng cách để vải bền, giữ màu và form dáng lâu hơn.",
         "body_html": """
 <h2>Chất liệu chính</h2>
