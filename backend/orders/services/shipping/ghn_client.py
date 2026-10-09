@@ -21,11 +21,11 @@ class GHNConfig:
 
     @classmethod
     def from_settings(cls) -> "GHNConfig":
-        token = getattr(settings, "GHN_TOKEN", "") or getattr(
-            settings, "GHN_API_TOKEN", ""
+        return cls(
+            token=settings.GHN_TOKEN,
+            shop_id=settings.GHN_SHOP_ID,
+            base_url=settings.GHN_BASE_URL,
         )
-        shop_id = getattr(settings, "GHN_SHOP_ID", 0)
-        return cls(token=token, shop_id=int(shop_id))
 
     def is_configured(self) -> bool:
         return bool(self.token and self.shop_id)
@@ -116,27 +116,28 @@ class GHNClient:
         return self._request("POST", "/v2/shipping-order/fee", json=payload)
 
     def create_order(self, order_data: dict) -> dict:
-        return self._request("POST", "/v2/order/create", json=order_data)
+        return self._request("POST", "/v2/shipping-order/create", json=order_data)
 
     def get_order_detail(self, order_code: str) -> dict:
         return self._request(
-            "GET", "/v2/order/detail", params={"order_code": order_code}
+            "GET", "/v2/shipping-order/detail", params={"order_code": order_code}
         )
 
     def print_order(self, order_codes: list[str]) -> dict:
         return self._request(
-            "POST", "/v2/order/print", json={"order_codes": order_codes}
+            "POST", "/v2/a5/gen-token", json={"order_codes": order_codes}
         )
 
     def cancel_order(
         self, order_code: str, cancel_reason: str = "Khách hủy đơn"
-    ) -> dict:
+    ) -> list[dict]:
         return self._request(
             "POST",
-            "/v2/order/cancel",
+            "/v2/switch-status/cancel",
             json={
-                "order_code": order_code,
-                "cancel_reason": cancel_reason,
+                "order_codes": [order_code],
+                "reason_code": "GHN-CANCEL-OTHER",
+                "reason": cancel_reason,
             },
         )
 
@@ -154,17 +155,7 @@ def get_ghn_client() -> Optional[GHNClient]:
     return GHNClient(config)
 
 
-def map_address_to_ghn(address: str, phone: str = None) -> dict:
-    return {
-        "to_name": "",
-        "to_phone": phone or "",
-        "to_address": address,
-        "to_ward_code": "",
-        "to_district_id": 0,
-    }
-
-
-def build_ghn_order_payload(order, carrier_config: dict) -> dict:
+def build_ghn_order_payload(order) -> dict:
     items = order.items.all()
     total_weight = 0
     products = []
@@ -186,29 +177,16 @@ def build_ghn_order_payload(order, carrier_config: dict) -> dict:
     total_weight = max(total_weight, 200)
 
     return {
-        "payment_type_id": 2 if order.payment_method == "cod" else 1,
+        "payment_type_id": 1,
         "note": order.note or "Đơn hàng từ HUUGIAU Atelier",
-        "required_note": "KHONGCHOXEMHANG"
-        if order.payment_method == "cod"
-        else "CHOXEMHANG",
-        "from_name": "HUUGIAU Atelier",
-        "from_phone": getattr(settings, "HOTLINE", "0932047365"),
-        "from_address": getattr(settings, "STORE_ADDRESS", ""),
-        "from_ward_code": carrier_config.get("from_ward_code", ""),
-        "from_district_id": carrier_config.get("from_district_id", 0),
-        "from_province_id": carrier_config.get("from_province_id", 0),
-        "return_name": "HUUGIAU Atelier",
-        "return_phone": getattr(settings, "HOTLINE", "0932047365"),
-        "return_address": getattr(settings, "STORE_ADDRESS", ""),
-        "return_ward_code": carrier_config.get("from_ward_code", ""),
-        "return_district_id": carrier_config.get("from_district_id", 0),
-        "return_province_id": carrier_config.get("from_province_id", 0),
+        "required_note": "KHONGCHOXEMHANG",
+        "client_order_code": f"HG-{order.id}",
         "to_name": order.customer_name,
         "to_phone": order.phone,
         "to_address": order.shipping_address,
-        "to_ward_code": carrier_config.get("to_ward_code", ""),
-        "to_district_id": carrier_config.get("to_district_id", 0),
-        "to_province_id": carrier_config.get("to_province_id", 0),
+        "to_ward_name": order.shipping_ward_name,
+        "to_province_name": order.shipping_province_name,
+        "is_new_to_address": True,
         "cod_amount": int(order.total_amount) if order.payment_method == "cod" else 0,
         "content": ", ".join([p["name"] for p in products]),
         "weight": total_weight,
@@ -216,7 +194,6 @@ def build_ghn_order_payload(order, carrier_config: dict) -> dict:
         "width": 20,
         "height": 10,
         "service_type_id": 2,
-        "service_id": carrier_config.get("service_id", 53320),
-        "insurance_value": int(order.total_amount),
+        "insurance_value": min(int(order.total_amount), 5_000_000),
         "items": products,
     }

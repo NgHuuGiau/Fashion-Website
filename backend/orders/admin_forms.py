@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 
 from django import forms
+from django.conf import settings
 
 from products.models import Product
 from .models import Coupon, Order
@@ -190,8 +191,19 @@ class OrderEditForm(forms.ModelForm):
             "customer_email",
             "phone",
             "shipping_address",
+            "shipping_ward_name",
+            "shipping_province_name",
             "note",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings.GHN_TOKEN and settings.GHN_SHOP_ID:
+            self.fields["shipping_ward_name"].required = True
+            self.fields["shipping_province_name"].required = True
+        else:
+            self.fields.pop("shipping_ward_name")
+            self.fields.pop("shipping_province_name")
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "")

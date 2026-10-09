@@ -64,55 +64,47 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
         )
         return None
 
-    carrier_config = get_carrier_config("ghn")
-    payload = build_ghn_order_payload(order, carrier_config)
-
+    shipping_order, _ = ShippingOrder.objects.get_or_create(
+        order=order,
+        defaults={
+            "carrier": "ghn",
+            "carrier_order_code": f"pending-{order.id}",
+            "status": "created",
+        },
+    )
+    if shipping_order.status not in ("created", "failed"):
+        return shipping_order
+    if not order.shipping_ward_name or not order.shipping_province_name:
+        shipping_order.status = "failed"
+        shipping_order.error_message = (
+            "Thiếu phường/xã hoặc tỉnh/thành nhận hàng cho GHN."
+        )
+        shipping_order.save(update_fields=["status", "error_message", "updated_at"])
+        return shipping_order
     try:
-        with transaction.atomic():
-            # Create shipping order record first
-            shipping_order = ShippingOrder.objects.create(
-                order=order,
-                carrier="ghn",
-                carrier_order_code="",  # Will be updated after API call
-                status="created",
-            )
-
-            # Call GHN API
-            response = client.create_order(payload)
-            carrier_order_code = response.get("order_code", "")
-            tracking_code = response.get("tracking_code", "") or carrier_order_code
-
-            # Update shipping order with response
-            shipping_order.carrier_order_code = carrier_order_code
-            shipping_order.tracking_code = tracking_code
-            shipping_order.status = "pending_pickup"
-            shipping_order.raw_response = response
-            shipping_order.actual_fee = response.get("total_fee", 0)
-            shipping_order.cod_amount = response.get("cod_amount", 0)
-            shipping_order.save(
-                update_fields=[
-                    "carrier_order_code",
-                    "tracking_code",
-                    "status",
-                    "raw_response",
-                    "actual_fee",
-                    "cod_amount",
-                    "updated_at",
-                ]
-            )
-
-            # Update parent order with tracking code
-            order.tracking_code = tracking_code
-            order.status = "shipping"
-            order.save(update_fields=["tracking_code", "status", "updated_at"])
-
-            logger.info(
-                f"Created GHN shipping order {carrier_order_code} for Order #{order.id}"
-            )
-            return shipping_order
-
+        response = client.create_order(build_ghn_order_payload(order))
+        carrier_order_code = response.get("order_code", "")
+        if not carrier_order_code:
+            raise GHNAPIError(-1, "GHN không trả mã vận đơn", response)
+        shipping_order.carrier_order_code = carrier_order_code
+        shipping_order.tracking_code = carrier_order_code
+        shipping_order.status = "pending_pickup"
+        shipping_order.error_message = ""
+        shipping_order.raw_response = response
+        shipping_order.actual_fee = response.get("total_fee", 0)
+        shipping_order.cod_amount = (
+            int(order.total_amount) if order.payment_method == "cod" else 0
+        )
+        shipping_order.save()
+        order.tracking_code = carrier_order_code
+        order.status = "shipping"
+        order.save(update_fields=["tracking_code", "status", "updated_at"])
+        logger.info(
+            "Created GHN shipping order %s for Order #%s", carrier_order_code, order.id
+        )
+        return shipping_order
     except GHNAPIError as e:
-        logger.error(f"GHN API error for Order #{order.id}: {e.message}")
+        logger.error("GHN API error for Order #%s: %s", order.id, e.message)
         shipping_order.error_message = e.message
         shipping_order.raw_response = e.response
         shipping_order.status = "failed"
@@ -122,7 +114,7 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
         return shipping_order
     except Exception as e:
         logger.exception(
-            f"Unexpected error creating GHN order for Order #{order.id}: {e}"
+            "Unexpected error creating GHN order for Order #%s: %s", order.id, e
         )
         shipping_order.error_message = str(e)
         shipping_order.status = "failed"
@@ -209,22 +201,29 @@ def _print_ghn_label(shipping_order: ShippingOrder) -> Optional[bytes]:
         return None
 
     try:
-        response = client.print_order([shipping_order.carrier_order_code])
-        # GHN returns base64 PDF or URL
-        pdf_base64 = response.get("data", {}).get("pdf", "") or response.get("pdf", "")
-        if pdf_base64:
-            import base64
+        token = client.print_order([shipping_order.carrier_order_code]).get("token")
+        if not token:
+            return None
+        from urllib.parse import urlsplit
 
-            pdf_bytes = base64.b64decode(pdf_base64)
-            # Save to model
-            from django.core.files.base import ContentFile
+        from django.core.files.base import ContentFile
 
-            filename = f"label_{shipping_order.carrier_order_code}.pdf"
-            shipping_order.shipping_label_pdf.save(
-                filename, ContentFile(pdf_bytes), save=True
+        parsed = urlsplit(client.config.base_url)
+        url = f"{parsed.scheme}://{parsed.netloc}/a5/public-api/printA5"
+        response = client.session.get(url, params={"token": token}, timeout=30)
+        response.raise_for_status()
+        pdf_bytes = response.content
+        if not pdf_bytes.startswith(b"%PDF-"):
+            logger.error(
+                "GHN print endpoint did not return PDF for %s",
+                shipping_order.carrier_order_code,
             )
-            return pdf_bytes
-        return None
+            return None
+        filename = f"label_{shipping_order.carrier_order_code}.pdf"
+        shipping_order.shipping_label_pdf.save(
+            filename, ContentFile(pdf_bytes), save=True
+        )
+        return pdf_bytes
     except Exception as e:
         logger.error(
             f"Error printing GHN label for {shipping_order.carrier_order_code}: {e}"
@@ -257,7 +256,14 @@ def _cancel_ghn_order(shipping_order: ShippingOrder, reason: str) -> bool:
         return False
 
     try:
-        client.cancel_order(shipping_order.carrier_order_code, reason)
+        results = client.cancel_order(shipping_order.carrier_order_code, reason)
+        if not results or not results[0].get("result"):
+            logger.warning(
+                "GHN refused cancellation for %s: %s",
+                shipping_order.carrier_order_code,
+                results,
+            )
+            return False
         shipping_order.status = "cancelled"
         shipping_order.save(update_fields=["status", "updated_at"])
 

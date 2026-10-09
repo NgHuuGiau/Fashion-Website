@@ -174,6 +174,8 @@ class Order(models.Model):
     customer_email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, db_index=True)
     shipping_address = models.TextField()
+    shipping_ward_name = models.CharField(max_length=150, blank=True)
+    shipping_province_name = models.CharField(max_length=150, blank=True)
     note = models.TextField(blank=True)
     delivery_time_slot = models.CharField(
         max_length=20, blank=True, verbose_name="Khung giờ nhận hàng"
@@ -779,10 +781,21 @@ class ShippingOrder(models.Model):
             "ghn": {
                 "status_map": {
                     "ready_to_pick": "pending_pickup",
+                    "picking": "pending_pickup",
                     "picked": "picked_up",
+                    "storing": "in_transit",
                     "transporting": "in_transit",
+                    "sorting": "in_transit",
+                    "delivering": "in_transit",
+                    "delivery_fail": "failed",
+                    "waiting_to_return": "failed",
                     "delivered": "delivered",
+                    "return": "in_transit",
+                    "return_transporting": "in_transit",
+                    "return_sorting": "in_transit",
+                    "returning": "in_transit",
                     "returned": "returned",
+                    "cancel": "cancelled",
                     "cancelled": "cancelled",
                 },
                 "tracking_field": "order_code",

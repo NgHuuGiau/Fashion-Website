@@ -77,6 +77,19 @@
                         {{ form.shipping_address }}
                         {{ form.shipping_address.errors }}
                     </label>
+                    {% if form.shipping_ward_name.field.required %}
+                    <label class="field">
+                        <span>{{ form.shipping_ward_name.label }}</span>
+                        {{ form.shipping_ward_name }}
+                        {{ form.shipping_ward_name.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.shipping_province_name.label }}</span>
+                        {{ form.shipping_province_name }}
+                        {{ form.shipping_province_name.errors }}
+                    </label>
+                    <p class="muted span-2">Vui lòng nhập tên phường/xã và tỉnh/thành theo địa chỉ GHN để tạo vận đơn.</p>
+                    {% endif %}
                     <div class="field span-2 checkout-map-wrap">
                         <div class="checkout-map-tools">
                             <input type="text" id="locate-search" class="checkout-map-search" placeholder="Địa chỉ, phường/xã, tỉnh/thành" aria-label="Tìm địa chỉ giao hàng">

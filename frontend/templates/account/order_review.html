@@ -140,6 +140,16 @@
                                 <span>Địa chỉ nhận hàng</span>
                                 <textarea name="shipping_address" rows="3" required>{{ order.shipping_address|repair_text }}</textarea>
                             </label>
+                            {% if ghn_enabled %}
+                            <label class="review-field">
+                                <span>Phường/xã nhận hàng</span>
+                                <input type="text" name="shipping_ward_name" value="{{ order.shipping_ward_name|repair_text }}" required>
+                            </label>
+                            <label class="review-field">
+                                <span>Tỉnh/thành nhận hàng</span>
+                                <input type="text" name="shipping_province_name" value="{{ order.shipping_province_name|repair_text }}" required>
+                            </label>
+                            {% endif %}
                             <label class="review-field">
                                 <span>Ghi chú</span>
                                 <textarea name="note" rows="2">{{ order.note|repair_text }}</textarea>

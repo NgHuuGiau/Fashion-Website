@@ -197,6 +197,7 @@ def order_review(request: HttpRequest, order_id) -> HttpResponse:
         {
             "order": order,
             "can_edit": can_edit,
+            "ghn_enabled": bool(settings.GHN_TOKEN and settings.GHN_SHOP_ID),
             "tracking_order": order,
             "selected_bank_name": selected_bank_name,
             "qr_url": qr_url,

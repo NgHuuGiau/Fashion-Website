@@ -693,6 +693,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         customer_email=form.cleaned_data["customer_email"],
                         phone=form.cleaned_data["phone"],
                         shipping_address=form.cleaned_data["shipping_address"],
+                        shipping_ward_name=form.cleaned_data["shipping_ward_name"],
+                        shipping_province_name=form.cleaned_data[
+                            "shipping_province_name"
+                        ],
                         note=form.cleaned_data["note"],
                         delivery_time_slot=form.cleaned_data.get(
                             "delivery_time_slot", ""

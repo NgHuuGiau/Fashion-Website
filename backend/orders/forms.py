@@ -1,6 +1,7 @@
 import re
 
 from django import forms
+from django.conf import settings
 
 from . import vnpay
 from .constants import bank_transfer_is_enabled
@@ -49,6 +50,12 @@ class CheckoutForm(forms.Form):
     shipping_address = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4}),
         label="Địa chỉ nhận hàng",
+    )
+    shipping_ward_name = forms.CharField(
+        required=False, max_length=150, label="Phường/xã nhận hàng"
+    )
+    shipping_province_name = forms.CharField(
+        required=False, max_length=150, label="Tỉnh/thành nhận hàng"
     )
     payment_method = forms.ChoiceField(
         choices=[
@@ -100,6 +107,9 @@ class CheckoutForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if settings.GHN_TOKEN and settings.GHN_SHOP_ID:
+            self.fields["shipping_ward_name"].required = True
+            self.fields["shipping_province_name"].required = True
         if not bank_transfer_is_enabled():
             self.fields["payment_method"].choices = [
                 choice

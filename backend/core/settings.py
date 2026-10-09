@@ -54,6 +54,15 @@ if not _secret_key:
 SECRET_KEY = _secret_key
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
+GHN_WEBHOOK_TOKEN = os.getenv("GHN_WEBHOOK_TOKEN", "").strip()
+GHN_TOKEN = os.getenv("GHN_TOKEN", "").strip()
+GHN_SHOP_ID = int(os.getenv("GHN_SHOP_ID", "0") or 0)
+GHN_BASE_URL = os.getenv(
+    "GHN_BASE_URL",
+    "https://dev-online-gateway.ghn.vn/shiip/public-api"
+    if DEBUG
+    else "https://online-gateway.ghn.vn/shiip/public-api",
+).rstrip("/")
 if not DEBUG:
     from django.core.exceptions import ImproperlyConfigured
 
