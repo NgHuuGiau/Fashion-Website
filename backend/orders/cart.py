@@ -67,7 +67,11 @@ def add_cart(request, product_id, quantity=1, override_quantity=False, variant_i
     if key not in cart:
         cart[key] = {
             "quantity": 0,
-            "price": str(product.get_effective_price() if hasattr(product, "get_effective_price") else product.price),
+            "price": str(
+                product.get_effective_price()
+                if hasattr(product, "get_effective_price")
+                else product.price
+            ),
             "variant_id": variant.id if variant else 0,
         }
 
@@ -133,7 +137,11 @@ def iter_cart(request):
             stored_price = Decimal(str(item.get("price", product.price)))
         except (InvalidOperation, TypeError, ValueError):
             stored_price = product.price
-        price = product.get_effective_price() if hasattr(product, "get_effective_price") else product.price
+        price = (
+            product.get_effective_price()
+            if hasattr(product, "get_effective_price")
+            else product.price
+        )
         price_changed = stored_price != price
         if price_changed:
             item["price"] = str(price)

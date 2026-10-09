@@ -5,36 +5,120 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0023_orderitem_product_name'),
+        ("orders", "0023_orderitem_product_name"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ShippingOrder',
+            name="ShippingOrder",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('carrier', models.CharField(choices=[('ghn', 'GHN'), ('ghtk', 'GHTK')], max_length=10)),
-                ('carrier_order_code', models.CharField(max_length=50, unique=True, verbose_name='Mã đơn carrier')),
-                ('tracking_code', models.CharField(blank=True, max_length=50, verbose_name='Mã tracking')),
-                ('shipping_label_pdf', models.FileField(blank=True, null=True, upload_to='shipping_labels/%Y/%m/%d', verbose_name='File tem in')),
-                ('actual_fee', models.DecimalField(decimal_places=0, default=0, max_digits=12, verbose_name='Phí ship thực tế')),
-                ('cod_amount', models.DecimalField(decimal_places=0, default=0, max_digits=12, verbose_name='Tiền thu hộ (COD)')),
-                ('status', models.CharField(choices=[('created', 'Đã tạo'), ('pending_pickup', 'Chờ lấy hàng'), ('picked_up', 'Đã lấy hàng'), ('in_transit', 'Đang vận chuyển'), ('delivered', 'Đã giao'), ('failed', 'Giao thất bại'), ('returned', 'Đã hoàn hàng'), ('cancelled', 'Đã hủy')], db_index=True, default='created', max_length=20)),
-                ('raw_response', models.JSONField(blank=True, default=dict, verbose_name='Raw API response')),
-                ('error_message', models.TextField(blank=True, verbose_name='Lỗi API')),
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('picked_up_at', models.DateTimeField(blank=True, null=True)),
-                ('delivered_at', models.DateTimeField(blank=True, null=True)),
-                ('order', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='shipping_order', to='orders.order')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "carrier",
+                    models.CharField(
+                        choices=[("ghn", "GHN"), ("ghtk", "GHTK")], max_length=10
+                    ),
+                ),
+                (
+                    "carrier_order_code",
+                    models.CharField(
+                        max_length=50, unique=True, verbose_name="Mã đơn carrier"
+                    ),
+                ),
+                (
+                    "tracking_code",
+                    models.CharField(
+                        blank=True, max_length=50, verbose_name="Mã tracking"
+                    ),
+                ),
+                (
+                    "shipping_label_pdf",
+                    models.FileField(
+                        blank=True,
+                        null=True,
+                        upload_to="shipping_labels/%Y/%m/%d",
+                        verbose_name="File tem in",
+                    ),
+                ),
+                (
+                    "actual_fee",
+                    models.DecimalField(
+                        decimal_places=0,
+                        default=0,
+                        max_digits=12,
+                        verbose_name="Phí ship thực tế",
+                    ),
+                ),
+                (
+                    "cod_amount",
+                    models.DecimalField(
+                        decimal_places=0,
+                        default=0,
+                        max_digits=12,
+                        verbose_name="Tiền thu hộ (COD)",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("created", "Đã tạo"),
+                            ("pending_pickup", "Chờ lấy hàng"),
+                            ("picked_up", "Đã lấy hàng"),
+                            ("in_transit", "Đang vận chuyển"),
+                            ("delivered", "Đã giao"),
+                            ("failed", "Giao thất bại"),
+                            ("returned", "Đã hoàn hàng"),
+                            ("cancelled", "Đã hủy"),
+                        ],
+                        db_index=True,
+                        default="created",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "raw_response",
+                    models.JSONField(
+                        blank=True, default=dict, verbose_name="Raw API response"
+                    ),
+                ),
+                ("error_message", models.TextField(blank=True, verbose_name="Lỗi API")),
+                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("picked_up_at", models.DateTimeField(blank=True, null=True)),
+                ("delivered_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "order",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="shipping_order",
+                        to="orders.order",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Đơn vận chuyển',
-                'verbose_name_plural': 'Đơn vận chuyển',
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['carrier', 'status'], name='orders_ship_carrier_1c45a8_idx'), models.Index(fields=['carrier_order_code'], name='orders_ship_carrier_ba3879_idx')],
+                "verbose_name": "Đơn vận chuyển",
+                "verbose_name_plural": "Đơn vận chuyển",
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["carrier", "status"],
+                        name="orders_ship_carrier_1c45a8_idx",
+                    ),
+                    models.Index(
+                        fields=["carrier_order_code"],
+                        name="orders_ship_carrier_ba3879_idx",
+                    ),
+                ],
             },
         ),
     ]

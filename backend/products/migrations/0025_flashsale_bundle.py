@@ -5,55 +5,102 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0024_brand_collection_tag_product_attributes_and_more'),
+        ("products", "0024_brand_collection_tag_product_attributes_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FlashSale',
+            name="FlashSale",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=150)),
-                ('starts_at', models.DateTimeField(db_index=True)),
-                ('ends_at', models.DateTimeField(db_index=True)),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
-                ('created', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=150)),
+                ("starts_at", models.DateTimeField(db_index=True)),
+                ("ends_at", models.DateTimeField(db_index=True)),
+                ("is_active", models.BooleanField(db_index=True, default=True)),
+                ("created", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'ordering': ['-starts_at'],
+                "ordering": ["-starts_at"],
             },
         ),
         migrations.CreateModel(
-            name='Bundle',
+            name="Bundle",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=150)),
-                ('slug', models.SlugField(unique=True)),
-                ('bundle_price', models.DecimalField(decimal_places=0, max_digits=12)),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
-                ('starts_at', models.DateTimeField(blank=True, null=True)),
-                ('ends_at', models.DateTimeField(blank=True, null=True)),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('products', models.ManyToManyField(related_name='bundles', to='products.product')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=150)),
+                ("slug", models.SlugField(unique=True)),
+                ("bundle_price", models.DecimalField(decimal_places=0, max_digits=12)),
+                ("is_active", models.BooleanField(db_index=True, default=True)),
+                ("starts_at", models.DateTimeField(blank=True, null=True)),
+                ("ends_at", models.DateTimeField(blank=True, null=True)),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                (
+                    "products",
+                    models.ManyToManyField(
+                        related_name="bundles", to="products.product"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created'],
+                "ordering": ["-created"],
             },
         ),
         migrations.CreateModel(
-            name='FlashSaleItem',
+            name="FlashSaleItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('sale_price', models.DecimalField(decimal_places=0, max_digits=10)),
-                ('quantity', models.PositiveIntegerField(default=0, verbose_name='SL flash sale')),
-                ('sold', models.PositiveIntegerField(default=0)),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='flash_items', to='products.product')),
-                ('sale', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='products.flashsale')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("sale_price", models.DecimalField(decimal_places=0, max_digits=10)),
+                (
+                    "quantity",
+                    models.PositiveIntegerField(
+                        default=0, verbose_name="SL flash sale"
+                    ),
+                ),
+                ("sold", models.PositiveIntegerField(default=0)),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="flash_items",
+                        to="products.product",
+                    ),
+                ),
+                (
+                    "sale",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="items",
+                        to="products.flashsale",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('sale', 'product')},
+                "unique_together": {("sale", "product")},
             },
         ),
     ]

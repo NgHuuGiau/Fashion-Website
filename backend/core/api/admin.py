@@ -52,9 +52,18 @@ def api_admin_stats(request: HttpRequest) -> JsonResponse:
     context = build_admin_dashboard_context(current_user=request.user)
     # ponytail: analytics nang cao best-effort, loi thi bo qua de khong vo dashboard cu
     try:
-        from orders.services.analytics import cohort_retention, customer_ltv, rfm_segments
+        from orders.services.analytics import (
+            cohort_retention,
+            customer_ltv,
+            rfm_segments,
+        )
+
         _rfm = rfm_segments()
-        context["analytics"] = {"cohorts": cohort_retention(), "top_ltv": customer_ltv(), "rfm": _rfm}
+        context["analytics"] = {
+            "cohorts": cohort_retention(),
+            "top_ltv": customer_ltv(),
+            "rfm": _rfm,
+        }
     except Exception:
         context["analytics"] = {"cohorts": [], "top_ltv": [], "rfm": {}}
     payload = {

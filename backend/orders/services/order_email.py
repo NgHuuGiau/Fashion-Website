@@ -29,7 +29,7 @@ def _order_context(order):
                 "total": item.price * item.quantity,
             }
         )
-    
+
     # Shipping order info
     shipping_info = {}
     if hasattr(order, "shipping_order") and order.shipping_order:
@@ -41,7 +41,7 @@ def _order_context(order):
             "tracking_url": so.tracking_url,
             "status": so.get_status_display(),
         }
-    
+
     return {
         "order": order,
         "items": items,

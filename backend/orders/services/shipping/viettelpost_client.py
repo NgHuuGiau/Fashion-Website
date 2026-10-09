@@ -1,4 +1,5 @@
 """ViettelPost API Client - minimal, cung interface nhu GHN/GHTK."""
+
 import logging
 import time
 from dataclasses import dataclass
@@ -23,7 +24,11 @@ class ViettelPostConfig:
         return cls(
             token=getattr(settings, "VIETTELPOST_TOKEN", ""),
             shop_id=str(getattr(settings, "VIETTELPOST_SHOP_ID", "")),
-            base_url=getattr(settings, "VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder").rsplit("/createOrder", 1)[0],
+            base_url=getattr(
+                settings,
+                "VIETTELPOST_ENDPOINT",
+                "https://partner.viettelpost.vn/v2/order/createOrder",
+            ).rsplit("/createOrder", 1)[0],
         )
 
     def is_configured(self) -> bool:
@@ -41,13 +46,17 @@ class ViettelPostClient:
     def __init__(self, config: ViettelPostConfig = None):
         self.config = config or ViettelPostConfig.from_settings()
         self.session = requests.Session()
-        self.session.headers.update({"Token": self.config.token, "Content-Type": "application/json"})
+        self.session.headers.update(
+            {"Token": self.config.token, "Content-Type": "application/json"}
+        )
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.config.base_url}{endpoint}"
         for attempt in range(self.config.max_retries):
             try:
-                resp = self.session.request(method, url, timeout=self.config.timeout, **kwargs)
+                resp = self.session.request(
+                    method, url, timeout=self.config.timeout, **kwargs
+                )
                 data = resp.json() if resp.content else {}
                 if resp.status_code == 200 and data.get("status") == 200:
                     return data.get("data", {})
@@ -55,16 +64,24 @@ class ViettelPostClient:
             except requests.RequestException as e:
                 if attempt == self.config.max_retries - 1:
                     raise ViettelPostAPIError(f"Network error: {e}")
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         raise ViettelPostAPIError("Max retries exceeded")
 
     def create_order(self, order_data: dict) -> dict:
         res = self._request("POST", "/createOrder", json=order_data)
         code = res.get("ORDER_NUMBER", "")
-        return {"order_code": code, "tracking_code": code, "total_fee": res.get("MONEY_TOTAL", 0), "cod_amount": order_data.get("COD_AMOUNT", 0), "raw": res}
+        return {
+            "order_code": code,
+            "tracking_code": code,
+            "total_fee": res.get("MONEY_TOTAL", 0),
+            "cod_amount": order_data.get("COD_AMOUNT", 0),
+            "raw": res,
+        }
 
     def get_order_detail(self, order_code: str) -> dict:
-        return self._request("POST", "/getOrderDetail", json={"ORDER_NUMBER": order_code})
+        return self._request(
+            "POST", "/getOrderDetail", json={"ORDER_NUMBER": order_code}
+        )
 
     def cancel_order(self, order_code: str, cancel_reason: str = "") -> dict:
         return self._request("POST", "/cancelOrder", json={"ORDER_NUMBER": order_code})
@@ -80,7 +97,13 @@ def get_viettelpost_client() -> Optional[ViettelPostClient]:
 
 def build_viettelpost_order_payload(order, carrier_config: dict) -> dict:
     items = order.items.all()
-    products = [{"PRODUCT_NAME": i.product_name or i.product.name, "PRODUCT_QUANTITY": i.quantity} for i in items]
+    products = [
+        {
+            "PRODUCT_NAME": i.product_name or i.product.name,
+            "PRODUCT_QUANTITY": i.quantity,
+        }
+        for i in items
+    ]
     return {
         "ORDER_NUMBER": f"HG{order.id}",
         "SENDER_FULLNAME": "HUUGIAU Atelier",
@@ -92,7 +115,9 @@ def build_viettelpost_order_payload(order, carrier_config: dict) -> dict:
         "PRODUCT_TYPE": "HH",
         "ORDER_PAYMENT": 3 if order.payment_method == "cod" else 1,
         "COD_AMOUNT": int(order.total_amount) if order.payment_method == "cod" else 0,
-        "MONEY_COLLECTION": int(order.total_amount) if order.payment_method == "cod" else 0,
+        "MONEY_COLLECTION": int(order.total_amount)
+        if order.payment_method == "cod"
+        else 0,
         "NOTE": order.note or "",
         "LIST_ITEM": products,
     }

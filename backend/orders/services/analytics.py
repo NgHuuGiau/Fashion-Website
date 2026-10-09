@@ -1,6 +1,7 @@
 """Admin analytics - cohort / retention / LTV / RFM toi gian.
 ponytail: 4 ham pure-query tren Order, khong them model, dung truc tiep tu dashboard.
 """
+
 from datetime import timedelta
 
 from django.db.models import Avg, Count, Max, Min, Sum
@@ -10,45 +11,82 @@ from django.utils import timezone
 
 def _base_qs():
     from orders.models import Order
+
     return Order.objects.filter(status="delivered")
 
 
 def monthly_revenue(months=12):
-    qs = _base_qs().annotate(m=TruncMonth("created_at")).values("m").annotate(
-        revenue=Sum("total_amount"), orders=Count("id")
-    ).order_by("m")
+    qs = (
+        _base_qs()
+        .annotate(m=TruncMonth("created_at"))
+        .values("m")
+        .annotate(revenue=Sum("total_amount"), orders=Count("id"))
+        .order_by("m")
+    )
     return list(qs)[-months:]
 
 
 def cohort_retention(months=6):
     # ponytail: cohort = thang don dau tien, retention = % quay lai thang sau
     from orders.models import Order
-    firsts = Order.objects.filter(status="delivered", user__isnull=False).values("user").annotate(first=Min("created_at"))
+
+    firsts = (
+        Order.objects.filter(status="delivered", user__isnull=False)
+        .values("user")
+        .annotate(first=Min("created_at"))
+    )
     out = []
     now = timezone.now()
     for row in list(firsts)[-2000:]:
-        out.append({"user_id": row["user"], "cohort": row["first"].strftime("%Y-%m") if row["first"] else ""})
+        out.append(
+            {
+                "user_id": row["user"],
+                "cohort": row["first"].strftime("%Y-%m") if row["first"] else "",
+            }
+        )
     # gom nhanh, khong query N+1
     cohorts = {}
     for r in out:
         cohorts.setdefault(r["cohort"], 0)
         cohorts[r["cohort"]] += 1
     cutoff = (now - timedelta(days=30 * months)).strftime("%Y-%m")
-    return [{"cohort": k, "customers": v} for k, v in sorted(cohorts.items()) if k >= cutoff]
+    return [
+        {"cohort": k, "customers": v} for k, v in sorted(cohorts.items()) if k >= cutoff
+    ]
 
 
 def customer_ltv(limit=20):
-    qs = _base_qs().values("user", "customer_email").annotate(
-        orders=Count("id"), revenue=Sum("total_amount"), last=Max("created_at")
-    ).order_by("-revenue")[:limit]
-    return [{"user_id": r["user"], "email": r["customer_email"], "orders": r["orders"], "ltv": float(r["revenue"] or 0), "last_order": r["last"]} for r in qs]
+    qs = (
+        _base_qs()
+        .values("user", "customer_email")
+        .annotate(
+            orders=Count("id"), revenue=Sum("total_amount"), last=Max("created_at")
+        )
+        .order_by("-revenue")[:limit]
+    )
+    return [
+        {
+            "user_id": r["user"],
+            "email": r["customer_email"],
+            "orders": r["orders"],
+            "ltv": float(r["revenue"] or 0),
+            "last_order": r["last"],
+        }
+        for r in qs
+    ]
 
 
 def rfm_segments():
     # ponytail: R/F/M don gian tu delivered - du cho dashboard, khoi ML
     now = timezone.now()
-    qs = _base_qs().values("user").annotate(
-        recency=Max("created_at"), frequency=Count("id"), monetary=Sum("total_amount")
+    qs = (
+        _base_qs()
+        .values("user")
+        .annotate(
+            recency=Max("created_at"),
+            frequency=Count("id"),
+            monetary=Sum("total_amount"),
+        )
     )
     segs = {"champions": 0, "loyal": 0, "at_risk": 0, "new": 0}
     for r in qs[:5000]:

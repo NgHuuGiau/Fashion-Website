@@ -29,7 +29,9 @@ class DemoSeedCommandSafetyTests(TestCase):
                 with self.assertRaisesMessage(CommandError, "DEBUG=False"):
                     call_command(command, **options)
 
-    def test_product_sync_preserves_unlisted_products_and_imports_realistic_fields(self):
+    def test_product_sync_preserves_unlisted_products_and_imports_realistic_fields(
+        self,
+    ):
         category = Category.objects.create(name="Áo", slug="ao")
         unrelated = Product.objects.create(
             category=category, name="Giữ lại", slug="keep-this", price=100000
@@ -398,8 +400,7 @@ class SupportChatApiTest(TestCase):
         try:
             url = reverse("products:support_chat_reply")
             codes = [
-                self.client.get(url, {"q": f"spam {i}"}).status_code
-                for i in range(35)
+                self.client.get(url, {"q": f"spam {i}"}).status_code for i in range(35)
             ]
             self.assertIn(429, codes)
         finally:
@@ -1026,9 +1027,7 @@ class ProductGeneratedAssetTest(TestCase):
 
         # ponytail: MEDIA_ROOT tạm riêng mỗi test, tránh worker xdist xoá file của nhau
         self._media_tmp = tempfile.TemporaryDirectory()
-        self._media_override = override_settings(
-            MEDIA_ROOT=Path(self._media_tmp.name)
-        )
+        self._media_override = override_settings(MEDIA_ROOT=Path(self._media_tmp.name))
         self._media_override.enable()
         self.pk = Category.objects.create(name="Phụ kiện", slug="phu-kien")
         self.product = Product.objects.create(

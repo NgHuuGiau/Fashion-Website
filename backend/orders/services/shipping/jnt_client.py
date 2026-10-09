@@ -1,4 +1,5 @@
 """J&T Express API Client - minimal, cung interface nhu GHN/GHTK."""
+
 import logging
 import time
 from dataclasses import dataclass
@@ -49,7 +50,10 @@ class JNTClient:
             return self._access_token
         resp = self.session.post(
             f"{self.config.base_url}/auth/token",
-            json={"client_id": self.config.client_id, "client_secret": self.config.client_secret},
+            json={
+                "client_id": self.config.client_id,
+                "client_secret": self.config.client_secret,
+            },
             timeout=10,
         )
         data = resp.json()
@@ -59,11 +63,16 @@ class JNTClient:
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         token = self._get_token()
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
         url = f"{self.config.base_url}{endpoint}"
         for attempt in range(self.config.max_retries):
             try:
-                resp = self.session.request(method, url, headers=headers, timeout=self.config.timeout, **kwargs)
+                resp = self.session.request(
+                    method, url, headers=headers, timeout=self.config.timeout, **kwargs
+                )
                 data = resp.json() if resp.content else {}
                 if resp.status_code == 200 and data.get("code") == 200:
                     return data.get("data", data)
@@ -71,19 +80,29 @@ class JNTClient:
             except requests.RequestException as e:
                 if attempt == self.config.max_retries - 1:
                     raise JNTAPIError(f"Network error: {e}")
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         raise JNTAPIError("Max retries exceeded")
 
     def create_order(self, order_data: dict) -> dict:
         res = self._request("POST", "/order/create", json=order_data)
         code = res.get("bill_code", "") or res.get("order_code", "")
-        return {"order_code": code, "tracking_code": code, "total_fee": res.get("total_price", 0), "cod_amount": order_data.get("cod_amount", 0), "raw": res}
+        return {
+            "order_code": code,
+            "tracking_code": code,
+            "total_fee": res.get("total_price", 0),
+            "cod_amount": order_data.get("cod_amount", 0),
+            "raw": res,
+        }
 
     def get_order_detail(self, bill_code: str) -> dict:
         return self._request("GET", "/order/detail", params={"bill_code": bill_code})
 
     def cancel_order(self, bill_code: str, cancel_reason: str = "") -> dict:
-        return self._request("POST", "/order/cancel", json={"bill_code": bill_code, "reason": cancel_reason})
+        return self._request(
+            "POST",
+            "/order/cancel",
+            json={"bill_code": bill_code, "reason": cancel_reason},
+        )
 
 
 def get_jnt_client() -> Optional[JNTClient]:
@@ -96,7 +115,14 @@ def get_jnt_client() -> Optional[JNTClient]:
 
 def build_jnt_order_payload(order, carrier_config: dict) -> dict:
     items = order.items.all()
-    products = [{"name": i.product_name or i.product.name, "quantity": i.quantity, "weight": getattr(i.variant, "weight", 200)} for i in items]
+    products = [
+        {
+            "name": i.product_name or i.product.name,
+            "quantity": i.quantity,
+            "weight": getattr(i.variant, "weight", 200),
+        }
+        for i in items
+    ]
     return {
         "bill_code": f"HG{order.id}",
         "sender_name": "HUUGIAU Atelier",

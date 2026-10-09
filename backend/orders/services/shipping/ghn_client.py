@@ -3,8 +3,7 @@
 import logging
 import time
 from dataclasses import dataclass
-from decimal import Decimal
-from typing import Any, Optional
+from typing import Optional
 
 import requests
 from django.conf import settings
@@ -22,7 +21,9 @@ class GHNConfig:
 
     @classmethod
     def from_settings(cls) -> "GHNConfig":
-        token = getattr(settings, "GHN_TOKEN", "") or getattr(settings, "GHN_API_TOKEN", "")
+        token = getattr(settings, "GHN_TOKEN", "") or getattr(
+            settings, "GHN_API_TOKEN", ""
+        )
         shop_id = getattr(settings, "GHN_SHOP_ID", 0)
         return cls(token=token, shop_id=int(shop_id))
 
@@ -44,11 +45,13 @@ class GHNClient:
     def __init__(self, config: GHNConfig = None):
         self.config = config or GHNConfig.from_settings()
         self.session = requests.Session()
-        self.session.headers.update({
-            "Token": self.config.token,
-            "ShopId": str(self.config.shop_id),
-            "Content-Type": "application/json",
-        })
+        self.session.headers.update(
+            {
+                "Token": self.config.token,
+                "ShopId": str(self.config.shop_id),
+                "Content-Type": "application/json",
+            }
+        )
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.config.base_url}{endpoint}"
@@ -68,17 +71,21 @@ class GHNClient:
             except requests.RequestException as e:
                 if attempt == self.config.max_retries - 1:
                     raise GHNAPIError(-1, f"Network error after retries: {e}")
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         raise GHNAPIError(-1, "Max retries exceeded")
 
     def get_provinces(self) -> list[dict]:
         return self._request("GET", "/master-data/province")
 
     def get_districts(self, province_id: int) -> list[dict]:
-        return self._request("GET", "/master-data/district", params={"province_id": province_id})
+        return self._request(
+            "GET", "/master-data/district", params={"province_id": province_id}
+        )
 
     def get_wards(self, district_id: int) -> list[dict]:
-        return self._request("GET", "/master-data/ward", params={"district_id": district_id})
+        return self._request(
+            "GET", "/master-data/ward", params={"district_id": district_id}
+        )
 
     def calculate_fee(
         self,
@@ -112,19 +119,31 @@ class GHNClient:
         return self._request("POST", "/v2/order/create", json=order_data)
 
     def get_order_detail(self, order_code: str) -> dict:
-        return self._request("GET", "/v2/order/detail", params={"order_code": order_code})
+        return self._request(
+            "GET", "/v2/order/detail", params={"order_code": order_code}
+        )
 
     def print_order(self, order_codes: list[str]) -> dict:
-        return self._request("POST", "/v2/order/print", json={"order_codes": order_codes})
+        return self._request(
+            "POST", "/v2/order/print", json={"order_codes": order_codes}
+        )
 
-    def cancel_order(self, order_code: str, cancel_reason: str = "Khách hủy đơn") -> dict:
-        return self._request("POST", "/v2/order/cancel", json={
-            "order_code": order_code,
-            "cancel_reason": cancel_reason,
-        })
+    def cancel_order(
+        self, order_code: str, cancel_reason: str = "Khách hủy đơn"
+    ) -> dict:
+        return self._request(
+            "POST",
+            "/v2/order/cancel",
+            json={
+                "order_code": order_code,
+                "cancel_reason": cancel_reason,
+            },
+        )
 
     def get_tracking(self, order_code: str) -> dict:
-        return self._request("GET", "/v2/tracking/detail", params={"order_code": order_code})
+        return self._request(
+            "GET", "/v2/tracking/detail", params={"order_code": order_code}
+        )
 
 
 def get_ghn_client() -> Optional[GHNClient]:
@@ -155,19 +174,23 @@ def build_ghn_order_payload(order, carrier_config: dict) -> dict:
         weight = getattr(variant, "weight", 200) if variant else 200
         qty = item.quantity
         total_weight += weight * qty
-        products.append({
-            "name": item.product_name or item.product.name,
-            "quantity": qty,
-            "weight": weight,
-            "category": {"level1": "Thời trang"},
-        })
+        products.append(
+            {
+                "name": item.product_name or item.product.name,
+                "quantity": qty,
+                "weight": weight,
+                "category": {"level1": "Thời trang"},
+            }
+        )
 
     total_weight = max(total_weight, 200)
 
     return {
         "payment_type_id": 2 if order.payment_method == "cod" else 1,
         "note": order.note or "Đơn hàng từ HUUGIAU Atelier",
-        "required_note": "KHONGCHOXEMHANG" if order.payment_method == "cod" else "CHOXEMHANG",
+        "required_note": "KHONGCHOXEMHANG"
+        if order.payment_method == "cod"
+        else "CHOXEMHANG",
         "from_name": "HUUGIAU Atelier",
         "from_phone": getattr(settings, "HOTLINE", "0932047365"),
         "from_address": getattr(settings, "STORE_ADDRESS", ""),

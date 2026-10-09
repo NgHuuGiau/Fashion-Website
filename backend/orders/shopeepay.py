@@ -6,12 +6,9 @@ Sandbox mặc định; chỉ hoạt động khi đầy đủ credentials.
 
 import hashlib
 import hmac
-import json
 import logging
 import time
-import uuid
 from datetime import datetime
-from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
@@ -74,7 +71,10 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
         response = requests.post(
             f"{settings.SHOPEEPAY_ENDPOINT}/api/v2/payment/order/create",
             json=params,
-            headers={"Content-Type": "application/json", "Partner-Key": settings.SHOPEEPAY_KEY},
+            headers={
+                "Content-Type": "application/json",
+                "Partner-Key": settings.SHOPEEPAY_KEY,
+            },
             timeout=30,
         )
         response_data = response.json()
@@ -89,7 +89,10 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
             }
         else:
             logger.error("ShopeePay create order failed: %s", response_data)
-            return {"checkout_url": "", "error": response_data.get("error_message", "Unknown error")}
+            return {
+                "checkout_url": "",
+                "error": response_data.get("error_message", "Unknown error"),
+            }
 
     except requests.RequestException:
         logger.exception("ShopeePay request failed for order %s", order.id)
@@ -160,7 +163,10 @@ def query_transaction(order, partner_order_id: str) -> dict:
         response = requests.post(
             f"{settings.SHOPEEPAY_ENDPOINT}/api/v2/payment/order/query",
             json=params,
-            headers={"Content-Type": "application/json", "Partner-Key": settings.SHOPEEPAY_KEY},
+            headers={
+                "Content-Type": "application/json",
+                "Partner-Key": settings.SHOPEEPAY_KEY,
+            },
             timeout=30,
         )
         response_data = response.json()
@@ -168,10 +174,17 @@ def query_transaction(order, partner_order_id: str) -> dict:
         if response_data.get("error_code") == 0:
             return {"success": True, "data": response_data.get("data", {})}
         else:
-            return {"success": False, "message": response_data.get("error_message", "Query failed")}
+            return {
+                "success": False,
+                "message": response_data.get("error_message", "Query failed"),
+            }
     except Exception:
         logger.exception("ShopeePay query failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Truy vấn ShopeePay thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Truy vấn ShopeePay thất bại",
+        }
 
 
 def refund_transaction(order, amount: int, order_id: str) -> dict:
@@ -196,7 +209,10 @@ def refund_transaction(order, amount: int, order_id: str) -> dict:
         response = requests.post(
             f"{settings.SHOPEEPAY_ENDPOINT}/api/v2/payment/order/refund",
             json=params,
-            headers={"Content-Type": "application/json", "Partner-Key": settings.SHOPEEPAY_KEY},
+            headers={
+                "Content-Type": "application/json",
+                "Partner-Key": settings.SHOPEEPAY_KEY,
+            },
             timeout=30,
         )
         response_data = response.json()
@@ -204,7 +220,14 @@ def refund_transaction(order, amount: int, order_id: str) -> dict:
         if response_data.get("error_code") == 0:
             return {"success": True, "data": response_data.get("data", {})}
         else:
-            return {"success": False, "message": response_data.get("error_message", "Refund failed")}
+            return {
+                "success": False,
+                "message": response_data.get("error_message", "Refund failed"),
+            }
     except Exception:
         logger.exception("ShopeePay refund failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Hoàn tiền ShopeePay thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Hoàn tiền ShopeePay thất bại",
+        }

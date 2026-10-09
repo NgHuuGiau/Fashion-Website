@@ -4,30 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0025_flashsale_bundle'),
+        ("products", "0025_flashsale_bundle"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='brand',
-            name='size_guide',
-            field=models.JSONField(blank=True, default=dict, verbose_name='Bang size'),
+            model_name="brand",
+            name="size_guide",
+            field=models.JSONField(blank=True, default=dict, verbose_name="Bang size"),
         ),
         migrations.AddField(
-            model_name='review',
-            name='media_file',
-            field=models.FileField(blank=True, upload_to='reviews/%Y/%m/'),
+            model_name="review",
+            name="media_file",
+            field=models.FileField(blank=True, upload_to="reviews/%Y/%m/"),
         ),
         migrations.AddField(
-            model_name='review',
-            name='media_thumb',
-            field=models.ImageField(blank=True, upload_to='reviews/thumbs/%Y/%m/'),
+            model_name="review",
+            name="media_thumb",
+            field=models.ImageField(blank=True, upload_to="reviews/thumbs/%Y/%m/"),
         ),
         migrations.AddField(
-            model_name='review',
-            name='media_type',
-            field=models.CharField(blank=True, choices=[('image', 'Ảnh'), ('video', 'Video')], max_length=10),
+            model_name="review",
+            name="media_type",
+            field=models.CharField(
+                blank=True,
+                choices=[("image", "Ảnh"), ("video", "Video")],
+                max_length=10,
+            ),
         ),
     ]

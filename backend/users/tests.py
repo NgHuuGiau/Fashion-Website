@@ -161,9 +161,7 @@ class UserAuthFlowTest(TestCase):
     def test_register_verify_too_many_attempts(self):
         self._start_register(email="locked@test.com", username="locked")
         for _ in range(5):
-            self.client.post(
-                reverse("users:register_verify"), {"code": "000000"}
-            )
+            self.client.post(reverse("users:register_verify"), {"code": "000000"})
         response = self.client.post(
             reverse("users:register_verify"), {"code": "000000"}
         )
@@ -182,9 +180,7 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         new_code = cache.get("register_code:resend@test.com")
         self.assertNotEqual(old_code, new_code)
-        ok = self.client.post(
-            reverse("users:register_verify"), {"code": new_code}
-        )
+        ok = self.client.post(reverse("users:register_verify"), {"code": new_code})
         self.assertEqual(ok.status_code, 302)
         self.assertTrue(User.objects.filter(username="resend").exists())
 
@@ -1110,9 +1106,7 @@ class StaffTwoFATest(TestCase):
     def _device(self, confirmed=False):
         from django_otp.plugins.otp_totp.models import TOTPDevice
 
-        return TOTPDevice.objects.create(
-            user=self.staff, name="t", confirmed=confirmed
-        )
+        return TOTPDevice.objects.create(user=self.staff, name="t", confirmed=confirmed)
 
     def test_non_staff_blocked(self):
         self.client.login(username="regular", password="StrongPass123!")
@@ -1132,13 +1126,9 @@ class StaffTwoFATest(TestCase):
     def test_enroll_rejects_wrong_code(self):
         self.client.login(username="staffer", password="StrongPass123!")
         self.client.get(reverse("users:twofa_enroll"))
-        response = self.client.post(
-            reverse("users:twofa_enroll"), {"code": "000000"}
-        )
+        response = self.client.post(reverse("users:twofa_enroll"), {"code": "000000"})
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(
-            self.staff.totpdevice_set.filter(confirmed=True).exists()
-        )
+        self.assertFalse(self.staff.totpdevice_set.filter(confirmed=True).exists())
 
     def test_enroll_and_verify_full_flow(self):
         import time

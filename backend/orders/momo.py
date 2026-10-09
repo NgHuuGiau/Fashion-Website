@@ -6,7 +6,6 @@ Sandbox mặc định; chỉ hoạt động khi đầy đủ credentials.
 
 import hashlib
 import hmac
-import json
 import logging
 import uuid
 from datetime import datetime
@@ -94,7 +93,10 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
             }
         else:
             logger.error("MoMo create order failed: %s", response_data)
-            return {"payUrl": "", "error": response_data.get("message", "Unknown error")}
+            return {
+                "payUrl": "",
+                "error": response_data.get("message", "Unknown error"),
+            }
 
     except requests.RequestException:
         logger.exception("MoMo request failed for order %s", order.id)
@@ -170,7 +172,9 @@ def refund_transaction(order, amount: int, trans_id: str) -> dict:
 
     try:
         response = requests.post(
-            settings.MOMO_ENDPOINT.replace("/v2/gateway/api/create", "/v2/gateway/api/refund"),
+            settings.MOMO_ENDPOINT.replace(
+                "/v2/gateway/api/create", "/v2/gateway/api/refund"
+            ),
             json=params,
             headers={"Content-Type": "application/json"},
             timeout=30,
@@ -190,7 +194,11 @@ def refund_transaction(order, amount: int, trans_id: str) -> dict:
         return {"success": False, "ambiguous": True, "message": "Kết nối MoMo thất bại"}
     except Exception:
         logger.exception("MoMo refund response parse failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Phân tích phản hồi MoMo thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Phân tích phản hồi MoMo thất bại",
+        }
 
 
 def query_transaction(order, trans_id: str) -> dict:
@@ -215,7 +223,9 @@ def query_transaction(order, trans_id: str) -> dict:
 
     try:
         response = requests.post(
-            settings.MOMO_ENDPOINT.replace("/v2/gateway/api/create", "/v2/gateway/api/query"),
+            settings.MOMO_ENDPOINT.replace(
+                "/v2/gateway/api/create", "/v2/gateway/api/query"
+            ),
             json=params,
             headers={"Content-Type": "application/json"},
             timeout=30,
@@ -225,7 +235,14 @@ def query_transaction(order, trans_id: str) -> dict:
         if response_data.get("resultCode") == 0:
             return {"success": True, "data": response_data}
         else:
-            return {"success": False, "message": response_data.get("message", "Query failed")}
+            return {
+                "success": False,
+                "message": response_data.get("message", "Query failed"),
+            }
     except Exception:
         logger.exception("MoMo query failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Truy vấn MoMo thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Truy vấn MoMo thất bại",
+        }

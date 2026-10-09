@@ -547,7 +547,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 if replayed.payment_method == "vnpay":
                     return redirect("orders:vnpay_payment", order_id=replayed.id)
                 if replayed.payment_method in ("momo", "zalopay", "shopeepay"):
-                    return redirect("orders:wallet_payment", method=replayed.payment_method, order_id=replayed.id)
+                    return redirect(
+                        "orders:wallet_payment",
+                        method=replayed.payment_method,
+                        order_id=replayed.id,
+                    )
                 return redirect("orders:order_success", order_id=replayed.id)
             payment_method = form.cleaned_data["payment_method"]
             bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
@@ -706,7 +710,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         total_amount=total_amount,
                         is_paid=False,
                         status="processing"
-                        if payment_method in ("bank", "vnpay", "momo", "zalopay", "shopeepay")
+                        if payment_method
+                        in ("bank", "vnpay", "momo", "zalopay", "shopeepay")
                         else "pending",
                     )
                     order._status_changed_by_id = (
@@ -828,9 +833,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         address=form.cleaned_data["shipping_address"],
                         defaults={"is_default": False},
                     )
-                    if created and not UserAddress.objects.filter(
-                        user=request.user, is_default=True
-                    ).exists():
+                    if (
+                        created
+                        and not UserAddress.objects.filter(
+                            user=request.user, is_default=True
+                        ).exists()
+                    ):
                         addr.is_default = True
                         addr.save(update_fields=["is_default"])
                 from ..services.order_email import send_order_email
@@ -860,7 +868,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 if payment_method == "vnpay":
                     return redirect("orders:vnpay_payment", order_id=order.id)
                 if payment_method in ("momo", "zalopay", "shopeepay"):
-                    return redirect("orders:wallet_payment", method=payment_method, order_id=order.id)
+                    return redirect(
+                        "orders:wallet_payment",
+                        method=payment_method,
+                        order_id=order.id,
+                    )
                 return redirect("orders:order_success", order_id=order.id)
     else:
         form = CheckoutForm(initial=initial)

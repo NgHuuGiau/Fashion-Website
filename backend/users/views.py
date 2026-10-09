@@ -161,9 +161,7 @@ def register_verify_view(request: HttpRequest) -> HttpResponse:
         except Exception:
             logger.exception("Không gửi lại được mã xác thực đăng ký")
             messages.error(request, "Không gửi được mã. Vui lòng thử lại sau.")
-        return render(
-            request, "auth/register_verify.html", {"email": email}
-        )
+        return render(request, "auth/register_verify.html", {"email": email})
 
     if request.method == "POST":
         expected = cache.get(_register_code_key(email))
@@ -171,28 +169,18 @@ def register_verify_view(request: HttpRequest) -> HttpResponse:
             messages.error(
                 request, "Mã đã hết hạn. Vui lòng đăng ký lại hoặc gửi mã mới."
             )
-            return render(
-                request, "auth/register_verify.html", {"email": email}
-            )
+            return render(request, "auth/register_verify.html", {"email": email})
         attempts = cache.get(_register_attempt_key(email), 0)
         if attempts >= REGISTER_MAX_ATTEMPTS:
             _clear_pending_register(request, email)
-            messages.error(
-                request, "Bạn nhập sai quá nhiều lần. Vui lòng đăng ký lại."
-            )
+            messages.error(request, "Bạn nhập sai quá nhiều lần. Vui lòng đăng ký lại.")
             return redirect("users:register")
         entered = (request.POST.get("code") or "").strip()
         if not secrets.compare_digest(entered, str(expected)):
-            cache.set(
-                _register_attempt_key(email), attempts + 1, REGISTER_CODE_TTL
-            )
+            cache.set(_register_attempt_key(email), attempts + 1, REGISTER_CODE_TTL)
             left = REGISTER_MAX_ATTEMPTS - attempts - 1
-            messages.error(
-                request, f"Mã chưa đúng. Bạn còn {left} lượt thử."
-            )
-            return render(
-                request, "auth/register_verify.html", {"email": email}
-            )
+            messages.error(request, f"Mã chưa đúng. Bạn còn {left} lượt thử.")
+            return render(request, "auth/register_verify.html", {"email": email})
         form = RegisterForm(
             {
                 "username": pending["username"],

@@ -227,7 +227,13 @@ class ShippingOrderAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("carrier", "status", "created_at")
-    search_fields = ("carrier_order_code", "tracking_code", "order__id", "order__customer_name", "order__phone")
+    search_fields = (
+        "carrier_order_code",
+        "tracking_code",
+        "order__id",
+        "order__customer_name",
+        "order__phone",
+    )
     readonly_fields = (
         "order",
         "carrier",
@@ -244,7 +250,12 @@ class ShippingOrderAdmin(admin.ModelAdmin):
         "picked_up_at",
         "delivered_at",
     )
-    actions = ["create_shipping_order_action", "print_shipping_label_action", "cancel_shipping_order_action", "sync_status_action"]
+    actions = [
+        "create_shipping_order_action",
+        "print_shipping_label_action",
+        "cancel_shipping_order_action",
+        "sync_status_action",
+    ]
 
     def has_add_permission(self, request):
         return False
@@ -255,10 +266,15 @@ class ShippingOrderAdmin(admin.ModelAdmin):
     @admin.action(description="Tạo đơn vận chuyển (GHN)")
     def create_shipping_order_action(self, request, queryset):
         from .services.shipping.service import create_shipping_order
+
         success = 0
         for shipping_order in queryset:
             if shipping_order.status != "created" and shipping_order.status != "failed":
-                self.message_user(request, f"#{shipping_order.id}: Chỉ tạo được cho đơn mới/failed", level="warning")
+                self.message_user(
+                    request,
+                    f"#{shipping_order.id}: Chỉ tạo được cho đơn mới/failed",
+                    level="warning",
+                )
                 continue
             order = shipping_order.order
             if not order.carrier:
@@ -269,7 +285,11 @@ class ShippingOrderAdmin(admin.ModelAdmin):
                 if result and result.status != "failed":
                     success += 1
                 else:
-                    self.message_user(request, f"#{order.id}: {result.error_message if result else 'Unknown error'}", level="error")
+                    self.message_user(
+                        request,
+                        f"#{order.id}: {result.error_message if result else 'Unknown error'}",
+                        level="error",
+                    )
             except Exception as e:
                 self.message_user(request, f"#{order.id}: {e}", level="error")
         self.message_user(request, f"Đã tạo {success}/{len(queryset)} đơn vận chuyển.")
@@ -277,17 +297,26 @@ class ShippingOrderAdmin(admin.ModelAdmin):
     @admin.action(description="In tem vận đơn (GHN)")
     def print_shipping_label_action(self, request, queryset):
         from .services.shipping.service import print_shipping_label
+
         success = 0
         for shipping_order in queryset:
             if not shipping_order.carrier_order_code:
-                self.message_user(request, f"#{shipping_order.id}: Chưa có mã đơn carrier", level="warning")
+                self.message_user(
+                    request,
+                    f"#{shipping_order.id}: Chưa có mã đơn carrier",
+                    level="warning",
+                )
                 continue
             try:
                 pdf_bytes = print_shipping_label(shipping_order)
                 if pdf_bytes:
                     success += 1
                 else:
-                    self.message_user(request, f"#{shipping_order.id}: Không lấy được PDF", level="error")
+                    self.message_user(
+                        request,
+                        f"#{shipping_order.id}: Không lấy được PDF",
+                        level="error",
+                    )
             except Exception as e:
                 self.message_user(request, f"#{shipping_order.id}: {e}", level="error")
         self.message_user(request, f"Đã in {success}/{len(queryset)} tem.")
@@ -295,24 +324,34 @@ class ShippingOrderAdmin(admin.ModelAdmin):
     @admin.action(description="Hủy đơn vận chuyển (GHN)")
     def cancel_shipping_order_action(self, request, queryset):
         from .services.shipping.service import cancel_shipping_order
+
         success = 0
         for shipping_order in queryset:
             if shipping_order.status in ["delivered", "cancelled"]:
-                self.message_user(request, f"#{shipping_order.id}: Không thể hủy đơn đã giao/đã hủy", level="warning")
+                self.message_user(
+                    request,
+                    f"#{shipping_order.id}: Không thể hủy đơn đã giao/đã hủy",
+                    level="warning",
+                )
                 continue
             if cancel_shipping_order(shipping_order):
                 success += 1
             else:
-                self.message_user(request, f"#{shipping_order.id}: Hủy thất bại", level="error")
+                self.message_user(
+                    request, f"#{shipping_order.id}: Hủy thất bại", level="error"
+                )
         self.message_user(request, f"Đã hủy {success}/{len(queryset)} đơn.")
 
     @admin.action(description="Đồng bộ trạng thái từ carrier")
     def sync_status_action(self, request, queryset):
         from .services.shipping.service import sync_shipping_status
+
         success = 0
         for shipping_order in queryset:
             if sync_shipping_status(shipping_order):
                 success += 1
             else:
-                self.message_user(request, f"#{shipping_order.id}: Sync thất bại", level="error")
+                self.message_user(
+                    request, f"#{shipping_order.id}: Sync thất bại", level="error"
+                )
         self.message_user(request, f"Đã đồng bộ {success}/{len(queryset)} đơn.")

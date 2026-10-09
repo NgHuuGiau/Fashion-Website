@@ -1,6 +1,7 @@
 """Web Push subscription - VAPID, Firefox/Chrome/Safari 16+.
 ponytail: 1 file, re-use sw.js push handler, khong them app.
 """
+
 import json
 import logging
 
@@ -61,7 +62,9 @@ def push_subscribe(request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         profile.push_subscriptions = profile.push_subscriptions or []
         # Tránh trùng endpoint
-        profile.push_subscriptions = [s for s in profile.push_subscriptions if s.get("endpoint") != endpoint]
+        profile.push_subscriptions = [
+            s for s in profile.push_subscriptions if s.get("endpoint") != endpoint
+        ]
         profile.push_subscriptions.append({"endpoint": endpoint, "keys": keys})
         profile.save(update_fields=["push_subscriptions"])
     else:
@@ -90,7 +93,11 @@ def push_unsubscribe(request):
     if request.user.is_authenticated:
         try:
             profile = request.user.profile
-            profile.push_subscriptions = [s for s in (profile.push_subscriptions or []) if s.get("endpoint") != endpoint]
+            profile.push_subscriptions = [
+                s
+                for s in (profile.push_subscriptions or [])
+                if s.get("endpoint") != endpoint
+            ]
             profile.save(update_fields=["push_subscriptions"])
         except UserProfile.DoesNotExist:
             pass
@@ -136,7 +143,11 @@ def send_push_to_user(user, payload: dict, ttl: int = 86400) -> int:
         except _WebPushException as e:
             # 410/404 = subscription expired -> xoa
             if e.response and e.response.status_code in (404, 410):
-                profile.push_subscriptions = [s for s in profile.push_subscriptions if s.get("endpoint") != sub["endpoint"]]
+                profile.push_subscriptions = [
+                    s
+                    for s in profile.push_subscriptions
+                    if s.get("endpoint") != sub["endpoint"]
+                ]
                 profile.save(update_fields=["push_subscriptions"])
             logger.warning(f"Push failed: {e}")
     return sent
@@ -156,7 +167,10 @@ def send_push_to_all(payload: dict, ttl: int = 86400) -> int:
         for sub in profile.push_subscriptions or []:
             try:
                 webpush.webpush(
-                    subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+                    subscription_info={
+                        "endpoint": sub["endpoint"],
+                        "keys": sub["keys"],
+                    },
                     data=json.dumps(payload),
                     vapid_private_key=vapid["private_key"],
                     vapid_claims={"sub": vapid["subject"]},
@@ -165,7 +179,11 @@ def send_push_to_all(payload: dict, ttl: int = 86400) -> int:
                 sent += 1
             except _WebPushException as e:
                 if e.response and e.response.status_code in (404, 410):
-                    profile.push_subscriptions = [s for s in profile.push_subscriptions if s.get("endpoint") != sub["endpoint"]]
+                    profile.push_subscriptions = [
+                        s
+                        for s in profile.push_subscriptions
+                        if s.get("endpoint") != sub["endpoint"]
+                    ]
                     profile.save(update_fields=["push_subscriptions"])
 
     # Guest sessions - can't easily enumerate all sessions without redis scan

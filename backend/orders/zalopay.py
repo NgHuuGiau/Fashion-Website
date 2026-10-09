@@ -88,7 +88,10 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
             }
         else:
             logger.error("ZaloPay create order failed: %s", response_data)
-            return {"order_url": "", "error": response_data.get("return_message", "Unknown error")}
+            return {
+                "order_url": "",
+                "error": response_data.get("return_message", "Unknown error"),
+            }
 
     except requests.RequestException:
         logger.exception("ZaloPay request failed for order %s", order.id)
@@ -166,10 +169,17 @@ def query_transaction(order, app_trans_id: str) -> dict:
         if response_data.get("return_code") == 1:
             return {"success": True, "data": response_data}
         else:
-            return {"success": False, "message": response_data.get("return_message", "Query failed")}
+            return {
+                "success": False,
+                "message": response_data.get("return_message", "Query failed"),
+            }
     except Exception:
         logger.exception("ZaloPay query failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Truy vấn ZaloPay thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Truy vấn ZaloPay thất bại",
+        }
 
 
 def refund_transaction(order, amount: int, zp_trans_id: str) -> dict:
@@ -200,7 +210,14 @@ def refund_transaction(order, amount: int, zp_trans_id: str) -> dict:
         if response_data.get("return_code") == 1:
             return {"success": True, "data": response_data}
         else:
-            return {"success": False, "message": response_data.get("return_message", "Refund failed")}
+            return {
+                "success": False,
+                "message": response_data.get("return_message", "Refund failed"),
+            }
     except Exception:
         logger.exception("ZaloPay refund failed for order %s", order.id)
-        return {"success": False, "ambiguous": True, "message": "Hoàn tiền ZaloPay thất bại"}
+        return {
+            "success": False,
+            "ambiguous": True,
+            "message": "Hoàn tiền ZaloPay thất bại",
+        }

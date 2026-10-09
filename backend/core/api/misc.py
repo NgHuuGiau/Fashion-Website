@@ -262,9 +262,7 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
         )
 
     # Back in stock
-    for bs in BackInStock.objects.filter(email=user.email).select_related(
-        "product"
-    ):
+    for bs in BackInStock.objects.filter(email=user.email).select_related("product"):
         data["back_in_stock_requests"].append(
             {
                 "product_id": bs.product_id,

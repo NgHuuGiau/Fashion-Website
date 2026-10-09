@@ -13,18 +13,15 @@ def backfill_product_name(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0022_coupon_stackable'),
+        ("orders", "0022_coupon_stackable"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='orderitem',
-            name='product_name',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="orderitem",
+            name="product_name",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
-        migrations.RunPython(
-            backfill_product_name, migrations.RunPython.noop
-        ),
+        migrations.RunPython(backfill_product_name, migrations.RunPython.noop),
     ]

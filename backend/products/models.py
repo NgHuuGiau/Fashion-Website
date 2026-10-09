@@ -50,7 +50,13 @@ def garment_key_for_slug(slug):
     slug = (slug or "").lower()
     if "quan" in slug:
         return "quan"
-    if "phu-kien" in slug or "phukien" in slug or "mu" in slug or "tui" in slug or "giay" in slug:
+    if (
+        "phu-kien" in slug
+        or "phukien" in slug
+        or "mu" in slug
+        or "tui" in slug
+        or "giay" in slug
+    ):
         return "phukien"
     if "ao" in slug:
         return "ao"
@@ -84,7 +90,6 @@ class Category(models.Model):
         return self.name
 
 
-
 class Brand(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Ten thuong hieu")
     slug = models.SlugField(max_length=100, unique=True, db_index=True)
@@ -106,13 +111,16 @@ class Brand(models.Model):
 
     def get_absolute_url(self):
         from django.urls import reverse
+
         return reverse("products:brand_detail", kwargs={"slug": self.slug})
 
 
 class Collection(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Ten bo suu tap")
     slug = models.SlugField(max_length=100, unique=True, db_index=True)
-    image = models.ImageField(upload_to="collections/", blank=True, verbose_name="Anh bo suu tap")
+    image = models.ImageField(
+        upload_to="collections/", blank=True, verbose_name="Anh bo suu tap"
+    )
     description = models.TextField(blank=True, verbose_name="Mo ta")
     is_active = models.BooleanField(default=True, verbose_name="Hoat dong")
     featured = models.BooleanField(default=False, verbose_name="Noi bat")
@@ -129,6 +137,7 @@ class Collection(models.Model):
 
     def get_absolute_url(self):
         from django.urls import reverse
+
         return reverse("products:collection_detail", kwargs={"slug": self.slug})
 
 
@@ -154,7 +163,14 @@ class Product(models.Model):
     )
     name = models.CharField(max_length=200, verbose_name="Tên sản phẩm")
     slug = models.SlugField(max_length=200, db_index=True)
-    sku = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Mã SKU", db_index=True)
+    sku = models.CharField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Mã SKU",
+        db_index=True,
+    )
     image = models.ImageField(
         upload_to="products/%Y/%m/%d",
         blank=True,
@@ -182,24 +198,42 @@ class Product(models.Model):
     featured = models.BooleanField(default=False, verbose_name="Nổi bật", db_index=True)
     # SEO fields
     meta_title = models.CharField(max_length=60, blank=True, verbose_name="SEO Title")
-    meta_description = models.CharField(max_length=160, blank=True, verbose_name="SEO Description")
-    meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="SEO Keywords")
+    meta_description = models.CharField(
+        max_length=160, blank=True, verbose_name="SEO Description"
+    )
+    meta_keywords = models.CharField(
+        max_length=255, blank=True, verbose_name="SEO Keywords"
+    )
     # Brand & Collection
     brand = models.ForeignKey(
-        'Brand', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='products', verbose_name="Thương hiệu"
+        "Brand",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="products",
+        verbose_name="Thương hiệu",
     )
     collection = models.ForeignKey(
-        'Collection', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='products', verbose_name="Bộ sưu tập"
+        "Collection",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="products",
+        verbose_name="Bộ sưu tập",
     )
     # Tags for filtering
-    tags = models.ManyToManyField('Tag', blank=True, related_name='products', verbose_name="Tags")
+    tags = models.ManyToManyField(
+        "Tag", blank=True, related_name="products", verbose_name="Tags"
+    )
     # Attributes for flexible filtering (color, size, material, etc.)
     attributes = models.JSONField(default=dict, blank=True, verbose_name="Thuộc tính")
     # Inventory tracking
-    reserved_stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng đã giữ")
-    low_stock_threshold = models.PositiveIntegerField(default=5, verbose_name="Ngưỡng cảnh báo tồn kho")
+    reserved_stock = models.PositiveIntegerField(
+        default=0, verbose_name="Số lượng đã giữ"
+    )
+    low_stock_threshold = models.PositiveIntegerField(
+        default=5, verbose_name="Ngưỡng cảnh báo tồn kho"
+    )
     track_inventory = models.BooleanField(default=True, verbose_name="Theo dõi tồn kho")
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True, db_index=True)
@@ -226,7 +260,7 @@ class Product(models.Model):
                 name="product_reserved_stock_non_negative",
             ),
             models.CheckConstraint(
-                condition=Q(reserved_stock__lte=models.F('stock')),
+                condition=Q(reserved_stock__lte=models.F("stock")),
                 name="product_reserved_not_exceed_stock",
             ),
         ]
@@ -238,8 +272,10 @@ class Product(models.Model):
         # Auto-generate SKU if not provided
         if not self.sku and self.name:
             import re
-            base = re.sub(r'[^a-zA-Z0-9]', '', self.name.upper())[:20]
+
+            base = re.sub(r"[^a-zA-Z0-9]", "", self.name.upper())[:20]
             import uuid
+
             self.sku = "{}-{}".format(base, uuid.uuid4().hex[:8].upper())
         # P3.2: ghi lich su khi gia doi (cover dashboard + admin + shell).
         # Bo qua khi save chi update stock (checkout hot path).
@@ -277,9 +313,7 @@ class Product(models.Model):
     def _build_placeholder_image(self):
         slug = self.category.slug if self.category else ""
         category_label = (
-            (self.category.name or slug or "HUUGIAU")
-            .upper()
-            .replace("-", " ")
+            (self.category.name or slug or "HUUGIAU").upper().replace("-", " ")
         )
         product_label_raw = (self.name or "HUUGIAU").upper()
         product_lines = wrap(
@@ -447,7 +481,15 @@ class Product(models.Model):
         # ponytail: gia flash sale neu dang chay, khong thi gia thuong - 1 cho duy nhat
         try:
             now = timezone.now()
-            item = self.flash_items.filter(sale__is_active=True, sale__starts_at__lte=now, sale__ends_at__gte=now).order_by("sale_price").first()
+            item = (
+                self.flash_items.filter(
+                    sale__is_active=True,
+                    sale__starts_at__lte=now,
+                    sale__ends_at__gte=now,
+                )
+                .order_by("sale_price")
+                .first()
+            )
             if item and item.remaining > 0:
                 return item.sale_price
         except Exception:
@@ -500,6 +542,7 @@ class Product(models.Model):
             "id", "name", "slug", "price", "image", "image_url"
         )
 
+
 class ProductVariant(models.Model):
     product = models.ForeignKey(
         Product, related_name="variants", on_delete=models.CASCADE
@@ -517,7 +560,9 @@ class ProductVariant(models.Model):
     )
     # Shipping dimensions (grams, cm) - dùng cho tính phí GHN/GHTK
     weight = models.PositiveIntegerField(
-        default=200, verbose_name="Trọng lượng (gram)", help_text="Trọng lượng một sản phẩm, mặc định 200g"
+        default=200,
+        verbose_name="Trọng lượng (gram)",
+        help_text="Trọng lượng một sản phẩm, mặc định 200g",
     )
     length = models.PositiveIntegerField(
         default=30, verbose_name="Dài (cm)", help_text="Chiều dài bao bì"
@@ -775,7 +820,9 @@ class FlashSale(models.Model):
 
 class FlashSaleItem(models.Model):
     sale = models.ForeignKey(FlashSale, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name="flash_items", on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, related_name="flash_items", on_delete=models.CASCADE
+    )
     sale_price = models.DecimalField(max_digits=10, decimal_places=0)
     quantity = models.PositiveIntegerField(default=0, verbose_name="SL flash sale")
     sold = models.PositiveIntegerField(default=0)

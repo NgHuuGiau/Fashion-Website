@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0007_redact_activity_secrets'),
+        ("users", "0007_redact_activity_secrets"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='useraddress',
-            name='is_phone_verified',
-            field=models.BooleanField(default=False, verbose_name='SĐT đã xác minh OTP'),
+            model_name="useraddress",
+            name="is_phone_verified",
+            field=models.BooleanField(
+                default=False, verbose_name="SĐT đã xác minh OTP"
+            ),
         ),
     ]

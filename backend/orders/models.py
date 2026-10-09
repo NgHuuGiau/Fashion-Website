@@ -33,8 +33,11 @@ class Coupon(models.Model):
         max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=TYPE_PERCENT
     )
     trigger = models.CharField(
-        max_length=20, choices=TRIGGER_CHOICES, default="manual", db_index=True,
-        verbose_name="Kích hoạt tự động"
+        max_length=20,
+        choices=TRIGGER_CHOICES,
+        default="manual",
+        db_index=True,
+        verbose_name="Kích hoạt tự động",
     )
     # Welcome/first-order: áp dụng tự động 1 lần
     # Birthday: áp dụng trong tháng sinh nhật (cần user.birthday)
@@ -188,7 +191,9 @@ class Order(models.Model):
         max_length=64, unique=True, null=True, blank=True
     )
     # ponytail: 1 field chung cho MoMo/ZaloPay/ShopeePay, khoi them 3 cot rieng
-    gateway_transaction_id = models.CharField(max_length=128, null=True, blank=True, db_index=True)
+    gateway_transaction_id = models.CharField(
+        max_length=128, null=True, blank=True, db_index=True
+    )
     refunded_amount = models.DecimalField(
         max_digits=12, decimal_places=0, default=Decimal("0")
     )
@@ -715,10 +720,17 @@ class ShippingOrder(models.Model):
         Order, on_delete=models.CASCADE, related_name="shipping_order"
     )
     carrier = models.CharField(max_length=10, choices=CARRIER_CHOICES)
-    carrier_order_code = models.CharField(max_length=50, unique=True, verbose_name="Mã đơn carrier")
-    tracking_code = models.CharField(max_length=50, blank=True, verbose_name="Mã tracking")
+    carrier_order_code = models.CharField(
+        max_length=50, unique=True, verbose_name="Mã đơn carrier"
+    )
+    tracking_code = models.CharField(
+        max_length=50, blank=True, verbose_name="Mã tracking"
+    )
     shipping_label_pdf = models.FileField(
-        upload_to="shipping_labels/%Y/%m/%d", blank=True, null=True, verbose_name="File tem in"
+        upload_to="shipping_labels/%Y/%m/%d",
+        blank=True,
+        null=True,
+        verbose_name="File tem in",
     )
     actual_fee = models.DecimalField(
         max_digits=12, decimal_places=0, default=0, verbose_name="Phí ship thực tế"
@@ -729,7 +741,9 @@ class ShippingOrder(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="created", db_index=True
     )
-    raw_response = models.JSONField(default=dict, blank=True, verbose_name="Raw API response")
+    raw_response = models.JSONField(
+        default=dict, blank=True, verbose_name="Raw API response"
+    )
     error_message = models.TextField(blank=True, verbose_name="Lỗi API")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -820,7 +834,15 @@ class ShippingOrder(models.Model):
             self.cod_amount = carrier_data["cod_amount"]
 
         self.raw_response = carrier_data
-        self.save(update_fields=[
-            "tracking_code", "status", "actual_fee", "cod_amount",
-            "raw_response", "updated_at", "picked_up_at", "delivered_at"
-        ])
+        self.save(
+            update_fields=[
+                "tracking_code",
+                "status",
+                "actual_fee",
+                "cod_amount",
+                "raw_response",
+                "updated_at",
+                "picked_up_at",
+                "delivered_at",
+            ]
+        )

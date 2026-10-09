@@ -1,8 +1,8 @@
-﻿"""Meilisearch Search Service"""
+"""Meilisearch Search Service"""
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 
 import meilisearch
 from django.conf import settings
@@ -49,13 +49,59 @@ class SearchService:
         try:
             self.client.create_index(self.config.index_name, {"primaryKey": "id"})
             index = self.client.index(self.config.index_name)
-            index.update_searchable_attributes(["name", "description", "category_name", "brand_name", "sku", "tags"])
-            index.update_filterable_attributes(["category_id", "brand_id", "category_slug", "brand_slug", "price", "is_active", "is_featured", "colors", "sizes", "tags"])
-            index.update_sortable_attributes(["price", "created_at", "updated_at", "popularity"])
-            index.update_facet_attributes(["category_name", "brand_name", "colors", "sizes", "price_range"])
-            index.update_typo_tolerance({"enabled": True, "minWordSizeForTypos": {"oneTypo": 4, "twoTypos": 8}})
-            index.update_synonyms({"ao thun": ["t-shirt", "tee", "a thun"], "quan jean": ["denim", "jean", "quan bau"], "vay": ["dress", "vay dep"], "giay": ["sneaker", "boot", "sandal"], "tui": ["bag", "handbag", "backpack"], "phu kien": ["accessory", "accessories"]})
-            index.update_stop_words(["va", "cua", "cho", "voi", "tai", "trong", "ngoai", "tren", "duoi", "giua", "canh", "gan", "xa"])
+            index.update_searchable_attributes(
+                ["name", "description", "category_name", "brand_name", "sku", "tags"]
+            )
+            index.update_filterable_attributes(
+                [
+                    "category_id",
+                    "brand_id",
+                    "category_slug",
+                    "brand_slug",
+                    "price",
+                    "is_active",
+                    "is_featured",
+                    "colors",
+                    "sizes",
+                    "tags",
+                ]
+            )
+            index.update_sortable_attributes(
+                ["price", "created_at", "updated_at", "popularity"]
+            )
+            index.update_facet_attributes(
+                ["category_name", "brand_name", "colors", "sizes", "price_range"]
+            )
+            index.update_typo_tolerance(
+                {"enabled": True, "minWordSizeForTypos": {"oneTypo": 4, "twoTypos": 8}}
+            )
+            index.update_synonyms(
+                {
+                    "ao thun": ["t-shirt", "tee", "a thun"],
+                    "quan jean": ["denim", "jean", "quan bau"],
+                    "vay": ["dress", "vay dep"],
+                    "giay": ["sneaker", "boot", "sandal"],
+                    "tui": ["bag", "handbag", "backpack"],
+                    "phu kien": ["accessory", "accessories"],
+                }
+            )
+            index.update_stop_words(
+                [
+                    "va",
+                    "cua",
+                    "cho",
+                    "voi",
+                    "tai",
+                    "trong",
+                    "ngoai",
+                    "tren",
+                    "duoi",
+                    "giua",
+                    "canh",
+                    "gan",
+                    "xa",
+                ]
+            )
             logger.info("Meilisearch index configured successfully")
             return True
         except Exception as e:
@@ -94,7 +140,16 @@ class SearchService:
             logger.error("Failed to delete product %s: %s", product_id, e)
             return False
 
-    def search(self, query: str = "", filters: dict = None, facets: list = None, sort: list = None, page: int = 1, hits_per_page: int = 20, attributes_to_retrieve: list = None) -> dict:
+    def search(
+        self,
+        query: str = "",
+        filters: dict = None,
+        facets: list = None,
+        sort: list = None,
+        page: int = 1,
+        hits_per_page: int = 20,
+        attributes_to_retrieve: list = None,
+    ) -> dict:
         if not self.is_available():
             return {"hits": [], "total_hits": 0, "page": 1, "total_pages": 0}
         try:
@@ -102,7 +157,22 @@ class SearchService:
                 "q": query,
                 "page": page,
                 "hitsPerPage": hits_per_page,
-                "attributesToRetrieve": attributes_to_retrieve or ["id", "name", "slug", "price", "compare_price", "image", "image_url", "category_name", "brand_name", "colors", "sizes", "is_featured", "discount_percent"],
+                "attributesToRetrieve": attributes_to_retrieve
+                or [
+                    "id",
+                    "name",
+                    "slug",
+                    "price",
+                    "compare_price",
+                    "image",
+                    "image_url",
+                    "category_name",
+                    "brand_name",
+                    "colors",
+                    "sizes",
+                    "is_featured",
+                    "discount_percent",
+                ],
                 "attributesToHighlight": ["name", "description"],
                 "highlightPreTag": "<mark>",
                 "highlightPostTag": "</mark>",
@@ -140,7 +210,16 @@ class SearchService:
         if not self.is_available():
             return []
         try:
-            result = self.index.search(query, {"hitsPerPage": limit, "attributesToRetrieve": ["id", "name", "slug", "image", "price"], "attributesToHighlight": ["name"], "highlightPreTag": "<mark>", "highlightPostTag": "</mark>"})
+            result = self.index.search(
+                query,
+                {
+                    "hitsPerPage": limit,
+                    "attributesToRetrieve": ["id", "name", "slug", "image", "price"],
+                    "attributesToHighlight": ["name"],
+                    "highlightPreTag": "<mark>",
+                    "highlightPostTag": "</mark>",
+                },
+            )
             return result.get("hits", [])
         except Exception as e:
             logger.error("Autocomplete failed: %s", e)
@@ -167,7 +246,6 @@ class SearchService:
             return {}
 
     def _product_to_document(self, product) -> dict:
-        from products.models import ProductVariant
         variants = product.variants.filter(is_active=True).select_related()
         colors = []
         sizes = []
@@ -200,7 +278,9 @@ class SearchService:
             "slug": product.slug,
             "description": product.description or "",
             "price": float(product.price),
-            "compare_price": float(product.compare_price) if product.compare_price else None,
+            "compare_price": float(product.compare_price)
+            if product.compare_price
+            else None,
             "min_price": float(min_price),
             "max_price": float(max_price),
             "discount_percent": product.discount_percent,
@@ -210,11 +290,17 @@ class SearchService:
             "category_name": product.category.name if product.category else "",
             "category_slug": product.category.slug if product.category else "",
             "brand_id": getattr(product, "brand_id", None),
-            "brand_name": getattr(product, "brand", None).name if getattr(product, "brand", None) else "",
-            "brand_slug": getattr(product, "brand", None).slug if getattr(product, "brand", None) else "",
+            "brand_name": getattr(product, "brand", None).name
+            if getattr(product, "brand", None)
+            else "",
+            "brand_slug": getattr(product, "brand", None).slug
+            if getattr(product, "brand", None)
+            else "",
             "is_active": product.available,
             "is_featured": product.featured,
-            "stock": product.get_total_stock() if hasattr(product, "get_total_stock") else product.stock,
+            "stock": product.get_total_stock()
+            if hasattr(product, "get_total_stock")
+            else product.stock,
             "colors": colors,
             "sizes": sizes,
             "skus": skus,
@@ -222,12 +308,14 @@ class SearchService:
             "tags": getattr(product, "tags", []),
             "created_at": product.created.timestamp() if product.created else 0,
             "updated_at": product.updated.timestamp() if product.updated else 0,
-            "popularity": getattr(product, "view_count", 0) + getattr(product, "order_count", 0) * 10,
+            "popularity": getattr(product, "view_count", 0)
+            + getattr(product, "order_count", 0) * 10,
         }
 
 
 # Singleton instance
 _search_service = None
+
 
 def get_search_service() -> Optional[SearchService]:
     global _search_service
@@ -235,16 +323,22 @@ def get_search_service() -> Optional[SearchService]:
         _search_service = SearchService()
     return _search_service
 
+
 def reindex_all_products() -> bool:
     from products.models import Product
+
     service = get_search_service()
     if not service or not service.is_available():
         return False
     service.setup_index()
-    products = Product.objects.filter(available=True).select_related("category", "brand").prefetch_related("variants")
+    products = (
+        Product.objects.filter(available=True)
+        .select_related("category", "brand")
+        .prefetch_related("variants")
+    )
     batch_size = 100
     for i in range(0, products.count(), batch_size):
-        batch = list(products[i:i + batch_size])
+        batch = list(products[i : i + batch_size])
         if not service.index_products_batch(batch):
             logger.error("Failed to index batch starting at %s", i)
             return False

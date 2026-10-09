@@ -243,9 +243,9 @@ SHOP_TAX_ID = os.getenv("SHOP_TAX_ID", "")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 # Meilisearch search engine
-MEILISEARCH_HOST = os.getenv('MEILISEARCH_HOST', 'http://localhost:7700')
-MEILISEARCH_API_KEY = os.getenv('MEILISEARCH_API_KEY', '')
-MEILISEARCH_INDEX_NAME = os.getenv('MEILISEARCH_INDEX_NAME', 'products')
+MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
+MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "")
+MEILISEARCH_INDEX_NAME = os.getenv("MEILISEARCH_INDEX_NAME", "products")
 
 ADMINS = [
     (name.strip(), addr.strip())
@@ -265,22 +265,32 @@ VNPAY_ALLOWED_IPS = os.getenv("VNPAY_ALLOWED_IPS", "")
 MOMO_PARTNER_CODE = os.getenv("MOMO_PARTNER_CODE", "")
 MOMO_ACCESS_KEY = os.getenv("MOMO_ACCESS_KEY", "")
 MOMO_SECRET_KEY = os.getenv("MOMO_SECRET_KEY", "")
-MOMO_ENDPOINT = os.getenv("MOMO_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
+MOMO_ENDPOINT = os.getenv(
+    "MOMO_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create"
+)
 ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID", "")
 ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1", "")
 ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2", "")
-ZALOPAY_ENDPOINT = os.getenv("ZALOPAY_ENDPOINT", "https://sb-openapi.zalopay.vn/v2/create")
+ZALOPAY_ENDPOINT = os.getenv(
+    "ZALOPAY_ENDPOINT", "https://sb-openapi.zalopay.vn/v2/create"
+)
 SHOPEEPAY_PARTNER_ID = os.getenv("SHOPEEPAY_PARTNER_ID", "")
 SHOPEEPAY_KEY = os.getenv("SHOPEEPAY_KEY", "")
 SHOPEEPAY_SECRET = os.getenv("SHOPEEPAY_SECRET", "")
-SHOPEEPAY_ENDPOINT = os.getenv("SHOPEEPAY_ENDPOINT", "https://partner.uat.shopeepay.com")
+SHOPEEPAY_ENDPOINT = os.getenv(
+    "SHOPEEPAY_ENDPOINT", "https://partner.uat.shopeepay.com"
+)
 # ponytail: ship VN mo rong - de trong = skip tao don tu dong, giu GHN cu
 GHTK_TOKEN = os.getenv("GHTK_TOKEN", "")
 GHTK_SHOP_ID = os.getenv("GHTK_SHOP_ID", "")
-GHTK_ENDPOINT = os.getenv("GHTK_ENDPOINT", "https://services.giaohangtietkiem.vn/services/shipment/order")
+GHTK_ENDPOINT = os.getenv(
+    "GHTK_ENDPOINT", "https://services.giaohangtietkiem.vn/services/shipment/order"
+)
 VIETTELPOST_TOKEN = os.getenv("VIETTELPOST_TOKEN", "")
 VIETTELPOST_SHOP_ID = os.getenv("VIETTELPOST_SHOP_ID", "")
-VIETTELPOST_ENDPOINT = os.getenv("VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder")
+VIETTELPOST_ENDPOINT = os.getenv(
+    "VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder"
+)
 SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "").strip()
 SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "").strip()

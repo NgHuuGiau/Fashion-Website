@@ -1,7 +1,6 @@
 """Shipping Service - Integration layer for GHN/GHTK"""
 
 import logging
-from decimal import Decimal
 from typing import Optional
 
 from django.conf import settings
@@ -9,7 +8,6 @@ from django.db import transaction
 
 from orders.models import Order, ShippingOrder
 from .ghn_client import (
-    GHNClient,
     GHNAPIError,
     build_ghn_order_payload,
     get_ghn_client,
@@ -32,11 +30,13 @@ def get_carrier_config(carrier: str) -> dict:
         "service_id": getattr(settings, "GHN_SERVICE_ID", 53320),
     }
     if carrier == "ghtk":
-        base.update({
-            "from_ward_code": getattr(settings, "GHTK_FROM_WARD_CODE", ""),
-            "from_district_id": getattr(settings, "GHTK_FROM_DISTRICT_ID", 0),
-            "from_province_id": getattr(settings, "GHTK_FROM_PROVINCE_ID", 0),
-        })
+        base.update(
+            {
+                "from_ward_code": getattr(settings, "GHTK_FROM_WARD_CODE", ""),
+                "from_district_id": getattr(settings, "GHTK_FROM_DISTRICT_ID", 0),
+                "from_province_id": getattr(settings, "GHTK_FROM_PROVINCE_ID", 0),
+            }
+        )
     return base
 
 
@@ -59,7 +59,9 @@ def create_shipping_order(order: Order, carrier: str = None) -> Optional[Shippin
 def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
     client = get_ghn_client()
     if not client:
-        logger.warning(f"GHN not configured, skipping shipping order for Order #{order.id}")
+        logger.warning(
+            f"GHN not configured, skipping shipping order for Order #{order.id}"
+        )
         return None
 
     carrier_config = get_carrier_config("ghn")
@@ -87,17 +89,26 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
             shipping_order.raw_response = response
             shipping_order.actual_fee = response.get("total_fee", 0)
             shipping_order.cod_amount = response.get("cod_amount", 0)
-            shipping_order.save(update_fields=[
-                "carrier_order_code", "tracking_code", "status",
-                "raw_response", "actual_fee", "cod_amount", "updated_at"
-            ])
+            shipping_order.save(
+                update_fields=[
+                    "carrier_order_code",
+                    "tracking_code",
+                    "status",
+                    "raw_response",
+                    "actual_fee",
+                    "cod_amount",
+                    "updated_at",
+                ]
+            )
 
             # Update parent order with tracking code
             order.tracking_code = tracking_code
             order.status = "shipping"
             order.save(update_fields=["tracking_code", "status", "updated_at"])
 
-            logger.info(f"Created GHN shipping order {carrier_order_code} for Order #{order.id}")
+            logger.info(
+                f"Created GHN shipping order {carrier_order_code} for Order #{order.id}"
+            )
             return shipping_order
 
     except GHNAPIError as e:
@@ -105,10 +116,14 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
         shipping_order.error_message = e.message
         shipping_order.raw_response = e.response
         shipping_order.status = "failed"
-        shipping_order.save(update_fields=["error_message", "raw_response", "status", "updated_at"])
+        shipping_order.save(
+            update_fields=["error_message", "raw_response", "status", "updated_at"]
+        )
         return shipping_order
     except Exception as e:
-        logger.exception(f"Unexpected error creating GHN order for Order #{order.id}: {e}")
+        logger.exception(
+            f"Unexpected error creating GHN order for Order #{order.id}: {e}"
+        )
         shipping_order.error_message = str(e)
         shipping_order.status = "failed"
         shipping_order.save(update_fields=["error_message", "status", "updated_at"])
@@ -132,14 +147,20 @@ def _create_ghtk_shipping_order(order: Order) -> Optional[ShippingOrder]:
     return _create_generic_shipping_order(order, "ghtk")
 
 
-def _create_generic_shipping_order(order: Order, carrier: str) -> Optional[ShippingOrder]:
+def _create_generic_shipping_order(
+    order: Order, carrier: str
+) -> Optional[ShippingOrder]:
     client, builder = _get_carrier_client(carrier)
     if not client:
-        logger.warning(f"{carrier} not configured, skipping shipping order for Order #{order.id}")
+        logger.warning(
+            f"{carrier} not configured, skipping shipping order for Order #{order.id}"
+        )
         return None
     try:
         with transaction.atomic():
-            shipping_order = ShippingOrder.objects.create(order=order, carrier=carrier, carrier_order_code="", status="created")
+            shipping_order = ShippingOrder.objects.create(
+                order=order, carrier=carrier, carrier_order_code="", status="created"
+            )
             payload = builder(order, get_carrier_config(carrier))
             response = client.create_order(payload)
             code = response.get("order_code", "") or response.get("tracking_code", "")
@@ -149,7 +170,17 @@ def _create_generic_shipping_order(order: Order, carrier: str) -> Optional[Shipp
             shipping_order.raw_response = response.get("raw", response)
             shipping_order.actual_fee = response.get("total_fee", 0) or 0
             shipping_order.cod_amount = response.get("cod_amount", 0) or 0
-            shipping_order.save(update_fields=["carrier_order_code", "tracking_code", "status", "raw_response", "actual_fee", "cod_amount", "updated_at"])
+            shipping_order.save(
+                update_fields=[
+                    "carrier_order_code",
+                    "tracking_code",
+                    "status",
+                    "raw_response",
+                    "actual_fee",
+                    "cod_amount",
+                    "updated_at",
+                ]
+            )
             order.tracking_code = shipping_order.tracking_code
             order.status = "shipping"
             order.save(update_fields=["tracking_code", "status", "updated_at"])
@@ -183,19 +214,27 @@ def _print_ghn_label(shipping_order: ShippingOrder) -> Optional[bytes]:
         pdf_base64 = response.get("data", {}).get("pdf", "") or response.get("pdf", "")
         if pdf_base64:
             import base64
+
             pdf_bytes = base64.b64decode(pdf_base64)
             # Save to model
             from django.core.files.base import ContentFile
+
             filename = f"label_{shipping_order.carrier_order_code}.pdf"
-            shipping_order.shipping_label_pdf.save(filename, ContentFile(pdf_bytes), save=True)
+            shipping_order.shipping_label_pdf.save(
+                filename, ContentFile(pdf_bytes), save=True
+            )
             return pdf_bytes
         return None
     except Exception as e:
-        logger.error(f"Error printing GHN label for {shipping_order.carrier_order_code}: {e}")
+        logger.error(
+            f"Error printing GHN label for {shipping_order.carrier_order_code}: {e}"
+        )
         return None
 
 
-def cancel_shipping_order(shipping_order: ShippingOrder, reason: str = "Khách hủy đơn") -> bool:
+def cancel_shipping_order(
+    shipping_order: ShippingOrder, reason: str = "Khách hủy đơn"
+) -> bool:
     """Hủy đơn vận chuyển"""
     if shipping_order.carrier == "ghn":
         return _cancel_ghn_order(shipping_order, reason)
@@ -228,7 +267,9 @@ def _cancel_ghn_order(shipping_order: ShippingOrder, reason: str) -> bool:
             shipping_order.order.save(update_fields=["status", "updated_at"])
         return True
     except Exception as e:
-        logger.error(f"Error cancelling GHN order {shipping_order.carrier_order_code}: {e}")
+        logger.error(
+            f"Error cancelling GHN order {shipping_order.carrier_order_code}: {e}"
+        )
         return False
 
 
@@ -258,7 +299,9 @@ def _sync_ghn_status(shipping_order: ShippingOrder) -> bool:
         shipping_order.update_from_carrier(response)
         return True
     except Exception as e:
-        logger.error(f"Error syncing GHN status for {shipping_order.carrier_order_code}: {e}")
+        logger.error(
+            f"Error syncing GHN status for {shipping_order.carrier_order_code}: {e}"
+        )
         return False
 
 

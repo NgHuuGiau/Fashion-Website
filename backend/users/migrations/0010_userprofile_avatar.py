@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0009_alter_useraddress_is_phone_verified'),
+        ("users", "0009_alter_useraddress_is_phone_verified"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='avatar',
-            field=models.ImageField(blank=True, upload_to='avatars/%Y/%m', verbose_name='Ảnh đại diện'),
+            model_name="userprofile",
+            name="avatar",
+            field=models.ImageField(
+                blank=True, upload_to="avatars/%Y/%m", verbose_name="Ảnh đại diện"
+            ),
         ),
     ]

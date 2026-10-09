@@ -251,9 +251,7 @@ class CartCheckoutAndAdminTest(TestCase):
             reverse("orders:checkout"), self._checkout_payload()
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            UserAddress.objects.filter(user=self.user).count(), 1
-        )
+        self.assertEqual(UserAddress.objects.filter(user=self.user).count(), 1)
 
     def test_checkout_edited_info_creates_new_address(self):
         from users.models import UserAddress

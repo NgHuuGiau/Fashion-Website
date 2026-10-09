@@ -80,7 +80,9 @@ def order_success(request: HttpRequest, order_id) -> HttpResponse:
 
         g = _gateway(order.payment_method)
         if g and g.is_configured():
-            return redirect("orders:wallet_payment", method=order.payment_method, order_id=order.id)
+            return redirect(
+                "orders:wallet_payment", method=order.payment_method, order_id=order.id
+            )
         messages.error(
             request,
             f"Ví {WALLET_LABELS.get(order.payment_method)} chưa được cấu hình. Vui lòng thử COD/chuyển khoản.",

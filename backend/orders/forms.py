@@ -11,18 +11,21 @@ def _wallet_choices():
     out = []
     try:
         from . import momo as _momo
+
         if _momo.is_configured():
             out.append(("momo", "Ví MoMo"))
     except Exception:
         pass
     try:
         from . import zalopay as _zalo
+
         if _zalo.is_configured():
             out.append(("zalopay", "Ví ZaloPay"))
     except Exception:
         pass
     try:
         from . import shopeepay as _spp
+
         if _spp.is_configured():
             out.append(("shopeepay", "Ví ShopeePay"))
     except Exception:
@@ -128,7 +131,10 @@ class CheckoutForm(forms.Form):
         if pm in ("momo", "zalopay", "shopeepay"):
             allowed = {c[0] for c in _wallet_choices()}
             if pm not in allowed:
-                self.add_error("payment_method", "Ví điện tử chưa được cấu hình. Vui lòng chọn phương thức khác.")
+                self.add_error(
+                    "payment_method",
+                    "Ví điện tử chưa được cấu hình. Vui lòng chọn phương thức khác.",
+                )
 
         if cleaned_data.get("coupon_code"):
             cleaned_data["coupon_code"] = cleaned_data["coupon_code"].strip().upper()
