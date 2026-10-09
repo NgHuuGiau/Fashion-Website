@@ -15,20 +15,30 @@ from django.core.management.base import BaseCommand, CommandError
 from products.models import Product, ProductImage
 
 AO_IDS = [
-    "1521572163474-6864f9cf17ab", "1576566588028-4147f3842f27",
-    "1523381210434-271e8be1f52b", "1620799140408-edc6dcb6d633",
-    "1618354691373-d851c5c3a990", "1611312449408-fcece27cdbb7",
-    "1591047139829-d91aecb6caea", "1552374196-c4e7ffc6e126",
+    "1521572163474-6864f9cf17ab",
+    "1576566588028-4147f3842f27",
+    "1523381210434-271e8be1f52b",
+    "1620799140408-edc6dcb6d633",
+    "1618354691373-d851c5c3a990",
+    "1611312449408-fcece27cdbb7",
+    "1591047139829-d91aecb6caea",
+    "1552374196-c4e7ffc6e126",
 ]
 QUAN_IDS = [
-    "1542272604-787c3835535d", "1541099649105-f69ad21f3246",
-    "1594633312681-425c7b97ccd1", "1583743814966-8936f5b7be1a",
-    "1602810318383-e386cc2a3ccf", "1591195853828-11db59a44f6b",
+    "1542272604-787c3835535d",
+    "1541099649105-f69ad21f3246",
+    "1594633312681-425c7b97ccd1",
+    "1583743814966-8936f5b7be1a",
+    "1602810318383-e386cc2a3ccf",
+    "1591195853828-11db59a44f6b",
 ]
 PHUKIEN_IDS = [
-    "1553062407-98eeb64c6a62", "1525966222134-fcfa99b8ae77",
-    "1588850561407-ed78c282e89b", "1521369909029-2afed882baee",
-    "1588117260148-b47818741c74", "1610652492500-ded49ceeb378",
+    "1553062407-98eeb64c6a62",
+    "1525966222134-fcfa99b8ae77",
+    "1588850561407-ed78c282e89b",
+    "1521369909029-2afed882baee",
+    "1588117260148-b47818741c74",
+    "1610652492500-ded49ceeb378",
 ]
 
 
@@ -47,7 +57,8 @@ def fetch_photo(photo_id, w=1200, h=1500):
         f"?q=80&w={w}&h={h}&fit=crop&auto=format&fm=jpg"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    return urllib.request.urlopen(req, timeout=30).read()
+    # This development-only downloader always builds HTTPS URLs on the Unsplash image host.
+    return urllib.request.urlopen(req, timeout=30).read()  # nosec B310
 
 
 def has_real_image(product):
@@ -61,8 +72,12 @@ class Command(BaseCommand):
     help = "Nap anh demo Unsplash (1200x1500, 4:5) cho san pham chua co anh. Chi DEV."
 
     def add_arguments(self, parser):
-        parser.add_argument("--limit", type=int, default=0, help="Chi nap N san pham dau (0 = tat ca).")
-        parser.add_argument("--overwrite", action="store_true", help="Nap lai ke ca SP da co anh.")
+        parser.add_argument(
+            "--limit", type=int, default=0, help="Chi nap N san pham dau (0 = tat ca)."
+        )
+        parser.add_argument(
+            "--overwrite", action="store_true", help="Nap lai ke ca SP da co anh."
+        )
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
@@ -96,4 +111,6 @@ class Command(BaseCommand):
             except Exception as exc:
                 self.stdout.write(self.style.WARNING(f"  #{product.id} loi: {exc}"))
             time.sleep(0.2)
-        self.stdout.write(self.style.SUCCESS(f"Xong: {done} nap moi, {skipped} bo qua."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Xong: {done} nap moi, {skipped} bo qua.")
+        )
