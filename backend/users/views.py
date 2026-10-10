@@ -4,6 +4,7 @@ import secrets
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -90,12 +91,13 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 "last_name": form.cleaned_data.get("last_name", ""),
                 "email": email,
                 "phone_number": form.cleaned_data.get("phone_number", ""),
-                "password": form.cleaned_data["password1"],
+                "password_hash": make_password(form.cleaned_data["password1"]),
             }
             try:
                 _send_register_code(email, code)
             except Exception:
                 logger.exception("Không gửi được mã xác thực đăng ký")
+                _clear_pending_register(request, email)
                 messages.error(
                     request,
                     "Không gửi được mã xác thực. Vui lòng thử lại sau.",
@@ -146,7 +148,9 @@ def register_verify_view(request: HttpRequest) -> HttpResponse:
         return redirect("products:product_list")
 
     pending = request.session.get("pending_register")
-    if not pending:
+    if not pending or not pending.get("password_hash"):
+        if pending:
+            _clear_pending_register(request, pending.get("email", ""))
         messages.error(request, "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.")
         return redirect("users:register")
 
@@ -181,6 +185,7 @@ def register_verify_view(request: HttpRequest) -> HttpResponse:
             left = REGISTER_MAX_ATTEMPTS - attempts - 1
             messages.error(request, f"Mã chưa đúng. Bạn còn {left} lượt thử.")
             return render(request, "auth/register_verify.html", {"email": email})
+        # Mật khẩu đã được kiểm tra lúc đăng ký; form này chỉ kiểm tra lại thông tin tài khoản.
         form = RegisterForm(
             {
                 "username": pending["username"],
@@ -188,15 +193,15 @@ def register_verify_view(request: HttpRequest) -> HttpResponse:
                 "last_name": pending.get("last_name", ""),
                 "email": email,
                 "phone_number": pending.get("phone_number", ""),
-                "password1": pending["password"],
-                "password2": pending["password"],
+                "password1": "Verification-only1!",
+                "password2": "Verification-only1!",
             }
         )
         if not form.is_valid():
             _clear_pending_register(request, email)
             messages.error(request, "Thông tin đăng ký không còn hợp lệ.")
             return redirect("users:register")
-        user = form.save()
+        user = form.save(password_hash=pending["password_hash"])
         _clear_pending_register(request, email)
         login(request, user)
         _sync_visitor_auth_state(request, user)

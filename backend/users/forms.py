@@ -105,10 +105,13 @@ class RegisterForm(forms.ModelForm):
             self.add_error("password2", "Mật khẩu nhập lại không khớp.")
         return cleaned_data
 
-    def save(self, commit=True):
+    def save(self, commit=True, password_hash=None):
         user = super().save(commit=False)
         user.email = (self.cleaned_data.get("email") or "").strip()
-        user.set_password(self.cleaned_data["password1"])
+        if password_hash is None:
+            user.set_password(self.cleaned_data["password1"])
+        else:
+            user.password = password_hash
         if commit:
             user.save()
             UserProfile.objects.update_or_create(

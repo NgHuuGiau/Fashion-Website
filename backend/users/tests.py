@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import check_password
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -40,6 +41,10 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(register_response.url, reverse("users:register_verify"))
         # Chua co tai khoan khi chua nhap ma.
         self.assertFalse(User.objects.filter(username="newuser").exists())
+        pending = self.client.session["pending_register"]
+        self.assertNotIn("password", pending)
+        self.assertNotIn("StrongPass123!", str(pending))
+        self.assertTrue(check_password("StrongPass123!", pending["password_hash"]))
 
         code = cache.get("register_code:newuser@test.com")
         self.assertIsNotNone(code)
@@ -138,6 +143,17 @@ class UserAuthFlowTest(TestCase):
         self._start_register()
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("verifyme@test.com", mail.outbox[0].to)
+
+    def test_legacy_pending_registration_drops_plaintext_password(self):
+        session = self.client.session
+        session["pending_register"] = {
+            "email": "old@example.test",
+            "password": "StrongPass123!",
+        }
+        session.save()
+        response = self.client.get(reverse("users:register_verify"))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("pending_register", self.client.session)
 
     def test_register_verify_wrong_code(self):
         self._start_register()
