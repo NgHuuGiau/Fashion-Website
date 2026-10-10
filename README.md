@@ -148,7 +148,7 @@ Admin:     Django admin + core/api.py → catalog, đơn hàng, báo cáo
 | Bước | Module | Mô tả |
 |---|---|---|
 | Catalog | `products/views.py` | Danh mục, tìm kiếm không dấu, bộ lọc, phân trang |
-| Biến thể | `products/models.py` | Màu, kích cỡ, bảng size, tồn kho theo variant |
+| Biến thể | `products/models.py` | Màu, kích cỡ, tồn kho theo variant; bảng size tùy chọn theo thương hiệu |
 | Giỏ hàng | `orders/views/cart.py` | Giỏ theo session, coupon, phí giao hàng |
 | Checkout | `orders/services/checkout.py` | Check tồn kho, tạo `Order` + `OrderItem` trong transaction |
 | Thanh toán | `orders/views/payment.py` | COD, chuyển khoản/VietQR, VNPay callback + IPN |

@@ -1,5 +1,7 @@
 """Verify go-live readiness. Fail exit=1 if blocker. Never prints secrets."""
+
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -39,13 +41,19 @@ def check():
         FAIL.append("SECRET_KEY: phai chuoi ngau nhien rieng >=50 ky tu")
     if os.getenv("DEBUG", "False").lower() in ("1", "true", "yes", "on"):
         FAIL.append("DEBUG: prod phai False")
-    if "*" in os.getenv("ALLOWED_HOSTS", "") or not os.getenv("ALLOWED_HOSTS", "").strip():
+    if (
+        "*" in os.getenv("ALLOWED_HOSTS", "")
+        or not os.getenv("ALLOWED_HOSTS", "").strip()
+    ):
         FAIL.append("ALLOWED_HOSTS: phai domain that, khong '*'")
     need("CSRF_TRUSTED_ORIGINS", "phai https://domain-that")
     # DB + Redis + Mail
     need("DB_HOST", "SQL Server prod host")
     windows_auth = os.getenv("DB_TRUSTED_CONNECTION", "").lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
     if not windows_auth:
         need("DB_USER", "user least-privilege")
@@ -54,6 +62,32 @@ def check():
     need("EMAIL_HOST", "SMTP that")
     need("EMAIL_HOST_USER", "tai khoan SMTP")
     need("DEFAULT_FROM_EMAIL", "no-reply@domain-that")
+    support_email = os.getenv("SUPPORT_EMAIL", "").strip()
+    hotline = os.getenv("HOTLINE", "").strip()
+    if os.getenv("PUBLIC_CONTACTS_VERIFIED", "").lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        FAIL.append(
+            "PUBLIC_CONTACTS_VERIFIED: xac nhan tat ca gia tri lien he cong khai da nhap"
+        )
+    valid_email = bool(
+        re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", support_email)
+    ) and not any(
+        marker in support_email.lower()
+        for marker in ("example.com", "yourdomain", "thay-bang")
+    )
+    valid_phone = (
+        bool(re.fullmatch(r"\+?[\d\s().-]+", hotline))
+        and 9 <= len(re.sub(r"\D", "", hotline)) <= 15
+        and len(set(re.sub(r"\D", "", hotline))) > 1
+    )
+    if not (valid_email or valid_phone):
+        FAIL.append(
+            "SUPPORT_EMAIL/HOTLINE: can it nhat mot kenh ho tro that da xac minh"
+        )
     # Proxy/HTTPS
     for k in ("BEHIND_PROXY", "TRUSTED_PROXY", "SECURE_SSL_REDIRECT"):
         if os.getenv(k, "").lower() not in ("1", "true", "yes", "on"):
@@ -68,13 +102,17 @@ def check():
     # Media tách static?
     media = os.getenv("MEDIA_ROOT", "")
     if not media or "frontend/static" in media.replace("\\", "/"):
-        FAIL.append("MEDIA_ROOT: prod phai tach khoi frontend/static (vd D:/FashionMedia)")
+        FAIL.append(
+            "MEDIA_ROOT: prod phai tach khoi frontend/static (vd D:/FashionMedia)"
+        )
 
     if FAIL:
         print("BLOCKER:")
         print("\n".join(f" - {f}" for f in FAIL))
         return 1
-    print("OK: het blocker env co ban. Viec con lai: migrate SQL Server that, test mail/HTTPS/backup drill.")
+    print(
+        "OK: het blocker env co ban. Can xac nhan chinh sach kinh doanh, migrate DB, test mail/HTTPS/backup drill."
+    )
     return 0
 
 

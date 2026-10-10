@@ -116,10 +116,13 @@ EMAIL_HOST_PASSWORD=<App Password 16 ký tự>
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL=HUUGIAU Studio <no-reply@yourdomain.com>
 
-# Thông tin liên hệ hiển thị trên site (checklist go-live yêu cầu đủ 3 dòng này)
-HOTLINE=0900000000
-SUPPORT_EMAIL=contact@yourdomain.com
-STORE_ADDRESS=<địa chỉ cửa hàng>
+# Chỉ điền kênh hỗ trợ đã xác minh; cần ít nhất một trong HOTLINE/SUPPORT_EMAIL.
+HOTLINE=
+SUPPORT_EMAIL=
+# Chỉ điền nếu có địa điểm nhận khách đã xác minh.
+STORE_ADDRESS=
+# Chỉ bật sau khi đã xác minh TẤT CẢ giá trị HOTLINE/SUPPORT_EMAIL/STORE_ADDRESS đang điền.
+PUBLIC_CONTACTS_VERIFIED=False
 
 # Chuyển khoản thủ công — mặc định tắt; SHOP_ACCOUNT_NAME là tên chủ tài khoản.
 BANK_TRANSFER_ENABLED=False
@@ -145,12 +148,14 @@ ZALO_OA_ID=<zalo oa id>
 
 > Không chạy `database/sql/01_CREATE_TABLES.sql`, `02_DEMO_DATA.sql`, `seed_all` hoặc `seed_products --sync` trên dữ liệu production. `products_to_sync.json` hiện chỉ là dữ liệu seed/demo; lệnh đồng bộ thêm/cập nhật các slug trong file và không xóa sản phẩm khác. Catalog thật cục bộ (nếu có) nằm trong file bị Git bỏ qua `database/seed/local_products_to_sync.json`; kiểm tra quyền sử dụng, giá và tồn kho trước khi publish. Không import tài khoản, đơn hàng, đánh giá hay lượt bán demo vào cửa hàng thật.
 
+> Trước khi mở bán, chủ shop cần xác nhận kênh hỗ trợ và chốt điều kiện đổi trả, hoàn tiền, bảo mật dữ liệu, điều khoản mua bán cùng phí vận chuyển liên quan. Các trang công khai hiện chỉ mô tả chức năng đã có và những mục chưa công bố; không tự coi đó là chính sách đã được duyệt. Chạy `python scripts/verify_prod.py .env.production` để kiểm tra cấu hình nền tảng; kết quả OK không thay thế việc xác nhận nội dung kinh doanh.
+
 ## Vận hành sau release
 
 1. Với VPS Windows, script `scripts/start-windows-web.ps1` chạy `compress --force` và `collectstatic --noinput` trước khi mở traffic. Compose chạy các lệnh static ở bước release bên trên.
 2. Tạo superuser riêng: `python manage.py createsuperuser`.
 3. Cài role sync trigger: `python manage.py install_role_sync`.
-4. SQL Server backup: dùng `scripts/backup-db.ps1` và đặt lịch Windows Task Scheduler sau khi thử restore vào database tạm. Với Compose/PostgreSQL, xem runbook backup-restore; repository chưa tự tạo lịch hay cảnh báo backup.
+4. SQL Server backup: dùng `scripts/backup-db.ps1` và đặt lịch Windows Task Scheduler sau khi thử restore vào database tạm. Với VPS Linux dùng `scripts/setup_server.sh`, script tạo cron backup hằng ngày lúc 02:30; vẫn cần kiểm tra cron chạy thật, lưu bản sao ngoài máy chủ, theo dõi lỗi và diễn tập restore. Với Compose/PostgreSQL, xem runbook backup-restore.
 5. Tối ưu ảnh chỉ khi chủ shop bổ sung ảnh thật và đã kiểm tra bản sao lưu; không chạy công cụ tối ưu lên thư mục ảnh demo nếu muốn giữ nguyên.
 
 ## Checklist an toàn

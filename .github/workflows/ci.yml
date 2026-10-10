@@ -64,6 +64,12 @@ jobs:
           cd backend && ruff format --check .
         continue-on-error: false
 
+      - name: Check production readiness script
+        run: |
+          ruff check scripts/verify_prod.py scripts/test_verify_prod.py
+          ruff format --check scripts/verify_prod.py scripts/test_verify_prod.py
+          python -m unittest scripts.test_verify_prod
+
   type-check:
     name: Type Check (mypy)
     runs-on: ubuntu-latest
