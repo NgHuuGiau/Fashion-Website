@@ -23,7 +23,7 @@ DEFAULT_SUPPORT_FAQS = [
     {
         "question": "Tư vấn size",
         "keywords": "size,kich co,rong,chat lieu,form",
-        "answer": "Bạn gửi chiều cao, cân nặng và kiểu mặc mong muốn để shop gợi ý size nhanh hơn.",
+        "answer": "Hãy đối chiếu số đo trên trang sản phẩm nếu có; chỉ chiều cao và cân nặng chưa đủ để chọn size chính xác.",
     },
     {
         "question": "Đổi trả như thế nào?",
@@ -181,28 +181,9 @@ def extract_weight_kg(message):
 
 
 def build_size_recommendation(height_cm, weight_kg):
-    if height_cm <= 160 and weight_kg <= 50:
-        base_size = "S"
-    elif height_cm <= 168 and weight_kg <= 60:
-        base_size = "M"
-    elif height_cm <= 175 and weight_kg <= 70:
-        base_size = "L"
-    elif height_cm <= 182 and weight_kg <= 80:
-        base_size = "XL"
-    else:
-        base_size = "XXL"
-
-    if weight_kg <= 50:
-        fit_note = "Nếu thích mặc gọn, ưu tiên size nhỏ hơn khi bảng size có sẵn."
-    elif weight_kg >= 78:
-        fit_note = "Nếu muốn thoải mái hơn ở vai và bụng, ưu tiên rộng hơn một size."
-    else:
-        fit_note = "Nếu thích form vừa người, chọn đúng size gợi ý. Nếu thích oversize, có thể tăng lên 1 size."
-
     return (
-        f"Với chiều cao {height_cm}cm và cân nặng {weight_kg}kg, shop gợi ý bạn bắt đầu thử size {base_size}. "
-        f"{fit_note} "
-        "Bạn có thể gửi thêm kiểu mặc mong muốn như ôm, vừa hay oversize để chốt kỹ hơn."
+        f"Bạn cao {height_cm}cm và nặng {weight_kg}kg. Chỉ hai số này chưa đủ để chọn size chính xác cho từng mẫu. "
+        "Hãy đối chiếu bảng số đo trên trang sản phẩm nếu có hoặc hỏi shop về mẫu cụ thể trước khi đặt."
     )
 
 
@@ -262,15 +243,15 @@ def build_order_tracking_reply():
 
 def build_return_reply():
     return (
-        "Bạn có thể đổi/trả trong 7 ngày nếu sản phẩm còn nguyên tem mác và chưa qua sử dụng. "
-        "Gửi shop mã đơn và lý do qua chat để được hỗ trợ nhanh nhất."
+        "Với đơn được ghi nhận đã giao, tài khoản đặt hàng có thể gửi yêu cầu đổi trả trong 7 ngày. "
+        "Shop sẽ xem xét từng yêu cầu; xem trang Chính sách đổi trả để biết các điều kiện đã công bố."
     )
 
 
 def build_coupon_reply():
     return (
-        "Shop có freeship từ 499K và thường xuyên có mã giảm giá. Ở bước thanh toán, bạn nhập mã vào ô "
-        "'Mã giảm giá' để được giảm ngay. Chương trình đang chạy hiển thị ở trang chủ."
+        "Đơn từ 499.000đ được miễn phí vận chuyển. Nếu có mã giảm giá đang hiệu lực, "
+        "bạn có thể nhập ở bước thanh toán và kiểm tra tổng tiền trước khi xác nhận."
     )
 
 
@@ -317,14 +298,14 @@ def build_size_support_reply(message, state=None):
         state["pending"] = "weight"
         return (
             f"Mình đã thấy bạn cao khoảng {height_cm}cm. Bạn gửi thêm cân nặng hiện tại và kiểu mặc mong muốn "
-            "để mình gợi ý size sát hơn."
+            "để mình ghi nhận thông tin; vẫn cần đối chiếu số đo của đúng mẫu."
         )
 
     if weight_kg and not height_cm:
         state["pending"] = "height"
         return (
             f"Mình đã thấy bạn nặng khoảng {weight_kg}kg. Bạn gửi thêm chiều cao hiện tại bao nhiêu cm hoặc 1m bao nhiêu "
-            "để mình gợi ý size sát hơn."
+            "để mình ghi nhận thông tin; vẫn cần đối chiếu số đo của đúng mẫu."
         )
 
     state["pending"] = "size_profile"

@@ -2,7 +2,7 @@
 {% load shop_format %}
 
 {% block title %}{{ product.name|repair_text }}{% endblock %}
-{% block meta_description %}{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text|truncatechars:160 }}{% endblock %}
+{% block meta_description %}{{ product.description|default:product.name|repair_text|truncatechars:160 }}{% endblock %}
 {% block og_title %}{{ product.name|repair_text }} — HUUGIAU Atelier{% endblock %}
 {% block og_description %}{{ product.description|default:""|repair_text|truncatechars:160 }} Giá {{ product.price|vnd }}đ.{% endblock %}
 {% block og_type %}product{% endblock %}
@@ -49,11 +49,10 @@
                 <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
                 <h1>{{ product.name|repair_text }}</h1>
                 <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
-                <div class="detail-social-proof">
+                {% if sold_count or total_stock and total_stock <= 15 %}<div class="detail-social-proof">
                     {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
-                    <span><i class="fa-solid fa-eye" aria-hidden="true"></i> <span data-viewers-count>{{ viewing_now }}</span> người đang xem</span>
                     {% if total_stock and total_stock <= 15 %}<span class="low-stock"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Chỉ còn {{ total_stock }} sản phẩm</span>{% endif %}
-                </div>
+                </div>{% endif %}
                 <a href="{% url 'orders:promo_page' %}" class="voucher-strip">
                     <i class="fa-solid fa-ticket" aria-hidden="true"></i>
                     <span>Voucher của shop</span>
@@ -74,7 +73,7 @@
                 </button>
             </form>
             {% endif %}
-            <p class="wishlist-note">❤️ Lưu vào yêu thích để xem sau và nhận thông báo khi sản phẩm giảm giá.</p>
+            <p class="wishlist-note">❤️ Lưu vào yêu thích để xem lại sau.</p>
             <form method="post" action="{% url 'products:compare_toggle' product.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -118,23 +117,14 @@
             </div>
             {% endif %}
 
-            {% if requires_variant %}
+            {% if size_guide_rows %}
             <details class="size-advisor panel" open>
-                <summary>Bạn chưa chắc chọn size nào? <span class="size-advisor-cta">Nhờ tư vấn size <i class="fa-solid fa-ruler" aria-hidden="true"></i></span></summary>
+                <summary>Bảng số đo thương hiệu <i class="fa-solid fa-ruler" aria-hidden="true"></i></summary>
                 <div class="size-advisor-body">
-                    <p class="size-advisor-hint">Nhập chiều cao và cân nặng, chúng tôi sẽ gợi ý size vừa nhất với bạn.</p>
-                    <div class="size-advisor-form">
-                        <label>Chiều cao
-                            <input type="number" id="adv-height" min="100" max="230" placeholder="165" aria-label="Chiều cao (cm)">
-                            <span>cm</span>
-                        </label>
-                        <label>Cân nặng
-                            <input type="number" id="adv-weight" min="30" max="180" placeholder="55" aria-label="Cân nặng (kg)">
-                            <span>kg</span>
-                        </label>
-                        <button type="button" class="btn" id="adv-submit">Gợi ý size</button>
-                    </div>
-                    <p class="size-advisor-result" id="adv-result" hidden></p>
+                    {% for row in size_guide_rows %}
+                    <p><strong>Size {{ row.size }}:</strong> {% for label, value in row.measurements %}{{ label }} {{ value }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                    {% endfor %}
+                    <p class="size-advisor-hint">Bảng số đo do shop nhập cho thương hiệu này. Hãy xác nhận độ vừa của mẫu cụ thể trước khi đặt.</p>
                 </div>
             </details>
             {% endif %}
@@ -151,8 +141,8 @@
 
             <div class="detail-promises">
                 <span>Freeship từ 499K</span>
-                <span>Đổi size 7 ngày</span>
-                <span>Kiểm tra hàng trước khi thanh toán</span>
+                <span>Gửi yêu cầu đổi trả trong 7 ngày sau giao hàng</span>
+                <span>Theo dõi trạng thái đơn hàng</span>
             </div>
 
             <div class="buy-actions">
@@ -164,8 +154,8 @@
         </form>
         <div class="detail-promises">
             <span>Freeship từ 499K</span>
-            <span>Đổi size 7 ngày</span>
-            <span>Kiểm tra hàng trước khi thanh toán</span>
+            <span>Gửi yêu cầu đổi trả trong 7 ngày sau giao hàng</span>
+            <span>Theo dõi trạng thái đơn hàng</span>
         </div>
         <div class="back-in-stock panel">
             <h3>Sản phẩm này đang hết hàng</h3>
@@ -184,28 +174,7 @@
 <section class="detail-description panel">
     <h2 class="detail-description-title">Mô tả</h2>
     <div class="detail-description-body">
-        <p>{{ product.description|default:"Form gọn, dễ mặc và dễ phối trong nhiều hoàn cảnh."|repair_text }}</p>
-        {% if product.category.slug == "quan" %}
-        <ul>
-            <li>M: lưng 74-78 cm, mông 94 cm, dài 96 cm</li>
-            <li>L: lưng 78-82 cm, mông 98 cm, dài 98 cm</li>
-            <li>XL: lưng 82-86 cm, mông 102 cm, dài 100 cm</li>
-            <li>XXL: lưng 86-90 cm, mông 106 cm, dài 102 cm</li>
-        </ul>
-        {% elif product.category.slug == "phu-kien" %}
-        <ul>
-            <li>Túi nhỏ: dài 18 cm, rộng 6 cm, cao 14 cm</li>
-            <li>Túi vừa: dài 22 cm, rộng 8 cm, cao 16 cm</li>
-            <li>Nón: 56-60 cm, có dây điều chỉnh</li>
-        </ul>
-        {% else %}
-        <ul>
-            <li>S: ngang ngực 50 cm, dài áo 66 cm, dài tay 55 cm</li>
-            <li>M: ngang ngực 53 cm, dài áo 69 cm, dài tay 57 cm</li>
-            <li>L: ngang ngực 56 cm, dài áo 72 cm, dài tay 59 cm</li>
-            <li>XL: ngang ngực 59 cm, dài áo 75 cm, dài tay 61 cm</li>
-        </ul>
-        {% endif %}
+        <p>{{ product.description|default:"Chưa có mô tả sản phẩm."|repair_text }}</p>
     </div>
 </section>
 
@@ -213,7 +182,7 @@
     <h2 class="detail-description-title">Chính sách đổi trả</h2>
     <div class="detail-description-body">
         <ul>
-            <li>Đổi size trong 7 ngày nếu sản phẩm còn nguyên trạng.</li>
+            <li>Sau khi đơn được ghi nhận đã giao, bạn có thể gửi yêu cầu đổi trả trong 7 ngày; shop sẽ xem xét theo từng trường hợp.</li>
             <li>Lưu lại mã đơn khi cần liên hệ hỗ trợ nhanh.</li>
             <li>Chất lượng sản phẩm và tồn kho có thể thay đổi theo từng đợt cập nhật.</li>
         </ul>
@@ -528,39 +497,6 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 })();
 
-(function () {
-    var submit = document.getElementById('adv-submit');
-    if (!submit) return;
-    var result = document.getElementById('adv-result');
-
-    function suggest(h, w) {
-        if (h < 160) return w <= 55 ? 'S' : 'M';
-        if (h < 168) return w <= 50 ? 'S' : w <= 60 ? 'M' : w <= 70 ? 'L' : 'XL';
-        if (h < 178) return w <= 55 ? 'S' : w <= 65 ? 'M' : w <= 75 ? 'L' : 'XL';
-        return w <= 60 ? 'M' : w <= 70 ? 'L' : w <= 82 ? 'XL' : 'XXL';
-    }
-
-    submit.addEventListener('click', function () {
-        var h = parseInt(document.getElementById('adv-height').value, 10);
-        var w = parseInt(document.getElementById('adv-weight').value, 10);
-        if (!h || !w || h < 100 || h > 230 || w < 30 || w > 180) {
-            result.textContent = 'Vui lòng nhập chiều cao (100–230 cm) và cân nặng (30–180 kg) hợp lệ.';
-            result.hidden = false;
-            return;
-        }
-        var size = suggest(h, w);
-        var btn = document.querySelector('[data-variant-size="' + size + '"]');
-        if (btn && !btn.disabled) {
-            btn.click();
-            result.textContent = 'Gợi ý cho bạn: size ' + size + ' — đã chọn sẵn ở trên. Hãy thử và cảm nhận nhé!';
-        } else if (btn) {
-            result.textContent = 'Gợi ý cho bạn: size ' + size + ', nhưng size này đang hết cho màu đang chọn. Thử đổi màu nhé!';
-        } else {
-            result.textContent = 'Gợi ý cho bạn: size ' + size + '. Sản phẩm này không có size đó, tham khảo bảng size bên trên nhé.';
-        }
-        result.hidden = false;
-    });
-})();
 </script>
 {% include "shop/_recently_viewed.html" %}
 {% with cross_sell_products=product.get_cross_sell_products %}

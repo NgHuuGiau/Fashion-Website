@@ -1,5 +1,4 @@
 from typing import Optional
-from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,7 +8,6 @@ from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -525,7 +523,9 @@ def product_list(request: HttpRequest) -> HttpResponse:
 
 def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
     product = get_object_or_404(
-        Product.objects.prefetch_related("gallery_images"),
+        Product.objects.select_related("brand", "category").prefetch_related(
+            "gallery_images"
+        ),
         id=pk,
         slug=slug,
         available=True,
@@ -618,7 +618,18 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
         or 0
     )
     total_stock = product.get_total_stock()
-    viewing_now = (pk * 7 + 13) % 34 + 8
+    size_guide_rows = []
+    if product.brand and isinstance(product.brand.size_guide, dict):
+        labels = {"chest": "Ngực", "waist": "Eo", "hip": "Hông", "length": "Dài"}
+        for size, measurements in product.brand.size_guide.items():
+            if isinstance(measurements, dict):
+                details = [
+                    (labels.get(key, key), value)
+                    for key, value in measurements.items()
+                    if isinstance(value, (str, int, float)) and str(value).strip()
+                ]
+                if details:
+                    size_guide_rows.append({"size": size, "measurements": details})
 
     user_review = None
     can_review = False
@@ -653,9 +664,6 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             "review_filter": review_filter,
             "review_sort": review_sort,
             "rating_avg": rating_avg,
-            "price_valid_until": (
-                timezone.localdate() + timedelta(days=30)
-            ).isoformat(),
             "rating_count": rating_count,
             "review_buckets": review_buckets,
             "user_review": user_review,
@@ -666,7 +674,7 @@ def product_detail(request: HttpRequest, pk: int, slug: str) -> HttpResponse:
             )[:5],
             "sold_count": sold_count,
             "total_stock": total_stock,
-            "viewing_now": viewing_now,
+            "size_guide_rows": size_guide_rows,
             "product_schema": _build_product_schema(
                 request, product, rating_avg, rating_count
             ),

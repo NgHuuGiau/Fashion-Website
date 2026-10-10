@@ -1,4 +1,4 @@
-const CACHE_NAME = "huugiau-v1";
+const CACHE_NAME = "huugiau-v2";
 const STATIC_ASSETS = [
   "/",
   "/static/css/site_theme.css",

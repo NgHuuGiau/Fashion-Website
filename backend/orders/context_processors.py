@@ -66,10 +66,13 @@ def shop_site_config(request):
     return {
         "GA4_MEASUREMENT_ID": settings.GA4_MEASUREMENT_ID,
         "ZALO_OA_ID": settings.ZALO_OA_ID,
-        "HOTLINE": settings.HOTLINE,
-        "SUPPORT_EMAIL": settings.SUPPORT_EMAIL,
-        "STORE_ADDRESS": settings.STORE_ADDRESS,
-        "PROMO_BANNER": settings.PROMO_BANNER,
+        "HOTLINE": settings.HOTLINE if settings.PUBLIC_CONTACTS_VERIFIED else "",
+        "SUPPORT_EMAIL": settings.SUPPORT_EMAIL
+        if settings.PUBLIC_CONTACTS_VERIFIED
+        else "",
+        "STORE_ADDRESS": settings.STORE_ADDRESS
+        if settings.PUBLIC_CONTACTS_VERIFIED
+        else "",
         "BANK_TRANSFER_AVAILABLE": bank_transfer_is_enabled(),
         "VNPAY_AVAILABLE": vnpay_is_configured(),
         # ponytail: an nut social chua cau hinh thay vi de khach bam roi moi bao loi

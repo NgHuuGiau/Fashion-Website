@@ -269,6 +269,28 @@ class ProductViewsTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
+        self.assertNotContains(response, "người đang xem")
+        self.assertNotContains(response, "Bảng số đo thương hiệu")
+
+    def test_product_detail_shows_only_entered_size_measurements(self):
+        from products.models import Brand
+
+        self.product_ao.brand = Brand.objects.create(
+            name="Test Brand",
+            slug="test-brand",
+            size_guide={"M": {"chest": 104, "length": 68}},
+        )
+        self.product_ao.save(update_fields=["brand"])
+        response = self.client.get(
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug},
+            )
+        )
+        self.assertContains(response, "Bảng số đo thương hiệu")
+        self.assertContains(response, "Ngực 104")
+        self.assertContains(response, "Dài 68")
+        self.assertNotContains(response, "Gợi ý cho bạn: size")
 
     def test_product_detail_404_when_wrong_slug(self):
         response = self.client.get(
@@ -541,35 +563,12 @@ class ChatServiceUnitTest(TestCase):
 
         self.assertIsNone(extract_weight_kg("Tôi nặng"))
 
-    def test_build_size_recommendation_s(self):
+    def test_build_size_recommendation_does_not_guess_size(self):
         from .services.chat_service import build_size_recommendation
 
         result = build_size_recommendation(158, 48)
-        self.assertIn("S", result)
-
-    def test_build_size_recommendation_m(self):
-        from .services.chat_service import build_size_recommendation
-
-        result = build_size_recommendation(165, 58)
-        self.assertIn("M", result)
-
-    def test_build_size_recommendation_l(self):
-        from .services.chat_service import build_size_recommendation
-
-        result = build_size_recommendation(172, 68)
-        self.assertIn("L", result)
-
-    def test_build_size_recommendation_xl(self):
-        from .services.chat_service import build_size_recommendation
-
-        result = build_size_recommendation(178, 76)
-        self.assertIn("XL", result)
-
-    def test_build_size_recommendation_xxl(self):
-        from .services.chat_service import build_size_recommendation
-
-        result = build_size_recommendation(185, 85)
-        self.assertIn("XXL", result)
+        self.assertIn("chưa đủ để chọn size", result)
+        self.assertNotIn("size S", result)
 
     def test_detect_topic_size(self):
         from .services.chat_service import detect_topic

@@ -10,159 +10,85 @@ PAGE_NAV = [
 PAGES = {
     "ve-chung-toi": {
         "title": "Câu chuyện thương hiệu",
-        "meta": "HUUGIAU Atelier — câu chuyện về streetwear local gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.",
+        "meta": "HUUGIAU Atelier — khám phá sản phẩm, thông tin kích cỡ và cách đặt hàng trên website.",
         "body_html": """
-<p>HUUGIAU Atelier bắt đầu từ một câu hỏi rất đơn giản: vì sao mặc đẹp mỗi ngày lại phải phức tạp đến vậy?</p>
-<p>Chúng tôi tin thời trang đại trà đang làm khó mọi thứ — quá nhiều chi tiết, quá nhiều xu hướng, quá nhiều thứ phải phối với nhau. HUUGIAU làm ngược lại: <strong>gọn, dễ mặc, đủ điểm nhấn</strong> để lên đồ nhanh mỗi sáng.</p>
-<h2>Làm ra sao?</h2>
-<ul>
-<li>Thiết kế tối giản, tập trung vào form dáng và tỉ lệ hơn là hoạ tiết rườm rà.</li>
-<li>Chọn vải bền — cotton dày dặn, denim form chuẩn, không đẹp một lần rồi bỏ.</li>
-<li>Kiểm tra size và chất lượng từng mẻ trước khi giao tới tay khách.</li>
-</ul>
-<h2>Thương hiệu local, vì local</h2>
-<p>Chúng tôi là một studio nhỏ ở Việt Nam. Mọi khâu từ lên ý tưởng, chốt mẫu đến đóng gói đều nằm trong tay một đội ngũ — vì vậy chúng tôi lắng nghe phản hồi, sửa nhanh và luôn đặt trải nghiệm mặc lên hàng đầu.</p>
-<p>Cảm ơn bạn đã đồng hành. Mỗi đơn hàng của bạn là một bước để HUUGIAU gọn hơn, tốt hơn và gần bạn hơn.</p>
+<p>HUUGIAU Atelier là website giới thiệu và nhận đơn hàng thời trang. Thông tin về giá, màu, kích cỡ và tình trạng còn hàng được hiển thị trên từng trang sản phẩm.</p>
+<p>Bạn có thể xem sản phẩm, chọn biến thể, đặt hàng và theo dõi trạng thái đơn ngay trên website. Nếu cần xác nhận thông tin trước khi mua, hãy dùng kênh liên hệ được công bố tại <a href="/lien-he/">trang Liên hệ</a>.</p>
 """,
     },
     "huong-dan-chon-size": {
         "title": "Hướng dẫn chọn size",
-        "meta": "Bảng size áo, quần và phụ kiện HUUGIAU Atelier — đo form chuẩn để chọn size vừa vặn ngay lần đầu.",
+        "meta": "Cách đối chiếu số đo và thông tin kích cỡ trên từng sản phẩm HUUGIAU Atelier.",
         "body_html": """
-<p>Form sản phẩm HUUGIAU được thiết kế theo tỉ lệ chuẩn châu Á, hơi rộng nhẹ ở vai và thân để dễ mặc. Bạn nên đo theo sản phẩm mình đang mặc vừa nhất, rồi so sánh với bảng bên dưới.</p>
-<h2>Bảng size áo</h2>
-<table class="size-guide-table">
-<tr><th>Size</th><th>Ngực (cm)</th><th>Dài áo (cm)</th><th>Dài tay (cm)</th><th>Gợi ý cân nặng</th></tr>
-<tr><td>M</td><td>104–108</td><td>68–70</td><td>60–62</td><td>52–60 kg</td></tr>
-<tr><td>L</td><td>110–114</td><td>70–72</td><td>62–64</td><td>60–70 kg</td></tr>
-<tr><td>XL</td><td>116–120</td><td>72–74</td><td>64–66</td><td>70–80 kg</td></tr>
-<tr><td>XXL</td><td>122–126</td><td>74–76</td><td>66–68</td><td>80–90 kg</td></tr>
-</table>
-<h2>Bảng size quần</h2>
-<table class="size-guide-table">
-<tr><th>Size</th><th>Vòng bụng (cm)</th><th>Hông (cm)</th><th>Dài quần (cm)</th><th>Gợi ý cân nặng</th></tr>
-<tr><td>M</td><td>76–82</td><td>96–100</td><td>98–100</td><td>52–60 kg</td></tr>
-<tr><td>L</td><td>82–88</td><td>100–104</td><td>100–102</td><td>60–70 kg</td></tr>
-<tr><td>XL</td><td>88–94</td><td>104–108</td><td>102–104</td><td>70–80 kg</td></tr>
-<tr><td>XXL</td><td>94–100</td><td>108–112</td><td>104–106</td><td>80–90 kg</td></tr>
-</table>
-<h2>Mẹo chọn size</h2>
+<p>Kích cỡ có thể khác nhau giữa các sản phẩm. Hãy xem các size đang bán và bảng số đo riêng trên trang sản phẩm nếu đã được cung cấp; website không áp dụng một bảng số đo chung cho mọi mẫu.</p>
+<h2>Cách đối chiếu</h2>
 <ul>
-<li>Giữa hai size, chọn size lớn hơn nếu bạn thích mặc rộng thoải mái, size nhỏ hơn nếu thích ôm.</li>
-<li>Vải denim có thể co nhẹ sau khi giặt lần đầu — cân nhắc lên nửa size nếu mua quần jeans.</li>
-<li>Sản phẩm phụ kiện (mũ, túi) dùng size FREE, không cần chọn.</li>
-<li>Vẫn phân vân? Chat với shop qua Zalo để được tư vấn theo số đo cụ thể của bạn.</li>
+<li>Đo một sản phẩm cùng loại bạn đang mặc vừa và đối chiếu từng số đo được công bố.</li>
+<li>Nếu trang sản phẩm chưa có số đo, hãy liên hệ shop để xác nhận trước khi đặt hàng.</li>
+<li>Chiều cao và cân nặng không đủ để xác định chính xác kích cỡ hoặc độ vừa của một mẫu cụ thể.</li>
 </ul>
 """,
     },
     "chinh-sach-doi-tra": {
         "title": "Chính sách đổi trả",
-        "meta": "Chính sách đổi trả 7 ngày của HUUGIAU Atelier — đổi size, đổi mẫu dễ dàng, hoàn tiền nhanh.",
+        "meta": "Cách gửi yêu cầu đổi trả và theo dõi xử lý đơn hàng tại HUUGIAU Atelier.",
         "body_html": """
-<h2>Đổi trả trong 7 ngày</h2>
-<p>Kể từ ngày nhận hàng, bạn có <strong>7 ngày</strong> để đổi size, đổi màu hoặc trả hàng hoàn tiền nếu sản phẩm chưa qua sử dụng.</p>
-<h2>Điều kiện</h2>
-<ul>
-<li>Sản phẩm chưa qua giặt, chưa qua sử dụng, còn nguyên tem mác và bao bì.</li>
-<li>Không đổi trả với sản phẩm đã qua giặt, hư hỏng do sử dụng sai cách, hoặc hàng sale 30% trở lên.</li>
-<li>Phụ kiện đã thử (mũ, túi) cần giữ nguyên bao bì.</li>
-</ul>
-<h2>Các bước đổi trả</h2>
+<h2>Gửi yêu cầu</h2>
+<p>Với đơn hàng được hệ thống ghi nhận đã giao thành công, tài khoản đã đặt hàng có thể gửi yêu cầu đổi hoặc hoàn tiền trong vòng <strong>7 ngày</strong> từ thời điểm giao hàng. Yêu cầu sẽ được nhân viên xem xét; gửi yêu cầu không đồng nghĩa với việc được duyệt hoặc hoàn tiền tự động.</p>
 <ol>
-<li>Liên hệ shop qua các kênh được công bố tại <a href="/lien-he/">trang Liên hệ</a> kèm mã đơn hàng.</li>
-<li>Shop xác nhận điều kiện và gửi bạn hướng dẫn gửi hàng về.</li>
-<li>Nhận lại hàng trong 2–4 ngày (nội thành TP.HCM) hoặc 4–7 ngày (tỉnh).</li>
-<li>Hoàn tiền trong 3–5 ngày làm việc sau khi shop kiểm tra hàng đạt điều kiện.</li>
+<li>Đăng nhập và mở mục <a href="/don-hang-cua-toi/">Đơn hàng của tôi</a>.</li>
+<li>Chọn đơn đã giao, gửi yêu cầu và mô tả lý do cùng sản phẩm liên quan.</li>
+<li>Chờ shop xác nhận điều kiện và hướng dẫn bước tiếp theo. Đơn đặt không đăng nhập có thể dùng kênh liên hệ đã công bố để được hỗ trợ.</li>
 </ol>
-<h2>Chi phí</h2>
-<p>Đổi size/màu trong 7 ngày: miễn phí đổi lần đầu với đơn trên 499K (trừ phí vận chuyển chênh lệch). Trả hàng hoàn tiền: khách chịu phí vận chuyển gửi về.</p>
+<p>Chi phí vận chuyển đổi trả, thời hạn xử lý và phương thức hoàn tiền chưa được công bố. Hãy xác nhận các điều kiện này với shop trước khi đặt hàng; website chưa tự động hoàn tiền.</p>
 """,
     },
     "chat-lieu-bao-quan": {
         "title": "Chất liệu & bảo quản",
-        "meta": "Hướng dẫn chăm sóc áo quần HUUGIAU — giặt đúng cách để vải bền, giữ màu và form dáng lâu hơn.",
+        "meta": "Hướng dẫn bảo quản chung; ưu tiên nhãn chăm sóc và thông tin của từng sản phẩm.",
         "body_html": """
-<h2>Chất liệu chính</h2>
+<p>Thành phần vải và hướng dẫn chăm sóc có thể khác nhau theo sản phẩm. Ưu tiên thông tin trên nhãn và trang chi tiết của đúng sản phẩm bạn nhận được.</p>
+<h2>Lưu ý chung</h2>
 <ul>
-<li><strong>Cotton dày (220–260gsm):</strong> áo thun, hoodie — thoáng, thấm hút, giữ form không bai.</li>
-<li><strong>Denim (10–13oz):</strong> quần jeans — dày dặn, lên màu đẹp theo thời gian.</li>
-<li><strong>Nỉ bông / canvas:</strong> túi, phụ kiện — cứng cáp, chịu mài mòn tốt.</li>
+<li>Phân loại màu và kiểm tra nhãn trước khi giặt hoặc sấy.</li>
+<li>Thử cách làm sạch ở vùng nhỏ, khó thấy nếu chưa rõ đặc tính chất liệu.</li>
+<li>Không tự áp dụng cùng một nhiệt độ hoặc hóa chất cho mọi loại vải.</li>
 </ul>
-<h2>Giặt và bảo quản</h2>
-<ul>
-<li>Giặt ngược mặt sản phẩm, nước dưới 30°C, không ngâm lâu.</li>
-<li>Không dùng thuốc tẩy clo; hạn chế máy sấy ở nhiệt độ cao.</li>
-<li>Phân loại màu khi giặt — tránh để sản phẩm tối màu lem sang sáng màu.</li>
-<li>Phơi nơi thoáng, tránh ánh nắng gắt trực tiếp để giữ màu.</li>
-<li>Với denim: giặt ít lần hơn, lần đầu giặt riêng để tránh lem màu.</li>
-</ul>
-<h2>Kéo dài tuổi thọ sản phẩm</h2>
-<p>Ủi ở nhiệt độ vừa (không ủi trực tiếp lên hoạ tiết in), gấp gọn khi cất, tránh treo quần denim lâu ngày làm giãn cạp.</p>
 """,
     },
     "tuyen-dung": {
         "title": "Tuyển dụng",
-        "meta": "Cùng HUUGIAU Atelier xây dựng thương hiệu streetwear local — cơ hội việc làm tại studio.",
+        "meta": "Thông tin tuyển dụng của HUUGIAU Atelier khi có vị trí được xác nhận.",
         "body_html": """
-<p>HUUGIAU đang tìm những người tin vào câu chuyện "gọn, dễ mặc, đủ điểm nhấn" để cùng phát triển studio.</p>
-<h2>Vị trí đang tuyển</h2>
-<ul>
-<li><strong>Trợ lý studio / vận hành shop online:</strong> xử lý đơn, chăm sóc khách, kiểm soát kho.</li>
-<li><strong>Content creator kiêm chụp ảnh lookbook:</strong> lên ý tưởng, chụp và dựng ảnh/video sản phẩm.</li>
-<li><strong>Người mẫu part-time cho lookbook:</strong> nam/nữ, có cá tính, ưu tiên gu streetwear.</li>
-</ul>
-<h2>Vì sao làm cùng HUUGIAU?</h2>
-<ul>
-<li>Đội ngũ nhỏ, bạn được tham gia vào toàn bộ quy trình, không chỉ một mảng.</li>
-<li>Làm việc linh hoạt, có thể chủ động về giờ giấc với các vị trí part-time.</li>
-<li>Giảm giá nhân viên khi mua sản phẩm của shop.</li>
-</ul>
-<p>Vui lòng dùng kênh liên hệ được công bố tại <a href="/lien-he/">trang Liên hệ</a> với tiêu đề <em>[Ứng tuyển] - Vị trí</em>.</p>
+<p>Hiện website chưa công bố vị trí tuyển dụng đã được xác nhận. Khi có thông tin chính thức, nội dung sẽ được cập nhật tại đây.</p>
 """,
     },
     "chinh-sach-bao-mat": {
         "title": "Chính sách bảo mật",
-        "meta": "Chính sách bảo mật của HUUGIAU Atelier — cách chúng tôi thu thập, lưu trữ và bảo vệ thông tin của bạn.",
+        "meta": "Thông tin dữ liệu hiện có trên website HUUGIAU Atelier; chính sách bảo mật chính thức đang được xác nhận.",
         "body_html": """
-<p>Chúng tôi hiểu thông tin của bạn là quan trọng. Chính sách này giải thích HUUGIAU Atelier thu thập và sử dụng dữ liệu gì khi bạn sử dụng website.</p>
-<h2>Chúng tôi thu thập gì?</h2>
+<p>Chính sách bảo mật chính thức chưa được chủ shop xác nhận. Phần dưới đây mô tả các loại dữ liệu website dùng trong những chức năng hiện có.</p>
+<h2>Dữ liệu bạn cung cấp</h2>
 <ul>
-<li>Thông tin tài khoản bạn đăng ký: tên, email, số điện thoại, địa chỉ giao hàng.</li>
-<li>Thông tin đơn hàng: sản phẩm, giá, phương thức thanh toán, trạng thái giao hàng.</li>
-<li>Dữ liệu phiên làm việc: địa chỉ IP, trình duyệt, trang đã truy cập — để cải thiện trải nghiệm và bảo mật.</li>
+<li>Khi tạo tài khoản hoặc đặt hàng, website lưu thông tin bạn nhập như tên, email, số điện thoại và địa chỉ giao hàng.</li>
+<li>Website lưu sản phẩm đã đặt, số tiền, phương thức thanh toán và trạng thái đơn để xử lý và tra cứu đơn.</li>
 </ul>
-<h2>Chúng tôi dùng để làm gì?</h2>
-<ul>
-<li>Xử lý và giao đơn hàng, hỗ trợ khách hàng, gửi thông báo đơn hàng.</li>
-<li>Gửi tin khuyến mãi nếu bạn đăng ký nhận tin (có thể huỷ bất cứ lúc nào).</li>
-<li>Ngăn chặn gian lận và đảm bảo an toàn giao dịch.</li>
-</ul>
-<h2>Chúng tôi không làm gì</h2>
-<p>Chúng tôi không bán hoặc cho thuê thông tin của bạn cho bên thứ ba. Thông tin thanh toán VNPay được xử lý bởi cổng thanh toán VNPay theo tiêu chuẩn bảo mật của họ — chúng tôi không lưu số thẻ.</p>
-<h2>Quyền của bạn</h2>
-<p>Bạn có thể yêu cầu xem, sửa hoặc xoá dữ liệu cá nhân qua các kênh liên hệ được công bố tại <a href="/lien-he/">trang Liên hệ</a>.</p>
+<p>Thời gian lưu trữ, bên nhận dữ liệu và quy trình xử lý yêu cầu dữ liệu cá nhân cần được chủ shop xác nhận trước khi công bố chính sách đầy đủ.</p>
+<p>Nếu cần trao đổi về dữ liệu của mình, hãy dùng kênh hỗ trợ đã được công bố tại <a href="/lien-he/">trang Liên hệ</a>.</p>
 """,
     },
     "dieu-khoan": {
         "title": "Điều khoản sử dụng",
-        "meta": "Điều khoản sử dụng website HUUGIAU Atelier — quy định khi đặt hàng và sử dụng dịch vụ.",
+        "meta": "Cách sử dụng website và đặt hàng hiện có tại HUUGIAU Atelier; điều khoản thương mại đang được xác nhận.",
         "body_html": """
-<p>Bằng việc sử dụng website HUUGIAU Atelier và đặt hàng, bạn đồng ý với các điều khoản dưới đây.</p>
-<h2>Về sản phẩm</h2>
+<p>Điều khoản thương mại chính thức chưa được chủ shop xác nhận. Những nội dung dưới đây mô tả cách website đang hoạt động.</p>
+<h2>Sản phẩm và đơn hàng</h2>
 <ul>
-<li>Ảnh sản phẩm chỉ mang tính minh hoạ; màu sắc có thể chênh nhẹ do màn hình hiển thị.</li>
-<li>Giá, số lượng tồn kho và khuyến mãi có thể thay đổi mà không báo trước, trong khuôn khổ pháp luật.</li>
+<li>Trang sản phẩm hiển thị thông tin, giá và biến thể đang được shop nhập vào hệ thống.</li>
+<li>Trước khi xác nhận đặt hàng, bạn có thể kiểm tra sản phẩm, phí vận chuyển và tổng tiền ở bước thanh toán.</li>
+<li>Sau khi đặt, bạn có thể tra cứu trạng thái đơn bằng chức năng trên website.</li>
 </ul>
-<h2>Về đơn hàng</h2>
-<ul>
-<li>Hợp đồng mua bán được xác lập khi shop xác nhận đơn và giao hàng thành công.</li>
-<li>Chúng tôi có quyền từ chối hoặc huỷ đơn nếu phát hiện sai sót về giá, tồn kho hoặc dấu hiệu gian lận.</li>
-<li>Việc sử dụng mã giảm giá phải tuân theo điều kiện của từng mã.</li>
-</ul>
-<h2>Về nội dung website</h2>
-<p>Toàn bộ hình ảnh, nội dung, logo thuộc quyền HUUGIAU Atelier. Không được sao chép, sử dụng lại khi chưa được đồng ý bằng văn bản.</p>
-<h2>Liên hệ</h2>
-<p>Thắc mắc về điều khoản? Vui lòng xem thông tin tại <a href="/lien-he/">trang Liên hệ</a>.</p>
+<p>Điều kiện xác nhận hoặc hủy đơn, đổi trả và hoàn tiền cần được chủ shop chốt trước khi công bố. Nếu cần làm rõ trước khi mua, hãy dùng kênh đã xác minh tại <a href="/lien-he/">trang Liên hệ</a>.</p>
 """,
     },
     "lien-he": {
@@ -170,7 +96,7 @@ PAGES = {
         "meta": "Các kênh liên hệ và hỗ trợ của HUUGIAU Atelier.",
         "body_html": """
 <h2>Hỗ trợ khách hàng</h2>
-<p>Bạn có thể dùng các kênh liên hệ được cấu hình bên dưới hoặc tra cứu đơn hàng trên website. Shop chưa công bố địa điểm nhận khách trực tiếp.</p>
+<p>Kênh hỗ trợ và địa chỉ nhận khách, nếu đã được xác minh, được công bố ở chân trang. Bạn cũng có thể tra cứu trạng thái đơn trên website.</p>
 <h2>Tra cứu đơn hàng</h2>
 <p>Đã đặt hàng? Dùng <a href="/tra-cuu-don/">Tra cứu đơn hàng</a> để theo dõi trạng thái, hoặc kiểm tra trong <a href="/don-hang-cua-toi/">Đơn hàng của tôi</a> nếu đã đăng nhập.</p>
 """,

@@ -325,7 +325,7 @@ BCT_BADGE_LINK = os.getenv("BCT_BADGE_LINK", "").strip()
 HOTLINE = os.getenv("HOTLINE", "")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
 STORE_ADDRESS = os.getenv("STORE_ADDRESS", "")
-PROMO_BANNER = os.getenv("PROMO_BANNER", "FREESHIP20K")
+PUBLIC_CONTACTS_VERIFIED = env_bool("PUBLIC_CONTACTS_VERIFIED", False)
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "frontend/static"]
@@ -496,7 +496,11 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/",
     "CONTACT": {
         "name": "HUUGIAU Studio",
-        **({"email": SUPPORT_EMAIL} if SUPPORT_EMAIL else {}),
+        **(
+            {"email": SUPPORT_EMAIL}
+            if PUBLIC_CONTACTS_VERIFIED and SUPPORT_EMAIL
+            else {}
+        ),
     },
     "LICENSE": {"name": "MIT"},
     "TAGS": [

@@ -226,22 +226,14 @@
         return "Hiện shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng (QR). COD được khuyến khích vì tiện lợi, không cần chờ xác nhận thanh toán.";
       }
       if (/size|kích[\s\S]*c[oồ]|vừa|m[\s\S]*c|1m|m[\s\S]*t|cao.*cân|chi[eê]u cao/i.test(text)) {
-        const match = text.match(/(\d{1,2})\s*m\s*(\d{1,3})(?:\s+(\d{1,3})\s*kg)?/i);
-        if (match) {
-          const h = parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
-          const w = match[3] ? parseInt(match[3], 10) : 0;
-          if (h >= 175 || w >= 80) return "Với số đo của bạn, shop gợi ý size L hoặc XL cho áo, M hoặc L cho quần. Tuy nhiên tùy form mặc ôm hay rộng nữa — nếu thích mặc ôm thì chọn size nhỏ hơn 1 size.";
-          if (h >= 165 || w >= 65) return "Với số đo của bạn, shop gợi ý size M cho áo và M cho quần. Nếu thích mặc rộng hoặc có chất riêng, shop có thể tư vấn thêm nếu bạn nói rõ sản phẩm.";
-          return "Theo số đo bạn cung cấp, size S hoặc M sẽ phù hợp. Bạn vào trang sản phẩm để xem bảng size chi tiết nhé.";
-        }
-        return "Bạn vào trang chi tiết sản phẩm để chọn màu và size. Nếu phân vân, gửi shop chiều cao, cân nặng và form mặc mong muốn (ôm/rộng) để shop tư vấn nhanh hơn.";
+        return "Chỉ chiều cao và cân nặng chưa đủ để chọn size chính xác. Hãy xem size đang bán và bảng số đo trên trang sản phẩm nếu có, rồi liên hệ shop để xác nhận độ vừa của mẫu cụ thể.";
       }
       if (/đơn|theo[\s\S]*d[oõ]i|trạng[\s\S]*th[iá]i|order|don/i.test(text)) return 'Bạn vào mục "Đơn hàng của tôi" để theo dõi trạng thái. Nếu đơn đang "Chờ xử lý" nghĩa là shop chưa xác nhận, "Đang xử lý" là đã xác nhận và chuẩn bị giao.';
       if (/đ[oô]i|tr[ảa]|hoà[n]|hủy/i.test(text)) return "Bạn có thể gửi yêu cầu đổi trả trong 7 ngày theo điều kiện tại Chính sách đổi trả. Vui lòng kèm mã đơn và lý do qua kênh liên hệ được công bố trên website.";
       if (/giỏ|cart|mua|thêm|checkout/i.test(text)) return "Bạn thêm sản phẩm vào giỏ ở trang chi tiết, sau đó vào Giỏ hàng để kiểm tra rồi bấm Thanh toán. Nếu chưa có tài khoản, bạn vẫn có thể đặt hàng và tạo tài khoản sau.";
       if (/kho|tồn|còn h|hết|hàng/i.test(text)) return 'Tồn kho được cập nhật theo thời gian thực. Nếu sản phẩm hiện "Hết hàng", bạn có thể để lại email để shop báo khi có lại.';
-      if (/m[\s\S]*u|gi[\s\S]|sale|gi[ảa]m|khuy[\s\S]*n m[\s\S]*i/i.test(text)) return "Các chương trình giảm giá được cập nhật trên trang chủ. Freeship cho đơn từ 499K luôn áp dụng. Bạn cũng có thể dùng mã giảm giá (nếu có) ở bước checkout.";
-      return 'Shop có thể hỗ trợ bạn về: size — phí ship — thanh toán — đổi trả — theo dõi đơn hàng. Bạn thử hỏi cụ thể hơn một chút (vd: "1m72 68kg mặc size gì?", "còn màu đen không?", "ship bao nhiêu?") nhé.';
+      if (/m[\s\S]*u|gi[\s\S]|sale|gi[ảa]m|khuy[\s\S]*n m[\s\S]*i/i.test(text)) return "Đơn từ 499.000đ được miễn phí vận chuyển. Nếu có mã giảm giá đang hiệu lực, bạn có thể nhập ở bước thanh toán và kiểm tra tổng tiền trước khi xác nhận.";
+      return 'Shop có thể hỗ trợ bạn về: size — phí ship — thanh toán — đổi trả — theo dõi đơn hàng. Bạn thử hỏi cụ thể hơn một chút (vd: "mẫu này có bảng size không?", "còn màu đen không?", "ship bao nhiêu?") nhé.';
     };
 
     const appendSuggestions = (suggestions) => {
@@ -783,47 +775,6 @@
         setTimeout(syncToSticky, 0);
       });
     }
-  })();
-
-  (function () {
-    const el = document.querySelector("[data-viewers-count]");
-    if (!el) return;
-    let base = parseInt(el.textContent, 10) || 12;
-    el.textContent = base;
-    function drift () {
-      let step;
-      const roll = Math.random();
-      if (roll < 0.12) step = Math.floor(Math.random() * 4) + 2;
-      else if (roll > 0.88) step = -(Math.floor(Math.random() * 4) + 2);
-      else step = Math.floor(Math.random() * 3) - 1;
-      base = Math.max(6, Math.min(32, base + step));
-      el.textContent = base;
-      setTimeout(drift, 5000 + Math.floor(Math.random() * 9000));
-    }
-    setTimeout(drift, 5000 + Math.floor(Math.random() * 4000));
-  })();
-
-  (function () {
-    const timer = document.querySelector("[data-flash-sale]");
-    if (!timer) return;
-    const hEl = timer.querySelector("[data-flash-h]");
-    const mEl = timer.querySelector("[data-flash-m]");
-    const sEl = timer.querySelector("[data-flash-s]");
-    if (!hEl || !mEl || !sEl) return;
-    function tick () {
-      const now = new Date();
-      const end = new Date(now);
-      end.setHours(23, 59, 59, 999);
-      const diff = Math.max(0, end - now);
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      hEl.textContent = String(h).padStart(2, "0");
-      mEl.textContent = String(m).padStart(2, "0");
-      sEl.textContent = String(s).padStart(2, "0");
-    }
-    tick();
-    setInterval(tick, 1000);
   })();
 
   document.querySelectorAll(".detail-accordion, .size-advisor").forEach((acc) => {

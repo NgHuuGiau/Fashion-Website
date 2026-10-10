@@ -43,6 +43,23 @@ class EnvironmentFilePrecedenceTest(SimpleTestCase):
                 self.assertEqual(os.environ["EMAIL_HOST"], "prod.example")
 
 
+class PublicInformationTest(TestCase):
+    def test_public_pages_do_not_claim_unconfirmed_measurements_or_jobs(self):
+        size_page = self.client.get(reverse("size_guide"))
+        return_page = self.client.get(reverse("return_policy"))
+        careers_page = self.client.get(reverse("careers"))
+        privacy_page = self.client.get(reverse("privacy"))
+        terms_page = self.client.get(reverse("terms"))
+        self.assertNotContains(size_page, "104–108")
+        self.assertContains(size_page, "không áp dụng một bảng số đo chung")
+        self.assertContains(return_page, "chưa được công bố")
+        self.assertNotContains(careers_page, "Vị trí đang tuyển")
+        self.assertContains(privacy_page, "chưa được chủ shop xác nhận")
+        self.assertContains(terms_page, "chưa được chủ shop xác nhận")
+        self.assertNotContains(size_page, "HUUGIAU10")
+        self.assertNotContains(size_page, "giảm thêm 10%")
+
+
 class ErrorPageTest(TestCase):
     def test_404_page_renders(self):
         response = self.client.get("/khong-ton-tai/")
@@ -685,6 +702,28 @@ class InvoicePrintTest(TestCase):
 
 
 class FooterConfigTest(TestCase):
+    @override_settings(
+        PUBLIC_CONTACTS_VERIFIED=False,
+        HOTLINE="0912345678",
+        SUPPORT_EMAIL="support@shop.test",
+        STORE_ADDRESS="Địa chỉ chưa xác minh",
+    )
+    def test_footer_hides_unverified_contacts(self):
+        response = self.client.get(reverse("products:product_list"))
+        self.assertNotContains(response, "0912345678")
+        self.assertNotContains(response, "support@shop.test")
+        self.assertNotContains(response, "Địa chỉ chưa xác minh")
+
+    @override_settings(
+        PUBLIC_CONTACTS_VERIFIED=True,
+        HOTLINE="0912345678",
+        SUPPORT_EMAIL="support@shop.test",
+    )
+    def test_footer_shows_verified_contacts(self):
+        response = self.client.get(reverse("products:product_list"))
+        self.assertContains(response, "0912345678")
+        self.assertContains(response, "support@shop.test")
+
     def test_footer_hides_unconfigured_social_and_bct(self):
         response = self.client.get(reverse("products:product_list"))
         self.assertEqual(response.status_code, 200)

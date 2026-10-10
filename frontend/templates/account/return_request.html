@@ -10,7 +10,7 @@
         <div>
             <p class="eyebrow">Đổi trả</p>
             <h1>Yêu cầu đổi trả đơn #{{ order.id }}</h1>
-            <p>Đơn đã giao thành công ngày {{ order.created_at|date:"d/m/Y" }}. Chọn sản phẩm và lý do, shop sẽ liên hệ xác nhận.</p>
+            <p>{% if order.delivered_at %}Đơn đã giao thành công ngày {{ order.delivered_at|date:"d/m/Y" }}.{% else %}Đơn đã được đánh dấu giao thành công; hệ thống chưa lưu ngày giao thực tế.{% endif %} Chọn sản phẩm và lý do để shop xem xét yêu cầu.</p>
         </div>
     </div>
 

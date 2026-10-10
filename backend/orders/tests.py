@@ -3991,6 +3991,23 @@ class ReturnRequestTest(TestCase):
         self.order.refresh_from_db()
         self.assertFalse(self.order.can_request_return)
 
+    def test_return_page_shows_delivery_date_not_order_date(self):
+        delivered_at = timezone.now() - timedelta(days=2)
+        self.order.delivered_at = delivered_at
+        self.order.save(update_fields=["delivered_at"])
+        response = self.client.get(
+            reverse("orders:create_return", kwargs={"order_id": self.order.id})
+        )
+        self.assertContains(
+            response, timezone.localtime(delivered_at).strftime("%d/%m/%Y")
+        )
+
+    def test_return_page_does_not_invent_missing_delivery_date(self):
+        response = self.client.get(
+            reverse("orders:create_return", kwargs={"order_id": self.order.id})
+        )
+        self.assertContains(response, "chưa lưu ngày giao thực tế")
+
     def test_create_return_request_sums_selected_items(self):
         url = reverse("orders:create_return", kwargs={"order_id": self.order.id})
         response = self.client.post(
