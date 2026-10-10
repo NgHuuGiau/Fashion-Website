@@ -35,7 +35,7 @@ cd C:\FashionWebsite
 .\scripts\start-windows-web.ps1
 ```
 
-Script kiểm tra cấu hình deploy, nén/thu thập static rồi bind Waitress tại `127.0.0.1:8000`; không tự chạy migration.
+Script chạy `verify_prod.py` và Django deploy check trước khi nén/thu thập static, rồi bind Waitress tại `127.0.0.1:8000`. Nếu `BEHIND_PROXY`, `TRUSTED_PROXY` hoặc `SECURE_SSL_REDIRECT` chưa bật, web sẽ không khởi động. Script không tự chạy migration.
 7. Chạy Caddy ở cửa sổ PowerShell khác. Dùng đúng cùng đường dẫn `MEDIA_ROOT` đã đặt trong `.env.production`:
 
 ```powershell
@@ -46,7 +46,7 @@ cd C:\FashionWebsite
   -MediaRoot "D:\FashionMedia"
 ```
 
-`Caddyfile.windows` tự phục vụ `/static/`, `/media/`, reverse proxy request còn lại tới Waitress và xin/gia hạn HTTPS. Không công khai cổng 8000.
+`Caddyfile.windows` tự phục vụ `/static/`, `/media/`, chặn truy cập trực tiếp `/media/shipping_labels/`, reverse proxy request còn lại tới Waitress và xin/gia hạn HTTPS. Tải tem vận đơn trong trang quản trị sau khi đăng nhập và xác thực 2FA. Không công khai cổng 8000.
 8. Trước khi mở bán, tạo hai tác vụ Windows Task Scheduler, trigger “At startup”, chọn “Run whether user is logged on or not”, và đặt “If the task is already running” thành “Do not start a new instance”. Dùng tài khoản Windows có quyền database cho web task.
 
    - Web task: Program `powershell.exe`; arguments `-NoProfile -ExecutionPolicy Bypass -File "C:\FashionWebsite\scripts\start-windows-web.ps1"`.
@@ -60,6 +60,8 @@ Muốn phát hành bản cập nhật: backup → cập nhật source → thử 
 ## Lựa chọn 2 — Docker Compose + PostgreSQL
 
 Compose đã có PostgreSQL, PgBouncer, Redis có xác thực, app, Celery worker/beat, Nginx và cấu hình Caddy TLS tùy chọn. Chuyển dữ liệu từ SQL Server sang PostgreSQL là một dự án migration riêng: map schema, kiểm tra dữ liệu và thử restore trước; không đổi `DB_ENGINE` trên dữ liệu production đang chạy.
+
+Trong Compose, `MEDIA_ROOT` của container được cố định ở `/app/media` và gắn vào volume `media_volume` để Nginx phục vụ ảnh tải lên. Giá trị `MEDIA_ROOT=D:/FashionMedia` trong `.env.production` chỉ dành cho triển khai Windows; Compose tự ghi đè giá trị đó trong container.
 
 Sau khi domain trỏ tới server, chuẩn bị `.env.production` cho Django và copy `.env.compose.production.example` thành `.env.compose.production` để cấu hình DNS/database secrets cho Compose. Thực hiện quy trình release dưới đây từ repository root; chỉ mở traffic sau khi các bước kiểm tra thành công.
 

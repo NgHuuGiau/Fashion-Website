@@ -15,6 +15,7 @@ x-app-environment: &app-environment
   BEHIND_PROXY: ${BEHIND_PROXY:-False}
   MEILISEARCH_HOST: http://meilisearch:7700
   MEILISEARCH_API_KEY: ${MEILISEARCH_API_KEY:?Set MEILISEARCH_API_KEY}
+  MEDIA_ROOT: /app/media
 
 services:
   db:
@@ -124,7 +125,7 @@ services:
       start_period: 60s
     volumes:
       - static_volume:/app/staticfiles
-      - media_volume:/app/frontend/static/images
+      - media_volume:/app/media
     expose:
       - "8000"
 

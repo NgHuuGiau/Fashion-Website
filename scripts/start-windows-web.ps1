@@ -21,6 +21,9 @@ $env:APP_ENV_FILE = ".env.production"
 $env:DJANGO_SETTINGS_MODULE = "core.settings"
 Push-Location $backendPath
 try {
+    & $python (Join-Path $repoRoot "scripts\verify_prod.py")
+    if ($LASTEXITCODE -ne 0) { throw "Production configuration verification failed." }
+
     & $python manage.py check --deploy
     if ($LASTEXITCODE -ne 0) { throw "Django deploy check failed." }
 
