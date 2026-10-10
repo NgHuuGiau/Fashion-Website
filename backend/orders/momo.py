@@ -31,10 +31,12 @@ def is_configured():
     )
 
 
-def _secure_hash(params: dict) -> str:
+def _secure_hash(params: dict, fields: tuple[str, ...]) -> str:
     """Tạo chữ ký HMAC-SHA256 theo chuẩn MoMo."""
-    # MoMo yêu cầu các tham tố được sắp xếp theo alphabet
-    raw_data = "&".join(f"{key}={params[key]}" for key in sorted(params))
+    raw_data = "&".join(
+        [f"accessKey={settings.MOMO_ACCESS_KEY}"]
+        + [f"{field}={params.get(field, '')}" for field in fields]
+    )
     return hmac.new(
         settings.MOMO_SECRET_KEY.encode("utf-8"),
         raw_data.encode("utf-8"),
@@ -71,7 +73,20 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
         "requestType": "captureWallet",
     }
 
-    params["signature"] = _secure_hash(params)
+    params["signature"] = _secure_hash(
+        params,
+        (
+            "amount",
+            "extraData",
+            "ipnUrl",
+            "orderId",
+            "orderInfo",
+            "partnerCode",
+            "redirectUrl",
+            "requestId",
+            "requestType",
+        ),
+    )
 
     try:
         response = requests.post(
@@ -116,8 +131,23 @@ def verify_callback(data: dict) -> bool:
         return False
 
     # Loại bỏ signature khỏi data trước khi verify
-    verify_data = {k: v for k, v in data.items() if k != "signature"}
-    expected = _secure_hash(verify_data)
+    fields = (
+        "amount",
+        "extraData",
+        "message",
+        "orderId",
+        "orderInfo",
+        "orderType",
+        "partnerCode",
+        "payType",
+        "requestId",
+        "responseTime",
+        "resultCode",
+        "transId",
+    )
+    if any(field not in data for field in fields):
+        return False
+    expected = _secure_hash(data, fields)
 
     return hmac.compare_digest(received_signature, expected)
 
@@ -132,7 +162,7 @@ def amount_matches(order, data: dict) -> bool:
 
 def is_success_callback(data: dict) -> bool:
     """Kiểm tra callback có phải thanh toán thành công không."""
-    return data.get("resultCode") == 0
+    return str(data.get("resultCode")) == "0"
 
 
 def get_transaction_info(data: dict) -> dict:
@@ -165,10 +195,14 @@ def refund_transaction(order, amount: int, trans_id: str) -> dict:
         "amount": str(amount),
         "orderInfo": f"Hoan tien don hang {order.id}",
         "transId": trans_id,
+        "description": "",
         "lang": MOMO_LOCALE,
     }
 
-    params["signature"] = _secure_hash(params)
+    params["signature"] = _secure_hash(
+        params,
+        ("amount", "description", "orderId", "partnerCode", "requestId", "transId"),
+    )
 
     try:
         response = requests.post(
@@ -209,17 +243,16 @@ def query_transaction(order, trans_id: str) -> dict:
         return {"success": False, "message": "MoMo chưa được cấu hình"}
 
     request_id = str(uuid.uuid4())
-    order_id = f"query_{order.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    order_id = order.gateway_transaction_id or trans_id
 
     params = {
         "partnerCode": settings.MOMO_PARTNER_CODE,
         "requestId": request_id,
         "orderId": order_id,
-        "transId": trans_id,
         "lang": MOMO_LOCALE,
     }
 
-    params["signature"] = _secure_hash(params)
+    params["signature"] = _secure_hash(params, ("orderId", "partnerCode", "requestId"))
 
     try:
         response = requests.post(

@@ -32,10 +32,8 @@ def is_configured():
     )
 
 
-def _secure_hash(params: dict, key: str) -> str:
+def _secure_hash(raw_data: str, key: str) -> str:
     """Tạo chữ ký HMAC-SHA256 theo chuẩn ZaloPay."""
-    # ZaloPay yêu cầu các tham tố được sắp xếp theo alphabet
-    raw_data = "&".join(f"{key}={params[key]}" for key in sorted(params))
     return hmac.new(
         key.encode("utf-8"),
         raw_data.encode("utf-8"),
@@ -69,7 +67,18 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
         "callback_url": notify_url,
     }
 
-    params["mac"] = _secure_hash(params, settings.ZALOPAY_KEY1)
+    signed_fields = (
+        "app_id",
+        "app_trans_id",
+        "app_user",
+        "amount",
+        "app_time",
+        "embed_data",
+        "item",
+    )
+    params["mac"] = _secure_hash(
+        "|".join(str(params[field]) for field in signed_fields), settings.ZALOPAY_KEY1
+    )
 
     try:
         response = requests.post(
@@ -102,19 +111,40 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
 
 
 def verify_callback(data: dict) -> bool:
-    """Xác minh chữ ký callback/IPN từ ZaloPay (dùng key2)."""
+    """Xác minh chữ ký IPN hoặc redirect từ ZaloPay (dùng key2)."""
     if not is_configured():
         return False
 
-    received_mac = data.get("mac", "")
-    if not received_mac:
-        return False
+    if "data" in data:
+        raw = data.get("data", "")
+        received = data.get("mac", "")
+    else:
+        fields = (
+            "appid",
+            "apptransid",
+            "pmcid",
+            "bankcode",
+            "amount",
+            "discountamount",
+            "status",
+        )
+        if any(field not in data for field in fields):
+            return False
+        raw = "|".join(str(data[field]) for field in fields)
+        received = data.get("checksum", "")
+    return bool(received) and hmac.compare_digest(
+        str(received), _secure_hash(str(raw), settings.ZALOPAY_KEY2)
+    )
 
-    # Loại bỏ mac khỏi data trước khi verify
-    verify_data = {k: v for k, v in data.items() if k != "mac"}
-    expected = _secure_hash(verify_data, settings.ZALOPAY_KEY2)
 
-    return hmac.compare_digest(received_mac, expected)
+def callback_payload(data: dict) -> dict:
+    if "data" not in data:
+        return data
+    try:
+        payload = json.loads(data["data"])
+        return payload if isinstance(payload, dict) else {}
+    except (TypeError, ValueError):
+        return {}
 
 
 def amount_matches(order, data: dict) -> bool:
@@ -127,13 +157,13 @@ def amount_matches(order, data: dict) -> bool:
 
 def is_success_callback(data: dict) -> bool:
     """Kiểm tra callback có phải thanh toán thành công không."""
-    return data.get("return_code") == 1
+    return bool(data.get("zp_trans_id")) or str(data.get("status")) == "1"
 
 
 def get_transaction_info(data: dict) -> dict:
     """Trích xuất thông tin giao dịch từ callback."""
     return {
-        "app_trans_id": data.get("app_trans_id"),
+        "app_trans_id": data.get("app_trans_id") or data.get("apptransid"),
         "zp_trans_id": data.get("zp_trans_id"),
         "amount": int(data.get("amount", 0)),
         "description": data.get("description", ""),
@@ -156,7 +186,10 @@ def query_transaction(order, app_trans_id: str) -> dict:
         "app_trans_id": app_trans_id,
     }
 
-    params["mac"] = _secure_hash(params, settings.ZALOPAY_KEY1)
+    params["mac"] = _secure_hash(
+        f"{params['app_id']}|{params['app_trans_id']}|{settings.ZALOPAY_KEY1}",
+        settings.ZALOPAY_KEY1,
+    )
 
     try:
         response = requests.post(
@@ -191,13 +224,20 @@ def refund_transaction(order, amount: int, zp_trans_id: str) -> dict:
 
     params = {
         "app_id": int(settings.ZALOPAY_APP_ID),
+        "m_refund_id": f"{datetime.now().strftime('%y%m%d')}_{settings.ZALOPAY_APP_ID}_{uuid.uuid4().hex[:12]}",
         "zp_trans_id": zp_trans_id,
         "amount": amount,
         "description": f"Hoan tien don hang {order.id}",
         "timestamp": int(time.time() * 1000),
     }
 
-    params["mac"] = _secure_hash(params, settings.ZALOPAY_KEY1)
+    params["mac"] = _secure_hash(
+        "|".join(
+            str(params[field])
+            for field in ("app_id", "zp_trans_id", "amount", "description", "timestamp")
+        ),
+        settings.ZALOPAY_KEY1,
+    )
 
     try:
         response = requests.post(

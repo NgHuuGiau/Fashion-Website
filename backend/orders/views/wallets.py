@@ -80,8 +80,7 @@ def _mark_paid(order, transaction_id: str, source: str):
     if order.is_paid:
         return False
     order.is_paid = True
-    order.gateway_transaction_id = (transaction_id or "")[:128]
-    fields = ["is_paid", "gateway_transaction_id", "updated_at"]
+    fields = ["is_paid", "updated_at"]
     if order.status == "cancelled":
         logger.error("Late %s payment for cancelled order %s", source, order.id)
     else:
@@ -105,25 +104,23 @@ def wallet_return(request: HttpRequest, method: str) -> HttpResponse:
         return redirect("products:product_list")
     g = _gateway(method)
     params = request.GET.dict() if request.method == "GET" else request.POST.dict()
-    # MoMo/ZaloPay/ShopeePay tra ve orderId kieu "<id>_..." -> tach id goc
     raw_oid = (
         params.get("orderId")
         or params.get("order_id")
         or params.get("app_trans_id")
+        or params.get("apptransid")
         or params.get("partner_order_id")
         or ""
     )
-    order_id = str(raw_oid).split("_")[0].lstrip("SP")
-    try:
-        oid = int("".join(c for c in str(order_id) if c.isdigit()) or 0)
-    except ValueError:
-        oid = 0
-    order = Order.objects.select_for_update().filter(id=oid).first()
+    order = (
+        Order.objects.select_for_update()
+        .filter(payment_method=method, gateway_transaction_id=str(raw_oid))
+        .first()
+        if raw_oid
+        else None
+    )
     if not order:
         messages.error(request, "Khong tim thay don hang.")
-        return redirect("orders:my_orders")
-    if order.payment_method != method:
-        messages.error(request, "Phuong thuc thanh toan khong khop.")
         return redirect("orders:my_orders")
     if not g.verify_callback(params):
         messages.error(request, "Chu ky thanh toan khong hop le.")
@@ -141,6 +138,20 @@ def wallet_return(request: HttpRequest, method: str) -> HttpResponse:
     if order.is_paid:
         messages.info(request, "Don hang da duoc thanh toan truoc do.")
         return redirect("orders:order_success", order_id=order.id)
+    if method == "zalopay" and g.is_success_callback(params):
+        query = g.query_transaction(order, str(raw_oid))
+        query_data = query.get("data") or {}
+        if (
+            not query.get("success")
+            or not g.amount_matches(order, query_data)
+            or not query_data.get("zp_trans_id")
+        ):
+            messages.info(
+                request,
+                "ZaloPay đang xác nhận giao dịch. Vui lòng kiểm tra lại đơn hàng.",
+            )
+            return redirect("orders:order_success", order_id=order.id)
+        tid = str(query_data["zp_trans_id"])
     if g.is_success_callback(params):
         _mark_paid(order, tid, f"{method}_return")
         log_activity(
@@ -173,8 +184,12 @@ def wallet_ipn(request: HttpRequest, method: str) -> HttpResponse:
         )
     except Exception:
         data = request.POST.dict()
+    if not isinstance(data, dict):
+        return JsonResponse({"return_code": -1, "message": "invalid payload"})
     if not g.verify_callback(data):
         return JsonResponse({"return_code": -1, "message": "invalid signature"})
+    if method == "zalopay":
+        data = g.callback_payload(data)
     raw_oid = (
         data.get("orderId")
         or data.get("order_id")
@@ -182,18 +197,24 @@ def wallet_ipn(request: HttpRequest, method: str) -> HttpResponse:
         or data.get("partner_order_id")
         or ""
     )
-    order_id = str(raw_oid).split("_")[0].lstrip("SP")
-    try:
-        oid = int("".join(c for c in str(order_id) if c.isdigit()) or 0)
-    except ValueError:
-        return JsonResponse({"return_code": 0, "message": "order not found"})
-    order = Order.objects.select_for_update().filter(id=oid).first()
+    order = (
+        Order.objects.select_for_update()
+        .filter(payment_method=method, gateway_transaction_id=str(raw_oid))
+        .first()
+        if raw_oid
+        else None
+    )
     if not order:
         return JsonResponse({"return_code": 0, "message": "order not found"})
-    if order.payment_method != method or not g.amount_matches(order, data):
+    if not g.amount_matches(order, data):
         return JsonResponse({"return_code": -1, "message": "mismatch"})
     if order.is_paid:
-        return JsonResponse({"return_code": 0, "message": "already confirmed"})
+        return JsonResponse(
+            {
+                "return_code": 1 if method == "zalopay" else 0,
+                "message": "already confirmed",
+            }
+        )
     info = g.get_transaction_info(data)
     tid = str(
         info.get("transaction_id")
@@ -208,4 +229,6 @@ def wallet_ipn(request: HttpRequest, method: str) -> HttpResponse:
             order.save(update_fields=["status", "updated_at"])
         return JsonResponse({"return_code": 0, "message": "payment failed"})
     _mark_paid(order, tid, f"{method}_ipn")
-    return JsonResponse({"return_code": 0, "message": "confirm success"})
+    return JsonResponse(
+        {"return_code": 1 if method == "zalopay" else 0, "message": "confirm success"}
+    )

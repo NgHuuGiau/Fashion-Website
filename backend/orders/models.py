@@ -192,7 +192,7 @@ class Order(models.Model):
     vnpay_transaction_id = models.CharField(
         max_length=64, unique=True, null=True, blank=True
     )
-    # ponytail: 1 field chung cho MoMo/ZaloPay/ShopeePay, khoi them 3 cot rieng
+    # Mã đơn gửi tới ví; giữ nguyên để đối chiếu callback lặp, mã giao dịch ví lưu ở lịch sử trạng thái.
     gateway_transaction_id = models.CharField(
         max_length=128, null=True, blank=True, db_index=True
     )
