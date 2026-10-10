@@ -16,7 +16,7 @@ test.describe('Payment Flows', () => {
     
     await page.click('button:has-text("Thêm vào giỏ"), button[name="add_to_cart"]');
     await page.waitForTimeout(1000);
-    await page.goto(`${BASE_URL}/thanh-toan/`);
+    await page.goto(`${BASE_URL}/thanh-toan/`, { waitUntil: 'domcontentloaded' });
     
     // Fill minimum required fields
     await page.fill('input[name="customer_name"]', 'Test User');

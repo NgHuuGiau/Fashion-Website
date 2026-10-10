@@ -281,6 +281,7 @@ jobs:
     timeout-minutes: 30
     env:
       TRUSTED_PROXY: 'True'
+      BASE_URL: http://127.0.0.1:8000
     services:
       postgres:
         image: postgres:16-alpine
@@ -318,7 +319,7 @@ jobs:
           cd backend
           python manage.py migrate --noinput
           python manage.py seed_all --no-input
-          python manage.py shell -c "from django.contrib.auth import get_user_model; U=get_user_model(); u,_=U.objects.get_or_create(username='testuser'); u.set_password('TestPass123!'); u.save()"
+          python ../scripts/prepare_e2e.py
 
       - name: Set up Node and install frontend dependencies
         uses: actions/setup-node@v4

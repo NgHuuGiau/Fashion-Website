@@ -11,7 +11,7 @@ Workflow chính: `.github/workflows/ci.yml` (chạy trên mọi push/PR vào `ma
 | Security | Bandit (SAST) + pip-audit (deps) | Fail khi có findings |
 | Tests | pytest `-n auto` trên PostgreSQL, Python 3.10–3.13, Django 5.2 | Bỏ `tests/stress`, `tests/performance` |
 | Frontend lint | ESLint + Stylelint | `frontend/` |
-| Frontend E2E | Playwright chromium + Mobile Chrome | Seed demo + user `testuser` |
+| Frontend E2E | Playwright chromium + Mobile Chrome | Database CI riêng, một sản phẩm thử và phiên admin đã xác minh 2FA |
 | Build | `check --deploy`, collectstatic, compress offline | Bắt lỗi cấu hình prod |
 | CodeQL | Workflow riêng (`codeql.yml`) | Python + JavaScript |
 | Release | Workflow riêng (`release.yml`) | Đóng gói bản phát hành, chạy trên `main` |
@@ -38,5 +38,4 @@ muốn chạy SQLite in-memory thì dùng `python manage.py test` với `core.te
   SQL Server triển khai trước khi mở bán.
 - Test nào phụ thuộc `.env` máy local phải dùng `@override_settings`
   (bài học từ `test_faq_payment_reply`).
-- Số liệu test trong README là số test collect được, phải cập nhật khi thêm test
-  (hiện 515).
+- Số bài test phụ thuộc phiên bản và dữ liệu fixture; đọc số liệu từ mỗi lần chạy CI.

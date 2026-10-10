@@ -170,7 +170,15 @@ python manage.py test
 ```
 
 ```powershell
-# Playwright E2E
+# Playwright E2E trên database SQLite tạm, không đụng catalog thật
+$env:DJANGO_SETTINGS_MODULE = "core.test_settings_sqlite"
+$env:SQLITE_TEST_DB = (Join-Path (Get-Location) ".tmp-e2e.sqlite3")
+$env:REDIS_URL = ""
+$env:EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+$env:BASE_URL = "http://127.0.0.1:8000"
+python backend/manage.py migrate --noinput
+python backend/manage.py seed_all --no-input
+python scripts/prepare_e2e.py
 cd frontend
 npm ci
 npm test -- --project=chromium --project="Mobile Chrome"

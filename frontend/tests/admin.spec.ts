@@ -3,14 +3,7 @@ import { test, expect } from './fixtures';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
 
 test.describe('Admin Dashboard', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login as admin
-    await page.goto(`${BASE_URL}/dang-nhap/`);
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/^(?!.*dang-nhap).*/);
-  });
+  test.use({ storageState: '.auth/admin.json' });
 
   test('should access admin dashboard', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);

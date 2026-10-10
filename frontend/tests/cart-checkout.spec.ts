@@ -51,7 +51,7 @@ test.describe('Cart & Checkout', () => {
   });
 
   test('should fill checkout form', async ({ page }) => {
-    await page.goto(`${BASE_URL}/thanh-toan/`);
+    await page.goto(`${BASE_URL}/thanh-toan/`, { waitUntil: 'domcontentloaded' });
     
     // Fill required fields
     await page.fill('input[name="customer_name"]', 'Test User');

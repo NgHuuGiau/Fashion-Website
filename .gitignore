@@ -53,6 +53,9 @@ frontend/static/CACHE/
 frontend/node_modules/
 frontend/test-results/
 frontend/playwright-report/
+frontend/.auth/
+.tmp-e2e*
+.tmp-*.log
 bandit-results.json
 
 # SSL certs (dev only)

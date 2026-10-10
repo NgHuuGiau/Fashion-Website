@@ -28,6 +28,7 @@ export default defineConfig({
   webServer: {
     command: `python ../backend/manage.py runserver 127.0.0.1:${port} --noreload`,
     url: baseURL,
+    env: { SHOP_BANK_ACCOUNT: '', VNPAY_TMN_CODE: '' },
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     timeout: 120000,
   },
