@@ -4,7 +4,6 @@ import logging
 from typing import Optional
 
 from django.conf import settings
-from django.db import transaction
 
 from orders.models import Order, ShippingOrder
 from .ghn_client import (
@@ -56,6 +55,18 @@ def create_shipping_order(order: Order, carrier: str = None) -> Optional[Shippin
     return None
 
 
+def _claim_shipping_retry(shipping_order: ShippingOrder, order_id: int) -> bool:
+    code = f"pending-{order_id}"
+    if shipping_order.status != "failed" or shipping_order.carrier_order_code != code:
+        return False
+    claimed = ShippingOrder.objects.filter(
+        pk=shipping_order.pk, status="failed", carrier_order_code=code
+    ).update(status="created")
+    if claimed:
+        shipping_order.status = "created"
+    return bool(claimed)
+
+
 def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
     client = get_ghn_client()
     if not client:
@@ -64,7 +75,7 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
         )
         return None
 
-    shipping_order, _ = ShippingOrder.objects.get_or_create(
+    shipping_order, created = ShippingOrder.objects.get_or_create(
         order=order,
         defaults={
             "carrier": "ghn",
@@ -72,7 +83,7 @@ def _create_ghn_shipping_order(order: Order) -> Optional[ShippingOrder]:
             "status": "created",
         },
     )
-    if shipping_order.status not in ("created", "failed"):
+    if not created and not _claim_shipping_retry(shipping_order, order.id):
         return shipping_order
     if not order.shipping_ward_name or not order.shipping_province_name:
         shipping_order.status = "failed"
@@ -148,44 +159,40 @@ def _create_generic_shipping_order(
             f"{carrier} not configured, skipping shipping order for Order #{order.id}"
         )
         return None
+    shipping_order, created = ShippingOrder.objects.get_or_create(
+        order=order,
+        defaults={
+            "carrier": carrier,
+            "carrier_order_code": f"pending-{order.id}",
+            "status": "created",
+        },
+    )
+    if not created and not _claim_shipping_retry(shipping_order, order.id):
+        return shipping_order
     try:
-        with transaction.atomic():
-            shipping_order = ShippingOrder.objects.create(
-                order=order, carrier=carrier, carrier_order_code="", status="created"
-            )
-            payload = builder(order, get_carrier_config(carrier))
-            response = client.create_order(payload)
-            code = response.get("order_code", "") or response.get("tracking_code", "")
-            shipping_order.carrier_order_code = code
-            shipping_order.tracking_code = response.get("tracking_code", "") or code
-            shipping_order.status = "pending_pickup"
-            shipping_order.raw_response = response.get("raw", response)
-            shipping_order.actual_fee = response.get("total_fee", 0) or 0
-            shipping_order.cod_amount = response.get("cod_amount", 0) or 0
-            shipping_order.save(
-                update_fields=[
-                    "carrier_order_code",
-                    "tracking_code",
-                    "status",
-                    "raw_response",
-                    "actual_fee",
-                    "cod_amount",
-                    "updated_at",
-                ]
-            )
-            order.tracking_code = shipping_order.tracking_code
-            order.status = "shipping"
-            order.save(update_fields=["tracking_code", "status", "updated_at"])
-            return shipping_order
+        payload = builder(order, get_carrier_config(carrier))
+        response = client.create_order(payload)
+        code = response.get("order_code", "") or response.get("tracking_code", "")
+        if not code:
+            raise ValueError(f"{carrier} không trả mã vận đơn")
+        shipping_order.carrier_order_code = code
+        shipping_order.tracking_code = response.get("tracking_code", "") or code
+        shipping_order.status = "pending_pickup"
+        shipping_order.error_message = ""
+        shipping_order.raw_response = response.get("raw", response)
+        shipping_order.actual_fee = response.get("total_fee", 0) or 0
+        shipping_order.cod_amount = response.get("cod_amount", 0) or 0
+        shipping_order.save()
+        order.tracking_code = shipping_order.tracking_code
+        order.status = "shipping"
+        order.save(update_fields=["tracking_code", "status", "updated_at"])
+        return shipping_order
     except Exception as e:
         logger.exception(f"Error creating {carrier} order for Order #{order.id}: {e}")
-        try:
-            shipping_order.error_message = str(e)[:500]
-            shipping_order.status = "failed"
-            shipping_order.save(update_fields=["error_message", "status", "updated_at"])
-            return shipping_order
-        except Exception:
-            return None
+        shipping_order.error_message = str(e)[:500]
+        shipping_order.status = "failed"
+        shipping_order.save(update_fields=["error_message", "status", "updated_at"])
+        return shipping_order
 
 
 def print_shipping_label(shipping_order: ShippingOrder) -> Optional[bytes]:

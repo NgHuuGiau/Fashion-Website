@@ -86,11 +86,9 @@ def _mark_paid(order, transaction_id: str, source: str):
     else:
         order.status = "processing"
         fields.append("status")
-        from ..services.order_email import send_order_email
-        from ..services.shipping.service import create_shipping_order
+        from ..services.after_commit import notify_order_after_commit
 
-        send_order_email(order, event="paid")
-        create_shipping_order(order)
+        notify_order_after_commit(order, "paid", ship=True)
     order._status_change_source = source
     order._status_change_transaction_id = (transaction_id or "")[:64]
     order._status_change_note = f"{source} xac nhan thanh toan."

@@ -2,6 +2,7 @@ import json
 from unittest.mock import Mock, patch
 
 from django.test import TestCase, override_settings
+from django.db import transaction
 from django.urls import reverse
 
 from .forms import CheckoutForm
@@ -12,6 +13,102 @@ from .services.shipping.service import (
     create_shipping_order,
     print_shipping_label,
 )
+from .services.after_commit import notify_order_after_commit
+
+
+class GenericShippingOrderTest(TestCase):
+    @patch("orders.services.shipping.service._get_carrier_client")
+    def test_existing_in_progress_order_does_not_call_carrier_twice(self, get_client):
+        client = Mock()
+        get_client.return_value = (client, Mock())
+        order = Order.objects.create(
+            customer_name="Buyer", phone="0900000000", carrier="ghtk"
+        )
+        shipping = ShippingOrder.objects.create(
+            order=order, carrier="ghtk", carrier_order_code=f"pending-{order.id}"
+        )
+        self.assertEqual(create_shipping_order(order), shipping)
+        client.create_order.assert_not_called()
+
+    @patch("orders.services.shipping.service._get_carrier_client")
+    def test_failed_delivery_does_not_create_another_carrier_order(self, get_client):
+        client = Mock()
+        get_client.return_value = (client, Mock())
+        order = Order.objects.create(
+            customer_name="Buyer", phone="0900000000", carrier="ghtk"
+        )
+        shipping = ShippingOrder.objects.create(
+            order=order,
+            carrier="ghtk",
+            carrier_order_code="SHIP-1",
+            status="failed",
+        )
+        self.assertEqual(create_shipping_order(order), shipping)
+        client.create_order.assert_not_called()
+
+    @patch("orders.services.shipping.service._get_carrier_client")
+    def test_failed_order_retries_then_reuses_tracking_code(self, get_client):
+        client = Mock()
+        builder = Mock(return_value={"id": "HG1"})
+        get_client.return_value = (client, builder)
+        client.create_order.side_effect = [
+            ValueError("temporary"),
+            {"order_code": "SHIP-1"},
+        ]
+        order = Order.objects.create(
+            customer_name="Buyer",
+            phone="0900000000",
+            shipping_address="HCM",
+            payment_method="cod",
+            carrier="ghtk",
+            total_amount=100000,
+        )
+
+        failed = create_shipping_order(order)
+        self.assertEqual(failed.status, "failed")
+        shipped = create_shipping_order(order)
+        self.assertEqual(shipped.status, "pending_pickup")
+        self.assertEqual(create_shipping_order(order).id, shipped.id)
+        self.assertEqual(ShippingOrder.objects.filter(order=order).count(), 1)
+        self.assertEqual(client.create_order.call_count, 2)
+
+
+class OrderSideEffectTest(TestCase):
+    @patch("orders.services.after_commit.create_shipping_order")
+    @patch("orders.services.after_commit.send_order_email")
+    def test_side_effects_run_only_after_commit(self, email, ship):
+        order = Order.objects.create(customer_name="Buyer", phone="0900000000")
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            with transaction.atomic():
+                notify_order_after_commit(order, "paid", ship=True)
+                email.assert_not_called()
+                ship.assert_not_called()
+        self.assertEqual(len(callbacks), 2)
+        email.assert_called_once_with(order, event="paid")
+        ship.assert_called_once_with(order)
+
+    @patch("orders.services.after_commit.create_shipping_order")
+    @patch(
+        "orders.services.after_commit.send_order_email",
+        side_effect=RuntimeError("smtp down"),
+    )
+    def test_shipping_still_runs_when_email_fails(self, email, ship):
+        order = Order.objects.create(customer_name="Buyer", phone="0900000000")
+        with self.assertLogs("django.test", level="ERROR"):
+            with self.captureOnCommitCallbacks(execute=True):
+                notify_order_after_commit(order, "paid", ship=True)
+        email.assert_called_once()
+        ship.assert_called_once_with(order)
+
+    @patch("orders.services.after_commit.send_order_email")
+    def test_side_effects_are_dropped_on_rollback(self, email):
+        order = Order.objects.create(customer_name="Buyer", phone="0900000000")
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            with self.assertRaises(ValueError), transaction.atomic():
+                notify_order_after_commit(order, "paid")
+                raise ValueError("rollback")
+        self.assertEqual(callbacks, [])
+        email.assert_not_called()
 
 
 class GHNWebhookAuthenticationTest(TestCase):
@@ -142,6 +239,18 @@ class GHNWebhookAuthenticationTest(TestCase):
 
 
 class GHNShippingIntegrationTest(TestCase):
+    @override_settings(GHN_TOKEN="test-token", GHN_SHOP_ID=123)
+    @patch("orders.services.shipping.service.get_ghn_client")
+    def test_existing_in_progress_order_does_not_call_ghn_twice(self, get_client):
+        order = Order.objects.create(
+            customer_name="Buyer", phone="0900000000", carrier="ghn"
+        )
+        shipping = ShippingOrder.objects.create(
+            order=order, carrier="ghn", carrier_order_code=f"pending-{order.id}"
+        )
+        self.assertEqual(create_shipping_order(order), shipping)
+        get_client.return_value.create_order.assert_not_called()
+
     @override_settings(GHN_TOKEN="test-token", GHN_SHOP_ID=123)
     def test_checkout_requires_ghn_region_when_enabled(self):
         form = CheckoutForm(

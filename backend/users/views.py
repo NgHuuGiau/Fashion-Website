@@ -29,6 +29,7 @@ from .forms import (
 )
 from .models_referral import ReferralCode, ReferralReward
 from .models import UserAddress, UserProfile
+from .permissions import is_staff_member
 from core.ratelimit import rate_limit
 
 logger = logging.getLogger(__name__)
@@ -454,7 +455,7 @@ def address_add(request: HttpRequest) -> HttpResponse:
 @login_required
 def twofa_enroll(request: HttpRequest) -> HttpResponse:
     """Dang ky TOTP cho staff (Google Authenticator...)."""
-    if not request.user.is_staff:
+    if not is_staff_member(request.user):
         raise Http404
     from django_otp.plugins.otp_totp.models import TOTPDevice
 
@@ -493,7 +494,7 @@ def twofa_enroll(request: HttpRequest) -> HttpResponse:
 @login_required
 def twofa_verify(request: HttpRequest) -> HttpResponse:
     """Nhap ma TOTP sau khi dang nhap mat khau de vao /admin/."""
-    if not request.user.is_staff:
+    if not is_staff_member(request.user):
         raise Http404
     from django_otp import login as otp_login
     from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -515,7 +516,7 @@ def twofa_verify(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def twofa_disable(request: HttpRequest) -> HttpResponse:
-    if not request.user.is_staff:
+    if not is_staff_member(request.user):
         raise Http404
     from django_otp.plugins.otp_totp.models import TOTPDevice
 

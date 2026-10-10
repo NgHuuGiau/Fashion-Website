@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from core.settings import load_env_file
 from core.ratelimit import rate_limit
+from users.test_client import VerifiedStaffClient
 
 
 class EnvironmentFilePrecedenceTest(SimpleTestCase):
@@ -242,6 +243,8 @@ class LoginRateLimitIntegrationTest(TestCase):
 
 
 class ApiTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         from django.contrib.auth.models import User
 
@@ -623,6 +626,8 @@ class ApiTest(TestCase):
 
 
 class InvoicePrintTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         from django.contrib.auth.models import User
 

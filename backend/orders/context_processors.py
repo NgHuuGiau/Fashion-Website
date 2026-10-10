@@ -1,4 +1,5 @@
 import os
+import time
 
 from .cart import safe_int
 
@@ -9,8 +10,8 @@ def wishlist_count(request):
 
     cache_key = f"_wishlist_count_{request.user.id}"
     cached = request.session.get(cache_key)
-    if cached is not None:
-        return cached
+    if isinstance(cached, dict) and cached.get("expires", 0) > time.time():
+        return cached["count"]
 
     try:
         from products.models import WishlistItem
@@ -18,8 +19,7 @@ def wishlist_count(request):
         return 0
 
     count = WishlistItem.objects.filter(user=request.user).count()
-    request.session[cache_key] = count
-    request.session.set_expiry(300)
+    request.session[cache_key] = {"count": count, "expires": time.time() + 300}
     return count
 
 

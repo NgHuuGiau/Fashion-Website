@@ -1135,9 +1135,54 @@ class StaffTwoFATest(TestCase):
 
     def test_admin_redirects_to_enroll_without_device(self):
         self.client.login(username="staffer", password="StrongPass123!")
-        response = self.client.get("/admin/")
+        for path in (
+            "/admin/",
+            "/admin-dashboard/",
+            "/api/admin/stats/",
+            "/don-hang-cua-toi/",
+            "/api/orders/",
+        ):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 302)
+                self.assertIn(
+                    reverse("users:twofa_enroll"), response.headers["Location"]
+                )
+
+    def test_all_admin_surfaces_require_verification(self):
+        self._device(confirmed=True)
+        self.client.login(username="staffer", password="StrongPass123!")
+        for path in (
+            "/admin/",
+            "/admin-dashboard/",
+            "/api/admin/stats/",
+            "/don-hang-cua-toi/",
+            "/api/orders/",
+            reverse("users:twofa_enroll"),
+        ):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 302)
+                self.assertIn(
+                    reverse("users:twofa_verify"), response.headers["Location"]
+                )
+        self.assertEqual(
+            self.client.post(reverse("users:twofa_disable")).headers["Location"],
+            reverse("users:twofa_verify"),
+        )
+        self.assertTrue(self.staff.totpdevice_set.filter(confirmed=True).exists())
+
+    def test_superuser_without_staff_flag_still_requires_twofa(self):
+        self.staff.is_staff = False
+        self.staff.is_superuser = True
+        self.staff.save(update_fields=["is_staff", "is_superuser"])
+        self.client.login(username="staffer", password="StrongPass123!")
+        response = self.client.get("/api/admin/stats/")
         self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("users:twofa_enroll"), response.headers["Location"])
+        self.assertEqual(response.headers["Location"], reverse("users:twofa_enroll"))
+        self.assertEqual(
+            self.client.get(reverse("users:twofa_enroll")).status_code, 200
+        )
 
     def test_enroll_rejects_wrong_code(self):
         self.client.login(username="staffer", password="StrongPass123!")
@@ -1174,3 +1219,5 @@ class StaffTwoFATest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.client.get("/admin/").status_code, 200)
+        self.assertEqual(self.client.get("/admin-dashboard/").status_code, 200)
+        self.assertEqual(self.client.get("/api/admin/stats/").status_code, 200)

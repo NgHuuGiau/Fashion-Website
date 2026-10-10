@@ -286,12 +286,9 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
         else:
             order.status = "processing"
             fields.append("status")
-            from ..services.order_email import send_order_email
-            from ..services.shipping.service import create_shipping_order
+            from ..services.after_commit import notify_order_after_commit
 
-            send_order_email(order, event="paid")
-            # Tự động tạo đơn vận chuyển sau khi thanh toán VNPay thành công
-            create_shipping_order(order)
+            notify_order_after_commit(order, "paid", ship=True)
             messages.success(request, "Thanh toán VNPay thành công.")
             order._status_change_source = "vnpay_return"
             order._status_change_transaction_id = transaction_id
@@ -318,9 +315,9 @@ def vnpay_return(request: HttpRequest) -> HttpResponse:
             f"VNPay từ chối giao dịch, mã phản hồi {response_code}."
         )
         order.save(update_fields=["status", "updated_at"])
-        from ..services.order_email import send_order_email
+        from ..services.after_commit import notify_order_after_commit
 
-        send_order_email(order, event="cancelled")
+        notify_order_after_commit(order, "cancelled")
     return redirect("orders:order_failed", order_id=order.id)
 
 
@@ -376,9 +373,9 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
                     f"VNPay IPN thất bại, mã phản hồi {response_code}."
                 )
                 order.save(update_fields=["status", "updated_at"])
-                from ..services.order_email import send_order_email
+                from ..services.after_commit import notify_order_after_commit
 
-                send_order_email(order, event="cancelled")
+                notify_order_after_commit(order, "cancelled")
             return JsonResponse({"RspCode": "97", "Message": "Payment not successful"})
 
         order.is_paid = True
@@ -387,12 +384,9 @@ def vnpay_ipn(request: HttpRequest) -> HttpResponse:
         if order.status != "cancelled":
             order.status = "processing"
             fields.append("status")
-            from ..services.order_email import send_order_email
-            from ..services.shipping.service import create_shipping_order
+            from ..services.after_commit import notify_order_after_commit
 
-            send_order_email(order, event="paid")
-            # Tự động tạo đơn vận chuyển sau khi thanh toán VNPay thành công (IPN)
-            create_shipping_order(order)
+            notify_order_after_commit(order, "paid", ship=True)
         else:
             logger.error(
                 "Late VNPay IPN for cancelled order %s; manual reconciliation required",

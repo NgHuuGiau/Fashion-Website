@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
-from .services.order_email import send_order_email
+from .services.after_commit import notify_order_after_commit
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def process_vnpay_ipn(self, params):
                     order._status_change_source = "vnpay_ipn_task"
                     order._status_change_transaction_id = transaction_id
                     order._status_change_note = "Celery xác nhận VNPay thành công."
-                    send_order_email(order, event="paid")
+                    notify_order_after_commit(order, "paid", ship=True)
                 order.save(update_fields=fields)
                 return {"RspCode": "00", "Message": "Confirm Success"}
 
@@ -80,7 +80,7 @@ def process_vnpay_ipn(self, params):
                     f"Celery nhận IPN thất bại, mã phản hồi {response_code}."
                 )
                 order.save(update_fields=["status", "updated_at"])
-                send_order_email(order, event="cancelled")
+                notify_order_after_commit(order, "cancelled")
             return {"RspCode": "97", "Message": "Payment not successful"}
 
     except Exception as exc:

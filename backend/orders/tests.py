@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from products.models import Category, Product, ProductVariant
+from users.test_client import VerifiedStaffClient
 from .admin_forms import (
     CouponForm,
     OrderEditForm,
@@ -36,6 +37,8 @@ def _payment_token(order_id):
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
 class CartCheckoutAndAdminTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         self.user = User.objects.create_user(
             username="buyer", password="StrongPass123!"
@@ -877,15 +880,16 @@ class CartCheckoutAndAdminTest(TestCase):
             reverse("orders:cart_add", kwargs={"product_id": self.product_ao.id}),
             {"quantity": 1, "variant_id": self.variant_black_l.id},
         )
-        self.client.post(
-            reverse("orders:checkout"),
-            {
-                "customer_name": "Test",
-                "phone": "0900000000",
-                "shipping_address": "HCM",
-                "payment_method": "cod",
-            },
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(
+                reverse("orders:checkout"),
+                {
+                    "customer_name": "Test",
+                    "phone": "0900000000",
+                    "shipping_address": "HCM",
+                    "payment_method": "cod",
+                },
+            )
         order = Order.objects.first()
         self.client.post(
             reverse("orders:admin_dashboard"),
@@ -1887,6 +1891,8 @@ class AdminFormsTest(TestCase):
 
 
 class CsvExportTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         from django.contrib.auth.models import User
 
@@ -2343,6 +2349,8 @@ class OrderLookupFormTest(TestCase):
 
 
 class AdminDashboardFormIntegrationTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         from django.contrib.auth.models import User
 
@@ -3069,13 +3077,27 @@ class ContextProcessorTest(TestCase):
 
         class FakeSession(dict):
             def set_expiry(self, value):
-                self["_expiry"] = value
+                raise AssertionError("Wishlist cache must not expire the login session")
 
         request = SimpleNamespace(user=user, session=FakeSession())
         first = wishlist_count(request)
         second = wishlist_count(request)
         self.assertEqual(first, second)
         self.assertIn(f"_wishlist_count_{user.id}", request.session)
+
+    def test_wishlist_count_refreshes_after_five_minutes(self):
+        from types import SimpleNamespace
+        from .context_processors import wishlist_count
+
+        user = User.objects.create_user(username="cp-expiry", password="StrongPass123!")
+        request = SimpleNamespace(user=user, session={})
+        with mock.patch("products.models.WishlistItem.objects.filter") as query:
+            query.return_value.count.side_effect = [1, 2]
+            self.assertEqual(wishlist_count(request), 1)
+            self.assertEqual(wishlist_count(request), 1)
+            request.session[f"_wishlist_count_{user.id}"]["expires"] = 0
+            self.assertEqual(wishlist_count(request), 2)
+            self.assertEqual(query.return_value.count.call_count, 2)
 
     def test_cart_count_cached_returns_cached(self):
         from types import SimpleNamespace
@@ -3567,6 +3589,8 @@ VNPAY_CONFIG = {
 
 @override_settings(**VNPAY_CONFIG)
 class VNPayTest(TestCase):
+    client_class = VerifiedStaffClient
+
     def setUp(self):
         self.user = User.objects.create_user(
             username="buyer", password="StrongPass123!"
@@ -4274,6 +4298,8 @@ class CartReminderTest(TestCase):
     SHOP_ACCOUNT_NAME="HUUGIAU TEST",
 )
 class P1FeaturesTest(TestCase):
+    client_class = VerifiedStaffClient
+
     """Bao phu P1: idempotency checkout + import ton kho CSV."""
 
     def setUp(self):

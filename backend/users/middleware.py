@@ -4,21 +4,17 @@ from core.ratelimit import get_client_ip
 
 from .activity import log_activity
 from .models import VisitorSession
+from .permissions import is_staff_member
 
 
 class Admin2FAMiddleware:
-    """Bat staff xac minh TOTP khi vao /admin/.
+    """Bắt staff xác minh TOTP trước khi truy cập bằng quyền quản trị.
 
     - Chua co thiet bi: chuyen toi trang dang ky.
     - Co thiet bi nhung session chua verify OTP: chuyen toi trang nhap ma.
     """
 
-    ADMIN_PREFIX = "/admin/"
-    EXEMPT_NAMES = {
-        "twofa_enroll",
-        "twofa_verify",
-        "twofa_disable",
-    }
+    EXEMPT_NAMES = {"twofa_verify", "logout"}
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -30,6 +26,12 @@ class Admin2FAMiddleware:
             has_device = TOTPDevice.objects.filter(
                 user=request.user, confirmed=True
             ).exists()
+            if (
+                request.resolver_match
+                and request.resolver_match.url_name == "twofa_enroll"
+            ):
+                if not has_device:
+                    return self.get_response(request)
             if not has_device:
                 return redirect("users:twofa_enroll")
             if not request.user.is_verified():
@@ -37,15 +39,16 @@ class Admin2FAMiddleware:
         return self.get_response(request)
 
     def _protected(self, request):
-        if not request.path.startswith(self.ADMIN_PREFIX):
+        if request.path.startswith(("/static/", "/media/")):
             return False
         user = getattr(request, "user", None)
-        if user is None or not user.is_authenticated or not user.is_staff:
+        if not is_staff_member(user):
             return False
         from django.urls import resolve
 
         try:
-            if resolve(request.path_info).url_name in self.EXEMPT_NAMES:
+            request.resolver_match = resolve(request.path_info)
+            if request.resolver_match.url_name in self.EXEMPT_NAMES:
                 return False
         except Exception:
             pass

@@ -845,10 +845,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     ):
                         addr.is_default = True
                         addr.save(update_fields=["is_default"])
-                from ..services.order_email import send_order_email
-                from ..services.shipping.service import create_shipping_order
+                from ..services.after_commit import notify_order_after_commit
 
-                send_order_email(order, event="created")
+                notify_order_after_commit(
+                    order, "created", ship=payment_method == "cod"
+                )
                 log_activity(
                     request,
                     event_type="checkout",
@@ -862,9 +863,6 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     },
                     status_code=201,
                 )
-                # Tự động tạo đơn vận chuyển cho COD
-                if payment_method == "cod":
-                    create_shipping_order(order)
                 messages.success(request, "Đặt hàng thành công.")
                 _remember_idempotency(request, idem_key, order.id)
                 if payment_method == "bank":
