@@ -10,6 +10,10 @@
 		file_server
 	}
 
+	handle /media/shipping_labels/* {
+		respond 404
+	}
+
 	handle_path /media/* {
 		root * "{$MEDIA_ROOT}"
 		file_server

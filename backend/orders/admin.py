@@ -1,5 +1,8 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
+from django.urls import path, reverse
 from django.utils.html import format_html
 
 from .models import (
@@ -215,6 +218,7 @@ class CartReminderAdmin(admin.ModelAdmin):
 
 @admin.register(ShippingOrder)
 class ShippingOrderAdmin(admin.ModelAdmin):
+    exclude = ("shipping_label_pdf",)
     list_display = (
         "id",
         "order",
@@ -239,7 +243,7 @@ class ShippingOrderAdmin(admin.ModelAdmin):
         "carrier",
         "carrier_order_code",
         "tracking_code",
-        "shipping_label_pdf",
+        "shipping_label_download",
         "actual_fee",
         "cod_amount",
         "status",
@@ -256,6 +260,42 @@ class ShippingOrderAdmin(admin.ModelAdmin):
         "cancel_shipping_order_action",
         "sync_status_action",
     ]
+
+    def get_urls(self):
+        return [
+            path(
+                "<int:object_id>/label/",
+                self.admin_site.admin_view(self.download_label),
+                name="orders_shippingorder_label",
+            ),
+            *super().get_urls(),
+        ]
+
+    @admin.display(description="Tem vận đơn")
+    def shipping_label_download(self, obj):
+        if not obj or not obj.shipping_label_pdf:
+            return "Chưa có tem"
+        return format_html(
+            '<a href="{}">Tải tem PDF</a>',
+            reverse("admin:orders_shippingorder_label", args=[obj.pk]),
+        )
+
+    def download_label(self, request, object_id):
+        obj = get_object_or_404(ShippingOrder, pk=object_id)
+        if (
+            not self.has_view_or_change_permission(request, obj)
+            or not obj.shipping_label_pdf
+        ):
+            raise Http404
+        try:
+            return FileResponse(
+                obj.shipping_label_pdf.open("rb"),
+                as_attachment=True,
+                filename=f"label_{obj.carrier_order_code}.pdf",
+                content_type="application/pdf",
+            )
+        except FileNotFoundError as exc:
+            raise Http404 from exc
 
     def has_add_permission(self, request):
         return False
