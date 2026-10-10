@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $caddyfile = Join-Path $repoRoot "Caddyfile.windows"
-$staticRoot = Join-Path $repoRoot "backend\staticfiles"
+$staticRoot = Join-Path $repoRoot "staticfiles"
 $mediaPath = [System.IO.Path]::GetFullPath($MediaRoot)
 $driveRoot = [System.IO.Path]::GetPathRoot($mediaPath)
 $repoPrefix = $repoRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar

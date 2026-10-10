@@ -18,45 +18,24 @@ Khôi phục sẽ thay thế database đích; cần có bản backup hiện tạ
 
 Hãy restore thử vào một database tạm trước khi dùng cho sự cố thật. File backup phải nằm trên đường dẫn mà dịch vụ SQL Server truy cập được.
 
-## PostgreSQL trực tiếp
+## Docker Compose + PostgreSQL
 
-`scripts/backup.sh` tạo archive custom-format `.dump.gz`; script cần `DB_HOST`, `DB_NAME`, `DB_USER` và `DB_PASSWORD` được truyền qua environment. Script không tự đọc `.env` để tránh phân tích sai hoặc thực thi nội dụng môi trường như shell.
-
-```bash
-DB_ENGINE=postgres DB_HOST=db DB_PORT=5432 DB_NAME=huugiau_fashion DB_USER=huugiau \
-  DB_PASSWORD="$DB_PASSWORD" ./scripts/backup.sh full
-```
-
-Khôi phục chỉ chấp nhận `.dump`/`.dump.gz`, yêu cầu gõ `RESTORE`, kiểm tra archive trước khi gọi `pg_restore` và ghi đè schema database đã chọn:
+Compose không công khai cổng PostgreSQL ra host. Tạo `.env.compose.production` với thông số thật; script dùng biến trong file này qua Docker Compose và không thực thi file bằng shell. Chạy từ root repository:
 
 ```bash
-DB_ENGINE=postgres DB_HOST=db DB_PORT=5432 DB_NAME=huugiau_fashion DB_USER=huugiau \
-  DB_PASSWORD="$DB_PASSWORD" ./scripts/restore.sh db ./backups/db/fashion-website_db_TIMESTAMP.dump.gz
+./scripts/backup.sh
 ```
 
-Không dùng các script PostgreSQL cho SQL Server. SQL Server dùng riêng các script PowerShell ở trên.
+Script tạo `backups/db_TIMESTAMP.dump` (PostgreSQL custom format) và `backups/media_TIMESTAMP.tar.gz` từ volume `/app/media`, kiểm tra archive rồi giữ các bản trong 30 ngày. Media đã khôi phục trước đó được giữ dưới `.restore-backup.*` trong volume và không đưa vào bản backup mới.
 
-## Docker Compose
-
-Compose không công khai cổng PostgreSQL/PgBouncer ra host. Có thể tạo database backup trực tiếp từ service database; lệnh sau tạo file custom-format nén trên host:
+Trước khi khôi phục, dừng nhận đơn, sao lưu trạng thái hiện tại và kiểm tra đúng file đích. Script yêu cầu gõ `RESTORE`, kiểm tra archive trước khi ghi đè. Media cũ vẫn nằm trong volume dưới `.restore-backup.<timestamp>`:
 
 ```bash
-mkdir -p backups/db
-docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' \
-  | gzip -9 > "backups/db/fashion-website_db_$(date +%Y%m%d_%H%M%S).dump.gz"
-gzip -t backups/db/*.dump.gz
+./scripts/restore.sh db ./backups/db_TIMESTAMP.dump
+./scripts/restore.sh media ./backups/media_TIMESTAMP.tar.gz
 ```
 
-Sao lưu vùng media hiện tại trong container (ảnh thật có thể được thêm sau):
-
-```bash
-mkdir -p backups/media
-docker compose exec -T app tar -C /app/frontend/static -czf - images \
-  > "backups/media/fashion-website_media_$(date +%Y%m%d_%H%M%S).tar.gz"
-tar -tzf backups/media/FILE.tar.gz
-```
-
-Trước khi restore, dừng nhận đơn và tạo thêm một backup hiện tại. Restore database bằng `pg_restore --clean --if-exists` lên database đích; restore media giữ thư mục media cũ dưới tên `.backup.<timestamp>` trước khi thay. Không chạy restore trực tiếp trên production nếu chưa xác nhận chính xác database và file nguồn.
+Script cũng đọc được `.dump.gz` PostgreSQL cũ. Không dùng các script Bash này cho SQL Server; SQL Server dùng script PowerShell ở trên. Cần thử khôi phục trên một môi trường Compose tạm trước khi dùng trên production.
 
 ## Lịch, lưu trữ và xác minh
 

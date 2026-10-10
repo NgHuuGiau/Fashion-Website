@@ -1,46 +1,31 @@
-#!/bin/bash
-# backup.sh - Backup database và media
-
+#!/usr/bin/env bash
+# Sao lưu PostgreSQL và volume media của Docker Compose production.
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/fashion-website}"
-BACKUP_DIR="$APP_DIR/backups"
-DATE=$(date +%F_%H-%M-%S)
-
-mkdir -p "$BACKUP_DIR"
-
+APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-.env.compose.production}"
 cd "$APP_DIR"
-
-# Load env
-if [ -f .env.production ]; then
-    export $(grep -v '^#' .env.production | xargs)
+if [[ ! -f "$COMPOSE_ENV_FILE" ]]; then
+    echo "Missing $COMPOSE_ENV_FILE" >&2
+    exit 1
 fi
 
-echo "=== Backup $DATE ==="
+compose=(docker compose --env-file "$COMPOSE_ENV_FILE" -f docker-compose.yml -f docker-compose.production.yml)
+backup_dir="$APP_DIR/backups"
+stamp=$(date +%Y%m%d_%H%M%S)
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+db_file="$backup_dir/db_$stamp.dump"
+media_file="$backup_dir/media_$stamp.tar.gz"
+trap 'rm -f -- "$db_file.tmp" "$media_file.tmp"' EXIT
 
-# 1. Database backup
-echo "Backing up database..."
-if docker compose -f docker-compose.yml -f docker-compose.production.yml ps db | grep -q "Up"; then
-    docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T db \
-        pg_dump -U "${DB_USER:-huugiau}" "${DB_NAME:-huugiau_fashion}" | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
-    echo "  -> $BACKUP_DIR/db_$DATE.sql.gz"
-else
-    echo "  ⚠️ Database container not running"
-fi
+"${compose[@]}" exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' > "$db_file.tmp"
+"${compose[@]}" exec -T db pg_restore --list < "$db_file.tmp" > /dev/null
+mv -- "$db_file.tmp" "$db_file"
 
-# 2. Media backup
-echo "Backing up media..."
-if [ -d "frontend/static/images" ]; then
-    tar -czf "$BACKUP_DIR/media_$DATE.tar.gz" frontend/static/images
-    echo "  -> $BACKUP_DIR/media_$DATE.tar.gz"
-else
-    echo "  ⚠️ Media directory not found"
-fi
+"${compose[@]}" exec -T app tar -C /app --exclude='media/.restore-backup.*' --exclude='media/.restore-stage.*' -czf - media > "$media_file.tmp"
+tar -tzf "$media_file.tmp" > /dev/null
+mv -- "$media_file.tmp" "$media_file"
 
-# 3. Cleanup old backups (keep 30 days)
-echo "Cleaning up old backups..."
-find "$BACKUP_DIR" -type f -name "db_*.sql.gz" -mtime +30 -delete
-find "$BACKUP_DIR" -type f -name "media_*.tar.gz" -mtime +30 -delete
-
-echo "=== Backup completed ==="
-ls -lh "$BACKUP_DIR"
+find "$backup_dir" -maxdepth 1 -type f \( -name 'db_*.dump' -o -name 'media_*.tar.gz' \) -mtime +30 -delete
+echo "Backup complete: $db_file, $media_file"

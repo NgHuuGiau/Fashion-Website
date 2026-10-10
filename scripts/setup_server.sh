@@ -7,7 +7,11 @@ set -euo pipefail
 DOMAIN="${1:-shop.example.com}"
 ACME_EMAIL="${2:-admin@example.com}"
 APP_DIR="/opt/fashion-website"
-REPO_URL="https://github.com/your-username/Fashion-Website.git"
+REPO_URL="https://github.com/NgHuuGiau/Fashion-Website.git"
+[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ && "$ACME_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$ ]] || {
+    echo "Domain hoặc email ACME không hợp lệ" >&2
+    exit 1
+}
 
 echo "=== Cài đặt VPS cho $DOMAIN ==="
 
@@ -75,11 +79,12 @@ if [ ! -d "$APP_DIR" ]; then
     chown -R $SUDO_USER:$SUDO_USER "$APP_DIR"
 else
     cd "$APP_DIR"
-    git fetch origin
-    git reset --hard origin/main
+    git pull --ff-only origin main
 fi
 
 cd "$APP_DIR"
+mkdir -p "$APP_DIR/logs" "$APP_DIR/backups"
+chown -R "$SUDO_USER:$SUDO_USER" "$APP_DIR/logs" "$APP_DIR/backups"
 
 # 7. Create .env.production from example
 if [ ! -f .env.production ]; then
@@ -87,20 +92,16 @@ if [ ! -f .env.production ]; then
     echo "⚠️  CẦN CHỈNH SỬA .env.production VỚI GIÁ TRỊ THẬT!"
     echo "   nano $APP_DIR/.env.production"
 fi
+if [ ! -f .env.compose.production ]; then
+    cp .env.compose.production.example .env.compose.production
+    sed -i "s/^DOMAIN=.*/DOMAIN=$DOMAIN/" .env.compose.production
+    sed -i "s/^ACME_EMAIL=.*/ACME_EMAIL=$ACME_EMAIL/" .env.compose.production
+    echo "⚠️  CẦN CHỈNH SỬA .env.compose.production VỚI DOMAIN VÀ MẬT KHẨU THẬT!"
+fi
+chown "$SUDO_USER:$SUDO_USER" .env.production .env.compose.production
+chmod 600 .env.production .env.compose.production
 
-# 8. Create Caddyfile with domain
-cat > Caddyfile <<EOF
-{
-    email $ACME_EMAIL
-}
-
-$DOMAIN {
-    encode zstd gzip
-    reverse_proxy nginx:80
-}
-EOF
-
-# 9. Create systemd service for auto-start
+# 8. Create systemd service for auto-start
 cat > /etc/systemd/system/fashion-website.service <<EOF
 [Unit]
 Description=Fashion Website
@@ -111,8 +112,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$APP_DIR
-ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml down
+ExecStart=/usr/bin/docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml up -d
+ExecStop=/usr/bin/docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml down
 TimeoutStartSec=120
 User=$SUDO_USER
 Group=docker
@@ -126,12 +127,8 @@ systemctl enable fashion-website.service
 
 # 10. Create backup cron
 cat > /etc/cron.d/fashion-backup <<EOF
-# Backup database hàng ngày lúc 2:30 sáng
-30 2 * * * $SUDO_USER cd $APP_DIR && docker compose exec -T db pg_dump -U \${DB_USER} \${DB_NAME} | gzip > backups/db_\$(date +\%F).sql.gz
-# Backup media hàng tuần chủ nhật lúc 3:00 sáng
-0 3 * * 0 $SUDO_USER cd $APP_DIR && tar -czf backups/media_\$(date +\%F).tar.gz frontend/static/images
-# Xóa backup cũ hơn 30 ngày
-0 4 * * * $SUDO_USER find $APP_DIR/backups -type f -mtime +30 -delete
+# Sao lưu database và media mỗi ngày; script kiểm tra archive và dọn bản cũ.
+30 2 * * * $SUDO_USER APP_DIR=$APP_DIR /bin/bash $APP_DIR/scripts/backup.sh >> $APP_DIR/logs/backup.log 2>&1
 EOF
 
 # 11. Create log rotation
@@ -146,7 +143,7 @@ $APP_DIR/logs/*.log {
     create 644 $SUDO_USER docker
     sharedscripts
     postrotate
-        docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.production.yml restart app > /dev/null 2>&1 || true
+        cd $APP_DIR && docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml restart app > /dev/null 2>&1 || true
     endscript
 }
 EOF
@@ -157,14 +154,13 @@ cat > /usr/local/bin/deploy-fashion <<'EOF'
 set -euo pipefail
 APP_DIR="/opt/fashion-website"
 cd "$APP_DIR"
-git fetch origin
-git reset --hard origin/main
-docker compose -f docker-compose.yml -f docker-compose.production.yml pull
-docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --remove-orphans
+git pull --ff-only origin main
+docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml pull
+docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml up -d --build --remove-orphans
 sleep 15
-if ! curl -sf https://${DOMAIN}/health/ >/dev/null; then
+if ! curl -sf "https://$(sed -n 's/^DOMAIN=//p' .env.compose.production | head -n 1)/health/" >/dev/null; then
     echo "Health check failed!"
-    docker compose -f docker-compose.yml -f docker-compose.production.yml logs --tail=50
+    docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml logs --tail=50
     exit 1
 fi
 docker image prune -f

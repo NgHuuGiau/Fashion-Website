@@ -78,7 +78,7 @@ docker compose --env-file .env.compose.production -f docker-compose.yml -f docke
 
 Production settings sẽ dừng khởi động nếu `SECRET_KEY` còn yếu/placeholder hoặc `ALLOWED_HOSTS` rỗng/dùng `*`. Có thể tạo secret riêng bằng `python -c "import secrets; print(secrets.token_urlsafe(64))"`; không dùng lại key CI hay key local.
 
-Caddy tự xin/gia hạn TLS. Trước khi bật cấu hình này, phải đặt `DOMAIN`, `ACME_EMAIL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `PGBOUNCER_ADMIN_PASSWORD`, cấu hình DNS và mở cổng 80/443. Không chạy Compose production trước khi domain trỏ đúng tới máy chủ.
+Caddy tự xin/gia hạn TLS. Trước khi bật cấu hình này, phải đặt `DOMAIN`, `ACME_EMAIL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `PGBOUNCER_ADMIN_PASSWORD`, `MEILISEARCH_API_KEY`, cấu hình DNS và mở cổng 80/443. Không chạy Compose production trước khi domain trỏ đúng tới máy chủ.
 
 ## Cấu hình production (`.env`)
 
