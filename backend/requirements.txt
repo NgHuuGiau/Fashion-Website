@@ -38,7 +38,6 @@ meilisearch>=0.28,<0.29
 
 # Image processing - WebP, optimization
 django-imagekit>=5.0,<5.1
-pillow-heif>=0.10,<0.11
 
 # WebSocket - Real-time
 channels>=4.0,<4.1
