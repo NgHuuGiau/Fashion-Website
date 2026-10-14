@@ -286,12 +286,16 @@ def api_gdpr_export(request: HttpRequest) -> JsonResponse:
     except Exception:
         pass
 
-    # Visitor sessions
-    for vs in VisitorSession.objects.filter(user=user).values():
+    # Visitor sessions (mask IP address - PII)
+    for vs in VisitorSession.objects.filter(user=user).values(
+        "id", "session_key", "user_agent", "first_seen", "last_seen", "is_authenticated"
+    ):
         data["visitor_sessions"].append(vs)
 
-    # Activities
-    for act in UserActivity.objects.filter(user=user).values():
+    # Activities (exclude IP/metadata if any)
+    for act in UserActivity.objects.filter(user=user).values(
+        "id", "event_type", "metadata", "status_code", "created_at"
+    ):
         data["activities"].append(act)
 
     # Referral codes
