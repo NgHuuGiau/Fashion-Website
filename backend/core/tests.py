@@ -82,6 +82,16 @@ class StaticPageContentTest(TestCase):
         self.assertContains(response, "Chất liệu &amp; bảo quản")
         self.assertNotContains(response, "Chất liệu &amp;amp; bảo quản")
 
+    def test_shipping_and_payment_policy_pages_render(self):
+        shipping = self.client.get("/chinh-sach-giao-hang/")
+        payment = self.client.get("/chinh-sach-thanh-toan/")
+        self.assertEqual(shipping.status_code, 200)
+        self.assertContains(shipping, "Chính sách giao hàng")
+        self.assertContains(shipping, "499.000đ")
+        self.assertEqual(payment.status_code, 200)
+        self.assertContains(payment, "Chính sách thanh toán")
+        self.assertContains(payment, "COD")
+
 
 class SeoTest(TestCase):
     def test_robots_txt(self):

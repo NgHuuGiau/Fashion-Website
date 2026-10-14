@@ -2,6 +2,8 @@ PAGE_NAV = [
     ("ve-chung-toi", "Câu chuyện thương hiệu"),
     ("huong-dan-chon-size", "Hướng dẫn chọn size"),
     ("chinh-sach-doi-tra", "Chính sách đổi trả"),
+    ("chinh-sach-giao-hang", "Chính sách giao hàng"),
+    ("chinh-sach-thanh-toan", "Chính sách thanh toán"),
     ("chat-lieu-bao-quan", "Chất liệu & bảo quản"),
     ("tuyen-dung", "Tuyển dụng"),
     ("lien-he", "Liên hệ"),
@@ -41,6 +43,42 @@ PAGES = {
 <li>Chờ shop xác nhận điều kiện và hướng dẫn bước tiếp theo. Đơn đặt không đăng nhập có thể dùng kênh liên hệ đã công bố để được hỗ trợ.</li>
 </ol>
 <p>Chi phí vận chuyển đổi trả, thời hạn xử lý và phương thức hoàn tiền chưa được công bố. Hãy xác nhận các điều kiện này với shop trước khi đặt hàng; website chưa tự động hoàn tiền.</p>
+""",
+    },
+    "chinh-sach-giao-hang": {
+        "title": "Chính sách giao hàng",
+        "meta": "Phí vận chuyển, vùng giao hàng và thời gian giao dự kiến tại HUUGIAU Atelier.",
+        "body_html": """
+<h2>Phí vận chuyển</h2>
+<ul>
+<li>Đơn hàng từ <strong>499.000đ</strong> được miễn phí vận chuyển toàn quốc.</li>
+<li>Đơn dưới ngưỡng freeship, phí ship được tính theo khu vực (TP.HCM / miền Bắc / toàn quốc) và hiển thị rõ ở bước thanh toán trước khi bạn xác nhận đặt hàng.</li>
+</ul>
+<h2>Vùng giao và thời gian</h2>
+<ul>
+<li>Giao hàng trên toàn quốc qua đơn vị vận chuyển hợp tác với shop.</li>
+<li>Thời gian giao dự kiến thay đổi theo khu vực và tình trạng vận chuyển; trạng thái đơn được cập nhật trên website sau khi đơn được giao cho đơn vị vận chuyển.</li>
+<li>Vui lòng kiểm tra kỹ thông tin nhận hàng (tên, số điện thoại, địa chỉ) trước khi xác nhận; thay đổi thông tin sau khi đơn đã gửi đi sẽ khó xử lý hơn.</li>
+</ul>
+<p>Nếu cần hỗ trợ về một đơn đang giao, hãy dùng kênh tại <a href="/lien-he/">trang Liên hệ</a> hoặc tra cứu tại <a href="/tra-cuu-don/">Tra cứu đơn hàng</a>.</p>
+""",
+    },
+    "chinh-sach-thanh-toan": {
+        "title": "Chính sách thanh toán",
+        "meta": "Các phương thức thanh toán đang hỗ trợ tại HUUGIAU Atelier.",
+        "body_html": """
+<h2>Phương thức thanh toán</h2>
+<ul>
+<li><strong>COD (thanh toán khi nhận hàng)</strong> — trả tiền mặt cho nhân viên giao hàng khi nhận được đơn.</li>
+<li><strong>Chuyển khoản ngân hàng</strong> — thông tin tài khoản và nội dung chuyển khoản được hiển thị ở bước thanh toán; đơn được xử lý sau khi shop xác nhận đã nhận tiền.</li>
+<li><strong>Ví điện tử / cổng thanh toán</strong> — các phương thức đang bật trên website (VNPay, MoMo, ZaloPay, ShopeePay) được chọn ngay ở bước thanh toán và chuyển sang trang thanh toán tương ứng.</li>
+</ul>
+<h2>Lưu ý</h2>
+<ul>
+<li>Giá sản phẩm và phí ship hiển thị trước khi bạn xác nhận đặt hàng; tổng tiền cuối cùng là cơ sở thanh toán.</li>
+<li>Mã giảm giá (nếu có) được nhập ở bước thanh toán và điều kiện áp dụng (hạn mức đơn tối thiểu, thời hạn) được ghi rõ tại <a href="/khuyen-mai/">trang Khuyến mãi</a>.</li>
+<li>Website không yêu cầu bạn cung cấp mật khẩu hoặc mã OTP qua điện thoại/email để "xác nhận đơn". Nếu nhận được yêu cầu kiểu này, đó không phải từ shop.</li>
+</ul>
 """,
     },
     "chat-lieu-bao-quan": {

@@ -137,6 +137,18 @@ urlpatterns = [
         name="return_policy",
     ),
     path(
+        "chinh-sach-giao-hang/",
+        views.static_page,
+        {"slug": "chinh-sach-giao-hang"},
+        name="shipping_policy",
+    ),
+    path(
+        "chinh-sach-thanh-toan/",
+        views.static_page,
+        {"slug": "chinh-sach-thanh-toan"},
+        name="payment_policy",
+    ),
+    path(
         "chat-lieu-bao-quan/",
         views.static_page,
         {"slug": "chat-lieu-bao-quan"},
