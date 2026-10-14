@@ -29,7 +29,6 @@ jobs:
     timeout-minutes: 20
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: https://${{ secrets.DOMAIN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
