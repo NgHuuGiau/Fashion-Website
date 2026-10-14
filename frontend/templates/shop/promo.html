@@ -16,7 +16,9 @@
                 <div class="promo-badge">{{ c.code }}</div>
                 <div class="promo-info">
                     <h3>
-                        {% if c.discount_type == "freeship" %}
+                        {% if c.discount_type == "gift" %}
+                        Quà tặng đạt {{ c.min_order_amount|vnd }}đ
+                        {% elif c.discount_type == "freeship" %}
                         Miễn phí vận chuyển
                         {% elif c.discount_type == "percent" %}
                         Giảm {{ c.value }}% đơn hàng
@@ -24,7 +26,13 @@
                         Giảm {{ c.value|vnd }}đ
                         {% endif %}
                     </h3>
-                    <p>Áp dụng cho đơn từ {{ c.min_order_amount|vnd }}đ{% if c.max_discount_amount %} (tối đa {{ c.max_discount_amount|vnd }}đ){% endif %}{% if c.ends_at %} · hết hạn {{ c.ends_at|date:"d/m/Y" }}{% endif %}.</p>
+                    <p>
+                        {% if c.discount_type == "gift" %}
+                        Nhận {{ c.gift_product.name }} miễn phí khi mua đủ hạn mức.
+                        {% else %}
+                        Áp dụng cho đơn từ {{ c.min_order_amount|vnd }}đ{% if c.max_discount_amount %} (tối đa {{ c.max_discount_amount|vnd }}đ){% endif %}{% if c.ends_at %} · hết hạn {{ c.ends_at|date:"d/m/Y" }}{% endif %}.
+                        {% endif %}
+                    </p>
                     <button type="button" class="btn btn-sm" data-copy-code="{{ c.code }}">Sao chép mã</button>
                 </div>
             </div>

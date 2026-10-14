@@ -106,6 +106,7 @@ class CouponForm(forms.ModelForm):
             "code",
             "discount_type",
             "value",
+            "gift_product",
             "min_order_amount",
             "max_discount_amount",
             "starts_at",
@@ -125,11 +126,22 @@ class CouponForm(forms.ModelForm):
                 "Thời gian bắt đầu phải trước thời gian kết thúc."
             )
 
+        if cleaned_data.get(
+            "discount_type"
+        ) == Coupon.TYPE_GIFT and not cleaned_data.get("gift_product"):
+            raise forms.ValidationError(
+                "Mã loại Quà tặng bắt buộc phải chọn sản phẩm quà."
+            )
+
         return cleaned_data
 
     def clean_value(self):
         value = self.cleaned_data.get("value")
-        if value is not None and value <= 0:
+        if (
+            value is not None
+            and value <= 0
+            and self.cleaned_data.get("discount_type") != Coupon.TYPE_GIFT
+        ):
             raise forms.ValidationError("Giá trị mã giảm giá phải lớn hơn 0.")
         return value
 

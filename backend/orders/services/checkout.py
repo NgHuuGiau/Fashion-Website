@@ -67,6 +67,9 @@ def validate_coupon(coupon_code, subtotal, user=None):
     if subtotal < coupon.min_order_amount:
         return None, f"Đơn tối thiểu để dùng mã là {int(coupon.min_order_amount)} VND."
 
+    if coupon.discount_type == Coupon.TYPE_GIFT and not coupon.gift_product_id:
+        return None, "Mã quà tặng chưa được cấu hình sản phẩm quà."
+
     if not coupon.is_usable_by_user(user):
         return None, "Bạn đã dùng hết lượt của mã giảm giá này."
 

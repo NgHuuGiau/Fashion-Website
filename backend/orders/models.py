@@ -12,11 +12,13 @@ class Coupon(models.Model):
     TYPE_PERCENT = "percent"
     TYPE_FIXED = "fixed"
     TYPE_FREESHIP = "freeship"
+    TYPE_GIFT = "gift"
 
     DISCOUNT_TYPE_CHOICES = [
         (TYPE_PERCENT, "Giảm theo phần trăm"),
         (TYPE_FIXED, "Giảm số tiền cố định"),
         (TYPE_FREESHIP, "Miễn phí vận chuyển"),
+        (TYPE_GIFT, "Quà tặng đạt hạn mức"),
     ]
 
     TRIGGER_CHOICES = [
@@ -44,6 +46,15 @@ class Coupon(models.Model):
     # App-only: check request.user_agent hoặc PWA install
     # Abandoned-cart: gửi email sau 3h, mã tự động tạo
     value = models.DecimalField(max_digits=10, decimal_places=0, default=Decimal("0"))
+    gift_product = models.ForeignKey(
+        "products.Product",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        verbose_name="Sản phẩm quà tặng",
+        help_text="Bắt buộc với mã loại Quà tặng; đơn đạt hạn mức sẽ được thêm món này với giá 0đ.",
+    )
     min_order_amount = models.DecimalField(
         max_digits=12, decimal_places=0, default=Decimal("0")
     )

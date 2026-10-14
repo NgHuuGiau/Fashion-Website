@@ -477,6 +477,105 @@ class CartCheckoutAndAdminTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mã giảm giá không tồn tại")
 
+    def test_gift_coupon_adds_free_gift_item_and_decrements_stock(self):
+        gift = Product.objects.create(
+            category=self.category_pk,
+            name="Tui qua tang",
+            slug="tui-qua-tang",
+            price=150000,
+            stock=5,
+            available=True,
+        )
+        Coupon.objects.create(
+            code="QUATANG",
+            discount_type=Coupon.TYPE_GIFT,
+            value=Decimal("0"),
+            gift_product=gift,
+            min_order_amount=Decimal("100000"),
+            is_active=True,
+        )
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer Test",
+                "customer_email": "buyer@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "QUATANG",
+                "note": "gift coupon",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        gift_item = order.items.get(product=gift)
+        self.assertEqual(gift_item.price, Decimal("0"))
+        self.assertEqual(gift_item.quantity, 1)
+        self.assertIn("Quà tặng", gift_item.product_name)
+        self.assertEqual(order.discount_amount, Decimal("0"))
+        gift.refresh_from_db()
+        self.assertEqual(gift.stock, 4)
+
+    def test_gift_coupon_out_of_stock_gift_rolls_back_order(self):
+        gift = Product.objects.create(
+            category=self.category_pk,
+            name="Qua het hang",
+            slug="qua-het-hang",
+            price=150000,
+            stock=0,
+            available=True,
+        )
+        Coupon.objects.create(
+            code="QUA0",
+            discount_type=Coupon.TYPE_GIFT,
+            value=Decimal("0"),
+            gift_product=gift,
+            min_order_amount=Decimal("100000"),
+            is_active=True,
+        )
+        self.client.login(username="buyer", password="StrongPass123!")
+        self.client.post(
+            reverse(
+                "orders:cart_add", kwargs={"product_id": self.product_accessory.id}
+            ),
+            {"quantity": 1},
+        )
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "customer_name": "Buyer Test",
+                "customer_email": "buyer@test.com",
+                "phone": "0909000000",
+                "shipping_address": "1 Test Street",
+                "payment_method": "cod",
+                "coupon_code": "QUA0",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_validate_coupon_gift_without_product_errors(self):
+        from .services.checkout import validate_coupon
+
+        Coupon.objects.create(
+            code="QUANOT",
+            discount_type=Coupon.TYPE_GIFT,
+            value=Decimal("0"),
+            gift_product=None,
+            min_order_amount=Decimal("0"),
+            is_active=True,
+        )
+        coupon, error = validate_coupon("QUANOT", Decimal("200000"))
+        self.assertIsNone(coupon)
+        self.assertIn("chưa được cấu hình", error)
+
     @override_settings(SHOP_BANK_CODE="ICB")
     def test_checkout_shows_fixed_shop_bank_for_qr(self):
         self.client.login(username="buyer", password="StrongPass123!")
@@ -1876,6 +1975,20 @@ class AdminFormsTest(TestCase):
             }
         )
         self.assertFalse(form.is_valid())
+
+    def test_coupon_form_gift_requires_product(self):
+        form = CouponForm(
+            data={
+                "code": "GIFT1",
+                "discount_type": "gift",
+                "value": 0,
+                "min_order_amount": 500000,
+                "is_active": True,
+                "used_count": 0,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("Quà tặng", str(form.errors))
 
     def test_order_status_form_valid(self):
         form = OrderStatusForm(data={"status": "shipping", "is_paid": False})

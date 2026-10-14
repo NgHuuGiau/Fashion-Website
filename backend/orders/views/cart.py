@@ -810,6 +810,34 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             price=item["price"],
                         )
 
+                    if (
+                        selected_coupon
+                        and selected_coupon.discount_type == Coupon.TYPE_GIFT
+                    ):
+                        gift = (
+                            Product.objects.select_for_update()
+                            .filter(id=selected_coupon.gift_product_id, available=True)
+                            .first()
+                        )
+                        if not gift or gift.stock < 1:
+                            transaction.set_rollback(True)
+                            messages.error(
+                                request,
+                                "Sản phẩm quà tặng đã hết hàng, vui lòng thử lại sau.",
+                            )
+                            return redirect("orders:cart_detail")
+                        Product.objects.filter(id=gift.id).update(
+                            stock=F("stock") - 1,
+                            updated=timezone.now(),
+                        )
+                        OrderItem.objects.create(
+                            order=order,
+                            product=gift,
+                            product_name=f"{gift.name} (Quà tặng)",
+                            quantity=1,
+                            price=Decimal("0"),
+                        )
+
                     for item in items:
                         product = item["product"]
                         variant = item.get("variant")
