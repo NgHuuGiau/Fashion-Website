@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from django.conf import settings
 from django.db import connection
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
@@ -19,7 +20,7 @@ def health_live(request):
 
 
 def health_ready(request):
-    """Readiness probe - DB, cache reachable."""
+    """Readiness probe - DB, cache, search reachable."""
     checks = {}
     healthy = True
 
@@ -33,7 +34,7 @@ def health_ready(request):
         checks["database"] = "unavailable"
         healthy = False
 
-    # Cache
+    # Cache (Redis)
     try:
         cache.set("healthcheck", "ok", 10)
         if cache.get("healthcheck") == "ok":
@@ -44,6 +45,24 @@ def health_ready(request):
     except Exception:
         logger.exception("Readiness check: cache unavailable")
         checks["cache"] = "unavailable"
+        healthy = False
+
+    # Meilisearch
+    try:
+        import requests
+
+        meili_host = getattr(settings, "MEILISEARCH_HOST", "http://localhost:7700")
+        meili_key = getattr(settings, "MEILISEARCH_API_KEY", "")
+        headers = {"Authorization": f"Bearer {meili_key}"} if meili_key else {}
+        r = requests.get(f"{meili_host.rstrip('/')}/health", headers=headers, timeout=2)
+        if r.status_code == 200 and r.json().get("status") == "available":
+            checks["meilisearch"] = "ok"
+        else:
+            checks["meilisearch"] = "unavailable"
+            healthy = False
+    except Exception:
+        logger.exception("Readiness check: meilisearch unavailable")
+        checks["meilisearch"] = "unavailable"
         healthy = False
 
     status = 200 if healthy else 503
