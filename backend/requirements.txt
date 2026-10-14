@@ -43,7 +43,7 @@ pillow-heif>=0.10,<0.11
 # WebSocket - Real-time
 channels>=4.0,<4.1
 channels-redis>=4.1,<4.2
-daphne>=4.0,<4.1
+daphne>=4.2.2,<4.3
 
 # Monitoring
 sentry-sdk>=2.0,<3.0

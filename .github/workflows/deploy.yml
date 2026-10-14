@@ -49,8 +49,10 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            # Copy env file
-            cp .env.production.example .env.production
+            # Copy env file (only if missing; never overwrite production secrets)
+            if [ ! -f .env.production ]; then
+              cp .env.production.example .env.production
+            fi
             # Secrets will be injected via GitHub Actions secrets below
 
             # Deploy with docker-compose

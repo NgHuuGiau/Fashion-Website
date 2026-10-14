@@ -135,7 +135,7 @@ services:
     env_file: ${APP_ENV_FILE:-.env}
     environment:
       <<: *app-environment
-    command: ["celery", "-A", "core", "worker", "--loglevel=INFO"]
+    command: ["celery", "-A", "core", "worker", "--loglevel=INFO", "-Q", "default,high,low"]
     depends_on:
       pgbouncer:
         condition: service_healthy
