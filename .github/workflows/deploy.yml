@@ -26,6 +26,9 @@ jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
+    # Chưa cấu hình server thì bỏ qua thay vì fail đỏ: bật bằng repo variable
+    # DEPLOY_ENABLED=true kèm secrets SSH_PRIVATE_KEY, SSH_USER, SSH_HOST, DOMAIN.
+    if: vars.DEPLOY_ENABLED == 'true'
     timeout-minutes: 20
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
@@ -100,7 +103,13 @@ jobs:
 
       - name: Notify on failure
         if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "SLACK_WEBHOOK chưa cấu hình, bỏ qua thông báo."
+            exit 0
+          fi
+          curl -X POST "$SLACK_WEBHOOK" \
             -H 'Content-Type: application/json' \
             -d '{"text": "❌ Deploy failed for ${{ github.repository }}"}'
