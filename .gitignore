@@ -57,6 +57,8 @@ frontend/.auth/
 .tmp-e2e*
 .tmp-*.log
 bandit-results.json
+test-results/
+backups/
 
 # SSL certs (dev only)
 backend/certs/
@@ -71,6 +73,8 @@ database/sql/02_INSERT_DATA.sql
 
 # Catalog nguồn cục bộ; không đưa sản phẩm/ảnh nhập vào GitHub
 database/seed/local_products_to_sync.json
+.tmp-catalog/
+frontend/static/images/products/sourced/
 
 # Anh upload runtime + anh demo seed (nhi phan lon, chi de local)
 frontend/static/images/products/20*/
