@@ -51,6 +51,7 @@ def _serialize_product_summary(product):
         "slug": product.slug,
         "name": repair_mojibake_text(product.name),
         "price": int(product.price),
+        "price_is_reference": bool(product.attributes.get("price_is_reference")),
         "image": product.get_image(),
         "category": repair_mojibake_text(product.category.name),
         "category_slug": product.category.slug,

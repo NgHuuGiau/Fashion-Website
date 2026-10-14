@@ -37,7 +37,7 @@
                 <h3><a href="{% url 'products:product_detail' product.id product.slug %}">{{ product.name|repair_text }}</a></h3>
                 <div class="card-footer">
                     <strong class="price">{{ product.price|vnd }}đ</strong>
-                    <span>{% if product.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                    <span>{% if product.attributes.price_is_reference %}Giá tham khảo{% elif product.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
                 </div>
                 <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-form-inline">
                     {% csrf_token %}

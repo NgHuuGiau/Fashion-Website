@@ -44,6 +44,7 @@
                     <td>
                         {% if p.discount_percent %}<s class="price-compare">{{ p.compare_price|vnd }}đ</s>{% endif %}
                         <strong>{{ p.price|vnd }}đ</strong>
+                        {% if p.attributes.price_is_reference %}<span>Giá tham khảo</span>{% endif %}
                         {% if p.discount_percent %}<span class="tag tag-sale">-{{ p.discount_percent }}%</span>{% endif %}
                     </td>
                     {% endfor %}

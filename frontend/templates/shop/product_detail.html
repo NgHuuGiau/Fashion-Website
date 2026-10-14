@@ -48,6 +48,7 @@
             <div>
                 <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
                 <h1>{{ product.name|repair_text }}</h1>
+                {% if product.attributes.price_is_reference %}<p class="eyebrow">GIÁ THAM KHẢO QUY ĐỔI</p>{% endif %}
                 <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
                 {% if sold_count or total_stock and total_stock <= 15 %}<div class="detail-social-proof">
                     {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
@@ -157,6 +158,12 @@
             <span>Gửi yêu cầu đổi trả trong 7 ngày sau giao hàng</span>
             <span>Theo dõi trạng thái đơn hàng</span>
         </div>
+        {% if product.attributes.price_is_reference %}
+        <div class="back-in-stock panel">
+            <h3>Mẫu sản phẩm tham khảo</h3>
+            <p>Shop chưa xác nhận giá bán, size và tồn kho cho mẫu này.</p>
+        </div>
+        {% else %}
         <div class="back-in-stock panel">
             <h3>Sản phẩm này đang hết hàng</h3>
             <p>Để lại email, shop sẽ báo bạn ngay khi sản phẩm về hàng.</p>
@@ -167,14 +174,27 @@
             </form>
         </div>
         {% endif %}
+        {% endif %}
 
         </aside>
 </section>
 
 <section class="detail-description panel">
     <h2 class="detail-description-title">Mô tả</h2>
+    {% if product.spec_bullets %}
+    <ul class="spec-bullets">
+        {% for bullet in product.spec_bullets %}<li>{{ bullet|repair_text }}</li>{% endfor %}
+    </ul>
+    {% endif %}
     <div class="detail-description-body">
-        <p>{{ product.description|default:"Chưa có mô tả sản phẩm."|repair_text }}</p>
+        {% if product.attributes.source_url %}
+        <p><a href="{{ product.attributes.source_url }}" target="_blank" rel="noopener noreferrer">Sản phẩm gốc · {{ product.brand.name }}</a> · Mã sản phẩm gốc: {{ product.attributes.source_id }}</p>
+        <p>Tên, thông số và ảnh lấy từ cùng sản phẩm trong <a href="{{ product.attributes.dataset_url }}" target="_blank" rel="noopener noreferrer">bộ dữ liệu Fashion Product Images</a>. Mô tả gốc được giữ bên dưới.</p>
+        {% endif %}
+        <p>{{ product.description|default:"Chưa có mô tả sản phẩm."|repair_text|linebreaksbr }}</p>
+        {% if product.attributes.price_is_reference %}
+        <p>Giá nguồn lưu trữ: {{ product.attributes.source_price_inr }} INR. Giá tham khảo quy đổi theo {{ product.attributes.inr_vnd_rate }} VND/INR ngày {{ product.attributes.rate_date }}; đây chưa phải giá bán hiện hành.</p>
+        {% endif %}
     </div>
 </section>
 

@@ -8,13 +8,14 @@
   "sku": "HUUGIAU-{{ product.id }}",
   "brand": {
     "@type": "Brand",
-    "name": "HUUGIAU Atelier"
+    "name": {{ product.brand.name|default:"HUUGIAU Atelier"|json_escape }}
   },
   {% if product.image and product.image.url %}
   "image": "{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}",
   {% elif product.image_url %}
   "image": "{{ product.image_url }}",
   {% endif %}
+  {% if not product.attributes.price_is_reference %}
   "offers": {
     "@type": "Offer",
     "url": "{{ request.build_absolute_uri }}",
@@ -27,6 +28,7 @@
       "name": "HUUGIAU Atelier"
     }
   },
+  {% endif %}
   "aggregateRating": {
     "@type": "AggregateRating",
     "ratingValue": "{{ rating_avg|floatformat:1 }}",

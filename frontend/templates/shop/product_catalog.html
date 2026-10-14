@@ -46,8 +46,71 @@
 <div class="stats-strip" aria-label="Số liệu cửa hàng">
     <div class="stats-item"><strong>{{ trust_stats.sold_total|floatformat:0 }}<span>+</span></strong><span>sản phẩm đã bán</span></div>
     <div class="stats-item"><strong>{{ trust_stats.review_avg|floatformat:1 }}/5</strong><span>từ {{ trust_stats.review_count }} đánh giá</span></div>
-    <div class="stats-item"><strong>{{ site_total_products }}</strong><span>thiết kế đang bán</span></div>
+    <div class="stats-item"><strong>{{ site_total_products }}</strong><span>thiết kế trong danh mục</span></div>
 </div>
+{% endif %}
+
+{% if home_new_arrivals or home_best_sellers %}
+<section class="collection-shell home-tabs-section" data-home-tabs>
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">MỚI &amp; BÁN CHẠY</p>
+            <h2>Đang được săn đón</h2>
+        </div>
+        <div class="catalog-controls" role="tablist" aria-label="Tab sản phẩm">
+            <button type="button" class="chip active" role="tab" aria-selected="true" data-tab-btn="new">New Arrivals</button>
+            <button type="button" class="chip" role="tab" aria-selected="false" data-tab-btn="best">Best Seller</button>
+        </div>
+    </div>
+    {% for group, key in home_tab_groups %}
+    <div class="home-tab-panel {% if forloop.first %}active{% endif %}" role="tabpanel" data-tab-panel="{{ key }}">
+        <div class="home-tab-grid">
+            {% for product in group %}
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="home-tab-card">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
+                {% else %}
+                <span class="fallback">SP</span>
+                {% endif %}
+                <span class="home-tab-name">{{ product.name|repair_text }}</span>
+                <strong class="price">{{ product.price|vnd }}đ{% if product.attributes.price_is_reference %} · tham khảo{% endif %}</strong>
+                {% if product.sold_count %}<span class="card-sold">Đã bán {{ product.sold_count }}</span>{% endif %}
+            </a>
+            {% empty %}
+            <p class="muted">Chưa có sản phẩm.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+<style nonce="{{ request.csp_nonce }}">
+.home-tabs-section .catalog-controls [role="tab"] { cursor: pointer; }
+.home-tab-panel { display: none; }
+.home-tab-panel.active { display: block; }
+.home-tab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.home-tab-card { display: flex; flex-direction: column; gap: 0.35rem; text-decoration: none; color: inherit; }
+.home-tab-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-sm); }
+.home-tab-card .home-tab-name { font-size: 0.9rem; }
+.home-tab-card .card-sold { font-size: 0.75rem; color: var(--text-soft); }
+@media (max-width: 900px) { .home-tab-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+<script nonce="{{ request.csp_nonce }}">
+document.querySelectorAll('[data-home-tabs]').forEach(function (root) {
+    root.querySelectorAll('[data-tab-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var key = btn.getAttribute('data-tab-btn');
+            root.querySelectorAll('[data-tab-btn]').forEach(function (b) {
+                var on = b === btn;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            root.querySelectorAll('[data-tab-panel]').forEach(function (panel) {
+                panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === key);
+            });
+        });
+    });
+});
+</script>
 {% endif %}
 
 <section class="collection-shell">
@@ -98,7 +161,8 @@
         <div>
             <p class="eyebrow">{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}TẤT CẢ SẢN PHẨM{% endif %}</p>
             <h2>{% if is_random_home %}Lookbook hôm nay{% else %}Catalog{% endif %}</h2>
-            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ total_products }} sản phẩm đang có sẵn.{% endif %}</p>
+            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ total_products }} sản phẩm trong danh mục.{% endif %}</p>
+            {% if products.0.attributes.price_is_reference %}<p>Ảnh và tên sản phẩm từ catalog thật. Giá tham khảo quy đổi; shop chưa xác nhận tồn kho.</p>{% endif %}
         </div>
         <div class="catalog-controls">
             <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="chip {% if selected_sort == 'newest' %}active{% endif %}">Mới nhất</a>
@@ -153,7 +217,7 @@
                 <span class="tag tag-soldout">HẾT HÀNG</span>
                 {% endif %}
                 {% if product.stock <= 0 and product.available %}
-                <span class="tag tag-soldout">HẾT HÀNG</span>
+                <span class="tag tag-soldout">{% if product.attributes.price_is_reference %}MẪU THAM KHẢO{% else %}HẾT HÀNG{% endif %}</span>
                 {% endif %}
                 {% if product.discount_percent %}
                 <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
@@ -175,11 +239,11 @@
                 <div class="card-footer">
                     <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
                     {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
-                    <span>Xem chi tiết</span>
+                    <span>{% if product.attributes.price_is_reference %}Giá tham khảo{% else %}Xem chi tiết{% endif %}</span>
                 </div>
             </div>
             </a>
-            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
+            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","reference":{{ product.attributes.price_is_reference|yesno:"true,false" }},"rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
                 <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem nhanh
             </button>
             <form method="post" action="{% url 'products:compare_toggle' product.id %}" class="card-compare-form">
@@ -291,7 +355,7 @@
                         <span class="tag tag-soldout">HẾT HÀNG</span>
                         {% endif %}
                         {% if product.stock <= 0 and product.available %}
-                        <span class="tag tag-soldout">HẾT HÀNG</span>
+                        <span class="tag tag-soldout">{% if product.attributes.price_is_reference %}MẪU THAM KHẢO{% else %}HẾT HÀNG{% endif %}</span>
                         {% endif %}
                         {% if product.discount_percent %}
                         <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
@@ -313,7 +377,7 @@
                         <div class="card-footer">
                             <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
                             {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
-                            <span>Xem chi tiết</span>
+                            <span>{% if product.attributes.price_is_reference %}Giá tham khảo{% else %}Xem chi tiết{% endif %}</span>
                         </div>
                     </div>
                 </a>
@@ -782,7 +846,7 @@
             img.src = cardImg ? cardImg.src : '';
             img.alt = data.name;
             nameEl.textContent = data.name;
-            priceEl.textContent = data.price + 'đ';
+            priceEl.textContent = data.price + 'đ' + (data.reference ? ' · giá tham khảo' : '');
             ratingEl.textContent = data.rating ? data.rating + ' / 5 sao' : 'Chưa có đánh giá';
             link.href = data.url;
             modal.classList.add('show');

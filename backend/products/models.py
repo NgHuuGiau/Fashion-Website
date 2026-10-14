@@ -179,6 +179,12 @@ class Product(models.Model):
     )
     image_url = models.URLField(blank=True, verbose_name="URL ảnh")
     description = models.TextField(blank=True, verbose_name="Mô tả")
+    spec_bullets = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Thông số nổi bật",
+        help_text='Danh sách gạch đầu dòng, ví dụ: ["Chất liệu: Cotton 100%"]',
+    )
     price = models.DecimalField(
         max_digits=10, decimal_places=0, verbose_name="Giá tiền", db_index=True
     )
@@ -449,6 +455,8 @@ class Product(models.Model):
         return images[:MAX_PRODUCT_GALLERY_IMAGES]
 
     def get_detail_gallery_images(self):
+        if self.attributes.get("source") == "myntra-kaggle":
+            return self.get_gallery_images()
         images = self.get_gallery_images(include_primary=False)
         if images:
             return images

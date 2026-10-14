@@ -127,8 +127,40 @@ class ProductViewsTest(TestCase):
         response = self.client.get(reverse("products:product_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Áo test")
-        self.assertNotContains(response, "Quần test")
+        # Home giờ có tab New Arrivals/Best Seller hiển thị cả sp ngoài featured
         self.assertContains(response, "images/banner.webp")
+
+    def test_home_shows_new_arrivals_and_best_seller_tabs(self):
+        response = self.client.get(reverse("products:product_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("home_new_arrivals", response.context)
+        self.assertIn("home_best_sellers", response.context)
+        self.assertContains(response, "New Arrivals")
+        self.assertContains(response, "Best Seller")
+        self.assertContains(response, "Đang được săn đón")
+
+    def test_catalog_page_has_no_home_tabs(self):
+        response = self.client.get(reverse("products:product_list") + "?category=ao")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["home_new_arrivals"], [])
+        self.assertNotContains(response, "data-home-tabs")
+
+    def test_product_detail_renders_spec_bullets(self):
+        self.product_ao.spec_bullets = [
+            "Chất liệu: Cotton 100%",
+            "Form regular, dày dặn",
+        ]
+        self.product_ao.save(update_fields=["spec_bullets"])
+        response = self.client.get(
+            reverse(
+                "products:product_detail",
+                kwargs={"pk": self.product_ao.id, "slug": self.product_ao.slug},
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Chất liệu: Cotton 100%")
+        self.assertContains(response, "Form regular, dày dặn")
+        self.assertContains(response, "spec-bullets")
 
     def test_product_list_excludes_unavailable(self):
         response = self.client.get(reverse("products:product_list"))

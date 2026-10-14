@@ -162,7 +162,12 @@ def build_detail_gallery_slots(product: Product, gallery_images: list) -> list:
     actual_images = list(gallery_images[:DETAIL_GALLERY_SLOT_COUNT])
     slots = []
 
-    for index in range(DETAIL_GALLERY_SLOT_COUNT):
+    slot_count = (
+        len(actual_images)
+        if product.attributes.get("source") == "myntra-kaggle"
+        else DETAIL_GALLERY_SLOT_COUNT
+    )
+    for index in range(slot_count):
         if index < len(actual_images):
             image = actual_images[index]
             slots.append(
@@ -352,6 +357,8 @@ def product_list(request: HttpRequest) -> HttpResponse:
     attach_low_stock(list(products))
 
     trust_stats = None
+    home_new_arrivals = []
+    home_best_sellers = []
     if is_random_home:
         sold = OrderItem.objects.filter(order__status__in=SOLD_STATUSES).aggregate(
             total=Sum("quantity")
@@ -364,6 +371,15 @@ def product_list(request: HttpRequest) -> HttpResponse:
             "review_avg": round(review_agg["avg"] or 0, 1),
             "review_count": review_agg["count"] or 0,
         }
+        home_new_arrivals = list(base_products.order_by("-created")[:8])
+        attach_sold_counts(home_new_arrivals)
+        attach_low_stock(home_new_arrivals)
+        best_source = list(base_products.order_by("-id")[:200])
+        best_sold = build_sold_map([p.id for p in best_source])
+        best_source.sort(key=lambda p: (-best_sold.get(p.id, 0), p.id))
+        home_best_sellers = best_source[:8]
+        attach_sold_counts(home_best_sellers)
+        attach_low_stock(home_best_sellers)
 
     def build_catalog_query(**overrides: str) -> str:
         params = request.GET.copy()
@@ -502,6 +518,9 @@ def product_list(request: HttpRequest) -> HttpResponse:
         "slider_products": slider_products,
         "is_random_home": is_random_home,
         "trust_stats": trust_stats,
+        "home_new_arrivals": home_new_arrivals,
+        "home_best_sellers": home_best_sellers,
+        "home_tab_groups": [(home_new_arrivals, "new"), (home_best_sellers, "best")],
         "selected_sort": selected_sort,
         "min_price": min_price_raw,
         "max_price": max_price_raw,
@@ -702,6 +721,8 @@ def _build_product_schema(
             "url": request.build_absolute_uri(),
         },
     }
+    if product.attributes.get("price_is_reference"):
+        schema.pop("offers")
     if product.image and product.image.url:
         schema["image"] = f"{request.scheme}://{host}{product.image.url}"
     elif product.image_url:
