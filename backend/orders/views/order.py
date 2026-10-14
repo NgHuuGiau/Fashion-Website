@@ -351,7 +351,7 @@ def user_cancel_order(request: HttpRequest, order_id) -> HttpResponse:
         order._status_change_note = (
             "Khách hủy đơn chưa thanh toán; tồn kho đã hoàn lại."
         )
-        order.save(update_fields=["status", "is_paid"])
+        order.save(update_fields=["status", "is_paid", "updated_at"])
         from ..services.order_email import send_order_email
 
         send_order_email(order, event="cancelled")
