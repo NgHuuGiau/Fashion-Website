@@ -1,8 +1,12 @@
 # Quản lý ảnh sản phẩm
 
-Catalog hiện tại chưa có ảnh sản phẩm thật được cấp phép. Trước khi publish,
-xác nhận quyền sử dụng ảnh rồi tải ảnh được phép dùng vào kho media của HUUGIAU
-thay vì phụ thuộc hotlink.
+Catalog local có 90 sản phẩm thật từ bộ dữ liệu Fashion Product Images: 30 áo,
+40 quần và 20 phụ kiện. Tên, thông số, mô tả và nhiều góc chụp được ghép theo cùng
+mã sản phẩm. Xem [nguồn dữ liệu và cách nhập lại](sourced-catalog.md).
+
+Đây là catalog lưu trữ dùng để xem mẫu. Kaggle ghi nhãn MIT cho bộ dữ liệu;
+quyền ảnh của thương hiệu chưa được xác minh độc lập. Trước khi publish để bán,
+xác nhận quyền ảnh, giá bán, size và tồn kho thực tế.
 
 ## Vị trí lưu ảnh
 
