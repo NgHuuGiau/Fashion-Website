@@ -55,11 +55,36 @@ class Admin2FAMiddleware:
         return True
 
 
+_BOT_UA_MARKERS = (
+    "bot",
+    "crawl",
+    "spider",
+    "slurp",
+    "preview",
+    "curl",
+    "wget",
+    "python-requests",
+    "headlesschrome",
+)
+
+
+def _is_bot_ua(user_agent: str) -> bool:
+    low = (user_agent or "").lower()
+    return any(marker in low for marker in _BOT_UA_MARKERS)
+
+
 class VisitorTrackingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        # Bot quet trang GET: khong tao session/visitor/activity de khong
+        # phong toan du lieu; van track POST (it khi bot gui).
+        if request.method == "GET" and _is_bot_ua(
+            request.META.get("HTTP_USER_AGENT", "")
+        ):
+            return self.get_response(request)
+
         if not request.session.session_key:
             request.session.save()
 

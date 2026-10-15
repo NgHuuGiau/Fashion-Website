@@ -105,7 +105,8 @@ class UserAuthFlowTest(TestCase):
         self.assertContains(response, "bắt buộc")
         self.assertFalse(User.objects.filter(username="nomail").exists())
 
-    def test_register_duplicate_email_shows_error(self):
+    def test_register_duplicate_email_uniform_response(self):
+        # Phan hoi giong dang ky binh thuong de khong lo ton tai email.
         response = self.client.post(
             reverse("users:register"),
             {
@@ -118,8 +119,16 @@ class UserAuthFlowTest(TestCase):
                 "password2": "StrongPass123!",
             },
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Gmail này đã được dùng")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:register_verify"))
+        self.assertFalse(User.objects.filter(username="another").exists())
+        self.assertEqual(User.objects.filter(email="existing@test.com").count(), 1)
+        code = cache.get("register_code:existing@test.com")
+        self.assertIsNotNone(code)
+        verify = self.client.post(reverse("users:register_verify"), {"code": code})
+        self.assertEqual(verify.status_code, 302)
+        self.assertEqual(verify.url, reverse("users:register"))
+        self.assertFalse(User.objects.filter(username="another").exists())
 
     def _start_register(self, username="verifyme", email="verifyme@test.com"):
         response = self.client.post(
@@ -216,7 +225,8 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mật khẩu phải có ít nhất 1 chữ in hoa")
 
-    def test_register_duplicate_username_shows_error(self):
+    def test_register_duplicate_username_uniform_response(self):
+        # Phan hoi giong dang ky binh thuong de khong lo ten dang nhap ton tai.
         response = self.client.post(
             reverse("users:register"),
             {
@@ -229,8 +239,51 @@ class UserAuthFlowTest(TestCase):
                 "password2": "StrongPass123!",
             },
         )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:register_verify"))
+        self.assertNotIn("Tên đăng nhập đã tồn tại", response.content.decode())
+        self.assertFalse(User.objects.filter(username="duplicate").exists())
+
+    def test_register_duplicate_username_hides_identity_error_with_weak_password(
+        self,
+    ):
+        # Trung ten nhung mat khau yeu: hien loi mat khau, an loi trung ten.
+        response = self.client.post(
+            reverse("users:register"),
+            {
+                "username": "existing",
+                "first_name": "Nguyen",
+                "last_name": "B",
+                "email": "weakdup@test.com",
+                "phone_number": "",
+                "password1": "abc12345",
+                "password2": "abc12345",
+            },
+        )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Tên đăng nhập đã tồn tại")
+        content = response.content.decode()
+        self.assertIn("Mật khẩu phải có ít nhất 1 chữ in hoa", content)
+        self.assertNotIn("Tên đăng nhập đã tồn tại", content)
+
+    def test_register_duplicate_phone_uniform_response(self):
+        UserProfile.objects.update_or_create(
+            user=self.existing, defaults={"phone_number": "0900111222"}
+        )
+        response = self.client.post(
+            reverse("users:register"),
+            {
+                "username": "phonecopy",
+                "first_name": "Nguyen",
+                "last_name": "B",
+                "email": "phonecopy@test.com",
+                "phone_number": "0900111222",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:register_verify"))
+        self.assertFalse(User.objects.filter(username="phonecopy").exists())
 
     def test_register_password_mismatch(self):
         response = self.client.post(
@@ -595,10 +648,35 @@ class ForgotPasswordResetFlowTest(TestCase):
         self.assertContains(response, "Mật khẩu nhập lại không khớp")
 
     def _prime_reset_session(self):
+        import time
+
+        session = self.client.session
+        session["reset_user_id"] = self.user.id
+        session["reset_user_ts"] = time.time()
+        session["captcha_code"] = "ABC123"
+        session.save()
+
+    def test_reset_session_without_timestamp_rejected(self):
+        # Phien cu (reset_user_id khong co ts) bi huy, khong dat lai mat khau duoc.
         session = self.client.session
         session["reset_user_id"] = self.user.id
         session["captcha_code"] = "ABC123"
         session.save()
+        response = self.client.get(reverse("users:reset_password"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:forgot_password"))
+
+    def test_reset_session_expired_rejected(self):
+        import time
+
+        session = self.client.session
+        session["reset_user_id"] = self.user.id
+        session["reset_user_ts"] = time.time() - 86401
+        session.save()
+        response = self.client.get(reverse("users:reset_password"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:forgot_password"))
+        self.assertNotIn("reset_user_id", self.client.session)
 
 
 class SocialLoginConfigTest(TestCase):
@@ -760,6 +838,31 @@ class FormValidationTest(TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("ký tự đặc biệt", str(form.errors["password1"]))
+
+    def test_register_form_rejects_password_similar_to_username(self):
+        form = RegisterForm(
+            data={
+                "username": "tester",
+                "phone_number": "",
+                "email": "tester@test.com",
+                "password1": "Tester123!",
+                "password2": "Tester123!",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("password1", form.errors)
+
+    def test_register_form_accepts_unique_strong_password(self):
+        form = RegisterForm(
+            data={
+                "username": "tester2",
+                "phone_number": "",
+                "email": "tester2@test.com",
+                "password1": "Str0ng!Pass99",
+                "password2": "Str0ng!Pass99",
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
 
     def test_profile_form_update(self):
         form = ProfileForm(
@@ -1221,3 +1324,102 @@ class StaffTwoFATest(TestCase):
         self.assertEqual(self.client.get("/admin/").status_code, 200)
         self.assertEqual(self.client.get("/admin-dashboard/").status_code, 200)
         self.assertEqual(self.client.get("/api/admin/stats/").status_code, 200)
+
+
+class VisitorTrackingBotSkipTest(TestCase):
+    def _run_middleware(self, user_agent):
+        from django.contrib.auth.models import AnonymousUser
+        from django.contrib.sessions.backends.db import SessionStore
+        from django.http import HttpResponse
+        from django.test import RequestFactory
+
+        from .middleware import VisitorTrackingMiddleware
+
+        session = SessionStore()
+        session.create()
+        session.save()
+        req = RequestFactory().get("/", HTTP_USER_AGENT=user_agent)
+        req.session = session
+        req.user = AnonymousUser()
+
+        def get_response(request):
+            return HttpResponse("ok")
+
+        VisitorTrackingMiddleware(get_response)(req)
+        return session.session_key
+
+    def test_bot_get_request_is_not_tracked(self):
+        key = self._run_middleware(
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+        )
+        self.assertFalse(VisitorSession.objects.filter(session_key=key).exists())
+        self.assertEqual(UserActivity.objects.count(), 0)
+
+    def test_normal_get_request_is_tracked(self):
+        key = self._run_middleware("Mozilla/5.0 (TestAgent)")
+        self.assertTrue(VisitorSession.objects.filter(session_key=key).exists())
+        self.assertEqual(UserActivity.objects.filter(path="/").count(), 1)
+
+
+class ChangePasswordRateLimitTest(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="cp_user", password="StrongPass123!"
+        )
+        self.client.login(username="cp_user", password="StrongPass123!")
+        self.url = reverse("users:change_password")
+
+    def tearDown(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def _post(self):
+        return self.client.post(
+            self.url,
+            {
+                "current_password": "wrong",
+                "new_password1": "NewPass123!",
+                "new_password2": "NewPass123!",
+            },
+        )
+
+    def test_change_password_rate_limited_after_10_attempts(self):
+        for _ in range(10):
+            self.assertNotEqual(self._post().status_code, 429)
+        self.assertEqual(self._post().status_code, 429)
+
+
+class PasswordValidationAndReferralCodeTest(TestCase):
+    def test_admin_user_creation_form_rejects_weak_password(self):
+        from django.contrib.auth.forms import UserCreationForm
+
+        weak = UserCreationForm(
+            data={
+                "username": "newstaff",
+                "password1": "password",
+                "password2": "password",
+            }
+        )
+        self.assertFalse(weak.is_valid())
+        self.assertIn("password2", weak.errors, weak.errors)
+
+        strong = UserCreationForm(
+            data={
+                "username": "newstaff2",
+                "password1": "Str0ng!Pass99",
+                "password2": "Str0ng!Pass99",
+            }
+        )
+        self.assertTrue(strong.is_valid(), strong.errors)
+
+    def test_referral_code_format_and_unique(self):
+        from .models_referral import ReferralCode
+
+        codes = [ReferralCode.generate_unique_code() for _ in range(3)]
+        for code in codes:
+            self.assertRegex(code, r"\AREF[A-Z0-9]{5}\Z")
+        self.assertEqual(len(set(codes)), 3)

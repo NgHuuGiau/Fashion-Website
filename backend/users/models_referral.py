@@ -1,5 +1,5 @@
 import string
-import random
+import secrets
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -40,10 +40,10 @@ class ReferralCode(models.Model):
 
     @staticmethod
     def generate_unique_code():
-        """Tạo mã 8 ký tự: REF + 5 random"""
+        """Tạo mã 8 ký tự: REF + 5 random (secrets - không đoán được)."""
         chars = string.ascii_uppercase + string.digits
         while True:
-            code = "REF" + "".join(random.choices(chars, k=5))
+            code = "REF" + "".join(secrets.choice(chars) for _ in range(5))
             if not ReferralCode.objects.filter(code=code).exists():
                 return code
 

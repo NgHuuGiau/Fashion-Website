@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+import time
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -8,7 +9,9 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -67,6 +70,14 @@ def _build_login_candidates(identifier: str) -> list:
 
 REGISTER_CODE_TTL = 600
 REGISTER_MAX_ATTEMPTS = 5
+# Loi ve ten/email/so dien thoai bi an di khi hien thi loi
+# de khong lo ton tai tai khoan qua message (enumeration).
+_REGISTER_IDENTITY_FIELDS = frozenset({"username", "email", "phone_number"})
+
+
+def _remove_form_errors(form, fields) -> None:
+    for field in fields:
+        form.errors.pop(field, None)
 
 
 @rate_limit(
@@ -81,19 +92,50 @@ def register_view(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         form = RegisterForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data["email"]
+        valid = form.is_valid()
+        email_val = (request.POST.get("email") or "").strip().lower()
+        username_val = (request.POST.get("username") or "").strip()
+        phone_val = (request.POST.get("phone_number") or "").strip()
+        try:
+            validate_email(email_val)
+            email_ok = True
+        except DjangoValidationError:
+            email_ok = False
+        conflict = email_ok and (
+            (bool(username_val) and User.objects.filter(username=username_val).exists())
+            or User.objects.filter(email__iexact=email_val).exists()
+            or (
+                bool(phone_val)
+                and UserProfile.objects.filter(phone_number=phone_val).exists()
+            )
+        )
+        # Trung ten/email/so dien thoai van chay flow nhu dang ky binh thuong:
+        # phan hoi giong het, tai khoan that bi chan o buoc xac minh ma.
+        if valid or (conflict and set(form.errors) <= _REGISTER_IDENTITY_FIELDS):
+            if valid:
+                email = form.cleaned_data["email"]
+                pending = {
+                    "username": form.cleaned_data["username"],
+                    "first_name": form.cleaned_data.get("first_name", ""),
+                    "last_name": form.cleaned_data.get("last_name", ""),
+                    "email": email,
+                    "phone_number": form.cleaned_data.get("phone_number", ""),
+                    "password_hash": make_password(form.cleaned_data["password1"]),
+                }
+            else:
+                email = email_val
+                pending = {
+                    "username": username_val,
+                    "first_name": (request.POST.get("first_name") or "").strip(),
+                    "last_name": (request.POST.get("last_name") or "").strip(),
+                    "email": email,
+                    "phone_number": phone_val,
+                    "password_hash": make_password(request.POST.get("password1") or ""),
+                }
             code = f"{secrets.randbelow(1000000):06d}"
             cache.set(_register_code_key(email), code, REGISTER_CODE_TTL)
             cache.delete(_register_attempt_key(email))
-            request.session["pending_register"] = {
-                "username": form.cleaned_data["username"],
-                "first_name": form.cleaned_data.get("first_name", ""),
-                "last_name": form.cleaned_data.get("last_name", ""),
-                "email": email,
-                "phone_number": form.cleaned_data.get("phone_number", ""),
-                "password_hash": make_password(form.cleaned_data["password1"]),
-            }
+            request.session["pending_register"] = pending
             try:
                 _send_register_code(email, code)
             except Exception:
@@ -103,12 +145,20 @@ def register_view(request: HttpRequest) -> HttpResponse:
                     request,
                     "Không gửi được mã xác thực. Vui lòng thử lại sau.",
                 )
+                _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
                 return render(request, "auth/register.html", {"form": form})
             messages.success(
                 request,
                 f"Đã gửi mã xác thực về {email}. Nhập mã để hoàn tất đăng ký.",
             )
             return redirect("users:register_verify")
+
+        if not email_ok:
+            # Email sai dinh dang: chi hien loi email, an loi ten dang nhap.
+            _remove_form_errors(form, set(form.errors) - {"email"})
+        elif conflict:
+            # Trung ten nhung sai mat khau: chi hien loi mat khau, an loi trung.
+            _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
     else:
         form = RegisterForm()
 
@@ -548,6 +598,12 @@ def address_set_default(request: HttpRequest, address_id) -> HttpResponse:
 
 
 @login_required
+@rate_limit(
+    "change_password",
+    max_requests=10,
+    window=300,
+    error_msg="Quá nhiều lần đổi mật khẩu. Vui lòng thử lại sau 5 phút.",
+)
 def change_password_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = ChangePasswordForm(request.POST, user=request.user)
@@ -655,9 +711,32 @@ def password_reset_confirm(
         messages.error(request, "Link đặt lại đã hết hạn hoặc không hợp lệ.")
         return redirect("users:forgot_password")
     request.session["reset_user_id"] = user.id
+    request.session["reset_user_ts"] = time.time()
     return redirect("users:reset_password")
 
 
+RESET_SESSION_TTL = 86400
+
+
+def _reset_session_user_id(request: HttpRequest):
+    """Lấy user_id của phiên đặt lại mật khẩu; quá 24h thì hủy phiên."""
+    uid = request.session.get("reset_user_id")
+    ts = request.session.get("reset_user_ts")
+    if not uid or ts is None or time.time() - ts > RESET_SESSION_TTL:
+        request.session.pop("reset_user_id", None)
+        request.session.pop("reset_user_ts", None)
+        request.session.pop("captcha_code", None)
+        return None
+    return uid
+
+
+@rate_limit(
+    "captcha_image",
+    max_requests=30,
+    window=60,
+    error_msg="Quá nhiều yêu cầu ảnh CAPTCHA. Vui lòng thử lại sau.",
+    methods=("GET",),
+)
 def captcha_image_view(request: HttpRequest) -> HttpResponse:
     """Trả về ảnh CAPTCHA PNG."""
     code = generate_captcha_code()
@@ -674,7 +753,7 @@ def captcha_image_view(request: HttpRequest) -> HttpResponse:
 )
 def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
     """Bước 2: Xác thực CAPTCHA."""
-    if "reset_user_id" not in request.session:
+    if _reset_session_user_id(request) is None:
         return redirect("users:forgot_password")
 
     if request.method == "POST":
@@ -696,10 +775,10 @@ def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
 )
 def reset_password_view(request: HttpRequest) -> HttpResponse:
     """Bước 3: Đặt mật khẩu mới."""
-    if "reset_user_id" not in request.session:
+    user_id = _reset_session_user_id(request)
+    if user_id is None:
         return redirect("users:forgot_password")
 
-    user_id = request.session["reset_user_id"]
     from django.contrib.auth.models import User
 
     user = get_object_or_404(User, id=user_id)
@@ -711,6 +790,7 @@ def reset_password_view(request: HttpRequest) -> HttpResponse:
             user.save(update_fields=["password"])
 
             request.session.pop("reset_user_id", None)
+            request.session.pop("reset_user_ts", None)
             request.session.pop("captcha_code", None)
             messages.success(request, "Đổi mật khẩu thành công. Vui lòng đăng nhập.")
             return redirect("users:login")

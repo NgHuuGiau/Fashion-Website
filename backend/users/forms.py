@@ -1,11 +1,21 @@
 import re
+import secrets
 
 from django import forms
+from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
 
 from products.validators import validate_product_image
 
 from .models import UserProfile
+
+
+def _run_password_validators(password, user=None):
+    """Áp AUTH_PASSWORD_VALIDATORS (mật khẩu phổ biến, giống tên đăng nhập/email...)."""
+    try:
+        password_validation.validate_password(password, user)
+    except forms.ValidationError as exc:
+        raise forms.ValidationError(exc.messages)
 
 
 class RegisterForm(forms.ModelForm):
@@ -78,6 +88,10 @@ class RegisterForm(forms.ModelForm):
             raise forms.ValidationError(
                 "Số điện thoại không hợp lệ. Chỉ gồm ký tự số từ 9 đến 15 số."
             )
+        if UserProfile.objects.filter(phone_number=phone).exists():
+            raise forms.ValidationError(
+                "Số điện thoại này đã được dùng cho tài khoản khác."
+            )
         return phone
 
     def clean_password1(self):
@@ -94,6 +108,13 @@ class RegisterForm(forms.ModelForm):
                 "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
             )
 
+        _run_password_validators(
+            password,
+            User(
+                username=self.data.get("username", ""),
+                email=self.data.get("email", ""),
+            ),
+        )
         return password
 
     def clean(self):
@@ -273,7 +294,7 @@ class CaptchaForm(forms.Form):
         expected = (
             self.request.session.get("captcha_code", "").upper() if self.request else ""
         )
-        if not expected or value != expected:
+        if not expected or not secrets.compare_digest(value, expected):
             raise forms.ValidationError("Mã xác thực không đúng. Vui lòng thử lại.")
         return value
 
@@ -301,6 +322,7 @@ class ResetPasswordForm(forms.Form):
             raise forms.ValidationError(
                 "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
             )
+        _run_password_validators(password)
         return password
 
     def clean(self):
@@ -363,6 +385,7 @@ class ChangePasswordForm(forms.Form):
             raise forms.ValidationError(
                 "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)."
             )
+        _run_password_validators(password, self.user)
         if self.user is not None and self.user.check_password(password):
             raise forms.ValidationError(
                 "Mật khẩu mới không được trùng với mật khẩu hiện tại."

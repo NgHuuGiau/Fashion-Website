@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 from io import BytesIO
 
@@ -14,7 +15,7 @@ _CHARS = "".join(c for c in string.ascii_uppercase + string.digits if c not in "
 
 
 def generate_captcha_code(length=CAPTCHA_LENGTH):
-    return "".join(random.choice(_CHARS) for _ in range(length))
+    return "".join(secrets.choice(_CHARS) for _ in range(length))
 
 
 def generate_captcha_image(
