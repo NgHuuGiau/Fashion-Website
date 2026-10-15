@@ -63,7 +63,6 @@ app.conf.task_acks_late = True
 app.conf.worker_prefetch_multiplier = 1
 app.conf.task_routes = {
     "orders.tasks.send_cart_reminders": {"queue": "reminders"},
-    "orders.tasks.process_vnpay_ipn": {"queue": "payments"},
     "orders.tasks.daily_reconciliation": {"queue": "reconciliation"},
     "orders.tasks.notify_low_stock": {"queue": "maintenance"},
     "users.tasks.expire_points": {"queue": "maintenance"},
