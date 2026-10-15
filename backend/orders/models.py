@@ -203,6 +203,10 @@ class Order(models.Model):
     vnpay_transaction_id = models.CharField(
         max_length=64, unique=True, null=True, blank=True
     )
+    # Chong tao don trung khi double-click/resubmit: tra lai don da co cua key.
+    idempotency_key = models.CharField(
+        max_length=64, unique=True, null=True, blank=True, default=None
+    )
     # Mã đơn gửi tới ví; giữ nguyên để đối chiếu callback lặp, mã giao dịch ví lưu ở lịch sử trạng thái.
     gateway_transaction_id = models.CharField(
         max_length=128, null=True, blank=True, db_index=True
@@ -606,14 +610,16 @@ class GiftCard(models.Model):
 
     @staticmethod
     def generate_unique_code():
-        """Tạo mã 12 ký tự: GC + 10 random"""
-        import random
+        """Tạo mã 12 ký tự: GC + 10 random.
+
+        secrets thay random: mã gắn với tiền, không được đoán được từ PRNG.
+        """
+        import secrets
         import string
 
+        chars = string.ascii_uppercase + string.digits
         while True:
-            code = "GC" + "".join(
-                random.choices(string.ascii_uppercase + string.digits, k=10)
-            )
+            code = "GC" + "".join(secrets.choice(chars) for _ in range(10))
             if not GiftCard.objects.filter(code=code).exists():
                 return code
 
@@ -788,6 +794,16 @@ class ShippingOrder(models.Model):
 
     def update_from_carrier(self, carrier_data: dict):
         """Update fields from carrier webhook/API response"""
+        with transaction.atomic():
+            locked = type(self).objects.select_for_update().filter(pk=self.pk).first()
+            if locked is None:
+                return
+            # Gan lai instance da khoa row: webhook/scheduler dong thoi khong
+            # ghi de het thong tin cua nhau.
+            self = locked
+            self._update_from_carrier_locked(carrier_data)
+
+    def _update_from_carrier_locked(self, carrier_data: dict):
         mapping = {
             "ghn": {
                 "status_map": {
@@ -845,9 +861,14 @@ class ShippingOrder(models.Model):
             elif new_status == "delivered" and not self.delivered_at:
                 self.delivered_at = timezone.now()
                 # Also update parent order
-                self.order.status = "delivered"
-                self.order.delivered_at = timezone.now()
-                self.order.save(update_fields=["status", "delivered_at", "updated_at"])
+                from .views.order import _grant_order_points
+
+                order = Order.objects.select_for_update().get(pk=self.order_id)
+                order.status = "delivered"
+                order.delivered_at = timezone.now()
+                order.save(update_fields=["status", "delivered_at", "updated_at"])
+                _grant_order_points(order)
+                self.order = order
 
         # Update actual fee
         if cfg["fee_field"] in carrier_data:

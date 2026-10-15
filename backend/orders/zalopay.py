@@ -61,7 +61,7 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
         "app_time": int(time.time() * 1000),
         "amount": int(order.total_amount),
         "description": f"Thanh toan don hang {order.id}",
-        "embed_data": json.dumps({"redirect_url": return_url}),
+        "embed_data": json.dumps({"redirect_url": return_url, "order_id": order.id}),
         "item": json.dumps([]),
         "bank_code": "",
         "callback_url": notify_url,
@@ -149,6 +149,8 @@ def callback_payload(data: dict) -> dict:
 
 def amount_matches(order, data: dict) -> bool:
     """Đối chiếu số tiền callback với đơn hàng."""
+    if str(data.get("currency", "VND")).upper() != "VND":
+        return False
     try:
         return int(data.get("amount", 0)) == int(order.total_amount)
     except (TypeError, ValueError):

@@ -83,6 +83,8 @@ def verify_return(params: dict) -> bool:
 
 def amount_matches(order, params: dict) -> bool:
     """Đối chiếu vnp_Amount (đơn vị xu = VND*100) với tổng tiền đơn hàng."""
+    if (params.get("vnp_CurrCode") or VNPAY_CURRENCY) != VNPAY_CURRENCY:
+        return False
     try:
         return int(params.get("vnp_Amount", 0)) == int(order.total_amount) * 100
     except (TypeError, ValueError):

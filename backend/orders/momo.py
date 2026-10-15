@@ -154,6 +154,8 @@ def verify_callback(data: dict) -> bool:
 
 def amount_matches(order, data: dict) -> bool:
     """Đối chiếu số tiền callback với đơn hàng."""
+    if str(data.get("currency", "VND")).upper() != "VND":
+        return False
     try:
         return int(data.get("amount", 0)) == int(order.total_amount)
     except (TypeError, ValueError):

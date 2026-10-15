@@ -4648,3 +4648,108 @@ class P3StackingPriceTest(TestCase):
         # save chi stock thi khong ghi lich su
         self.product.save(update_fields=["stock"])
         self.assertEqual(PriceHistory.objects.count(), 1)
+
+
+class AuditFixBatchTest(TestCase):
+    """Bao phu fix audit: hoan tien ty le, diem idempotent, tien te vi, ma giam gia."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="audit_buyer", password="StrongPass123!"
+        )
+        self.client.login(username="audit_buyer", password="StrongPass123!")
+        self.category = Category.objects.create(name="Ao audit", slug="ao-audit")
+        self.product = Product.objects.create(
+            category=self.category,
+            name="Ao audit",
+            slug="ao-audit-item",
+            price=300000,
+            stock=10,
+            available=True,
+        )
+        self.order = Order.objects.create(
+            user=self.user,
+            customer_name="Audit",
+            phone="0909000001",
+            shipping_address="HCM",
+            payment_method="cod",
+            subtotal_amount=Decimal("600000"),
+            shipping_fee=Decimal("30000"),
+            discount_amount=Decimal("100000"),
+            total_amount=Decimal("530000"),
+            status="delivered",
+            is_paid=True,
+        )
+        self.item = OrderItem.objects.create(
+            order=self.order, product=self.product, quantity=2, price=300000
+        )
+
+    def test_return_refund_is_prorated_after_discounts(self):
+        self.client.post(
+            reverse("orders:create_return", kwargs={"order_id": self.order.id}),
+            {"return_type": "refund", "reason": "wrong_size"},
+        )
+        rr = ReturnRequest.objects.get(order=self.order)
+        # hang 600000 da duoc giam con 500000 (khong tinh phi ship) -> hoan 500000
+        self.assertEqual(rr.refund_amount, Decimal("500000"))
+
+    def test_double_return_post_creates_single_request(self):
+        url = reverse("orders:create_return", kwargs={"order_id": self.order.id})
+        self.client.post(url, {"return_type": "refund", "reason": "wrong_size"})
+        second = self.client.post(
+            url, {"return_type": "refund", "reason": "wrong_size"}
+        )
+        self.assertRedirects(
+            second, reverse("orders:order_review", kwargs={"order_id": self.order.id})
+        )
+        self.assertEqual(ReturnRequest.objects.count(), 1)
+
+    def test_gateway_amount_checks_reject_foreign_currency(self):
+        from .momo import amount_matches as momo_match
+        from .shopeepay import amount_matches as sp_match
+        from .vnpay import amount_matches as vnp_match
+        from .zalopay import amount_matches as zalo_match
+
+        vnd = {"amount": 530000, "currency": "VND"}
+        for match in (momo_match, sp_match, zalo_match):
+            with self.subTest(gateway=match.__module__):
+                self.assertTrue(match(self.order, vnd))
+                self.assertFalse(
+                    match(self.order, {"amount": 530000, "currency": "USD"})
+                )
+        vnp = {"vnp_Amount": 53000000, "vnp_CurrCode": "VND"}
+        self.assertTrue(vnp_match(self.order, vnp))
+        self.assertFalse(vnp_match(self.order, {**vnp, "vnp_CurrCode": "JPY"}))
+
+    def test_grant_order_points_only_once(self):
+        from users.models import UserProfile
+
+        from .views.order import _grant_order_points
+
+        _grant_order_points(self.order)
+        _grant_order_points(self.order)
+        expected = int(self.order.total_amount // 10)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(profile.points, expected)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.points_earned, expected)
+
+    def test_percent_coupon_discount_rounds_to_integer(self):
+        from .views.cart import calculate_coupon_discount
+
+        coupon = Coupon.objects.create(
+            code="P33",
+            discount_type=Coupon.TYPE_PERCENT,
+            value=Decimal("33"),
+            is_active=True,
+        )
+        result = calculate_coupon_discount(coupon, Decimal("100001"), Decimal("30000"))
+        self.assertEqual(result, Decimal("33000"))
+
+    def test_gift_card_code_format_and_unique(self):
+        from .models import GiftCard
+
+        codes = [GiftCard.generate_unique_code() for _ in range(3)]
+        for code in codes:
+            self.assertRegex(code, r"\AGC[A-Z0-9]{10}\Z")
+        self.assertEqual(len(set(codes)), 3, "ma gift card phai ngau nhien")

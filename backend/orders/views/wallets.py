@@ -9,6 +9,7 @@ import logging
 
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -69,11 +70,57 @@ def wallet_payment(request: HttpRequest, method: str, order_id) -> HttpResponse:
             f"Khong tao duoc phien {WALLET_LABELS[method]}: {res.get('error', 'loi khong xac dinh')}",
         )
         return redirect("orders:order_review", order_id=order.id)
-    # ponytail: luu trans id tam de doi soat return/ipn, khong can them cot
+    # Ghi ma gui vi lan dau tien; phien tao lai tao ma moi nhung callback
+    # van tim duoc don qua _find_order fallback.
     tid = res.get("orderId") or res.get("app_trans_id") or res.get("order_id") or ""
     if tid:
-        Order.objects.filter(pk=order.pk).update(gateway_transaction_id=str(tid)[:128])
+        Order.objects.filter(pk=order.pk).filter(
+            Q(gateway_transaction_id__isnull=True) | Q(gateway_transaction_id="")
+        ).update(gateway_transaction_id=str(tid)[:128])
     return redirect(url)
+
+
+def _find_order(method: str, raw_oid: str, data: dict | None = None):
+    """Tra don hang theo ma gui cho vi, co fallback khi ma da bi ghi de.
+
+    - MoMo "{id}_{ts}" / ShopeePay "SP{id}_{ts}": parse id dau tien.
+    - ZaloPay app_trans_id (YYMMDD_hex8) khong chua id -> lay order_id tu
+      embed_data da ky trong IPN; return URL khong co embed_data nen phien
+      cu bi ghi de chi doi duoc qua IPN.
+    """
+    if not raw_oid:
+        return None
+    order = (
+        Order.objects.select_for_update()
+        .filter(payment_method=method, gateway_transaction_id=str(raw_oid))
+        .first()
+    )
+    if order:
+        return order
+
+    pk = None
+    if data:
+        import json
+
+        try:
+            embed = json.loads(data.get("embed_data") or "{}")
+            pk = int(embed.get("order_id"))
+        except (TypeError, ValueError):
+            pk = None
+
+    if pk is None and method in ("momo", "shopeepay"):
+        oid = str(raw_oid)
+        if oid.startswith("SP"):
+            oid = oid[2:]
+        head = oid.split("_", 1)[0]
+        if head.isdigit():
+            pk = int(head)
+
+    if pk is None:
+        return None
+    return (
+        Order.objects.select_for_update().filter(pk=pk, payment_method=method).first()
+    )
 
 
 def _mark_paid(order, transaction_id: str, source: str):
@@ -102,6 +149,10 @@ def wallet_return(request: HttpRequest, method: str) -> HttpResponse:
         return redirect("products:product_list")
     g = _gateway(method)
     params = request.GET.dict() if request.method == "GET" else request.POST.dict()
+    # Xac minh chu ky truoc tra cuu don; khong cho do ton tai don qua loi khac nhau.
+    if not g.verify_callback(params):
+        messages.error(request, "Chu ky thanh toan khong hop le.")
+        return redirect("products:product_list")
     raw_oid = (
         params.get("orderId")
         or params.get("order_id")
@@ -110,19 +161,10 @@ def wallet_return(request: HttpRequest, method: str) -> HttpResponse:
         or params.get("partner_order_id")
         or ""
     )
-    order = (
-        Order.objects.select_for_update()
-        .filter(payment_method=method, gateway_transaction_id=str(raw_oid))
-        .first()
-        if raw_oid
-        else None
-    )
+    order = _find_order(method, raw_oid)
     if not order:
         messages.error(request, "Khong tim thay don hang.")
         return redirect("orders:my_orders")
-    if not g.verify_callback(params):
-        messages.error(request, "Chu ky thanh toan khong hop le.")
-        return redirect("products:product_list")
     if not g.amount_matches(order, params):
         messages.error(request, "So tien thanh toan khong khop.")
         return redirect("orders:my_orders")
@@ -195,13 +237,7 @@ def wallet_ipn(request: HttpRequest, method: str) -> HttpResponse:
         or data.get("partner_order_id")
         or ""
     )
-    order = (
-        Order.objects.select_for_update()
-        .filter(payment_method=method, gateway_transaction_id=str(raw_oid))
-        .first()
-        if raw_oid
-        else None
-    )
+    order = _find_order(method, raw_oid, data)
     if not order:
         return JsonResponse({"return_code": 0, "message": "order not found"})
     if not g.amount_matches(order, data):

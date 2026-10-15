@@ -1,10 +1,12 @@
 from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -124,10 +126,14 @@ def _grant_order_points(order):
     earned = int(order.total_amount // 10)
     if not earned:
         return
-    profile, _ = UserProfile.objects.get_or_create(user=order.user)
-    profile.points += earned
-    profile.save(update_fields=["points"])
-    Order.objects.filter(id=order.id).update(points_earned=earned)
+    # Claim atomic: 2 luong "delivered" dong thoi chi 1 luong cong diem.
+    with transaction.atomic():
+        if not Order.objects.filter(id=order.id, points_earned=0).update(
+            points_earned=earned
+        ):
+            return
+        profile, _ = UserProfile.objects.get_or_create(user=order.user)
+        UserProfile.objects.filter(pk=profile.pk).update(points=F("points") + earned)
 
 
 def decorate_order_tracking(order):
@@ -248,30 +254,54 @@ def create_return_request(request: HttpRequest, order_id) -> HttpResponse:
         form = ReturnRequestForm(request.POST, order=order)
         if form.is_valid():
             item_ids = form.cleaned_data["item_ids"]
-            chosen_items = (
-                order.items.filter(id__in=item_ids) if item_ids else order.items.all()
-            )
-            refund_amount = sum(item.price * item.quantity for item in chosen_items)
-            ReturnRequest.objects.create(
-                order=order,
-                return_type=form.cleaned_data["return_type"],
-                reason=form.cleaned_data["reason"],
-                note=form.cleaned_data["note"],
-                refund_amount=refund_amount,
-                items=[
-                    {
-                        "order_item_id": item.id,
-                        "product_id": item.product_id,
-                        "variant_id": item.variant_id,
-                        "product_name": item.display_name,
-                        "selected_color": item.selected_color,
-                        "selected_size": item.selected_size,
-                        "qty": item.quantity,
-                        "price": str(item.price),
-                    }
-                    for item in chosen_items
-                ],
-            )
+            with transaction.atomic():
+                # Khoa don, kiem tra lai dieu kien: 2 POST dong thoi
+                # chi tao duoc 1 yeu cau doi tra.
+                locked = get_object_or_404(
+                    Order.objects.select_for_update(), pk=order.pk
+                )
+                if not locked.can_request_return:
+                    messages.error(
+                        request,
+                        "Đơn hàng này không đủ điều kiện tạo yêu cầu đổi trả.",
+                    )
+                    return redirect("orders:order_review", order_id=locked.id)
+                chosen_items = (
+                    locked.items.filter(id__in=item_ids)
+                    if item_ids
+                    else locked.items.all()
+                )
+                item_sum = sum(item.price * item.quantity for item in chosen_items)
+                # Hoan theo ty le tien hang da tru giam gia/diem (khong tinh phi ship).
+                goods_paid = max(
+                    Decimal("0"), locked.total_amount - locked.shipping_fee
+                )
+                if locked.subtotal_amount > 0:
+                    refund_amount = (
+                        item_sum * goods_paid / locked.subtotal_amount
+                    ).quantize(Decimal("1"), ROUND_HALF_UP)
+                else:
+                    refund_amount = item_sum
+                ReturnRequest.objects.create(
+                    order=locked,
+                    return_type=form.cleaned_data["return_type"],
+                    reason=form.cleaned_data["reason"],
+                    note=form.cleaned_data["note"],
+                    refund_amount=refund_amount,
+                    items=[
+                        {
+                            "order_item_id": item.id,
+                            "product_id": item.product_id,
+                            "variant_id": item.variant_id,
+                            "product_name": item.display_name,
+                            "selected_color": item.selected_color,
+                            "selected_size": item.selected_size,
+                            "qty": item.quantity,
+                            "price": str(item.price),
+                        }
+                        for item in chosen_items
+                    ],
+                )
             messages.success(
                 request,
                 "Đã gửi yêu cầu đổi trả. Shop sẽ liên hệ xác nhận trong 1–2 ngày làm việc.",

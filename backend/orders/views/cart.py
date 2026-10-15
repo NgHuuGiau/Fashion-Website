@@ -1,12 +1,13 @@
 import hashlib
 import uuid
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+from functools import wraps
 from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib import messages
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F, Sum
 from django.db.models.functions import Greatest
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -84,36 +85,49 @@ def _clear_cart_reminder(request):
         CartReminder.objects.filter(session_key=sk).delete()
 
 
-def _idempotency_store(request):
-    # ponytail: key->order_id trong session, gioi han 10 de session khong phi
-    store = request.session.get("checkout_idem", {})
-    if not isinstance(store, dict):
-        store = {}
-    return store
+def _replayed_order(key):
+    """Tra don da tao boi key (double-click/back-resubmit) hoac None.
 
-
-def _replayed_order(request, key):
-    """Tra don da tao boi key (double-click/back-resubmit) hoac None."""
+    Tra trong DB (khong phai session): resubmit tu session moi, mat session
+    van khong tao don trung.
+    """
     if not key or len(key) > 64:
         return None
-    order_id = _idempotency_store(request).get(key)
-    if not order_id:
-        return None
-    try:
-        return Order.objects.get(id=int(order_id))
-    except (Order.DoesNotExist, TypeError, ValueError):
-        return None
+    return Order.objects.filter(idempotency_key=key).first()
 
 
-def _remember_idempotency(request, key, order_id):
-    if not key or len(key) > 64:
-        return
-    store = _idempotency_store(request)
-    store[key] = order_id
-    while len(store) > 10:
-        store.pop(next(iter(store)))
-    request.session["checkout_idem"] = store
-    request.session.modified = True
+def _redirect_for_created_order(request, order, replayed=False):
+    if replayed:
+        messages.info(request, "Đơn hàng đã được tạo, không tạo trùng.")
+    if order.payment_method == "bank":
+        return redirect("orders:bank_payment_waiting", order_id=order.id)
+    if order.payment_method == "vnpay":
+        return redirect("orders:vnpay_payment", order_id=order.id)
+    if order.payment_method in ("momo", "zalopay", "shopeepay"):
+        return redirect(
+            "orders:wallet_payment",
+            method=order.payment_method,
+            order_id=order.id,
+        )
+    return redirect("orders:order_success", order_id=order.id)
+
+
+def checkout_idempotent(view):
+    """2 request cung idempotency_key dong thoi: thua unique constraint
+    thi tra lai don da commit thay vi 500."""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view(request, *args, **kwargs)
+        except IntegrityError:
+            key = (request.POST.get("idempotency_key") or "").strip()[:64]
+            order = _replayed_order(key)
+            if order is None:
+                raise
+            return _redirect_for_created_order(request, order, replayed=True)
+
+    return wrapper
 
 
 def build_vietqr_url(amount, transfer_note):
@@ -489,6 +503,7 @@ def cart_detail(request: HttpRequest) -> HttpResponse:
     window=60,
     error_msg="Bạn thao tác checkout quá nhanh. Vui lòng thử lại sau.",
 )
+@checkout_idempotent
 def checkout(request: HttpRequest) -> HttpResponse:
     items, subtotal = iter_cart(request)
     if not items:
@@ -539,20 +554,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             # P1.4: double-click/back-resubmit tra ve don cu thay vi tao don moi
             idem_key = (request.POST.get("idempotency_key") or "").strip()[:64]
-            replayed = _replayed_order(request, idem_key)
+            replayed = _replayed_order(idem_key)
             if replayed is not None:
-                messages.info(request, "Đơn hàng đã được tạo, không tạo trùng.")
-                if replayed.payment_method == "bank":
-                    return redirect("orders:bank_payment_waiting", order_id=replayed.id)
-                if replayed.payment_method == "vnpay":
-                    return redirect("orders:vnpay_payment", order_id=replayed.id)
-                if replayed.payment_method in ("momo", "zalopay", "shopeepay"):
-                    return redirect(
-                        "orders:wallet_payment",
-                        method=replayed.payment_method,
-                        order_id=replayed.id,
-                    )
-                return redirect("orders:order_success", order_id=replayed.id)
+                return _redirect_for_created_order(request, replayed, replayed=True)
             payment_method = form.cleaned_data["payment_method"]
             bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
             coupon_code = form.cleaned_data.get("coupon_code", "")
@@ -561,7 +565,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
             )
             tier_discount_amount = (
                 subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
-            )
+            ).quantize(Decimal("1"), ROUND_HALF_UP)
 
             coupon_user = None if is_guest else request.user
             selected_coupon, coupon_error = validate_coupon(
@@ -689,6 +693,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
                     order = Order(
                         user=None if is_guest else request.user,
+                        idempotency_key=idem_key or uuid.uuid4().hex,
                         customer_name=form.cleaned_data["customer_name"],
                         customer_email=form.cleaned_data["customer_email"],
                         phone=form.cleaned_data["phone"],
@@ -780,7 +785,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                                 transaction.set_rollback(True)
                                 messages.error(
                                     request,
-                                    f"Sản phẩm {product.name} ({lv.color_name}/{lv.size}) không đủ hàng.",
+                                    # variant luon co san; lv co the None khi
+                                    # bien the da bi an/gia khoa giua chung.
+                                    f"Sản phẩm {product.name} ({variant.color_name}/{variant.size}) không đủ hàng.",
                                 )
                                 return redirect("orders:cart_detail")
                             ProductVariant.objects.filter(id=variant.id).update(
@@ -892,18 +899,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     status_code=201,
                 )
                 messages.success(request, "Đặt hàng thành công.")
-                _remember_idempotency(request, idem_key, order.id)
-                if payment_method == "bank":
-                    return redirect("orders:bank_payment_waiting", order_id=order.id)
-                if payment_method == "vnpay":
-                    return redirect("orders:vnpay_payment", order_id=order.id)
-                if payment_method in ("momo", "zalopay", "shopeepay"):
-                    return redirect(
-                        "orders:wallet_payment",
-                        method=payment_method,
-                        order_id=order.id,
-                    )
-                return redirect("orders:order_success", order_id=order.id)
+                return _redirect_for_created_order(request, order)
     else:
         form = CheckoutForm(initial=initial)
 

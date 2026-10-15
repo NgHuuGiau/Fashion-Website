@@ -4,7 +4,7 @@ Chi chua logic thuan tuy + query DB don gian, khong phu thuoc request,
 de view mong va de test truc tiep.
 """
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from core.text_utils import normalize_vn_text
 
@@ -40,7 +40,10 @@ def calculate_coupon_discount(coupon, subtotal, shipping_fee):
 
     discount = Decimal("0")
     if coupon.discount_type == Coupon.TYPE_PERCENT:
-        discount = (subtotal * coupon.value) / Decimal("100")
+        # VND khong co phan le; Decimal decimal_places=0 se loi neu giam gia co so le
+        discount = ((subtotal * coupon.value) / Decimal("100")).quantize(
+            Decimal("1"), ROUND_HALF_UP
+        )
     elif coupon.discount_type == Coupon.TYPE_FIXED:
         discount = coupon.value
     elif coupon.discount_type == Coupon.TYPE_FREESHIP:

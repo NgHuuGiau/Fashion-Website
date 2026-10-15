@@ -1,3 +1,4 @@
+import logging
 import re
 
 from django import forms
@@ -5,6 +6,8 @@ from django.conf import settings
 
 from . import vnpay
 from .constants import bank_transfer_is_enabled
+
+logger = logging.getLogger(__name__)
 
 
 def _wallet_choices():
@@ -16,21 +19,21 @@ def _wallet_choices():
         if _momo.is_configured():
             out.append(("momo", "Ví MoMo"))
     except Exception:
-        pass
+        logger.exception("Khong doc duoc cau hinh MoMo")
     try:
         from . import zalopay as _zalo
 
         if _zalo.is_configured():
             out.append(("zalopay", "Ví ZaloPay"))
     except Exception:
-        pass
+        logger.exception("Khong doc duoc cau hinh ZaloPay")
     try:
         from . import shopeepay as _spp
 
         if _spp.is_configured():
             out.append(("shopeepay", "Ví ShopeePay"))
     except Exception:
-        pass
+        logger.exception("Khong doc duoc cau hinh ShopeePay")
     return out
 
 

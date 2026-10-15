@@ -237,3 +237,111 @@ class WalletCallbackTest(TestCase):
                 order.refresh_from_db()
                 self.assertEqual(response.status_code, 302)
                 self.assertFalse(order.is_paid)
+
+    def test_reinitiating_wallet_payment_keeps_first_gateway_id(self):
+        from django.contrib.auth.models import User
+
+        user = User.objects.create_user(username="wbuyer", password="StrongPass123!")
+        self.client.login(username="wbuyer", password="StrongPass123!")
+        order = Order.objects.create(
+            user=user,
+            customer_name="Buyer",
+            phone="0900000001",
+            shipping_address="HCM",
+            payment_method="momo",
+            total_amount=100000,
+            gateway_transaction_id="",
+        )
+        url = reverse(
+            "orders:wallet_payment",
+            kwargs={"method": "momo", "order_id": order.id},
+        )
+        with patch(
+            "orders.momo.build_payment_request",
+            return_value={"payUrl": "https://pay.test", "orderId": f"{order.id}_111"},
+        ):
+            self.client.get(url)
+        order.refresh_from_db()
+        self.assertEqual(order.gateway_transaction_id, f"{order.id}_111")
+
+        with patch(
+            "orders.momo.build_payment_request",
+            return_value={"payUrl": "https://pay.test", "orderId": f"{order.id}_222"},
+        ):
+            self.client.get(url)
+        order.refresh_from_db()
+        self.assertEqual(
+            order.gateway_transaction_id,
+            f"{order.id}_111",
+            "phien moi khong duoc ghi de ma gateway da luu",
+        )
+
+
+class WalletOrderLookupTest(TestCase):
+    def _order(self, method="momo", gateway_id="stale-1"):
+        return Order.objects.create(
+            customer_name="Buyer",
+            phone="0900000002",
+            shipping_address="HCM",
+            payment_method=method,
+            total_amount=100000,
+            gateway_transaction_id=gateway_id,
+        )
+
+    def test_exact_gateway_id_match_wins(self):
+        from .views.wallets import _find_order
+
+        order = self._order("momo", "88_111")
+        found = _find_order("momo", "88_111")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, order.id)
+
+    def test_momo_fallback_parses_order_id_when_gateway_id_replaced(self):
+        from .views.wallets import _find_order
+
+        order = self._order("momo", "replaced_by_new_session")
+        found = _find_order("momo", f"{order.id}_1712345678")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, order.id)
+
+    def test_shopeepay_fallback_parses_sp_prefix(self):
+        from .views.wallets import _find_order
+
+        order = self._order("shopeepay", "replaced")
+        found = _find_order("shopeepay", f"SP{order.id}_1712345678")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, order.id)
+
+    def test_zalopay_fallback_reads_signed_embed_data(self):
+        from .views.wallets import _find_order
+
+        order = self._order("zalopay", "replaced")
+        data = {"embed_data": json.dumps({"order_id": order.id})}
+        found = _find_order("zalopay", "251015_abcd1234", data)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, order.id)
+
+    def test_fallback_rejects_unknown_order(self):
+        from .views.wallets import _find_order
+
+        self.assertIsNone(_find_order("momo", "999999_1712345678"))
+        self.assertIsNone(_find_order("zalopay", "251015_abcd1234"))
+
+
+class ApiOrderLookupRateLimitTest(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def tearDown(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_lookup_is_rate_limited_per_ip(self):
+        url = reverse("api:api_order_lookup")
+        payload = {"order_id": "1", "phone": "0900000000"}
+        for _ in range(15):
+            self.assertNotEqual(self.client.post(url, payload).status_code, 429)
+        self.assertEqual(self.client.post(url, payload).status_code, 429)
