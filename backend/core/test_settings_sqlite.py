@@ -2,7 +2,13 @@
 
 import os
 
-from .settings import *  # noqa: F403
+# Cho phép chạy test trên clone sạch, không cần file .env (CI cũng cấp biến qua env).
+os.environ.setdefault(
+    "SECRET_KEY", "test-only-secret-key-not-for-production-a1B2c3D4e5F6g7H8i9J0"
+)
+os.environ.setdefault("DEBUG", "True")
+
+from .settings import *  # noqa: E402,F403
 
 DATABASES = {
     "default": {
