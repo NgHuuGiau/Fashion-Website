@@ -1,59 +1,6 @@
 
-[tool.ruff]
-target-version = "py312"
-line-length = 100
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "SIM", # flake8-simplify
-    "T20", # flake8-print
-    "ARG", # flake8-unused-arguments
-    "PTH", # flake8-use-pathlib
-    "ERA", # eradicate
-    "PD",  # pandas-vet (if used)
-    "TRY", # tryceratops
-    "NPY", # numpy (if used)
-    "LOG", # logging-format
-    "ASYNC", # async
-    "PL",  # pylint
-]
-ignore = [
-    "E501",  # line too long (handled by formatter)
-    "B008",  # function call in default arg (common in Django)
-    "S101",  # assert (ok in tests)
-    "TRY003", # avoid bare except (sometimes needed)
-    "B007",  # loop variable can be constant (Django patterns)
-]
-per-file-ignores = {}
-exclude = [
-    ".git",
-    "__pycache__",
-    ".venv",
-    "venv",
-    "env",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    "dist",
-    "build",
-    "*.egg-info",
-    "node_modules",
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "lf"
-
-[tool.ruff.lint.isort]
-known-first-party = ["orders", "products", "users", "core"]
-known-third-party = ["django", "celery", "redis"]
-combine-as-imports = true
+# Cau hinh ruff song song o backend/ruff.toml (ruff chi doc ruff.toml khi co).
+# [tool.ruff]/[tool.ruff.format]/[tool.ruff.lint.isort] da xoa vi khong co hieu luc.
 
 [tool.mypy]
 python_version = "3.12"

@@ -6,7 +6,7 @@ import json
 import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -213,7 +213,7 @@ def prepare_product(row, category, expected_image):
     if data.get("usage"):
         bullets.append(f"Phong cách: {VALUES.get(data['usage'], data['usage'])}")
     source_price = Decimal(str(data.get("discountedPrice") or data["price"]))
-    price = int((source_price * RATE).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    price = int((source_price * RATE).quantize(Decimal(1), rounding=ROUND_HALF_UP))
     return {
         "name": data["productDisplayName"].strip(),
         "slug": f"myntra-{style_id}",
@@ -275,7 +275,7 @@ def main():
                     or re.search(
                         r"\b(kidswear|kids|boy|boys|girl|girls|baby|infant)\b",
                         row["productDisplayName"],
-                        re.I,
+                        re.IGNORECASE,
                     )
                 ):
                     continue
