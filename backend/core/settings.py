@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -90,6 +91,12 @@ if not DEBUG:
         raise ImproperlyConfigured(
             "ALLOWED_HOSTS production phải chứa tên miền cụ thể, không dùng '*'."
         )
+    _csrf_origins_setting = os.getenv("CSRF_TRUSTED_ORIGINS", "").strip()
+    if not _csrf_origins_setting:
+        raise ImproperlyConfigured(
+            "CSRF_TRUSTED_ORIGINS production phải đặt qua .env "
+            "(vd: https://ten-mien.vn,https://www.ten-mien.vn) để form không bị 403."
+        )
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     [
@@ -104,6 +111,17 @@ CSRF_TRUSTED_ORIGINS = env_list(
 if env_bool("BEHIND_PROXY", False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
+
+# Bắt validators ở mọi form tạo mật khẩu của Django (admin thêm user...);
+# form người dùng (đăng ký/đổi/đặt lại) đã có rules riêng.
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -345,6 +363,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", str(BASE_DIR / "frontend/static/images")))
 
 TRUSTED_PROXY = env_bool("TRUSTED_PROXY", False)
+TRUSTED_PROXY_HOPS = int(os.getenv("TRUSTED_PROXY_HOPS", "1") or "1")
 LOGIN_URL = "users:login"
 LOGIN_REDIRECT_URL = "products:product_list"
 LOGOUT_REDIRECT_URL = "products:product_list"
@@ -359,14 +378,23 @@ if not DEBUG and not _redis_url:
 _use_redis = bool(_redis_url)
 
 if _use_redis:
+    # Session tach rieng DB 3: cache.clear()/FLUSHDB cache khong dang xuat het shop,
+    # rate-limit va session khong chia se cung mot khoa.
+    _session_redis_url = urlunparse(urlparse(_redis_url)._replace(path="/3"))
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": _redis_url,
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        }
+        },
+        "sessions": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _session_redis_url,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        },
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "sessions"
 else:
     CACHES = {
         "default": {
@@ -395,7 +423,11 @@ SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    # Chi ep redirect https khi biet proxy dang cham TLS (tranh vong lap
+    # vo han khi khong co proxy hoac khong tin X-Forwarded-Proto).
+    SECURE_SSL_REDIRECT = env_bool(
+        "SECURE_SSL_REDIRECT", env_bool("BEHIND_PROXY", False)
+    )
     SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
     CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))

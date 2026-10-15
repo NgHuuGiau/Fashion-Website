@@ -9,6 +9,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from rest_framework.permissions import IsAdminUser
 
 from . import api, views
 from .push import push_subscribe, push_unsubscribe, push_vapid_key
@@ -105,14 +106,26 @@ api_urlpatterns = [
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include((api_urlpatterns, "api"), namespace="api")),
-    # API Documentation
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # API Documentation (staff-only: lo danh sach endpoint/tham so neu de public)
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(permission_classes=[IsAdminUser]),
+        name="schema",
+    ),
     path(
         "api/docs/",
-        SpectacularSwaggerView.as_view(url_name="schema"),
+        SpectacularSwaggerView.as_view(
+            url_name="schema", permission_classes=[IsAdminUser]
+        ),
         name="swagger-ui",
     ),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path(
+        "api/redoc/",
+        SpectacularRedocView.as_view(
+            url_name="schema", permission_classes=[IsAdminUser]
+        ),
+        name="redoc",
+    ),
     path("", include("products.urls", namespace="products")),
     path("", include("users.urls", namespace="users")),
     path("", include("orders.urls", namespace="orders")),

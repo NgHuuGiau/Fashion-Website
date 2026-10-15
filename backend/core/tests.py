@@ -529,6 +529,13 @@ class ApiTest(TestCase):
         self.assertIn("openapi", response.headers.get("Content-Type", ""))
         self.assertTrue(response.content.startswith(b"openapi:"))
 
+    def test_api_schema_requires_staff(self):
+        for name in ("schema", "swagger-ui", "redoc"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 403)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse("schema")).status_code, 200)
+
     def test_api_admin_requires_staff(self):
         self.client.login(username="buyer", password="StrongPass123!")
         response = self.client.get(reverse("api:api_admin_stats"))
@@ -749,3 +756,56 @@ class FooterConfigTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "https://facebook.com/shop")
         self.assertContains(response, "Bộ Công Thương")
+
+
+class ClientIpAndGeocodeTest(TestCase):
+    def _request(self, xff, remote="10.0.0.9"):
+        from django.test import RequestFactory
+
+        meta = {"REMOTE_ADDR": remote}
+        if xff is not None:
+            meta["HTTP_X_FORWARDED_FOR"] = xff
+        return RequestFactory().get("/", **meta)
+
+    @override_settings(TRUSTED_PROXY=True, TRUSTED_PROXY_HOPS=2)
+    def test_xff_takes_second_last_hop_with_two_trusted_proxies(self):
+        from core.ratelimit import get_client_ip
+
+        req = self._request("203.0.113.7, 192.168.1.5, 10.0.0.1")
+        self.assertEqual(get_client_ip(req), "192.168.1.5")
+
+    @override_settings(TRUSTED_PROXY=True, TRUSTED_PROXY_HOPS=1)
+    def test_xff_takes_last_hop_with_single_proxy(self):
+        from core.ratelimit import get_client_ip
+
+        req = self._request("203.0.113.7, 10.0.0.1")
+        self.assertEqual(get_client_ip(req), "10.0.0.1")
+
+    @override_settings(TRUSTED_PROXY=False, TRUSTED_PROXY_HOPS=2)
+    def test_xff_ignored_when_proxy_not_trusted(self):
+        from core.ratelimit import get_client_ip
+
+        req = self._request("203.0.113.7, 10.0.0.1")
+        self.assertEqual(get_client_ip(req), "10.0.0.9")
+
+    def test_xff_falls_back_when_hop_count_exceeds_list(self):
+        from core.ratelimit import get_client_ip
+
+        with override_settings(TRUSTED_PROXY=True, TRUSTED_PROXY_HOPS=3):
+            req = self._request("203.0.113.7")
+            self.assertEqual(get_client_ip(req), "10.0.0.9")
+
+    @override_settings(GEOAPIFY_API_KEY="")
+    def test_api_geocode_is_rate_limited(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        try:
+            url = reverse("api:api_geocode")
+            for _ in range(30):
+                response = self.client.get(url, {"q": "Ha Noi"})
+                self.assertNotEqual(response.status_code, 429)
+            response = self.client.get(url, {"q": "Ha Noi"})
+            self.assertEqual(response.status_code, 429)
+        finally:
+            cache.clear()

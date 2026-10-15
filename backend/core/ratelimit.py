@@ -11,13 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 def get_client_ip(request):
-    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    # Hop cuoi do proxy them la IP that; client gui duoc chi phan truoc do.
+    # shortcut: TRUSTED_PROXY_HOPS phai bang so proxy noi tiep
+    # (compose Caddy+nginx = 2, Caddy/nginx mot minh = 1); sai thi fallback REMOTE_ADDR.
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
     if xff and getattr(settings, "TRUSTED_PROXY", False):
-        candidate = xff.split(",", 1)[0].strip()
-        try:
-            return str(ip_address(candidate))
-        except ValueError:
-            pass
+        hops = max(1, int(getattr(settings, "TRUSTED_PROXY_HOPS", 1)))
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if len(parts) >= hops:
+            try:
+                return str(ip_address(parts[-hops]))
+            except ValueError:
+                pass
     remote_addr = request.META.get("REMOTE_ADDR", "")
     try:
         return str(ip_address(remote_addr))

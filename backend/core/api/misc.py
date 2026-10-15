@@ -17,6 +17,13 @@ from .common import (
 )
 
 
+@rate_limit(
+    "geocode",
+    max_requests=30,
+    window=60,
+    error_msg="Quá nhiều yêu cầu tìm địa chỉ. Vui lòng thử lại sau.",
+    methods=("GET",),
+)
 @csrf_exempt
 def api_geocode(request: HttpRequest) -> JsonResponse:
     """Geoapify Geocoding proxy: search forward or reverse without exposing the key."""

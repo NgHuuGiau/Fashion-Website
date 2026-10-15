@@ -37,23 +37,39 @@ class CSPMiddleware:
 
 
 class ApiRateLimitMiddleware:
-    """Bound write traffic for every JSON API endpoint, including plain Django views."""
+    """Bound write traffic for every JSON API endpoint, including plain Django views.
+
+    Cung han che dang nhap Django admin vi no dung view stock, khong co rate_limit.
+    """
 
     METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
     def __init__(self, get_response):
         self.get_response = get_response
         self.limiter = RateLimiter("api", max_requests=120, window=60)
+        self.admin_login_limiter = RateLimiter(
+            "admin_login", max_requests=10, window=300
+        )
+
+    def _guarded(self, request, limiter):
+        try:
+            if not limiter.consume(request):
+                return limiter.get_response(request)
+        except Exception:
+            logger.exception("Global API rate-limit cache unavailable")
+            if not settings.DEBUG:
+                return JsonResponse(
+                    {"error": "Dịch vụ tạm thời không khả dụng."}, status=503
+                )
+        return None
 
     def __call__(self, request):
         if request.path.startswith("/api/") and request.method in self.METHODS:
-            try:
-                if not self.limiter.consume(request):
-                    return self.limiter.get_response(request)
-            except Exception:
-                logger.exception("Global API rate-limit cache unavailable")
-                if not settings.DEBUG:
-                    return JsonResponse(
-                        {"error": "Dịch vụ tạm thời không khả dụng."}, status=503
-                    )
+            blocked = self._guarded(request, self.limiter)
+            if blocked is not None:
+                return blocked
+        if request.path == "/admin/login/" and request.method == "POST":
+            blocked = self._guarded(request, self.admin_login_limiter)
+            if blocked is not None:
+                return blocked
         return self.get_response(request)

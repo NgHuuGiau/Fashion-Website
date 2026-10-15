@@ -6,6 +6,8 @@ from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 
+from core.ratelimit import rate_limit
+
 from users.permissions import is_staff_member
 
 from orders.constants import (
@@ -81,6 +83,12 @@ def api_order_detail(request: HttpRequest, pk: int) -> JsonResponse:
     return api_json(data)
 
 
+@rate_limit(
+    "order_lookup",
+    max_requests=15,
+    window=300,
+    error_msg="Bạn tra mã đơn quá nhiều lần. Vui lòng thử lại sau.",
+)
 @require_POST
 def api_order_lookup(request: HttpRequest) -> JsonResponse:
     order_id = request.POST.get("order_id", "").strip()
