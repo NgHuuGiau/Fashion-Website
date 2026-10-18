@@ -447,3 +447,49 @@ def api_schema_file(request: HttpRequest) -> HttpResponse:
     )
     response["Content-Disposition"] = 'attachment; filename="openapi.yaml"'
     return response
+
+
+@require_GET
+def api_health(request: HttpRequest) -> JsonResponse:
+    """Health check for load balancers / k8s probes.
+    Returns 200 if DB + Redis reachable, 503 otherwise.
+    """
+    from django.db import connection
+    from django.core.cache import cache
+
+    db_ok = False
+    redis_ok = False
+    try:
+        connection.ensure_connection()
+        db_ok = True
+    except Exception:
+        pass
+
+    try:
+        cache.set("health_check", "ok", 10)
+        redis_ok = cache.get("health_check") == "ok"
+    except Exception:
+        pass
+
+    status = 200 if db_ok and redis_ok else 503
+    return JsonResponse(
+        {
+            "status": "healthy" if status == 200 else "degraded",
+            "database": "ok" if db_ok else "down",
+            "redis": "ok" if redis_ok else "down",
+        },
+        status=status,
+    )
+
+
+@require_GET
+def api_metrics(request: HttpRequest) -> HttpResponse:
+    """Prometheus metrics endpoint (text/plain)."""
+    try:
+        from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+    except Exception:
+        return HttpResponse(
+            "# prometheus_client not installed\n", content_type="text/plain"
+        )
+
+    return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)

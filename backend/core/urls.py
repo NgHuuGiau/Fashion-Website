@@ -100,6 +100,9 @@ api_urlpatterns = [
     # Health checks
     path("health/", views.health_live, name="health_live"),
     path("health/ready/", views.health_ready, name="health_ready"),
+    # Monitoring
+    path("health/", api.api_health, name="api_health"),
+    path("metrics/", api.api_metrics, name="api_metrics"),
 ]
 
 

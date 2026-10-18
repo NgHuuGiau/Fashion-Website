@@ -89,10 +89,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install dependencies
+      - name: Install dependencies (from lock file)
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+          pip install uv
+          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
 
       - name: Run mypy
         run: |
@@ -198,10 +199,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install dependencies
+      - name: Install dependencies (from lock file)
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+          pip install uv
+          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
           pip install "Django==${{ matrix.django-version }}.*"
           pip install pytest-xdist
 
@@ -319,8 +321,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Install backend dependencies (from lock file)
+        run: |
+          pip install uv
+          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
 
       - name: Prepare database and browser test accounts
         run: |
@@ -388,10 +392,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install deps
+      - name: Install deps (from lock file)
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+          pip install uv
+          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci --no-audit --no-fund
@@ -408,6 +413,17 @@ jobs:
         run: |
           cd backend
           DEBUG=False REDIS_URL=redis://localhost:6379/0 SECURE_SSL_REDIRECT=False ALLOWED_HOSTS=testserver python manage.py compress --force
+
+      - name: Production readiness gate (verify_prod)
+        run: |
+          python scripts/verify_prod.py --fail-on-blocker
+        env:
+          DEBUG: "False"
+          DB_ENGINE: "postgres"
+          REDIS_URL: "redis://localhost:6379/0"
+          ALLOWED_HOSTS: "testserver"
+          CSRF_TRUSTED_ORIGINS: "https://testserver"
+          SECRET_KEY: "ci-test-only-not-for-production-7gH4bY9mP2kR8xV6sT1qW3cN5dF0aLZp"
 
   summary:
     name: CI Summary

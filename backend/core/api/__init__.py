@@ -20,6 +20,8 @@ from .misc import (
     api_gdpr_delete,
     api_gdpr_guest_export,
     api_schema_file,
+    api_health,
+    api_metrics,
 )
 from .orders import (
     api_my_orders,
@@ -53,6 +55,8 @@ __all__ = [
     "api_gdpr_delete",
     "api_gdpr_guest_export",
     "api_schema_file",
+    "api_health",
+    "api_metrics",
     "api_my_orders",
     "api_order_detail",
     "api_order_lookup",
