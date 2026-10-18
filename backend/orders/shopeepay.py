@@ -9,6 +9,7 @@ import hmac
 import logging
 import time
 from datetime import datetime
+from typing import Any
 
 import requests
 from django.conf import settings
@@ -153,7 +154,7 @@ def query_transaction(order, partner_order_id: str) -> dict:
     if not is_configured():
         return {"success": False, "message": "ShopeePay chưa được cấu hình"}
 
-    params = {
+    params: dict[str, Any] = {
         "partner_id": int(settings.SHOPEEPAY_PARTNER_ID),
         "partner_order_id": partner_order_id,
         "timestamp": int(time.time()),
@@ -196,7 +197,7 @@ def refund_transaction(order, amount: int, order_id: str) -> dict:
     if not is_configured():
         return {"success": False, "message": "ShopeePay chưa được cấu hình"}
 
-    params = {
+    params: dict[str, Any] = {
         "partner_id": int(settings.SHOPEEPAY_PARTNER_ID),
         "order_id": order_id,
         "amount": amount,

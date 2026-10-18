@@ -100,7 +100,9 @@ jobs:
             core/settings.py core/text_utils.py core/ratelimit.py \
             products/constants.py products/validators.py \
             orders/constants.py orders/vnpay.py users/activity.py \
-            --config-file=pyproject.toml --ignore-missing-imports
+            orders/momo.py orders/shopeepay.py orders/zalopay.py \
+            orders/services/checkout.py \
+            --config-file=pyproject.toml --ignore-missing-imports --follow-imports=silent
         continue-on-error: false
 
   security:
