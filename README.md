@@ -148,8 +148,10 @@ Production cần thêm SQL Server/ODBC, Redis, reverse proxy HTTPS, DNS, thư m�
 | `scripts/start-staging-web.ps1` | Staging local mô phỏng prod: waitress 8002 + Caddy TLS ở `https://127.0.0.1:8443/` |
 | `scripts/verify_prod.py` | Kiểm tra một số điều kiện cấu hình trước go-live |
 | `backend/manage.py` | Lệnh Django: migrate, test, tạo admin và tác vụ quản trị |
-| `scripts/backup_db.ps1` | Backup SQL Server |
+| `scripts/backup-db.ps1` | Backup SQL Server (BACKUP DATABASE + RESTORE VERIFYONLY) |
 | `scripts/restore-db.ps1` | Khôi phục SQL Server sau khi xác nhận |
+| `scripts/backup.sh` | Sao lưu PostgreSQL + media của Docker Compose |
+| `scripts/backup_db.ps1` | Backup/restore PostgreSQL bằng pg_dump (Windows) |
 | `scripts/local_smoke_test.ps1` | Migrate, bật server tạm ở cổng 8010 và kiểm tra HTTP 200 |
 
 ### Luồng dữ liệu cơ bản
