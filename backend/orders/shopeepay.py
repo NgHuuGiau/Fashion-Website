@@ -53,7 +53,10 @@ def build_payment_request(order, ip_addr, return_url, notify_url) -> dict:
         return {"checkout_url": "", "error": "ShopeePay chưa được cấu hình"}
 
     order_id = f"SP{order.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    partner_id = int(settings.SHOPEEPAY_PARTNER_ID)
+    try:
+        partner_id = int(settings.SHOPEEPAY_PARTNER_ID)
+    except (TypeError, ValueError):
+        return {"checkout_url": "", "error": "SHOPEEPAY_PARTNER_ID phải là số"}
 
     params = {
         "partner_id": partner_id,

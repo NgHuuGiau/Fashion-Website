@@ -1275,6 +1275,19 @@ class CartCheckoutAndAdminTest(TestCase):
         variant = self.product_ao.variants.first()
         self.assertEqual(variant.size, "XL")
 
+    def test_admin_dashboard_edit_link_opens_product_form(self):
+        self.client.login(username="staff", password="StrongPass123!")
+        response = self.client.get(
+            reverse("orders:admin_dashboard"), {"edit": self.product_ao.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="admin-product-form"')
+        # Trang sửa sản phẩm phải mở sẵn tab biểu mẫu, không phải tab tổng quan.
+        html = response.content.decode()
+        form_idx = html.index('id="admin-product-form"')
+        self.assertIn("admin-tab-content active", html[form_idx - 40 : form_idx])
+        self.assertContains(response, "Chỉnh sửa sản phẩm")
+
     def test_admin_product_update_preserves_order_variant_for_stock_restore(self):
         self.variant_black_l.stock = 3
         self.variant_black_l.save(update_fields=["stock"])

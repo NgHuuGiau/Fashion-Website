@@ -117,10 +117,8 @@ def check():
 
 
 if __name__ == "__main__":
-    env_file = (
-        sys.argv[1]
-        if len(sys.argv) > 1
-        else os.getenv("APP_ENV_FILE", ".env.production")
-    )
+    # Bỏ qua cờ (vd --fail-on-blocker): script luôn fail khi có blocker.
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    env_file = args[0] if args else os.getenv("APP_ENV_FILE", ".env.production")
     load_env_file(BASE / env_file)
     sys.exit(check())

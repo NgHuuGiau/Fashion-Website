@@ -58,19 +58,19 @@ session[DEVICE_ID_SESSION_KEY] = device.persistent_id
 session.save()
 
 base_url = urlsplit(os.getenv("BASE_URL", "http://localhost:8000"))
+cookie = {
+    "name": settings.SESSION_COOKIE_NAME,
+    "value": client.cookies[settings.SESSION_COOKIE_NAME].value,
+    "path": "/",
+    "expires": -1,
+    "httpOnly": True,
+    "secure": base_url.scheme == "https",
+    "sameSite": "Lax",
+}
+# Playwright có thể chạy với localhost hoặc 127.0.0.1; cookie không dùng chung.
+hosts = dict.fromkeys([base_url.hostname, "localhost", "127.0.0.1"])
 state = {
-    "cookies": [
-        {
-            "name": settings.SESSION_COOKIE_NAME,
-            "value": client.cookies[settings.SESSION_COOKIE_NAME].value,
-            "domain": base_url.hostname,
-            "path": "/",
-            "expires": -1,
-            "httpOnly": True,
-            "secure": base_url.scheme == "https",
-            "sameSite": "Lax",
-        }
-    ],
+    "cookies": [{**cookie, "domain": host} for host in hosts],
     "origins": [],
 }
 auth_file = ROOT / "frontend" / ".auth" / "admin.json"

@@ -96,12 +96,25 @@ Dữ liệu demo chỉ chạy trên database riêng khi `DEBUG=True`:
 
 
 ```powershell
-python manage.py seed_all          # tài khoản, đơn hàng và sản phẩm giả
-python manage.py seed_products --sync
+python manage.py seed_all          # migrate + sản phẩm + catalog bán được + blog + tài khoản + đơn hàng
 ```
 
 
-`seed_products --sync` đọc `database/seed/products_to_sync.json`, chỉ thêm/cập nhật sản phẩm có trong file, không xóa sản phẩm khác.
+`seed_all` gọi lần lượt `seed_products --sync`, `publish_demo_catalog` và `seed_blog`, nên sau khi chạy xong website đã có hàng bán thật (biến thể + tồn kho) và bài lookbook, không cần lệnh phụ.
+
+`seed_products --sync` đọc `database/seed/products_to_sync.json`, chỉ thêm/cập nhật sản phẩm có trong file, không xóa sản phẩm khác. Lưu ý: file sync **không có `sizes`**, nên nó đặt `stock=0` và `available=False` cho mọi sản phẩm. Nếu chỉ chạy lệnh này, cửa hàng sẽ trống — chạy thêm `publish_demo_catalog` (hoặc dùng `seed_all`).
+
+
+### Tài khoản seed
+
+| Vai trò | Đăng nhập | Mật khẩu | Quyền |
+|---|---|---|---|
+| Quản trị | `admin` | `admin123` | Toàn quyền `/admin/` + `/admin-dashboard/` |
+| Nhân viên | `codexstaff` | `staff123` | `/admin-dashboard/`: đơn hàng, tồn kho, sản phẩm; không quản lý user/coupon |
+| Nhân viên | `readmestaff` | `readme123` | Như trên |
+| Khách | `nguyenvanA`, `tranthib`, `lethic`, `phamvand`, `hoangthie` | `user123` | Mua hàng, hồ sơ, đơn của tôi |
+
+`admin` và `codexstaff` bị bắt buộc bật 2FA (TOTP) khi vào `/admin/` lần đầu; mã 6 số hiển thị trên trang bật 2FA, nhập lại ở `/tai-khoan/bao-mat-2-lop/ma/`.
 
 > **Lưu ý**: `backend/seed_large_demo.py` **xóa dữ liệu** — chỉ chạy với `DEBUG=True` cùng `ALLOW_DESTRUCTIVE_DEMO_RESET=YES`. Hai script SQL trong `database/sql` có cờ xác nhận reset/seed mặc định tắt. Không dùng tài khoản seed trên production.
 
@@ -117,6 +130,19 @@ chay-web.bat
 
 
 Server phát triển chạy tại **http://localhost:8000/**. Không dùng `runserver` làm web server production.
+
+
+#### Chạy nhanh không cần SQL Server (SQLite)
+
+Máy không có SQL Server vẫn chạy được toàn bộ website bằng settings SQLite tạm. **Không** đặt biến `DB_ENGINE` (settings chỉ nhận `mssql`/`postgres`); chỉ định settings module là đủ:
+
+```powershell
+.venv\Scripts\python.exe backend\manage.py migrate --settings=core.test_settings_sqlite
+.venv\Scripts\python.exe backend\manage.py seed_all --settings=core.test_settings_sqlite
+.venv\Scripts\python.exe backend\manage.py runserver 127.0.0.1:8000 --settings=core.test_settings_sqlite
+```
+
+Database nằm ở `backend\.tmp-e2e.sqlite3`; xoá file đó để làm lại từ đầu. Email trong chế độ này in ra console (kèm mã xác minh / link đặt lại mật khẩu khi SMTP không gửi được), nên test được cả đăng ký và quên mật khẩu mà không cần cấu hình SMTP.
 
 
 ### Triển khai production
@@ -205,14 +231,45 @@ python manage.py test
 $env:DJANGO_SETTINGS_MODULE = "core.test_settings_sqlite"
 $env:SQLITE_TEST_DB = (Join-Path (Get-Location) ".tmp-e2e.sqlite3")
 $env:REDIS_URL = ""
-$env:EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 $env:BASE_URL = "http://127.0.0.1:8000"
 python backend/manage.py migrate --noinput
 python backend/manage.py seed_all --no-input
+python backend/manage.py seed_demo_photos --limit 24
 python scripts/prepare_e2e.py
 cd frontend
 npm ci
 npm test -- --project=chromium --project="Mobile Chrome"
+```
+
+`publish_demo_catalog` chỉ chạy khi `DEBUG=True`; nó bật `available`, tạo biến thể và tồn kho cho N sản phẩm đầu (`seed_all` đã gọi sẵn với mặc định 24 sản phẩm / 20 mỗi size). `seed_demo_photos` tải ảnh Unsplash về `MEDIA_ROOT` (chỉ để duyệt layout, không phải ảnh sản phẩm thật). `prepare_e2e.py` ghi session admin đã qua 2FA vào `frontend/.auth/admin.json` cho cả `localhost` và `127.0.0.1`, nên phải chạy lại mỗi lần đổi database.
+
+### Test E2E trực tiếp trên web đang chạy (4 vai trò)
+
+Ba script dưới đây gọi HTTP thật vào server đang chạy, không dùng test client. Chạy server bằng settings SQLite trước:
+
+```powershell
+# Server
+.venv\Scripts\python.exe backend\manage.py runserver 127.0.0.1:8123 --settings=core.test_settings_sqlite --noreload
+
+# Terminal khác — khách / khách hàng / nhân viên / quản trị (89 check)
+.venv\Scripts\python.exe scripts\e2e_live_roles.py all
+# hoặc từng vai trò: guest | user | staff | admin
+
+# Đăng ký, đăng nhập, quên/đặt lại mật khẩu, 2FA, rate-limit (24 check)
+.venv\Scripts\python.exe scripts\e2e_live_auth.py
+
+# Mua hàng -> nhân viên xử lý đơn -> đổi/trả, huỷ, hoàn, mua lại (17 check)
+.venv\Scripts\python.exe scripts\e2e_live_order_flow.py
+```
+
+Đặt `BASE_URL` nếu server chạy cổng khác. `e2e_live_auth.py` đọc email in ra console trong log server, nên cần trỏ server đang ghi log ra `.tmp-e2e-server.log` ở thư mục gốc repo.
+
+Ba script tạo fixture riêng (`uitestuser`, `e2ereset`, `flowuser`) và dọn sau khi chạy, nên chạy lại nhiều lần không đổi mật khẩu hay tồn kho của dữ liệu seed.
+
+Trên database dev thật (SQL Server), chỉ cần bật catalog để test tay:
+
+```powershell
+python backend/manage.py publish_demo_catalog --count 90 --stock 10
 ```
 
 CI chạy Ruff, mypy, Bandit, pip-audit, frontend lint và kiểm tra build trên PostgreSQL. Kết quả phụ thuộc môi trường và thay đổi theo code.

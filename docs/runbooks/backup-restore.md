@@ -16,7 +16,11 @@ Khôi phục sẽ thay thế database đích; cần có bản backup hiện tạ
 .\scripts\restore-db.ps1 -BackupFile D:\FashionBackups\HUUGIAU_Fashion_20260918_020000.bak -Database HUUGIAU_Fashion -Server .
 ```
 
-Hãy restore thử vào một database tạm trước khi dùng cho sự cố thật. File backup phải nằm trên đường dẫn mà dịch vụ SQL Server truy cập được.
+Hãy restore thử vào một database tạm trước khi dùng cho sự cố thật. File backup phải nằm trên đường dẫn mà dịch vụ SQL Server truy cập được. Dùng `-RestoreAs` để khôi phục sang tên khác (script tự thêm `MOVE` về thư mục dữ liệu mặc định của instance), rồi kiểm tra số sản phẩm/đơn hàng và xoá database tạm:
+
+```powershell
+.\scripts\restore-db.ps1 -BackupFile D:\FashionBackups\HUUGIAU_Fashion_20260918_020000.bak -RestoreAs HUUGIAU_RestoreDrill -Force
+```
 
 ## Docker Compose + PostgreSQL
 
@@ -42,5 +46,5 @@ Script cũng đọc được `.dump.gz` PostgreSQL cũ. Không dùng các script
 - Tạo lịch backup bằng Windows Task Scheduler hoặc cron sau khi kiểm thử lệnh thủ công.
 - Giữ bản sao ngoài máy chủ; nếu dùng S3, bật versioning/lifecycle và mã hóa ở bucket. Script upload không tự xóa bản sao cũ trên S3.
 - Bảo vệ file backup vì database/media có dữ liệu cá nhân và đơn hàng; giới hạn quyền truy cập và mã hóa ổ đĩa hoặc bucket.
-- Sau mỗi lần backup, kiểm tra mã thoát và kích thước file. Định kỳ restore lên môi trường tạm, chạy `/api/health/ready/`, kiểm tra đăng nhập, sản phẩm, đơn hàng và media.
+- Sau mỗi lần backup, kiểm tra mã thoát và kích thước file. Định kỳ restore lên môi trường tạm, chạy `/health/ready/`, kiểm tra đăng nhập, sản phẩm, đơn hàng và media.
 - Chưa có Prometheus alert, email cảnh báo hay lịch restore test trong Compose; cấu hình chúng ở nền tảng vận hành sau khi có server thật.

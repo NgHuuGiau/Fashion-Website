@@ -37,10 +37,10 @@ def daily_reconciliation(self):
         delivered_orders = Order.objects.filter(
             status="delivered",
             updated_at__date=today,
-        ).select_related("user", "user__userprofile")
+        ).select_related("user", "user__profile")
 
         for order in delivered_orders:
-            if hasattr(order.user, "userprofile"):
+            if hasattr(order.user, "profile"):
                 expected_points = int(order.total_amount // 10)
                 if order.points_earned != expected_points:
                     issues.append(

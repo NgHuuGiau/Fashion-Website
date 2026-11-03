@@ -7,6 +7,10 @@ param(
 $ErrorActionPreference = "Stop"
 if ($Database -notmatch '^[A-Za-z0-9_-]+$') { throw "Invalid database name." }
 
+# Đường dẫn tương đối tính từ thư mục scripts, không phụ thuộc cwd.
+if (-not [System.IO.Path]::IsPathRooted($BackupDirectory)) {
+    $BackupDirectory = Join-Path $PSScriptRoot $BackupDirectory
+}
 $directory = [System.IO.Path]::GetFullPath($BackupDirectory)
 New-Item -ItemType Directory -Path $directory -Force | Out-Null
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"

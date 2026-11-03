@@ -140,13 +140,19 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 _send_register_code(email, code)
             except Exception:
                 logger.exception("Không gửi được mã xác thực đăng ký")
-                _clear_pending_register(request, email)
-                messages.error(
+                if not settings.DEBUG:
+                    _clear_pending_register(request, email)
+                    messages.error(
+                        request,
+                        "Không gửi được mã xác thực. Vui lòng thử lại sau.",
+                    )
+                    _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
+                    return render(request, "auth/register.html", {"form": form})
+                # DEV: SMTP chưa cấu hình — vẫn cho đăng ký bằng mã hiển thị tại chỗ.
+                messages.warning(
                     request,
-                    "Không gửi được mã xác thực. Vui lòng thử lại sau.",
+                    f"[DEV - chưa cấu hình email] Mã xác minh của bạn: {code}",
                 )
-                _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
-                return render(request, "auth/register.html", {"form": form})
             messages.success(
                 request,
                 f"Đã gửi mã xác thực về {email}. Nhập mã để hoàn tất đăng ký.",
@@ -645,9 +651,17 @@ def forgot_password_view(request: HttpRequest) -> HttpResponse:
             try:
                 _send_reset_email(request, user)
             except Exception:
-                messages.error(
+                if not settings.DEBUG:
+                    messages.error(
+                        request,
+                        "Không gửi được email lúc này. Vui lòng thử lại sau.",
+                    )
+                    return render(request, "auth/forgot_password.html", {"form": form})
+                # DEV: SMTP chưa cấu hình — cho đi tiếp bằng link hiển thị tại chỗ.
+                reset_url = password_reset_link(request, user)
+                messages.warning(
                     request,
-                    "Không gửi được email lúc này. Vui lòng thử lại sau.",
+                    f"[DEV - chưa cấu hình email] Link đặt lại mật khẩu: {reset_url}",
                 )
                 return render(request, "auth/forgot_password.html", {"form": form})
             messages.info(
@@ -667,19 +681,24 @@ def forgot_password_view(request: HttpRequest) -> HttpResponse:
     return render(request, "auth/forgot_password.html", {"form": form})
 
 
-def _send_reset_email(request: HttpRequest, user) -> None:
-    """Gửi email chứa link đặt lại mật khẩu (uid + token có hạn dùng)."""
-    from django.conf import settings
+def password_reset_link(request: HttpRequest, user) -> str:
+    """Link dat lai mat khau (uid + token) dung cho email va nen DEBUG."""
     from django.contrib.auth.tokens import default_token_generator
-    from django.core.mail import send_mail
     from django.utils.encoding import force_bytes
     from django.utils.http import urlsafe_base64_encode
 
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    reset_url = request.build_absolute_uri(
+    return request.build_absolute_uri(
         reverse("users:password_reset_confirm", kwargs={"uidb64": uid, "token": token})
     )
+
+
+def _send_reset_email(request: HttpRequest, user) -> str:
+    """Gui email chua link dat lai mat khau; tra ve link."""
+    from django.core.mail import send_mail
+
+    reset_url = password_reset_link(request, user)
     try:
         send_mail(
             "Đặt lại mật khẩu HUUGIAU Studio",
@@ -693,6 +712,7 @@ def _send_reset_email(request: HttpRequest, user) -> None:
     except Exception:
         logger.warning("Gửi email đặt lại mật khẩu thất bại cho %s", user.username)
         raise
+    return reset_url
 
 
 def password_reset_confirm(

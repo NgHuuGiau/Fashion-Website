@@ -10,7 +10,6 @@ x-app-environment: &app-environment
   REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
   CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
   CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
-  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
   TRUSTED_PROXY: ${TRUSTED_PROXY:-True}
   TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-2}
   BEHIND_PROXY: ${BEHIND_PROXY:-False}
@@ -105,6 +104,26 @@ services:
       retries: 10
       start_period: 30s
 
+  # Chạy migrate + collectstatic một lần trước khi app/celery khởi động.
+  init:
+    build: .
+    env_file: ${APP_ENV_FILE:-.env}
+    environment:
+      <<: *app-environment
+    command:
+      - sh
+      - -c
+      - python manage.py migrate --noinput && python manage.py compress --force && python manage.py collectstatic --noinput
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    restart: "no"
+
   app:
     build: .
     restart: unless-stopped
@@ -112,6 +131,8 @@ services:
     environment:
       <<: *app-environment
     depends_on:
+      init:
+        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy
       redis:
@@ -119,7 +140,9 @@ services:
       meilisearch:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health/ready/ || exit 1"]
+      # Liveness: readiness (/health/ready/) phụ thuộc Meilisearch/Redis, dùng nó
+      # ở đây sẽ kéo cả site xuống khi search tạm lỗi. Readiness để monitoring gọi.
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -136,8 +159,19 @@ services:
     env_file: ${APP_ENV_FILE:-.env}
     environment:
       <<: *app-environment
-    command: ["celery", "-A", "core", "worker", "--loglevel=INFO", "-Q", "default,high,low"]
+    command:
+      [
+        "celery",
+        "-A",
+        "core",
+        "worker",
+        "--loglevel=INFO",
+        "-Q",
+        "default,high,low,reminders,reconciliation,maintenance",
+      ]
     depends_on:
+      init:
+        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy
       redis:
@@ -151,6 +185,8 @@ services:
       <<: *app-environment
     command: ["celery", "-A", "core", "beat", "--loglevel=INFO"]
     depends_on:
+      init:
+        condition: service_completed_successfully
       pgbouncer:
         condition: service_healthy
       redis:

@@ -60,6 +60,10 @@ class Command(BaseCommand):
         self.stdout.write("[2/7] Seeding products...")
         if not dry_run:
             call_command("seed_products", sync=True, verbosity=0)
+            # seed_products sync đặt stock=0 -> available=False; bật lại một phần
+            # catalog để web có hàng bán và test được luồng mua hàng.
+            call_command("publish_demo_catalog", verbosity=0)
+            call_command("seed_blog", verbosity=0)
 
         self.stdout.write("[3/7] Creating users...")
         self._create_users(dry_run=dry_run)

@@ -97,17 +97,15 @@ api_urlpatterns = [
     path("gdpr/guest-export/", api.api_gdpr_guest_export, name="api_gdpr_guest_export"),
     # OpenAPI schema file
     path("schema/file/", api.api_schema_file, name="api_schema_file"),
-    # Health checks
-    path("health/", views.health_live, name="health_live"),
-    path("health/ready/", views.health_ready, name="health_ready"),
-    # Monitoring
-    path("health/", api.api_health, name="api_health"),
-    path("metrics/", api.api_metrics, name="api_metrics"),
 ]
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Health + metrics ở root: docker-compose, Caddy và monitoring gọi trực tiếp.
+    path("health/", views.health_live, name="health_live"),
+    path("health/ready/", views.health_ready, name="health_ready"),
+    path("metrics/", api.api_metrics, name="api_metrics"),
     path("api/", include((api_urlpatterns, "api"), namespace="api")),
     # API Documentation (staff-only: lo danh sach endpoint/tham so neu de public)
     path(

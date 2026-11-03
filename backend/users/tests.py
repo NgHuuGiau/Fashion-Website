@@ -153,6 +153,51 @@ class UserAuthFlowTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("verifyme@test.com", mail.outbox[0].to)
 
+    def test_register_send_failure_dev_shows_code_keeps_session(self):
+        from unittest.mock import patch
+
+        with override_settings(DEBUG=True), patch(
+            "users.views._send_register_code", side_effect=OSError("smtp")
+        ):
+            response = self.client.post(
+                reverse("users:register"),
+                {
+                    "username": "devfail",
+                    "first_name": "Dev",
+                    "last_name": "Fail",
+                    "email": "devfail@test.com",
+                    "phone_number": "",
+                    "password1": "StrongPass123!",
+                    "password2": "StrongPass123!",
+                },
+            )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:register_verify"))
+        pending = self.client.session["pending_register"]
+        self.assertEqual(pending["email"], "devfail@test.com")
+
+    def test_register_send_failure_prod_errors_and_drops_session(self):
+        from unittest.mock import patch
+
+        with override_settings(DEBUG=False), patch(
+            "users.views._send_register_code", side_effect=OSError("smtp")
+        ):
+            response = self.client.post(
+                reverse("users:register"),
+                {
+                    "username": "prodfail",
+                    "first_name": "Prod",
+                    "last_name": "Fail",
+                    "email": "prodfail@test.com",
+                    "phone_number": "",
+                    "password1": "StrongPass123!",
+                    "password2": "StrongPass123!",
+                },
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Không gửi được mã xác thực")
+        self.assertNotIn("pending_register", self.client.session)
+
     def test_legacy_pending_registration_drops_plaintext_password(self):
         session = self.client.session
         session["pending_register"] = {
@@ -566,6 +611,30 @@ class ForgotPasswordResetFlowTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("users:login"))
+
+    def test_forgot_password_send_failure_dev_shows_link(self):
+        from unittest.mock import patch
+
+        with override_settings(DEBUG=True), patch(
+            "users.views._send_reset_email", side_effect=OSError("smtp")
+        ):
+            response = self.client.post(
+                reverse("users:forgot_password"), {"identifier": "resetme"}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Link \u0111\u1eb7t l\u1ea1i m\u1eadt kh\u1ea9u")
+
+    def test_forgot_password_send_failure_prod_errors(self):
+        from unittest.mock import patch
+
+        with override_settings(DEBUG=False), patch(
+            "users.views._send_reset_email", side_effect=OSError("smtp")
+        ):
+            response = self.client.post(
+                reverse("users:forgot_password"), {"identifier": "resetme"}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Không gửi được email")
 
     def test_password_reset_confirm_valid_token(self):
         from django.contrib.auth.tokens import default_token_generator

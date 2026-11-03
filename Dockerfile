@@ -17,7 +17,10 @@ COPY backend/ /app/backend/
 COPY frontend/ /app/frontend/
 
 # Chạy dưới user thường, không root (giảm thiệt hại nếu bị RCE).
-RUN useradd --create-home --uid 10001 appuser \
+# Tạo sẵn thư mục volume: Docker copy ownership của thư mục ảnh sang named volume,
+# nếu thiếu thì volume là root:root và appuser không ghi được static/media.
+RUN mkdir -p /app/staticfiles /app/media \
+    && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 USER appuser
 

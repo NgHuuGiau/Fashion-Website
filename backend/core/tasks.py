@@ -70,6 +70,6 @@ def cleanup_old_carts(self):
     from orders.models import CartReminder
 
     cutoff = timezone.now() - timedelta(days=30)
-    deleted_count, _ = CartReminder.objects.filter(created_at__lt=cutoff).delete()
+    deleted_count, _ = CartReminder.objects.filter(updated_at__lt=cutoff).delete()
     logger.info(f"Cleaned up {deleted_count} old cart reminders")
     return {"deleted_count": deleted_count}

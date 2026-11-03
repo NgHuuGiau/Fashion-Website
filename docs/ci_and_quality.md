@@ -29,6 +29,7 @@ npx eslint "static/js/*.js"; npx stylelint "static/css/*.css"
 
 Local dùng `-n 4` thay vì `-n auto` của CI: SQL Server nghẽn khi worker tăng. `pytest` đọc
 `--ds=core.settings` trong `backend/pyproject.toml`, nên local chạy trên SQL Server thật;
+đặt `$env:DB_NAME = "HUUGIAU_MSSQL_Test"` nếu muốn tránh đụng database test cũ;
 muốn chạy SQLite in-memory thì dùng `python manage.py test` với `core.test_settings_sqlite`
 (xem README).
 

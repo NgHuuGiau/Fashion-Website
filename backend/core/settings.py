@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
@@ -57,7 +59,10 @@ DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["127.0.0.1", "localhost", "testserver"])
 GHN_WEBHOOK_TOKEN = os.getenv("GHN_WEBHOOK_TOKEN", "").strip()
 GHN_TOKEN = os.getenv("GHN_TOKEN", "").strip()
-GHN_SHOP_ID = int(os.getenv("GHN_SHOP_ID", "0") or 0)
+_ghn_shop_id = os.getenv("GHN_SHOP_ID", "0").strip() or "0"
+if not _ghn_shop_id.isdigit():
+    raise ImproperlyConfigured(f"GHN_SHOP_ID phải là số, đang là {_ghn_shop_id!r}.")
+GHN_SHOP_ID = int(_ghn_shop_id)
 GHN_BASE_URL = os.getenv(
     "GHN_BASE_URL",
     "https://dev-online-gateway.ghn.vn/shiip/public-api"
@@ -65,8 +70,6 @@ GHN_BASE_URL = os.getenv(
     else "https://online-gateway.ghn.vn/shiip/public-api",
 ).rstrip("/")
 if not DEBUG:
-    from django.core.exceptions import ImproperlyConfigured
-
     _secret_key_lower = SECRET_KEY.lower()
     if (
         len(SECRET_KEY) < 50
@@ -137,6 +140,11 @@ INSTALLED_APPS = [
     "django_extensions",
     "rest_framework",
     "drf_spectacular",
+    "corsheaders",
+    "django_redis",
+    "django_celery_beat",
+    "django_celery_results",
+    "django_prometheus",
     "products",
     "users",
     "orders",
@@ -148,6 +156,7 @@ SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "core.middleware.CSPNonceMiddleware",
     "core.middleware.CSPMiddleware",
     "core.logging.CorrelationIdMiddleware",
@@ -421,6 +430,13 @@ SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
 
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", [])
+CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", False)
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 
 if not DEBUG:
     # Chi ep redirect https khi biet proxy dang cham TLS (tranh vong lap
@@ -433,10 +449,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
     SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
-    STATICFILES_STORAGE = (
-        "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
-    )
-
 
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -546,6 +558,7 @@ SPECTACULAR_SETTINGS = {
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -556,3 +569,36 @@ CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
+
+# Sentry Error Tracking
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        # Không gửi email/IP khách sang Sentry; bật qua env nếu thật sự cần.
+        send_default_pii=os.getenv("SENTRY_SEND_PII", "False").lower() == "true",
+        environment=os.getenv("APP_ENV", "production"),
+    )
+
+# Django Prometheus
+if "django_prometheus" in INSTALLED_APPS:
+    MIDDLEWARE = (
+        [
+            "django_prometheus.middleware.PrometheusBeforeMiddleware",
+        ]
+        + MIDDLEWARE
+        + [
+            "django_prometheus.middleware.PrometheusAfterMiddleware",
+        ]
+    )

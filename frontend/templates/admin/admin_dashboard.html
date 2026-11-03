@@ -17,10 +17,10 @@
 
     <nav class="adm-side-nav" aria-label="Điều hướng quản trị">
       <span class="adm-side-label">Điều hướng</span>
-      <button type="button" class="admin-tab adm-nav-item active" data-target="admin-overview">
+      <button type="button" class="admin-tab adm-nav-item {% if not editing_product and not product_form_errors %}active{% endif %}" data-target="admin-overview">
         <i class="fa-solid fa-gauge-high"></i> Tổng quan
       </button>
-      <button type="button" class="admin-tab adm-nav-item" data-target="admin-product-form">
+      <button type="button" class="admin-tab adm-nav-item {% if editing_product or product_form_errors %}active{% endif %}" data-target="admin-product-form">
         <i class="fa-regular fa-square-plus"></i> Thêm sản phẩm
       </button>
       <button type="button" class="admin-tab adm-nav-item" data-target="admin-product-table">
@@ -78,7 +78,7 @@
     </header>
 
     
-    <section class="admin-tab-content active" id="admin-overview">
+    <section class="admin-tab-content {% if not editing_product and not product_form_errors %}active{% endif %}" id="admin-overview">
 
       <div class="adm-kpis">
         <article class="adm-kpi-card">
@@ -411,7 +411,7 @@
     </section>
 
     
-    <section class="admin-tab-content" id="admin-product-form">
+    <section class="admin-tab-content {% if editing_product or product_form_errors %}active{% endif %}" id="admin-product-form">
       <div class="admin-board-panel">
         <div class="section-head">
           <div>

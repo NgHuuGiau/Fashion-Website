@@ -9,6 +9,9 @@ sqlparse>=0.6.0
 celery>=5.6,<5.7
 redis>=5.0,<5.1
 requests>=2.32,<3
+django-celery-beat>=2.9,<3
+django-celery-results>=2.6,<3
+django-cors-headers>=4.9,<5
 
 # Database (mssql-django tự kéo pyodbc; psycopg2 cho CI PostgreSQL)
 mssql-django>=1.7,<2
@@ -47,6 +50,7 @@ daphne>=4.2.2,<4.3
 # Monitoring
 sentry-sdk>=2.0,<3.0
 prometheus-client>=0.20,<0.21
+django-prometheus>=2.5,<3
 
 # SMS OTP
 phonenumbers>=8.13,<8.14

@@ -65,7 +65,7 @@ Trong Compose, `MEDIA_ROOT` của container được cố định ở `/app/medi
 
 Sau khi domain trỏ tới server, chuẩn bị `.env.production` cho Django và copy `.env.compose.production.example` thành `.env.compose.production` để cấu hình DNS/database secrets cho Compose. Thực hiện quy trình release dưới đây từ repository root; chỉ mở traffic sau khi các bước kiểm tra thành công.
 
-Container app chỉ khởi động web; không tự chạy migration hoặc xóa/tạo lại static files mỗi lần restart. Với Compose, dùng quy trình release một lần dưới đây sau khi build image. Trước khi migrate, phải diễn tập migration trên staging riêng và xác minh backup; tuyệt đối không trỏ các lệnh này vào database demo:
+Container `init` chạy `migrate` + `compress` + `collectstatic` một lần trước khi app/celery khởi động (idempotent). Thiếu `compress` thì `{% compress %}` ở chế độ offline sẽ làm mọi trang trả 500. Với Compose, vẫn nên chạy quy trình release một lần dưới đây khi build image; trước khi migrate lần đầu, phải diễn tập migration trên staging riêng và xác minh backup; tuyệt đối không trỏ các lệnh này vào database demo:
 
 ```bash
 docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml build app

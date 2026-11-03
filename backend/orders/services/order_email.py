@@ -56,7 +56,8 @@ def _order_context(order):
 
 def send_order_email(order, event="created", fail_silently=True):
     """Gửi email cho khách theo sự kiện đơn hàng. Bỏ qua nếu chưa cấu hình SMTP."""
-    if not settings.EMAIL_HOST:
+    # Console/locmem backend vẫn gửi được khi dev chưa có SMTP.
+    if not settings.EMAIL_HOST and "smtp" in settings.EMAIL_BACKEND:
         return False
     customer_email = order.customer_email or getattr(order.user, "email", "")
     if not customer_email:

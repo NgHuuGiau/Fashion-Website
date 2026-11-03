@@ -139,7 +139,7 @@ def send_order_confirmation_email(self, order_id):
         raise self.retry(exc=exc)
 
 
-@shared_task
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def send_referral_reward_notification(self, user_id, reward_type, amount):
     """Gửi thông báo khi nhận được thưởng giới thiệu."""
     from django.contrib.auth import get_user_model
