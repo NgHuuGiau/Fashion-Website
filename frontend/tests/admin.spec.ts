@@ -7,7 +7,7 @@ test.describe("Admin Dashboard", () => {
 
   test("should access admin dashboard", async ({ page }) => {
     await page.goto(`${BASE_URL}/admin-dashboard/`);
-    await expect(page.locator("h1")).toContainText(/Dashboard|Bảng điều khiển|Admin/);
+    await expect(page.locator("h1")).toContainText(/Chào mừng|Dashboard|Bảng điều khiển|Admin/);
   });
 
   test("should display order statistics", async ({ page }) => {

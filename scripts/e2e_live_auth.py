@@ -170,7 +170,8 @@ class B(requests.Session):
         return r
 
 
-# ========== A. USER: quen mat khau + dang nhap ===prepare()
+# ========== A. USER: quen mat khau + dang nhap ==========
+prepare()
 A1 = B("203.0.113.10")
 r = A1.get("/dang-nhap/")
 check("A1 trang dang nhap hien ra", r.status_code == 200, f"{r.status_code}")
