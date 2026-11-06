@@ -1,0 +1,401 @@
+{% load static compress seo_jsonld %}<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if GA4_MEASUREMENT_ID %}
+    <script nonce="{{ request.csp_nonce }}" async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
+    <script nonce="{{ request.csp_nonce }}">window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('consent', 'default', {analytics_storage: 'denied', ad_storage: 'denied'}); gtag('config', '{{ GA4_MEASUREMENT_ID }}');</script>
+    {% endif %}
+    {% include "shop/_ga4_datalayer.html" %}
+    <meta name="description" content="{% block meta_description %}HUUGIAU Atelier — Streetwear local phong cách gọn, dễ mặc. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}HUUGIAU Atelier — Streetwear Local{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Streetwear local theo hướng gọn, dễ mặc và đủ điểm nhấn để lên đồ nhanh mỗi ngày.{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    {% block og_image %}{% endblock %}
+    {% if not og_image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-default.jpg' %}">
+    {% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@huugiau">
+    <meta name="twitter:creator" content="@huugiau">
+    {% block twitter_title %}{% endblock %}
+    {% block twitter_description %}{% endblock %}
+    {% block twitter_image %}{% endblock %}
+    {% block canonical %}
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    {% endblock %}
+    <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    {% jsonld_organization %}
+    {% block jsonld %}{% endblock %}
+    <title>{% block title %}HUUGIAU Studio{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% compress css %}
+    <link rel="stylesheet" href="{% static 'css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/site_theme.css' %}?v=20261011">
+    <link rel="stylesheet" href="{% static 'css/cookie_consent.css' %}">
+    <link rel="stylesheet" href="{% static 'css/skeleton.css' %}">
+    {% endcompress %}
+    {# nonce doi moi request -> de ngoai compress offline, giong cookie_consent.js #}
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/site_interactions.js' %}?v=20261011"></script>
+
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% if debug %}
+    <div class="topline" role="note">Chế độ phát triển</div>
+    {% else %}
+    <div class="topline">Miễn phí vận chuyển cho đơn từ 499.000đ · Phí vận chuyển được hiển thị trước khi đặt hàng</div>
+    {% endif %}
+
+    <header class="site-header">
+        <div class="container nav-wrap">
+            <div class="header-left">
+                <button type="button" class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="brand-block">
+                    <a href="{% url 'products:product_list' %}" class="logo" aria-label="Trang chủ">HUUGIAU</a>
+                    <span class="brand-note">ATELIER / FASHION STUDIO</span>
+                </div>
+            </div>
+
+            <nav class="site-nav" id="site-nav" aria-label="Menu điều hướng">
+                <div class="site-nav-inner">
+                <div class="site-nav-header">
+                    <a href="{% url 'products:product_list' %}" class="site-nav-logo">HUUGIAU</a>
+                    <button type="button" class="close-menu" id="close-menu" aria-label="Đóng menu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form class="site-nav-search" method="get" action="{% url 'products:product_list' %}">
+                    <svg class="site-nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" name="q" placeholder="Tìm kiếm..." value="{{ request.GET.q|default:'' }}">
+                </form>
+
+                <div class="site-nav-section">
+                    <span class="site-nav-label">Danh mục</span>
+                    <a href="{% url 'products:product_list' %}?sort=newest">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        New in
+                    </a>
+                    <a href="{% url 'products:product_list' %}?category=ao">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        Áo
+                    </a>
+                    <a href="{% url 'products:product_list' %}?category=quan">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v16"/><path d="M7 20h10l2 2H5l2-2z"/><path d="M7 4H5a2 2 0 0 0-2 2v4"/><path d="M17 4h2a2 2 0 0 1 2 2v4"/></svg>
+                        Quần
+                    </a>
+                    <a href="{% url 'products:product_list' %}?category=phu-kien">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 9V3"/><path d="M12 21v-6"/><path d="M3 12h6"/><path d="M15 12h6"/></svg>
+                        Phụ kiện
+                    </a>
+                    <a href="{% url 'products:blog_list' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Lookbook
+                    </a>
+                </div>
+
+                <div class="site-nav-section">
+                    <span class="site-nav-label">Cửa hàng</span>
+                    <a href="{% url 'about' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z"/></svg>
+                        Câu chuyện thương hiệu
+                    </a>
+                    <a href="{% url 'orders:promo_page' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                        Khuyến mãi
+                    </a>
+                    <a href="{% url 'contact' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Liên hệ
+                    </a>
+                    <a href="{% url 'return_policy' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        Chính sách đổi trả
+                    </a>
+                    <a href="{% url 'faq' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Hỏi đáp
+                    </a>
+                </div>
+
+                <div class="site-nav-section">
+                    <span class="site-nav-label">Tài khoản</span>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'users:profile' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Hồ sơ
+                    </a>
+                    <a href="{% url 'orders:my_orders' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        Đơn hàng
+                    </a>
+                    <a href="{% url 'products:wishlist_list' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        Yêu thích
+                    </a>
+                    <a href="{% url 'users:logout' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Đăng xuất
+                    </a>
+                    {% else %}
+                    <a href="{% url 'users:login' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                        Đăng nhập
+                    </a>
+                    <a href="{% url 'users:register' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        Đăng ký
+                    </a>
+                    {% endif %}
+                </div>
+
+                <a href="{% url 'orders:cart_detail' %}" class="site-nav-cart">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    Giỏ hàng
+                    <span class="site-nav-cart-count" {% if not cart_item_count %}hidden{% endif %}>{{ cart_item_count }}</span>
+                </a>
+
+                {% if request.user.is_staff %}
+                <div class="site-nav-section site-nav-staff">
+                    <span class="site-nav-label">Quản trị</span>
+                    <a href="{% url 'orders:admin_dashboard' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Bảng điều khiển
+                    </a>
+                    <a href="{% url 'admin:index' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Quản trị
+                    </a>
+                </div>
+                {% endif %}
+
+                <div class="site-nav-footer">
+                    <span class="site-nav-footer-text">HUUGIAU Atelier &copy; 2026</span>
+                </div>
+                </div>
+            </nav>
+
+            <nav class="desktop-nav" aria-label="Điều hướng chính">
+                <a class="desktop-nav-link" href="{% url 'products:product_list' %}?sort=newest">New in</a>
+                <div class="desktop-nav-dropdown">
+                    <a class="desktop-nav-link" href="{% url 'products:product_list' %}">Cửa hàng</a>
+                    <div class="desktop-dropdown-menu">
+                        <a href="{% url 'products:product_list' %}?category=ao">Áo</a>
+                        <a href="{% url 'products:product_list' %}?category=quan">Quần</a>
+                        <a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a>
+                        <a href="{% url 'products:product_list' %}">Tất cả sản phẩm</a>
+                    </div>
+                </div>
+                <a class="desktop-nav-link" href="{% url 'products:blog_list' %}">Lookbook</a>
+                <a class="desktop-nav-link" href="{% url 'about' %}">Câu chuyện</a>
+            </nav>
+
+            <div class="header-right">
+                <form class="header-search" method="get" action="{% url 'products:product_list' %}" id="header-search-form" autocomplete="off" data-suggest-url="{% url 'products:search_suggest' %}">
+                    <input type="text" name="q" placeholder="Tìm áo, quần, phụ kiện..." value="{{ request.GET.q|default:'' }}" id="header-search-input">
+                    <div class="header-search-suggest" id="search-suggest"></div>
+                </form>
+                <a href="{% url 'orders:cart_detail' %}" class="icon-btn cart-btn" aria-label="Giỏ hàng">
+                    <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                    <span class="icon-count" {% if not cart_item_count %}hidden{% endif %}>{{ cart_item_count }}</span>
+                </a>
+                <a href="{% url 'products:wishlist_list' %}" class="icon-btn" aria-label="Yêu thích">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                </a>
+                <details class="account-menu">
+                    <summary class="account-trigger">
+                        <i class="fa-regular fa-user" aria-hidden="true"></i>
+                        <span>Tài khoản</span>
+                        <i class="fa-solid fa-chevron-down account-caret" aria-hidden="true"></i>
+                    </summary>
+                    <div class="account-dropdown">
+                        {% if request.user.is_authenticated %}
+                        <a href="{% url 'users:profile' %}">Hồ sơ</a>
+                        <a href="{% url 'orders:my_orders' %}">Đơn hàng</a>
+                        <a href="{% url 'products:wishlist_list' %}">Yêu thích</a>
+                        <a href="{% url 'users:logout' %}" class="danger">Đăng xuất</a>
+                        {% else %}
+                        <a href="{% url 'users:login' %}">Đăng nhập</a>
+                        <a href="{% url 'users:register' %}">Đăng ký</a>
+                        {% endif %}
+                        {% if request.user.is_staff %}
+                        <a href="{% url 'orders:admin_dashboard' %}" class="highlight">Bảng điều khiển</a>
+                        <a href="{% url 'admin:index' %}">Quản trị</a>
+                        {% endif %}
+                    </div>
+                </details>
+            </div>
+        </div>
+    </header>
+
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <main class="container page-wrap">
+        <div id="messages-data" style="display:none">{% if messages %}[{% for message in messages %}{"text":"{{ message|escapejs }}","tags":"{{ message.tags }}"}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %}</div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-wrap">
+            <div class="footer-col">
+                <h3>HUUGIAU Atelier</h3>
+                <p class="footer-tagline">Streetwear local — gọn, dễ mặc, đủ điểm nhấn để lên đồ nhanh mỗi ngày.</p>
+                {% if STORE_ADDRESS %}<p style="font-size:0.78rem;color:var(--muted-light);margin-top:0.5rem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ STORE_ADDRESS }}</p>{% endif %}
+                {% if SOCIAL_FANPAGES.facebook or SOCIAL_FANPAGES.instagram or SOCIAL_FANPAGES.tiktok or SOCIAL_FANPAGES.youtube %}
+                <p style="margin-top:0.6rem">
+                    {% if SOCIAL_FANPAGES.facebook %}<a href="{{ SOCIAL_FANPAGES.facebook }}" target="_blank" rel="noopener" class="footer-email" aria-label="Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.instagram %}<a href="{{ SOCIAL_FANPAGES.instagram }}" target="_blank" rel="noopener" class="footer-email" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.tiktok %}<a href="{{ SOCIAL_FANPAGES.tiktok }}" target="_blank" rel="noopener" class="footer-email" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>{% endif %}
+                    {% if SOCIAL_FANPAGES.youtube %}<a href="{{ SOCIAL_FANPAGES.youtube }}" target="_blank" rel="noopener" class="footer-email" aria-label="YouTube"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>{% endif %}
+                </p>
+                {% endif %}
+                <form class="footer-newsletter" method="post" action="{% url 'products:newsletter_subscribe' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="email" name="email" placeholder="Đăng ký nhận thông tin" aria-label="Email đăng ký nhận thông tin" required>
+                    <button type="submit" class="btn"><i class="fa-solid fa-arrow-right"></i></button>
+                </form>
+            </div>
+            <div class="footer-col">
+                <h3>Hỗ trợ</h3>
+                <ul>
+                    <li><a href="{% url 'orders:order_lookup' %}">Tra cứu đơn hàng</a></li>
+                    <li><a href="{% url 'orders:my_orders' %}">Đơn hàng của tôi</a></li>
+                    <li><a href="{% url 'return_policy' %}">Chính sách đổi trả</a></li>
+                    <li><a href="{% url 'size_guide' %}">Hướng dẫn chọn size</a></li>
+                    <li><a href="{% url 'care_guide' %}">Chất liệu &amp; bảo quản</a></li>
+                    <li><a href="{% url 'orders:promo_page' %}">Khuyến mãi</a></li>
+                    <li><a href="{% url 'faq' %}">Câu hỏi thường gặp</a></li>
+                </ul>
+                {% if HOTLINE %}<p style="margin-top:0.6rem;font-size:0.78rem;color:var(--muted-light)">Hotline: <a href="tel:{{ HOTLINE }}" class="footer-email">{{ HOTLINE }}</a></p>{% endif %}
+                {% if SUPPORT_EMAIL %}<p style="margin-top:0.35rem;font-size:0.78rem;color:var(--muted-light)">Email: <a href="mailto:{{ SUPPORT_EMAIL }}" class="footer-email">{{ SUPPORT_EMAIL }}</a></p>{% endif %}
+            </div>
+            <div class="footer-col">
+                <h3>Danh mục</h3>
+                <ul>
+                    <li><a href="{% url 'products:product_list' %}?category=ao">Áo</a></li>
+                    <li><a href="{% url 'products:product_list' %}?category=quan">Quần</a></li>
+                    <li><a href="{% url 'products:product_list' %}?category=phu-kien">Phụ kiện</a></li>
+                    <li><a href="{% url 'products:product_list' %}?sort=newest">Hàng mới về</a></li>
+                    <li><a href="{% url 'products:product_list' %}">Tất cả sản phẩm</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Về HUUGIAU</h3>
+                <ul>
+                    <li><a href="{% url 'about' %}">Câu chuyện thương hiệu</a></li>
+                    <li><a href="{% url 'size_guide' %}">Hướng dẫn chọn size</a></li>
+                    <li><a href="{% url 'careers' %}">Tuyển dụng</a></li>
+                    <li><a href="{% url 'contact' %}">Liên hệ</a></li>
+                    <li><a href="{% url 'products:blog_list' %}">Lookbook</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="footer-bottom-links">
+                    <span>&copy; 2026 HUUGIAU Atelier</span>
+                    <a href="{% url 'privacy' %}">Chính sách bảo mật</a>
+                    <a href="{% url 'terms' %}">Điều khoản</a>
+                    {% if BCT_BADGE_URL %}<a href="{{ BCT_BADGE_LINK|default:'https://online.gov.vn' }}" target="_blank" rel="noopener" aria-label="Đã đăng ký Bộ Công Thương"><img src="{{ BCT_BADGE_URL }}" alt="Đã thông báo Bộ Công Thương" loading="lazy" style="height:32px"></a>{% endif %}
+                </div>
+                <div class="footer-payments">
+                    <span title="Thanh toán tiền mặt khi nhận hàng"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> COD</span>
+                    {% if BANK_TRANSFER_AVAILABLE %}<span title="Chuyển khoản ngân hàng"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> Chuyển khoản</span>{% endif %}
+                    {% if VNPAY_AVAILABLE %}<span title="Thanh toán qua VNPay">VNPay</span>{% endif %}
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    {% if compare_ids %}
+    <div class="compare-bar is-visible" aria-label="Danh sách so sánh">
+        <span><i class="fa-solid fa-scale-balanced"></i> {{ compare_ids|length }} sản phẩm trong so sánh</span>
+        <a href="{% url 'products:compare_view' %}">So sánh ngay</a>
+        <form method="post" action="{% url 'products:compare_clear' %}">
+            {% csrf_token %}
+            <button type="submit" class="compare-btn is-active">Xoá</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Mở hỗ trợ mua hàng">
+        <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+    </button>
+
+    {% if ZALO_OA_ID %}
+    <a href="https://zalo.me/{{ ZALO_OA_ID }}" class="zalo-launcher" target="_blank" rel="noopener" aria-label="Chat qua Zalo">
+        <i class="fa-solid fa-comment"></i>
+    </a>
+    {% endif %}
+
+    <div class="chatbox-backdrop hidden" id="chatbox-backdrop"></div>
+
+    <section class="chatbox hidden" id="support-chatbox" aria-label="Hỗ trợ mua hàng" data-chat-endpoint="{% url 'products:support_chat_reply' %}">
+        <div class="chatbox-header">
+            <div>
+                <p class="chatbox-kicker">Tư vấn nhanh</p>
+                <h3>Hỗ trợ mua hàng</h3>
+            </div>
+            <button type="button" class="chatbox-close" id="chatbox-close" aria-label="Đóng chat">×</button>
+        </div>
+        <div class="chatbox-body" id="chatbox-messages">
+            <article class="chat-message bot">
+                <p>Chào bạn 👋 Mình hỗ trợ size, ship, thanh toán và đổi trả. Cứ hỏi như chat với shop bình thường nhé!</p>
+            </article>
+        </div>
+        <div class="chatbox-suggestions" id="chatbox-suggestions">
+            <button type="button" class="chat-suggestion">1m72 68kg mặc size gì?</button>
+            <button type="button" class="chat-suggestion">Ship bao nhiêu? Freeship không?</button>
+            <button type="button" class="chat-suggestion">Còn màu đen size M không?</button>
+            <button type="button" class="chat-suggestion">Thanh toán thế nào?</button>
+        </div>
+        <form class="chatbox-form" id="chatbox-form">{% csrf_token %}
+            <input type="text" id="chatbox-input" placeholder="Hỏi về size, giao hàng, đơn hàng..." autocomplete="off">
+            <button type="submit" class="btn small">Gửi</button>
+        </form>
+    </section>
+
+    <div class="cart-drawer-overlay" id="cart-drawer-overlay" hidden></div>
+    <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Giỏ hàng" aria-hidden="true">
+        <div class="cart-drawer-head">
+            <h3>Giỏ hàng (<span id="cart-drawer-count">0</span>)</h3>
+            <button type="button" class="cart-drawer-close" id="cart-drawer-close" aria-label="Đóng giỏ hàng">×</button>
+        </div>
+        <div class="cart-drawer-items" id="cart-drawer-items"></div>
+        <div class="cart-drawer-foot">
+            <div class="cart-drawer-subtotal"><span>Tạm tính</span><strong id="cart-drawer-subtotal">0đ</strong></div>
+            <div class="cart-drawer-actions">
+                <a href="{% url 'orders:cart_detail' %}" class="btn ghost">Xem giỏ hàng</a>
+                <a href="{% url 'orders:checkout' %}" class="btn">Thanh toán</a>
+            </div>
+        </div>
+    </aside>
+
+    {# nonce doi moi request -> de ngoai compress offline #}
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/base_interactions.js' %}?v=20261011"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/cookie_consent.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/recently_viewed.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}">
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "sw.js" %}').catch(() => {});
+      });
+    }
+    </script>
+</body>
+</html>

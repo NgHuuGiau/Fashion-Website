@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xác nhận thanh toán #{{ order.id }}</title>
+    <style nonce="{{ request.csp_nonce }}">
+        :root {
+            --bg: #f5f0ea;
+            --bg-soft: #fcf9f5;
+            --surface-strong: #ffffff;
+            --surface-tint: #efe7de;
+            --line-strong: rgba(30, 22, 16, 0.14);
+            --text: #0d0a08;
+            --text-soft: #3d2d24;
+            --muted: #7d6b5c;
+            --muted-light: #ab9a8b;
+            --accent: #c96f2e;
+            --accent-strong: #a8551f;
+            --accent-soft: #f5e1ce;
+            --accent-glow: rgba(201, 111, 46, 0.20);
+            --success: #1f8a4d;
+            --success-soft: rgba(31, 138, 77, 0.10);
+            --danger: #d94a34;
+            --danger-soft: rgba(217, 74, 52, 0.10);
+            --shadow-sm: 0 1px 3px rgba(30, 22, 16, 0.04), 0 4px 12px rgba(30, 22, 16, 0.05);
+            --radius: 18px;
+            --radius-sm: 10px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background:
+                radial-gradient(ellipse at 100% 0%, rgba(240, 225, 205, 0.4), transparent 45%),
+                radial-gradient(ellipse at 0% 100%, rgba(225, 210, 195, 0.22), transparent 50%),
+                linear-gradient(180deg, #fffcf8 0%, #f6efe6 100%);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+        .shell {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            max-width: 420px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .card {
+            background: var(--surface-strong);
+            border: 1px solid rgba(30, 22, 16, 0.06);
+            border-radius: 20px;
+            padding: 1.75rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 0.75rem;
+        }
+        .brand {
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+        .brand-sub {
+            text-align: center;
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            color: var(--muted-light);
+            margin-bottom: 0.75rem;
+        }
+        .order-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.15rem;
+        }
+        .amount {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-strong);
+            margin: 0.5rem 0 1rem;
+            letter-spacing: -0.02em;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .bank-info {
+            background: var(--surface-tint);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .bank-info p {
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+        }
+        .bank-info span { color: var(--muted); }
+        .bank-info strong { font-weight: 600; color: var(--text); }
+        .qr-box {
+            text-align: center;
+            margin-bottom: 0.9rem;
+        }
+        .qr-img {
+            width: 200px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid rgba(30, 22, 16, 0.08);
+            border-radius: 14px;
+            background: var(--surface-strong);
+            padding: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .qr-hint {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.45rem;
+        }
+        .qr-box.qr-missing .qr-hint { color: var(--danger); }
+        .status-box {
+            text-align: center;
+            padding: 1.25rem 1rem;
+            border-radius: 14px;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .status-paid { background: var(--success-soft); color: var(--success); }
+        .status-expired { background: var(--danger-soft); color: var(--danger); }
+        .status-cancelled { background: var(--surface-tint); color: var(--muted); }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            margin-top: auto;
+            padding-top: 0.5rem;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.1s ease;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #fffdfa;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border: 2px solid var(--line-strong);
+        }
+        .btn-ghost:active { background: var(--surface-tint); }
+        .note {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--muted-light);
+            margin-top: 0.75rem;
+            padding-bottom: 1rem;
+        }
+        .btn[disabled] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .close-note {
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: 0.3rem;
+        }
+        .close-note a { color: var(--success); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="card">
+            <div class="brand">HUUGIAU</div>
+            <div class="brand-sub">ATELIER / FASHION STUDIO</div>
+
+            {% if just_paid %}
+                <div class="status-box status-paid">
+                    <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10003;</span>
+                    Xác nhận thanh toán thành công!
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Đơn hàng #{{ order.id }} đã được xác nhận. Cảm ơn bạn.
+                </p>
+                <p class="close-note">
+                    Bạn có thể đóng trang này.
+                    <br><a href="{% url 'orders:order_success' order.id %}">Xem chi tiết đơn hàng</a>
+                </p>
+            {% elif verification_pending %}
+                <div class="status-box status-expired">
+                    Yêu cầu đang chờ shop đối soát
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Hệ thống chưa xác nhận đã thanh toán. Shop sẽ kiểm tra giao dịch và cập nhật đơn hàng.
+                </p>
+                <p class="close-note"><a href="{% url 'orders:order_success' order.id %}">Xem chi tiết đơn hàng</a></p>
+            {% elif bank_transfer_unavailable %}
+                <div class="status-box status-expired">Chuyển khoản chưa khả dụng</div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Không thực hiện chuyển tiền từ thông tin trên trang này. Đơn hàng chưa được ghi nhận đã thanh toán.
+                </p>
+            {% elif paid %}
+                <div class="status-box status-paid">
+                    <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10003;</span>
+                    Đơn hàng #{{ order.id }} đã thanh toán
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Đơn hàng đã được thanh toán trước đó.
+                </p>
+                <p class="close-note">
+                    Bạn có thể đóng trang này.
+                    <br><a href="{% url 'orders:order_success' order.id %}">Xem chi tiết đơn hàng</a>
+                </p>
+            {% elif expired %}
+                <div class="status-box status-expired">
+                    <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#9888;</span>
+                    Đơn hàng #{{ order.id }} đã hết hạn
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Quá 15 phút chưa thanh toán. Vui lòng đặt lại đơn hàng mới.
+                </p>
+            {% elif just_cancelled %}
+                <div class="status-box status-cancelled">
+                    <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10005;</span>
+                    Đã hủy thanh toán
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Đơn hàng #{{ order.id }} đã được hủy.
+                </p>
+                <p class="close-note">
+                    Bạn có thể đóng trang này.
+                </p>
+            {% elif cancelled %}
+                <div class="status-box status-cancelled">
+                    <span style="font-size:1.4rem;display:block;margin-bottom:0.3rem;">&#10005;</span>
+                    Đơn hàng #{{ order.id }} đã hủy
+                </div>
+                <p style="text-align:center;font-size:0.85rem;color:var(--muted);">
+                    Đơn hàng này đã được hủy trước đó.
+                </p>
+                <p class="close-note">
+                    Bạn có thể đóng trang này.
+                </p>
+            {% else %}
+                <div class="order-id">Đơn hàng #{{ order.id }}</div>
+                <div class="amount">{{ order.total_amount|vnd }}<span style="font-size:0.9rem;">đ</span></div>
+
+                {% if bank_transfer_enabled %}
+                <div class="bank-info">
+                    <p><span>Ngân hàng</span><strong>{{ selected_bank_name }}</strong></p>
+                    <p><span>Số TK</span><strong>{{ shop_bank_account|default:"Chưa cấu hình" }}</strong></p>
+                    <p><span>Chủ TK</span><strong>{{ shop_account_name|default:"Chưa cấu hình" }}</strong></p>
+                    <p><span>Nội dung</span><strong>DH{{ order.id }}</strong></p>
+                </div>
+
+                <div class="qr-box">
+                    <img src="{{ qr_url }}" alt="QR chuyển khoản" class="qr-img" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('qr-missing')">
+                    <p class="qr-hint">Dùng app ngân hàng quét mã này để chuyển khoản</p>
+                </div>
+
+                <p style="text-align:center;font-size:0.78rem;color:var(--muted);">
+                    Chuyển khoản đúng số tiền và nội dung<br>bên trên, sau đó bấm <strong>Xác nhận</strong>.
+                </p>
+
+                <div class="btn-group">
+                    <form method="post" action="{% url 'orders:bank_payment_mobile' token order.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="confirm">
+                        <button type="submit" class="btn btn-primary">
+                            &#10003; Báo shop kiểm tra
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'orders:bank_payment_mobile' token order.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="cancel">
+                        <button type="submit" class="btn btn-ghost">
+                            &#8592; Hủy thanh toán
+                        </button>
+                    </form>
+                </div>
+
+                <div class="note">
+                    Yêu cầu kiểm tra không tự xác nhận đã thanh toán; shop cần đối soát giao dịch.
+                </div>
+                {% else %}
+                <div class="note">Chuyển khoản ngân hàng hiện chưa được cấu hình. Đơn hàng chưa được xác nhận đã thanh toán; vui lòng liên hệ shop hoặc chọn COD khi đặt đơn mới.</div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {% if expired or cancelled or paid %}
+        <div class="btn-group">
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary">Về trang chủ</a>
+        </div>
+        {% endif %}
+    </div>
+    {% if just_paid or just_cancelled %}
+    <script nonce="{{ request.csp_nonce }}">
+        (function(){
+            try { window.close(); } catch(e) {}
+            {% if just_paid %}
+            var desktopUrl = "{{ success_url }}";
+            {% else %}
+            var desktopUrl = "{{ failed_url }}";
+            {% endif %}
+            var interval = setInterval(function(){
+                try {
+                    if(window.opener && !window.opener.closed) {
+                        window.opener.location.href = desktopUrl;
+                        window.close();
+                        clearInterval(interval);
+                    }
+                } catch(e) {}
+            }, 500);
+            setTimeout(function(){
+                clearInterval(interval);
+                var a = document.createElement('a');
+                a.href = desktopUrl;
+                a.textContent = 'Quay lại đơn hàng';
+                a.style.display = 'block';
+                a.style.textAlign = 'center';
+                a.style.marginTop = '1rem';
+                a.style.fontWeight = '600';
+                document.querySelector('.shell .card').appendChild(a);
+            }, 2000);
+        })();
+    </script>
+    {% endif %}
+</body>
+</html>

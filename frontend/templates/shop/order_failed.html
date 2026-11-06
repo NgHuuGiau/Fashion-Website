@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Đơn hàng chưa thành công{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="status-card panel failure-card">
+        <p class="eyebrow">Đơn hàng chưa thành công</p>
+        <h1>Giao dịch đã dừng lại</h1>
+        <p>Mã đơn hàng: <strong>#{{ order.id }}</strong></p>
+        <p>Lý do: <strong>{{ failed_reason }}</strong></p>
+        <div class="stack row">
+            <a href="{% url 'orders:my_orders' %}" class="btn ghost">Xem đơn hàng của tôi</a>
+            <a href="{% url 'products:product_list' %}" class="btn">Tiếp tục mua sắm</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

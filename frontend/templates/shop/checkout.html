@@ -1,0 +1,631 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Thanh toán{% endblock %}
+{% block body_class %}checkout-page{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'orders:cart_detail' %}">Giỏ hàng</a>
+    <span>/</span>
+    <span>Thanh toán</span>
+</nav>
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Thanh toán</p>
+            <h1>Thanh toán nhanh trong một trang</h1>
+            <p>Nhập thông tin, chọn phương thức và hoàn tất đơn hàng ngay.</p>
+        </div>
+    </div>
+
+    <div class="checkout-layout">
+        <div class="checkout-main panel">
+            <form method="post" class="checkout-form">
+                {% csrf_token %}
+                <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+                {% if form.non_field_errors %}
+                <div class="message error">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+
+                <div class="form-grid">
+                    <label class="field">
+                        <span>{{ form.customer_name.label }}</span>
+                        {{ form.customer_name }}
+                        {{ form.customer_name.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.customer_email.label }}</span>
+                        {{ form.customer_email }}
+                        {{ form.customer_email.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.phone.label }}</span>
+                        {{ form.phone }}
+                        {{ form.phone.errors }}
+                    </label>
+                    {% if saved_addresses %}
+                    <div class="field span-2 checkout-saved-addresses">
+                        <span class="checkout-saved-label">Chọn địa chỉ nhận hàng:</span>
+                        <div class="checkout-saved-list">
+                            {% for addr in saved_addresses %}
+                            <label class="saved-addr-option {% if addr.is_default %}is-default{% endif %}">
+                                <input type="radio" name="selected_address_id" value="{{ addr.id }}"
+                                       {% if addr.is_default %}checked{% endif %}
+                                       data-name="{{ addr.recipient_name }}" data-phone="{{ addr.phone }}" data-address="{{ addr.address }}"
+                                       data-verified="{% if addr.is_phone_verified %}1{% endif %}">
+                                <span class="saved-addr-body">
+                                    {% if addr.is_default %}<em class="saved-addr-default">Mặc định</em>{% endif %}
+                                    <strong>{{ addr.recipient_name }} · {{ addr.phone }}{% if addr.is_phone_verified %} ✓{% endif %}</strong>
+                                    <span>{{ addr.address }}</span>
+                                </span>
+                                <button type="button" class="saved-addr-del" data-url="{% url 'users:address_delete' addr.id %}" aria-label="Xóa địa chỉ này">Xóa</button>
+                            </label>
+                            {% endfor %}
+                            <label class="saved-addr-option is-new">
+                                <input type="radio" name="selected_address_id" value="" {% if not saved_addresses %}checked{% endif %}>
+                                <span class="saved-addr-body"><strong>+ Địa chỉ mới</strong><span>Nhập thông tin bên dưới, sẽ được lưu sau khi đặt hàng.</span></span>
+                            </label>
+                        </div>
+                        <p class="muted">Sửa thông tin bên dưới sẽ lưu thành địa chỉ mới, địa chỉ cũ vẫn giữ nguyên.</p>
+                    </div>
+                    {% endif %}
+                    <label class="field span-2">
+                        <span>{{ form.shipping_address.label }}</span>
+                        {{ form.shipping_address }}
+                        {{ form.shipping_address.errors }}
+                    </label>
+                    {% if form.shipping_ward_name.field.required %}
+                    <label class="field">
+                        <span>{{ form.shipping_ward_name.label }}</span>
+                        {{ form.shipping_ward_name }}
+                        {{ form.shipping_ward_name.errors }}
+                    </label>
+                    <label class="field">
+                        <span>{{ form.shipping_province_name.label }}</span>
+                        {{ form.shipping_province_name }}
+                        {{ form.shipping_province_name.errors }}
+                    </label>
+                    <p class="muted span-2">Vui lòng nhập tên phường/xã và tỉnh/thành theo địa chỉ GHN để tạo vận đơn.</p>
+                    {% endif %}
+                    <div class="field span-2 checkout-map-wrap">
+                        <div class="checkout-map-tools">
+                            <input type="text" id="locate-search" class="checkout-map-search" placeholder="Địa chỉ, phường/xã, tỉnh/thành" aria-label="Tìm địa chỉ giao hàng">
+                            <button type="button" class="btn ghost" id="locate-btn"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Định vị</button>
+                            <a href="#" id="locate-google-link" class="checkout-map-google" target="_blank" rel="noopener">Mở Google Maps <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                        </div>
+                        <div id="checkout-map" class="checkout-map" aria-label="Bản đồ chọn vị trí giao hàng"></div>
+                        <p class="checkout-map-hint">Gõ địa chỉ rồi bấm Enter để tìm trên map, hoặc click trực tiếp lên map để chọn đúng vị trí giao hàng.</p>
+                        <p class="checkout-map-status" id="locate-status" hidden></p>
+                    </div>
+                    <label class="field span-2">
+                        <span>{{ form.payment_method.label }}</span>
+                        {{ form.payment_method }}
+                        {{ form.payment_method.errors }}
+                    </label>
+                </div>
+
+                <div class="payment-box panel-soft" id="bank-code-wrap">
+                    <div class="field">
+                        <span>Ngân hàng nhận tiền</span>
+                        <p><strong>{{ shop_bank.name }}</strong> — bạn có thể quét mã bằng ứng dụng ngân hàng bất kỳ.</p>
+                        <input type="hidden" id="id_bank_code" value="{{ shop_bank_code }}">
+                    </div>
+                </div>
+
+                <div class="payment-box panel-soft payment-qr-layout" id="bank-transfer-box">
+                    <div class="payment-qr-copy">
+                        <p class="eyebrow">Chuyển khoản</p>
+                        <h3>Quét QR trong 15 phút</h3>
+                        <p>Ngân hàng nhận: <strong id="bank-name-label">{{ shop_bank.name }}</strong></p>
+                        <p>Số tài khoản: <strong>{{ shop_bank_account }}</strong></p>
+                        <p>Chủ tài khoản: <strong>{{ shop_account_name }}</strong></p>
+                        <p>Nội dung: <strong id="transfer-note-label">DH-TAM</strong></p>
+                    </div>
+                    <img src="{{ demo_qr_url }}" alt="QR chuyển khoản" id="bank-qr-image">
+                </div>
+
+                <div class="payment-box panel-soft" id="cod-note-box">
+                    <h3>Thanh toán khi nhận hàng</h3>
+                    <p>Bạn chỉ cần xác nhận đơn, shop sẽ liên hệ và giao đến địa chỉ đã nhập.</p>
+                </div>
+
+                <div class="payment-box panel-soft" id="vnpay-note-box">
+                    <h3>Thanh toán VNPay</h3>
+                    <p>Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán VNPay để hoàn tất thanh toán trực tuyến.</p>
+                </div>
+
+                <div class="form-grid">
+                    <label class="field span-2">
+                        <span>{{ form.coupon_code.label }}</span>
+                        {{ form.coupon_code }}
+                        {{ form.coupon_code.errors }}
+                        {% if form.coupon_code.help_text %}<small class="help-text">{{ form.coupon_code.help_text }}</small>{% endif %}
+                    </label>
+                    {% if user_points %}
+                    <label class="field span-2">
+                        <span>{{ form.points_to_use.label }} — bạn có <strong>{{ user_points }}</strong> điểm</span>
+                        {{ form.points_to_use }}
+                        {{ form.points_to_use.errors }}
+                        {% if form.points_to_use.help_text %}<small class="help-text">{{ form.points_to_use.help_text }}</small>{% endif %}
+                    </label>
+                    {% endif %}
+                    <label class="field span-2">
+                        <span>{{ form.note.label }}</span>
+                        {{ form.note }}
+                        {{ form.note.errors }}
+                    </label>
+                    <label class="field span-2">
+                        <span>{{ form.delivery_time_slot.label }}</span>
+                        {{ form.delivery_time_slot }}
+                        {{ form.delivery_time_slot.errors }}
+                    </label>
+                    <label class="field span-2 checkout-gift-field">
+                        <span class="checkout-gift-trigger">
+                            <input type="checkbox" name="gift_wrap" id="id_gift_wrap" {% if form.gift_wrap.value %}checked{% endif %}>
+                            🎁 {{ form.gift_wrap.label }}
+                        </span>
+                        <input type="text" name="gift_note" id="id_gift_note" class="checkout-gift-note"
+                               placeholder="Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"
+                               {% if not form.gift_wrap.value %}disabled{% endif %}>
+                    </label>
+                    <script nonce="{{ request.csp_nonce }}">
+                    (function() {
+                        var chk = document.getElementById('id_gift_wrap');
+                        var note = document.getElementById('id_gift_note');
+                        if (!chk || !note) return;
+                        function sync() { note.disabled = !chk.checked; }
+                        chk.addEventListener('change', sync);
+                        sync();
+                    })();
+                    </script>
+                </div>
+
+                <button type="submit" class="btn">Xác nhận đặt hàng</button>
+            </form>
+        </div>
+
+        <aside class="checkout-side panel">
+            <p class="eyebrow">Đơn hàng</p>
+            <h2>Tóm tắt</h2>
+            <div class="summary-list">
+                {% for item in items %}
+                <div class="summary-line">
+                    <span>{{ item.product.name|repair_text }} x {{ item.quantity }}</span>
+                    <strong>{{ item.subtotal|vnd }}đ</strong>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="summary-list totals">
+                <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>
+
+                {% if tier_discount_amount %}
+                <div class="summary-line discount"><span>Ưu đãi thành viên {{ tier_name }} ({{ tier_discount_pct }}%)</span><strong>-{{ tier_discount_amount|vnd }}đ</strong></div>
+                {% endif %}
+                {% if discount_amount %}
+                <div class="summary-line discount"><span>Giảm giá</span><strong>-{{ discount_amount|vnd }}đ</strong></div>
+                {% endif %}
+                <div class="summary-line total"><span>Tổng cộng</span><strong>{{ total|vnd }}đ</strong></div>
+            </div>
+        </aside>
+    </div>
+</section>
+
+{% json_script_nonce banks "banks-data" %}
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var paymentSelect = document.getElementById("id_payment_method");
+    var bankSelect = document.getElementById("id_bank_code");
+    var bankCodeWrap = document.getElementById("bank-code-wrap");
+    var bankBox = document.getElementById("bank-transfer-box");
+    var bankNameLabel = document.getElementById("bank-name-label");
+    var transferNoteLabel = document.getElementById("transfer-note-label");
+    var bankQrImage = document.getElementById("bank-qr-image");
+    var codNoteBox = document.getElementById("cod-note-box");
+    var vnpayNoteBox = document.getElementById("vnpay-note-box");
+    if (!paymentSelect || !bankSelect || !bankCodeWrap || !bankBox || !bankNameLabel || !transferNoteLabel || !bankQrImage || !codNoteBox || !vnpayNoteBox) return;
+
+    var accountNo = "{{ shop_bank_account }}";
+    var accountName = "{{ shop_account_name|urlencode }}";
+    var amount = "{{ total|floatformat:0 }}";
+    var shopBankCode = "{{ shop_bank_code|escapejs }}";
+    bankSelect.value = shopBankCode;
+    var banksData = document.getElementById("banks-data");
+    var banks = banksData ? JSON.parse(banksData.textContent) : {};
+    var bankColors = {
+        VCB: "#0060a9", TCB: "#008b50", MB: "#e4002b", ACB: "#00a650", BIDV: "#0b8344",
+        VPB: "#e62e4d", VIB: "#f7941d", HDB: "#00558c", OCB: "#00a651", MSB: "#0057a0",
+        TPB: "#001489", SCB: "#0d47a1", SHB: "#ed1c24", LPB: "#e5002d", NAB: "#0f3c7d",
+        SSB: "#00539f", EIB: "#002d62", STB: "#e31837", DAB: "#d3222a", PGB: "#005bac",
+        BVB: "#00a8e0", ABB: "#002f6c", KLB: "#00529a"
+    };
+    var bankDisplayNames = {
+        VCB: "Vietcombank", TCB: "Techcombank", MB: "MBBank", ACB: "ACB Bank", BIDV: "BIDV",
+        VPB: "VPBank", VIB: "VIB", HDB: "HDBank", OCB: "OCB", MSB: "MSB",
+        TPB: "TPBank", SCB: "SCB", SHB: "SHB", LPB: "LPBank", NAB: "Nam A Bank",
+        SSB: "SeABank", EIB: "Eximbank", STB: "Sacombank", DAB: "DongABank", PGB: "PG Bank",
+        BVB: "BaoVietBank", ABB: "ABBANK", KLB: "KienLongBank"
+    };
+    function displayName(code) { return bankDisplayNames[code] || code; }
+
+    function updateDisplay() {
+        var isBank = paymentSelect.value === "bank";
+        var isVnpay = paymentSelect.value === "vnpay";
+        bankCodeWrap.style.display = isBank ? "block" : "none";
+        bankBox.style.display = isBank ? "grid" : "none";
+        codNoteBox.style.display = (isBank || isVnpay) ? "none" : "block";
+        vnpayNoteBox.style.display = isVnpay ? "block" : "none";
+        if (!isBank) return;
+
+        var bank = banks[shopBankCode];
+        if (!bank) return;
+        var note = "DH-TAM";
+        bankNameLabel.textContent = bank.name;
+        transferNoteLabel.textContent = note;
+        bankQrImage.src = "https://img.vietqr.io/image/" + bank.bin + "-" + accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(note) + "&accountName=" + accountName;
+    }
+
+
+    var picker = document.getElementById("bank-picker");
+    var trigger = document.getElementById("bank-picker-trigger");
+    var menu = document.getElementById("bank-picker-menu");
+    var text = document.getElementById("bank-picker-text");
+    var PICKER_ACTIVE = picker && trigger && menu && text && banksData;
+
+    function bankColor(code) { return bankColors[code] || "#7d6b5c"; }
+
+    function selectBank(code, updateMenu) {
+        var opt = bankSelect.querySelector('option[value="' + code + '"]');
+        bankSelect.value = code;
+        if (code && opt) {
+            text.textContent = displayName(code);
+            text.classList.remove("is-placeholder");
+        } else {
+            text.textContent = "-- Chọn ngân hàng --";
+            text.classList.add("is-placeholder");
+        }
+        if (updateMenu) {
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            for (var i = 0; i < opts.length; i++) {
+                opts[i].classList.toggle("is-selected", opts[i].dataset.code === code);
+            }
+        }
+        bankSelect.dispatchEvent(new Event("change"));
+    }
+
+    function buildBankMenu() {
+        menu.innerHTML = "";
+        var opts = bankSelect.querySelectorAll("option");
+        for (var i = 0; i < opts.length; i++) {
+            var opt = opts[i];
+            if (!opt.value) continue;
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "bank-picker-option";
+            btn.setAttribute("role", "option");
+            btn.dataset.code = opt.value;
+            btn.innerHTML =
+                '<span class="bank-picker-option-name"></span>' +
+                '<span class="bank-picker-option-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
+            btn.querySelector(".bank-picker-option-name").textContent = displayName(opt.value);
+            btn.addEventListener("click", function () {
+                selectBank(this.dataset.code, true);
+                closeMenu();
+            });
+            menu.appendChild(btn);
+        }
+    }
+
+    function highlightOption(idx) {
+        var opts = menu.querySelectorAll(".bank-picker-option");
+        for (var i = 0; i < opts.length; i++) {
+            opts[i].classList.toggle("is-highlight", i === idx);
+        }
+        if (idx >= 0 && opts[idx]) opts[idx].scrollIntoView({ block: "nearest" });
+        return idx;
+    }
+
+    function openMenu() {
+        if (menu.hidden) {
+            menu.hidden = false;
+            picker.classList.add("is-open");
+            trigger.setAttribute("aria-expanded", "true");
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            var current = bankSelect.value;
+            for (var i = 0; i < opts.length; i++) {
+                if (opts[i].dataset.code === current) {
+                    highlightOption(i);
+                    opts[i].focus();
+                    return;
+                }
+            }
+            highlightOption(0);
+            opts[0].focus();
+        }
+    }
+
+    function closeMenu() {
+        if (!menu.hidden) {
+            menu.hidden = true;
+            picker.classList.remove("is-open");
+            trigger.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    if (PICKER_ACTIVE) {
+        picker.classList.add("is-js");
+        trigger.hidden = false;
+        buildBankMenu();
+        selectBank(bankSelect.value, true);
+
+        trigger.addEventListener("click", function () { menu.hidden ? openMenu() : closeMenu(); });
+        trigger.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                openMenu();
+            }
+        });
+        menu.addEventListener("keydown", function (e) {
+            var opts = menu.querySelectorAll(".bank-picker-option");
+            var idx = Array.prototype.indexOf.call(opts, document.activeElement);
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                var next = idx < opts.length - 1 ? idx + 1 : 0;
+                highlightOption(next);
+                opts[next].focus();
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                var prev = idx > 0 ? idx - 1 : opts.length - 1;
+                highlightOption(prev);
+                opts[prev].focus();
+            } else if (e.key === "Enter") {
+                if (idx >= 0) { e.preventDefault(); selectBank(opts[idx].dataset.code, true); closeMenu(); }
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                closeMenu();
+                trigger.focus();
+            } else if (e.key === "Tab") {
+                closeMenu();
+            }
+        });
+        document.addEventListener("click", function (e) {
+            if (!picker.contains(e.target)) closeMenu();
+        });
+    }
+
+    paymentSelect.addEventListener("change", updateDisplay);
+    updateDisplay();
+})();
+</script>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var btn = document.getElementById('locate-btn');
+    var mapBox = document.getElementById('checkout-map');
+    var status = document.getElementById('locate-status');
+    var searchBox = document.getElementById('locate-search');
+    var googleLink = document.getElementById('locate-google-link');
+    var addressInput = document.getElementById('id_shipping_address');
+    if (!btn || !mapBox || !status || !searchBox || !addressInput) return;
+
+    function setStatus(text, isError) {
+        status.textContent = text;
+        status.hidden = false;
+        status.className = 'checkout-map-status ' + (isError ? 'is-error' : 'is-ok');
+    }
+
+    function reverseGeocode(lat, lng, cb) {
+        // P-map: timeout 8s, mang yeu khong treo "Dang tim..." mai
+        var ctrl = ('AbortController' in window) ? new AbortController() : null;
+        var timer = null;
+        if (ctrl) timer = setTimeout(function () { ctrl.abort(); }, 8000);
+        fetch('/api/geocode/?lat=' + lat + '&lng=' + lng, ctrl ? { signal: ctrl.signal } : {})
+            .then(function (r) { return r.json(); })
+            .then(function (data) { if (timer) clearTimeout(timer); cb(data && data.address || null); })
+            .catch(function () { if (timer) clearTimeout(timer); cb(null); });
+    }
+
+    function initMap() {
+        if (typeof L === 'undefined') {
+            setStatus('Không tải được bản đồ. Bạn vui lòng kiểm tra kết nối mạng và tải lại trang.', true);
+            return;
+        }
+        L.Icon.Default.mergeOptions({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
+        });
+        var map = L.map(mapBox).setView([10.7294, 106.7060], 15);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.google.com/maps" target="_blank" rel="noopener">Google Maps</a>'
+        }).addTo(map);
+        var pinIcon = L.icon({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+        var marker = L.marker([10.7294, 106.7060], { icon: pinIcon }).addTo(map);
+
+        function setPos(lat, lng, fillAddress) {
+            map.setView([lat, lng], 16);
+            marker.setLatLng([lat, lng]);
+            if (fillAddress) {
+                reverseGeocode(lat, lng, function (name) {
+                    if (name) {
+                        addressInput.value = name;
+                        setStatus('Đã điền địa chỉ từ vị trí đã chọn.');
+                    } else {
+                        setStatus('Đã chọn vị trí, bạn tự điền địa chỉ nhé.');
+                    }
+                });
+            }
+        }
+
+        searchBox.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            var q = searchBox.value.trim();
+            if (!q) return;
+            setStatus('Đang tìm địa chỉ...');
+            var sctrl = ('AbortController' in window) ? new AbortController() : null;
+            var stimer = null;
+            if (sctrl) stimer = setTimeout(function () { sctrl.abort(); }, 8000);
+            fetch('/api/geocode/?q=' + encodeURIComponent(q), sctrl ? { signal: sctrl.signal } : {})
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (stimer) clearTimeout(stimer);
+                    if (!data || !data.lat) {
+                        setStatus('Không tìm thấy địa chỉ "' + q + '". Bạn thử từ khoá khác hoặc click trên map.', true);
+                        return;
+                    }
+                    setPos(parseFloat(data.lat), parseFloat(data.lng), false);
+                    addressInput.value = data.address || '';
+                    setStatus('Đã điền địa chỉ từ bản đồ.');
+                })
+                .catch(function () { if (stimer) clearTimeout(stimer); setStatus('Lỗi tìm kiếm địa chỉ. Thử lại nhé.', true); });
+        });
+
+        map.on('click', function (e) {
+            setPos(e.latlng.lat, e.latlng.lng, true);
+        });
+
+        btn.addEventListener('click', function () {
+            if (!('geolocation' in navigator)) {
+                setStatus('Trình duyệt của bạn không hỗ trợ định vị.', true);
+                return;
+            }
+            btn.disabled = true;
+            setStatus('Đang xác định vị trí...');
+            navigator.geolocation.getCurrentPosition(
+                function (pos) { setPos(pos.coords.latitude, pos.coords.longitude, true); btn.disabled = false; },
+                function (err) {
+                    btn.disabled = false;
+                    var msg = 'Không xác định được vị trí. Bạn gõ địa chỉ hoặc click trên map nhé.';
+                    if (err && err.code === 1) msg = 'Bạn chưa cấp quyền định vị. Bật quyền vị trí rồi thử lại nhé.';
+                    setStatus(msg, true);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        googleLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            var q = searchBox.value.trim() || addressInput.value.trim();
+            if (!q) {
+                setStatus('Nhập địa chỉ trước khi mở bản đồ.', true);
+                return;
+            }
+            window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank', 'noopener');
+        });
+
+        setStatus('Map đã sẵn sàng: gõ địa chỉ + Enter để tìm, hoặc click lên map.', false);
+    }
+
+    var loaded = false;
+    function boot() {
+        if (loaded) return;
+        loaded = true;
+        initMap();
+    }
+    // P-map: lazy-load leaflet khi map gan hien thi + timeout 10s keo CDN treo
+    function loadLeaflet() {
+        if (typeof L !== 'undefined') { boot(); return; }
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        document.head.appendChild(link);
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        var done = false;
+        function doneOnce() { if (!done) { done = true; boot(); } }
+        var kill = setTimeout(doneOnce, 10000);
+        script.onload = function () { clearTimeout(kill); doneOnce(); };
+        script.onerror = function () { clearTimeout(kill); doneOnce(); };
+        document.head.appendChild(script);
+    }
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            if (entries[0].isIntersecting) { io.disconnect(); loadLeaflet(); }
+        }, { rootMargin: '400px' });
+        io.observe(mapBox);
+        // Fallback: IO khong ban (tab an/headless) -> tu kiem tra 1 lan sau 5s
+        setTimeout(function () {
+            var r = mapBox.getBoundingClientRect();
+            if (r.top < window.innerHeight + 400 && r.bottom > -400) {
+                io.disconnect();
+                loadLeaflet();
+            }
+        }, 5000);
+    } else {
+        loadLeaflet();
+    }
+    // Tuong tac la tin hieu manh nhat: click/focus vao vung map thi nap ngay
+    function interactLoad() { loadLeaflet(); }
+    mapBox.addEventListener('pointerdown', interactLoad, { once: true });
+    searchBox.addEventListener('focus', interactLoad, { once: true });
+})();
+</script>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var radios = document.querySelectorAll('input[name="selected_address_id"]');
+    if (!radios.length) return;
+    var nameInput = document.getElementById('id_customer_name');
+    var phoneInput = document.getElementById('id_phone');
+    var addressInput = document.getElementById('id_shipping_address');
+    function fillFrom(radio) {
+        if (nameInput) nameInput.value = radio.getAttribute('data-name') || '';
+        if (phoneInput) {
+            phoneInput.value = radio.getAttribute('data-phone') || '';
+        }
+        if (addressInput) addressInput.value = radio.getAttribute('data-address') || '';
+    }
+    Array.prototype.forEach.call(radios, function (radio) {
+        radio.addEventListener('change', function () {
+            if (radio.checked) fillFrom(radio);
+        });
+    });
+    Array.prototype.forEach.call(radios, function (radio) {
+        if (radio.checked && radio.value) fillFrom(radio);
+    });
+    function getCookie(name) {
+        var parts = document.cookie.split(';');
+        for (var i = 0; i < parts.length; i++) {
+            var kv = parts[i].trim().split('=');
+            if (kv[0] === name) return decodeURIComponent(kv[1] || '');
+        }
+        return '';
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('.saved-addr-del'), function (btn) {
+        btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!window.confirm('Xóa địa chỉ này khỏi sổ?')) return;
+            btn.disabled = true;
+            fetch(btn.getAttribute('data-url'), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(function () {
+                var label = btn.closest('.saved-addr-option');
+                var wasChecked = label && label.querySelector('input:checked');
+                if (label) label.remove();
+                if (wasChecked) {
+                    var fresh = document.querySelector('input[name="selected_address_id"]');
+                    if (fresh) { fresh.checked = true; fresh.dispatchEvent(new Event('change', { bubbles: true })); }
+                }
+            }).catch(function () {
+                btn.disabled = false;
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

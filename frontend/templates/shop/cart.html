@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Giỏ hàng{% endblock %}
+{% block body_class %}cart-page{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <span>Giỏ hàng</span>
+</nav>
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Giỏ hàng</p>
+            <h1>Giỏ hàng của bạn</h1>
+            <p>Kiểm tra số lượng, tổng tiền và sang checkout trong một bước.</p>
+        </div>
+        <a href="{% url 'products:product_list' %}" class="btn ghost small">Tiếp tục mua</a>
+    </div>
+
+    {% if items %}
+    <div class="cart-layout">
+        <div class="cart-list">
+            {% for item in items %}
+            <article class="cart-item panel">
+                <a href="{% url 'products:product_detail' item.product.id item.product.slug %}" class="cart-media">
+                    {% if item.product.get_image %}
+                    <img src="{{ item.product.get_image }}" alt="{{ item.product.name|repair_text }}" loading="lazy">
+                    {% else %}
+                    <div class="product-fallback">{{ item.product.category.slug|product_type_label }}</div>
+                    {% endif %}
+                </a>
+                <div class="cart-copy">
+                    <div class="cart-top">
+                        <div>
+                            <p class="eyebrow">{{ item.product.category.name|repair_text }}</p>
+                            <h3><a href="{% url 'products:product_detail' item.product.id item.product.slug %}">{{ item.product.name|repair_text }}</a></h3>
+                            {% if item.variant %}<p class="muted">Màu {{ item.variant.color_name|repair_text }} · Size {{ item.variant.size|repair_text }}</p>{% endif %}
+                        </div>
+                        <form method="post" action="{% url 'orders:cart_remove' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="item_key" value="{{ item.item_key }}">
+                            <button type="submit" class="icon-btn danger" aria-label="Xóa sản phẩm">
+                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="cart-bottom">
+                        <form method="post" action="{% url 'orders:cart_update' %}" class="qty-stepper">
+                            {% csrf_token %}
+                            <input type="hidden" name="item_key" value="{{ item.item_key }}">
+                            <button type="button" class="qty-step" data-qty-step="-1" aria-label="Giảm số lượng">-</button>
+                            <input type="number" name="quantity" min="1" value="{{ item.quantity }}" data-qty-input>
+                            <button type="button" class="qty-step" data-qty-step="1" aria-label="Tăng số lượng">+</button>
+                            <button type="submit" class="btn small">Cập nhật</button>
+                        </form>
+                        <strong class="price">{{ item.subtotal|vnd }}đ</strong>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="cart-summary panel">
+            <p class="eyebrow">Tóm tắt</p>
+            <div class="freeship-bar">
+                {% if shipping_fee == 0 %}
+                <p class="freeship-msg ok">Bạn đã được <strong>miễn phí vận chuyển</strong>! 🎉</p>
+                <div class="freeship-track"><span class="freeship-fill" style="width:100%"></span></div>
+                {% else %}
+                <p class="freeship-msg">Còn <strong>{{ freeship_remaining|vnd }}đ</strong> nữa để được freeship</p>
+                <div class="freeship-track"><span class="freeship-fill" style="width:{% widthratio subtotal freeship_threshold 100 %}%"></span></div>
+                {% endif %}
+            </div>
+            <div class="summary-list">
+                <div class="summary-line"><span>Tạm tính</span><strong>{{ subtotal|vnd }}đ</strong></div>
+                <div class="summary-line"><span>Phí vận chuyển</span><strong>{{ shipping_fee|vnd }}đ</strong></div>
+                {% if shipping_fee == 0 %}<p class="muted">Bạn đã được miễn phí vận chuyển cho đơn từ {{ freeship_threshold|vnd }}đ.</p>{% endif %}
+                <div class="summary-line total"><span>Tổng tiền</span><strong>{{ total|vnd }}đ</strong></div>
+            </div>
+            <div class="summary-actions">
+                <form method="post" action="{% url 'orders:cart_clear_all' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn subtle-danger">Xóa toàn bộ giỏ</button>
+                </form>
+                <a href="{% url 'orders:checkout' %}" class="btn">Đi tới thanh toán</a>
+            </div>
+        </aside>
+    </div>
+    {% else %}
+    <div class="empty-state panel">
+        <h2>Giỏ hàng đang trống</h2>
+        <p>Hãy chọn thêm sản phẩm rồi quay lại đây để chốt đơn.</p>
+        <a href="{% url 'products:product_list' %}" class="btn">Tiếp tục mua sắm</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,210 @@
+import logging
+import re
+
+from django import forms
+from django.conf import settings
+
+from . import vnpay
+from .constants import bank_transfer_is_enabled
+
+logger = logging.getLogger(__name__)
+
+
+def _wallet_choices():
+    # ponytail: hien nut vi nao da cau hinh, thieu env = tu an, khoi crash checkout
+    out = []
+    try:
+        from . import momo as _momo
+
+        if _momo.is_configured():
+            out.append(("momo", "Ví MoMo"))
+    except Exception:
+        logger.exception("Khong doc duoc cau hinh MoMo")
+    try:
+        from . import zalopay as _zalo
+
+        if _zalo.is_configured():
+            out.append(("zalopay", "Ví ZaloPay"))
+    except Exception:
+        logger.exception("Khong doc duoc cau hinh ZaloPay")
+    try:
+        from . import shopeepay as _spp
+
+        if _spp.is_configured():
+            out.append(("shopeepay", "Ví ShopeePay"))
+    except Exception:
+        logger.exception("Khong doc duoc cau hinh ShopeePay")
+    return out
+
+
+class CheckoutForm(forms.Form):
+    customer_name = forms.CharField(max_length=150, label="Họ và tên")
+    customer_email = forms.EmailField(required=False, label="Email")
+    phone = forms.CharField(
+        max_length=20,
+        label="Số điện thoại",
+        widget=forms.TextInput(
+            attrs={
+                "oninput": "this.value = this.value.replace(/[^0-9]/g, '')",
+                "inputmode": "numeric",
+            }
+        ),
+    )
+    shipping_address = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4}),
+        label="Địa chỉ nhận hàng",
+    )
+    shipping_ward_name = forms.CharField(
+        required=False, max_length=150, label="Phường/xã nhận hàng"
+    )
+    shipping_province_name = forms.CharField(
+        required=False, max_length=150, label="Tỉnh/thành nhận hàng"
+    )
+    payment_method = forms.ChoiceField(
+        choices=[
+            ("cod", "Thanh toán tiền mặt khi nhận hàng"),
+            ("bank", "Chuyển khoản ngân hàng"),
+            ("vnpay", "Thanh toán VNPay"),
+            ("momo", "Ví MoMo"),
+            ("zalopay", "Ví ZaloPay"),
+            ("shopeepay", "Ví ShopeePay"),
+        ],
+        label="Phương thức thanh toán",
+    )
+    coupon_code = forms.CharField(
+        required=False,
+        max_length=30,
+        label="Mã giảm giá",
+        help_text="Ví dụ: GIAM10, FREESHIP",
+    )
+    points_to_use = forms.IntegerField(
+        required=False,
+        min_value=0,
+        label="Dùng điểm tích lũy",
+        help_text="100 điểm = 10.000đ. Chỉ áp dụng cho tiền hàng.",
+    )
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        label="Ghi chú",
+    )
+    delivery_time_slot = forms.ChoiceField(
+        required=False,
+        choices=[
+            ("", "-- Chọn khung giờ --"),
+            ("morning", "8:00 – 11:00"),
+            ("afternoon", "13:00 – 17:00"),
+            ("evening", "18:00 – 21:00"),
+        ],
+        label="Khung giờ nhận hàng",
+    )
+    gift_wrap = forms.BooleanField(required=False, label="Đóng gói quà tặng (miễn phí)")
+    gift_note = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={"placeholder": "Lời chúc viết trên thiệp (VD: Chúc mừng sinh nhật!)"}
+        ),
+        label="Thiệp chúc",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings.GHN_TOKEN and settings.GHN_SHOP_ID:
+            self.fields["shipping_ward_name"].required = True
+            self.fields["shipping_province_name"].required = True
+        if not bank_transfer_is_enabled():
+            self.fields["payment_method"].choices = [
+                choice
+                for choice in self.fields["payment_method"].choices
+                if choice[0] != "bank"
+            ]
+        if not vnpay.is_configured():
+            self.fields["payment_method"].choices = [
+                choice
+                for choice in self.fields["payment_method"].choices
+                if choice[0] != "vnpay"
+            ]
+        allowed_wallets = {c[0] for c in _wallet_choices()}
+        self.fields["payment_method"].choices = [
+            choice
+            for choice in self.fields["payment_method"].choices
+            if choice[0] not in ("momo", "zalopay", "shopeepay")
+            or choice[0] in allowed_wallets
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.data.get("payment_method") == "vnpay" and not vnpay.is_configured():
+            self.add_error(
+                "payment_method",
+                "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
+            )
+        pm = self.data.get("payment_method")
+        if pm in ("momo", "zalopay", "shopeepay"):
+            allowed = {c[0] for c in _wallet_choices()}
+            if pm not in allowed:
+                self.add_error(
+                    "payment_method",
+                    "Ví điện tử chưa được cấu hình. Vui lòng chọn phương thức khác.",
+                )
+
+        if cleaned_data.get("coupon_code"):
+            cleaned_data["coupon_code"] = cleaned_data["coupon_code"].strip().upper()
+
+        return cleaned_data
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone", "").strip()
+        if phone and not re.fullmatch(r"[0-9]{9,15}", phone):
+            raise forms.ValidationError(
+                "Số điện thoại không hợp lệ, vui lòng chỉ nhập từ 9 đến 15 chữ số."
+            )
+        return phone
+
+
+class ReturnRequestForm(forms.Form):
+    return_type = forms.ChoiceField(
+        choices=[("refund", "Hoàn tiền"), ("exchange", "Đổi hàng / đổi size")],
+        label="Hình thức",
+    )
+    reason = forms.ChoiceField(
+        choices=[
+            ("wrong_size", "Sai size, không vừa"),
+            ("not_like", "Không ưng kiểu dáng"),
+            ("defective", "Lỗi sản phẩm"),
+            ("wrong_item", "Giao nhầm sản phẩm"),
+            ("other", "Lý do khác"),
+        ],
+        label="Lý do",
+    )
+    item_ids = forms.MultipleChoiceField(required=False, label="Sản phẩm trả lại")
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Mô tả thêm (tình trạng sản phẩm, mong muốn của bạn...)",
+            }
+        ),
+        label="Ghi chú",
+    )
+
+    def __init__(self, *args, order=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order = order
+        if order:
+            self.fields["item_ids"].choices = [
+                (
+                    str(i.id),
+                    f"{i.product.name} · {i.selected_size or ''} · x{i.quantity}",
+                )
+                for i in order.items.all()
+            ]
+
+    def clean_item_ids(self):
+        item_ids = self.cleaned_data.get("item_ids") or []
+        if not self.order:
+            return item_ids
+        valid = {str(i.id) for i in self.order.items.all()}
+        return [int(i) for i in item_ids if i in valid]

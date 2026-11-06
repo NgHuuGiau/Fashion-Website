@@ -1,0 +1,822 @@
+import logging
+import os
+import secrets
+import time
+
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.conf import settings
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
+from .activity import log_activity
+from .captcha import generate_captcha_code, generate_captcha_image
+from .forms import (
+    ForgotPasswordForm,
+    CaptchaForm,
+    ResetPasswordForm,
+    ProfileForm,
+    RegisterForm,
+    ChangePasswordForm,
+)
+from .models_referral import ReferralCode, ReferralReward
+from .models import UserAddress, UserProfile
+from .permissions import is_staff_member
+from core.ratelimit import rate_limit
+
+logger = logging.getLogger(__name__)
+
+
+def _sync_visitor_auth_state(request: HttpRequest, user) -> None:
+    visitor = getattr(request, "visitor_session", None)
+    if not visitor:
+        return
+    visitor.user = user
+    visitor.is_authenticated = bool(user)
+    visitor.save(update_fields=["user", "is_authenticated", "last_seen"])
+
+
+def _build_login_candidates(identifier: str) -> list:
+    if not identifier:
+        return []
+
+    login_candidates = [identifier]
+    matched_usernames = list(
+        User.objects.filter(email__iexact=identifier).values_list(
+            "username", flat=True
+        )[:5]
+    )
+    matched_usernames.extend(
+        UserProfile.objects.filter(phone_number=identifier).values_list(
+            "user__username", flat=True
+        )[:5]
+    )
+    for candidate in matched_usernames:
+        if candidate and candidate not in login_candidates:
+            login_candidates.append(candidate)
+    return login_candidates
+
+
+REGISTER_CODE_TTL = 600
+REGISTER_MAX_ATTEMPTS = 5
+# Loi ve ten/email/so dien thoai bi an di khi hien thi loi
+# de khong lo ton tai tai khoan qua message (enumeration).
+_REGISTER_IDENTITY_FIELDS = frozenset({"username", "email", "phone_number"})
+
+
+def _remove_form_errors(form, fields) -> None:
+    for field in fields:
+        form.errors.pop(field, None)
+
+
+@rate_limit(
+    "register",
+    max_requests=5,
+    window=300,
+    error_msg="Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 5 phút.",
+)
+def register_view(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        valid = form.is_valid()
+        email_val = (request.POST.get("email") or "").strip().lower()
+        username_val = (request.POST.get("username") or "").strip()
+        phone_val = (request.POST.get("phone_number") or "").strip()
+        try:
+            validate_email(email_val)
+            email_ok = True
+        except DjangoValidationError:
+            email_ok = False
+        conflict = email_ok and (
+            (bool(username_val) and User.objects.filter(username=username_val).exists())
+            or User.objects.filter(email__iexact=email_val).exists()
+            or (
+                bool(phone_val)
+                and UserProfile.objects.filter(phone_number=phone_val).exists()
+            )
+        )
+        # Trung ten/email/so dien thoai van chay flow nhu dang ky binh thuong:
+        # phan hoi giong het, tai khoan that bi chan o buoc xac minh ma.
+        if valid or (conflict and set(form.errors) <= _REGISTER_IDENTITY_FIELDS):
+            if valid:
+                email = form.cleaned_data["email"]
+                pending = {
+                    "username": form.cleaned_data["username"],
+                    "first_name": form.cleaned_data.get("first_name", ""),
+                    "last_name": form.cleaned_data.get("last_name", ""),
+                    "email": email,
+                    "phone_number": form.cleaned_data.get("phone_number", ""),
+                    "password_hash": make_password(form.cleaned_data["password1"]),
+                }
+            else:
+                email = email_val
+                pending = {
+                    "username": username_val,
+                    "first_name": (request.POST.get("first_name") or "").strip(),
+                    "last_name": (request.POST.get("last_name") or "").strip(),
+                    "email": email,
+                    "phone_number": phone_val,
+                    "password_hash": make_password(request.POST.get("password1") or ""),
+                }
+            code = f"{secrets.randbelow(1000000):06d}"
+            cache.set(_register_code_key(email), code, REGISTER_CODE_TTL)
+            cache.delete(_register_attempt_key(email))
+            request.session["pending_register"] = pending
+            try:
+                _send_register_code(email, code)
+            except Exception:
+                logger.exception("Không gửi được mã xác thực đăng ký")
+                if not settings.DEBUG:
+                    _clear_pending_register(request, email)
+                    messages.error(
+                        request,
+                        "Không gửi được mã xác thực. Vui lòng thử lại sau.",
+                    )
+                    _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
+                    return render(request, "auth/register.html", {"form": form})
+                # DEV: SMTP chưa cấu hình — vẫn cho đăng ký bằng mã hiển thị tại chỗ.
+                messages.warning(
+                    request,
+                    f"[DEV - chưa cấu hình email] Mã xác minh của bạn: {code}",
+                )
+            messages.success(
+                request,
+                f"Đã gửi mã xác thực về {email}. Nhập mã để hoàn tất đăng ký.",
+            )
+            return redirect("users:register_verify")
+
+        if not email_ok:
+            # Email sai dinh dang: chi hien loi email, an loi ten dang nhap.
+            _remove_form_errors(form, set(form.errors) - {"email"})
+        elif conflict:
+            # Trung ten nhung sai mat khau: chi hien loi mat khau, an loi trung.
+            _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
+    else:
+        form = RegisterForm()
+
+    return render(request, "auth/register.html", {"form": form})
+
+
+def _register_code_key(email: str) -> str:
+    return f"register_code:{email.strip().lower()}"
+
+
+def _register_attempt_key(email: str) -> str:
+    return f"register_attempts:{email.strip().lower()}"
+
+
+def _send_register_code(email: str, code: str) -> None:
+    send_mail(
+        subject="Mã xác thực đăng ký HUUGIAU Atelier",
+        message=(
+            f"Mã xác thực của bạn là: {code}\n\n"
+            "Mã hết hạn sau 10 phút. "
+            "Nếu bạn không đăng ký, hãy bỏ qua email này.\n\n"
+            "Trân trọng,\nHUUGIAU Atelier Team"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
+@rate_limit(
+    "register_verify",
+    max_requests=10,
+    window=300,
+    error_msg="Bạn nhập sai quá nhiều. Vui lòng đăng ký lại sau 5 phút.",
+)
+def register_verify_view(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    pending = request.session.get("pending_register")
+    if not pending or not pending.get("password_hash"):
+        if pending:
+            _clear_pending_register(request, pending.get("email", ""))
+        messages.error(request, "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.")
+        return redirect("users:register")
+
+    email = pending["email"]
+    if request.method == "POST" and request.POST.get("action") == "resend":
+        code = f"{secrets.randbelow(1000000):06d}"
+        cache.set(_register_code_key(email), code, REGISTER_CODE_TTL)
+        cache.delete(_register_attempt_key(email))
+        try:
+            _send_register_code(email, code)
+            messages.success(request, f"Đã gửi lại mã mới về {email}.")
+        except Exception:
+            logger.exception("Không gửi lại được mã xác thực đăng ký")
+            messages.error(request, "Không gửi được mã. Vui lòng thử lại sau.")
+        return render(request, "auth/register_verify.html", {"email": email})
+
+    if request.method == "POST":
+        expected = cache.get(_register_code_key(email))
+        if not expected:
+            messages.error(
+                request, "Mã đã hết hạn. Vui lòng đăng ký lại hoặc gửi mã mới."
+            )
+            return render(request, "auth/register_verify.html", {"email": email})
+        attempts = cache.get(_register_attempt_key(email), 0)
+        if attempts >= REGISTER_MAX_ATTEMPTS:
+            _clear_pending_register(request, email)
+            messages.error(request, "Bạn nhập sai quá nhiều lần. Vui lòng đăng ký lại.")
+            return redirect("users:register")
+        entered = (request.POST.get("code") or "").strip()
+        if not secrets.compare_digest(entered, str(expected)):
+            cache.set(_register_attempt_key(email), attempts + 1, REGISTER_CODE_TTL)
+            left = REGISTER_MAX_ATTEMPTS - attempts - 1
+            messages.error(request, f"Mã chưa đúng. Bạn còn {left} lượt thử.")
+            return render(request, "auth/register_verify.html", {"email": email})
+        # Mật khẩu đã được kiểm tra lúc đăng ký; form này chỉ kiểm tra lại thông tin tài khoản.
+        form = RegisterForm(
+            {
+                "username": pending["username"],
+                "first_name": pending.get("first_name", ""),
+                "last_name": pending.get("last_name", ""),
+                "email": email,
+                "phone_number": pending.get("phone_number", ""),
+                "password1": "Verification-only1!",
+                "password2": "Verification-only1!",
+            }
+        )
+        if not form.is_valid():
+            _clear_pending_register(request, email)
+            messages.error(request, "Thông tin đăng ký không còn hợp lệ.")
+            return redirect("users:register")
+        user = form.save(password_hash=pending["password_hash"])
+        _clear_pending_register(request, email)
+        login(request, user)
+        _sync_visitor_auth_state(request, user)
+        log_activity(request, event_type="register", status_code=201)
+        try:
+            _send_welcome_mail(user)
+        except Exception:
+            logger.exception("Không gửi được mail chào mừng")
+        messages.success(request, "Tạo tài khoản thành công.")
+        return redirect("products:product_list")
+
+    return render(request, "auth/register_verify.html", {"email": email})
+
+
+def _clear_pending_register(request: HttpRequest, email: str) -> None:
+    request.session.pop("pending_register", None)
+    cache.delete(_register_code_key(email))
+    cache.delete(_register_attempt_key(email))
+
+
+def _send_welcome_mail(user) -> None:
+    send_mail(
+        subject="Chào mừng bạn đến với HUUGIAU Atelier!",
+        message=(
+            f"Chào {user.first_name or user.username},\n\n"
+            "Tài khoản của bạn đã được tạo thành công. Bạn có thể:\n"
+            "- Mua hàng nhanh hơn với thông tin đã lưu\n"
+            "- Theo dõi đơn hàng thực thời\n"
+            "- Tích điểm thưởng mỗi đơn hàng\n"
+            "- Lưu wishlist sản phẩm yêu thích\n\n"
+            "Trân trọng,\nHUUGIAU Atelier Team"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+
+@rate_limit(
+    "login",
+    max_requests=10,
+    window=300,
+    error_msg="Quá nhiều lần đăng nhập. Vui lòng thử lại sau 5 phút.",
+)
+def login_view(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    if request.method == "POST":
+        identifier = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        login_candidates = _build_login_candidates(identifier)
+
+        user = None
+        for candidate in login_candidates:
+            user = authenticate(request, username=candidate, password=password)
+            if user is not None:
+                break
+
+        if user is not None:
+            login(request, user)
+            _sync_visitor_auth_state(request, user)
+            log_activity(
+                request, event_type="login", metadata={"username": user.username}
+            )
+            messages.success(request, "Đăng nhập thành công.")
+            next_url = (
+                request.GET.get("next")
+                or request.POST.get("next")
+                or "products:product_list"
+            )
+            if not url_has_allowed_host_and_scheme(
+                next_url, allowed_hosts={request.get_host()}
+            ):
+                next_url = reverse("products:product_list")
+            return redirect(next_url)
+
+        logger.warning(
+            "Failed login attempt. identifier=%s ip=%s",
+            identifier[:20] if identifier else "(empty)",
+            request.META.get("REMOTE_ADDR"),
+        )
+        messages.error(
+            request, "Sai tên đăng nhập, email, số điện thoại hoặc mật khẩu."
+        )
+
+    return render(request, "auth/login.html")
+
+
+SOCIAL_LOGIN_PROVIDERS = {
+    "google": "GOOGLE_OAUTH_URL",
+    "facebook": "FACEBOOK_OAUTH_URL",
+    "apple": "APPLE_OAUTH_URL",
+}
+
+
+def social_login_view(request: HttpRequest, provider: str) -> HttpResponse:
+    provider_key = (provider or "").strip().lower()
+    if provider_key not in SOCIAL_LOGIN_PROVIDERS:
+        messages.error(request, "Phương thức đăng nhập không hợp lệ.")
+        return redirect("users:login")
+
+    login_url = os.getenv(SOCIAL_LOGIN_PROVIDERS[provider_key], "").strip()
+    if not login_url:
+        messages.info(
+            request, f"Đăng nhập {provider_key} chưa được bật trong cấu hình."
+        )
+        fallback = request.GET.get("next") or ""
+        if not url_has_allowed_host_and_scheme(
+            fallback, allowed_hosts={request.get_host()}
+        ):
+            fallback = reverse("users:login")
+        return redirect(fallback)
+
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
+        joiner = "&" if "?" in login_url else "?"
+        login_url = f"{login_url}{joiner}next={next_url}"
+    return redirect(login_url)
+
+
+@login_required
+def logout_view(request: HttpRequest) -> HttpResponse:
+    log_activity(
+        request, event_type="logout", metadata={"username": request.user.username}
+    )
+    _sync_visitor_auth_state(request, None)
+    logout(request)
+    messages.info(request, "Bạn đã đăng xuất.")
+    return redirect("products:product_list")
+
+
+@login_required
+def profile_view(request: HttpRequest) -> HttpResponse:
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    display_name = (
+        request.user.get_full_name() or request.user.username
+    ).strip() or request.user.username
+    name_parts = [part for part in display_name.split() if part]
+    display_initials = (
+        "".join(part[0] for part in name_parts[:2]).upper()
+        if name_parts
+        else request.user.username[:2].upper()
+    )
+
+    if request.method == "POST":
+        form = ProfileForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Đã lưu thông tin tài khoản.")
+            return redirect("users:profile")
+    else:
+        form = ProfileForm(user=request.user)
+
+    addresses = list(UserAddress.objects.filter(user=request.user))
+    hbd_active = bool(profile.birthday and profile.is_birthday_month())
+    expiry_warning = (
+        profile.points_expire_at
+        and profile.points > 0
+        and profile.points_expire_at
+        and profile.points_expire_at >= timezone.localdate()
+    )
+
+    return render(
+        request,
+        "account/profile.html",
+        {
+            "form": form,
+            "profile": profile,
+            "display_name": display_name,
+            "display_initials": display_initials,
+            "addresses": addresses,
+            "hbd_active": hbd_active,
+            "expiry_warning": expiry_warning,
+        },
+    )
+
+
+@login_required
+def referral_view(request: HttpRequest) -> HttpResponse:
+    referral_code, _ = ReferralCode.objects.get_or_create(user=request.user)
+    rewards = ReferralReward.objects.filter(referral_code=referral_code).select_related(
+        "referred_user", "order"
+    )
+    total_earned = sum(
+        r.amount for r in rewards if r.reward_type == "referrer" and r.is_claimed
+    )
+    total_referred = rewards.filter(reward_type="referred").count()
+    share_url = request.build_absolute_uri(f"/?ref={referral_code.code}")
+
+    return render(
+        request,
+        "account/referral.html",
+        {
+            "referral_code": referral_code,
+            "rewards": rewards,
+            "total_earned": total_earned,
+            "total_referred": total_referred,
+            "share_url": share_url,
+        },
+    )
+
+
+@login_required
+@require_POST
+def address_add(request: HttpRequest) -> HttpResponse:
+    recipient_name = (request.POST.get("recipient_name") or "").strip()
+    phone = (request.POST.get("phone") or "").strip()
+    address = (request.POST.get("address") or "").strip()
+    label = (request.POST.get("label") or "").strip()[:40]
+    is_default = request.POST.get("is_default") == "on"
+    address_id = (request.POST.get("address_id") or "").strip()
+
+    if not recipient_name or not phone or not address:
+        messages.error(
+            request, "Vui lòng điền đầy đủ tên người nhận, số điện thoại và địa chỉ."
+        )
+        return redirect("users:profile")
+
+    if address_id:
+        # Sua tai cho dia chi da luu; doi SDT thi phai xac minh lai.
+        addr = get_object_or_404(UserAddress, id=address_id, user=request.user)
+        if addr.phone != phone:
+            addr.is_phone_verified = False
+        addr.recipient_name = recipient_name
+        addr.phone = phone
+        addr.address = address
+        addr.label = label
+        addr.is_default = is_default or addr.is_default
+        addr.save()
+        messages.success(request, "Đã cập nhật địa chỉ giao hàng.")
+        return redirect("users:profile")
+
+    if not UserAddress.objects.filter(user=request.user).exists():
+        is_default = True
+    UserAddress.objects.create(
+        user=request.user,
+        label=label,
+        recipient_name=recipient_name,
+        phone=phone,
+        address=address,
+        is_default=is_default,
+    )
+    messages.success(request, "Đã lưu địa chỉ giao hàng.")
+    return redirect("users:profile")
+
+
+@login_required
+def twofa_enroll(request: HttpRequest) -> HttpResponse:
+    """Dang ky TOTP cho staff (Google Authenticator...)."""
+    if not is_staff_member(request.user):
+        raise Http404
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device, _ = TOTPDevice.objects.get_or_create(
+        user=request.user, confirmed=False, defaults={"name": "authenticator"}
+    )
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        if code and device.verify_token(code):
+            TOTPDevice.objects.filter(user=request.user).exclude(id=device.id).delete()
+            device.confirmed = True
+            device.save(update_fields=["confirmed"])
+            messages.success(request, "Đã bật xác minh 2 bước cho tài khoản quản trị.")
+            return redirect("users:twofa_enroll")
+        messages.error(request, "Mã chưa đúng. Kiểm tra giờ trên điện thoại.")
+    import qrcode
+    import qrcode.image.svg
+    from io import BytesIO
+
+    img = qrcode.make(device.config_url, image_factory=qrcode.image.svg.SvgImage)
+    buf = BytesIO()
+    img.save(buf)
+    return render(
+        request,
+        "account/twofa_enroll.html",
+        {
+            "qr_svg": buf.getvalue().decode(),
+            "secret": device.key,
+            "has_confirmed": TOTPDevice.objects.filter(
+                user=request.user, confirmed=True
+            ).exists(),
+        },
+    )
+
+
+@login_required
+def twofa_verify(request: HttpRequest) -> HttpResponse:
+    """Nhap ma TOTP sau khi dang nhap mat khau de vao /admin/."""
+    if not is_staff_member(request.user):
+        raise Http404
+    from django_otp import login as otp_login
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device = (
+        TOTPDevice.objects.filter(user=request.user, confirmed=True)
+        .order_by("-last_t")
+        .first()
+    )
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        if device is not None and code and device.verify_token(code):
+            otp_login(request, device)
+            return redirect("/admin/")
+        messages.error(request, "Mã chưa đúng.")
+    return render(request, "account/twofa_verify.html", {})
+
+
+@login_required
+@require_POST
+def twofa_disable(request: HttpRequest) -> HttpResponse:
+    if not is_staff_member(request.user):
+        raise Http404
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    TOTPDevice.objects.filter(user=request.user).delete()
+    messages.warning(request, "Đã tắt xác minh 2 bước. Hãy bật lại sớm.")
+    return redirect("users:twofa_enroll")
+
+
+@login_required
+@require_POST
+def address_delete(request: HttpRequest, address_id) -> HttpResponse:
+    address = get_object_or_404(UserAddress, id=address_id, user=request.user)
+    address.delete()
+    messages.success(request, "Đã xóa địa chỉ.")
+    return redirect("users:profile")
+
+
+@login_required
+@require_POST
+def address_set_default(request: HttpRequest, address_id) -> HttpResponse:
+    address = get_object_or_404(UserAddress, id=address_id, user=request.user)
+    UserAddress.objects.filter(user=request.user, is_default=True).update(
+        is_default=False
+    )
+    address.is_default = True
+    address.save(update_fields=["is_default"])
+    messages.success(request, "Đã đặt địa chỉ mặc định.")
+    return redirect("users:profile")
+
+
+@login_required
+@rate_limit(
+    "change_password",
+    max_requests=10,
+    window=300,
+    error_msg="Quá nhiều lần đổi mật khẩu. Vui lòng thử lại sau 5 phút.",
+)
+def change_password_view(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ChangePasswordForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, request.user)
+            log_activity(
+                request,
+                event_type="change_password",
+                metadata={"username": request.user.username},
+            )
+            messages.success(request, "Đổi mật khẩu thành công.")
+            return redirect("users:profile")
+    else:
+        form = ChangePasswordForm(user=request.user)
+
+    return render(request, "account/change_password.html", {"password_form": form})
+
+
+@rate_limit(
+    "forgot_password",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.",
+)
+def forgot_password_view(request: HttpRequest) -> HttpResponse:
+    """Bước 1: Nhập tài khoản -> gửi link đặt lại có token qua email.
+
+    Luôn trả cùng một thông báo (kể cả tài khoản không tồn tại) để chống
+    dò quét tài khoản (user enumeration).
+    """
+    if request.user.is_authenticated:
+        return redirect("products:product_list")
+
+    if request.method == "POST":
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data["_matched_user"]
+            try:
+                _send_reset_email(request, user)
+            except Exception:
+                if not settings.DEBUG:
+                    messages.error(
+                        request,
+                        "Không gửi được email lúc này. Vui lòng thử lại sau.",
+                    )
+                    return render(request, "auth/forgot_password.html", {"form": form})
+                # DEV: SMTP chưa cấu hình — cho đi tiếp bằng link hiển thị tại chỗ.
+                reset_url = password_reset_link(request, user)
+                messages.warning(
+                    request,
+                    f"[DEV - chưa cấu hình email] Link đặt lại mật khẩu: {reset_url}",
+                )
+                return render(request, "auth/forgot_password.html", {"form": form})
+            messages.info(
+                request,
+                "Nếu tài khoản tồn tại, email hướng dẫn đặt lại mật khẩu đã được gửi.",
+            )
+            return redirect("users:login")
+        # Tài khoản không tồn tại: trả cùng thông báo như thành công.
+        messages.info(
+            request,
+            "Nếu tài khoản tồn tại, email hướng dẫn đặt lại mật khẩu đã được gửi.",
+        )
+        return redirect("users:login")
+    else:
+        form = ForgotPasswordForm()
+
+    return render(request, "auth/forgot_password.html", {"form": form})
+
+
+def password_reset_link(request: HttpRequest, user) -> str:
+    """Link dat lai mat khau (uid + token) dung cho email va nen DEBUG."""
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    return request.build_absolute_uri(
+        reverse("users:password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+    )
+
+
+def _send_reset_email(request: HttpRequest, user) -> str:
+    """Gui email chua link dat lai mat khau; tra ve link."""
+    from django.core.mail import send_mail
+
+    reset_url = password_reset_link(request, user)
+    try:
+        send_mail(
+            "Đặt lại mật khẩu HUUGIAU Studio",
+            f"Chào {user.username},\n\n"
+            f"Bấm vào link sau để đặt lại mật khẩu (hết hạn sau 1 ngày):\n{reset_url}\n\n"
+            "Nếu bạn không yêu cầu, hãy bỏ qua email này.",
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.warning("Gửi email đặt lại mật khẩu thất bại cho %s", user.username)
+        raise
+    return reset_url
+
+
+def password_reset_confirm(
+    request: HttpRequest, uidb64: str, token: str
+) -> HttpResponse:
+    """Bước 2: Xác thực token trong email -> cho vào form đặt mật khẩu mới."""
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_str
+    from django.utils.http import urlsafe_base64_decode
+
+    try:
+        user = User.objects.get(pk=force_str(urlsafe_base64_decode(uidb64)))
+    except (User.DoesNotExist, ValueError, TypeError):
+        user = None
+    if user is None or not default_token_generator.check_token(user, token):
+        messages.error(request, "Link đặt lại đã hết hạn hoặc không hợp lệ.")
+        return redirect("users:forgot_password")
+    request.session["reset_user_id"] = user.id
+    request.session["reset_user_ts"] = time.time()
+    return redirect("users:reset_password")
+
+
+RESET_SESSION_TTL = 86400
+
+
+def _reset_session_user_id(request: HttpRequest):
+    """Lấy user_id của phiên đặt lại mật khẩu; quá 24h thì hủy phiên."""
+    uid = request.session.get("reset_user_id")
+    ts = request.session.get("reset_user_ts")
+    if not uid or ts is None or time.time() - ts > RESET_SESSION_TTL:
+        request.session.pop("reset_user_id", None)
+        request.session.pop("reset_user_ts", None)
+        request.session.pop("captcha_code", None)
+        return None
+    return uid
+
+
+@rate_limit(
+    "captcha_image",
+    max_requests=30,
+    window=60,
+    error_msg="Quá nhiều yêu cầu ảnh CAPTCHA. Vui lòng thử lại sau.",
+    methods=("GET",),
+)
+def captcha_image_view(request: HttpRequest) -> HttpResponse:
+    """Trả về ảnh CAPTCHA PNG."""
+    code = generate_captcha_code()
+    request.session["captcha_code"] = code
+    img_data = generate_captcha_image(code)
+    return HttpResponse(img_data, content_type="image/png")
+
+
+@rate_limit(
+    "forgot_password_captcha",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều lần thử. Vui lòng thử lại sau 5 phút.",
+)
+def forgot_password_captcha_view(request: HttpRequest) -> HttpResponse:
+    """Bước 2: Xác thực CAPTCHA."""
+    if _reset_session_user_id(request) is None:
+        return redirect("users:forgot_password")
+
+    if request.method == "POST":
+        form = CaptchaForm(request.POST)
+        form.request = request
+        if form.is_valid():
+            return redirect("users:reset_password")
+    else:
+        form = CaptchaForm()
+
+    return render(request, "auth/forgot_password_captcha.html", {"form": form})
+
+
+@rate_limit(
+    "reset_password",
+    max_requests=50,
+    window=300,
+    error_msg="Quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.",
+)
+def reset_password_view(request: HttpRequest) -> HttpResponse:
+    """Bước 3: Đặt mật khẩu mới."""
+    user_id = _reset_session_user_id(request)
+    if user_id is None:
+        return redirect("users:forgot_password")
+
+    from django.contrib.auth.models import User
+
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == "POST":
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data["password1"])
+            user.save(update_fields=["password"])
+
+            request.session.pop("reset_user_id", None)
+            request.session.pop("reset_user_ts", None)
+            request.session.pop("captcha_code", None)
+            messages.success(request, "Đổi mật khẩu thành công. Vui lòng đăng nhập.")
+            return redirect("users:login")
+    else:
+        form = ResetPasswordForm()
+
+    return render(
+        request, "auth/reset_password.html", {"form": form, "username": user.username}
+    )

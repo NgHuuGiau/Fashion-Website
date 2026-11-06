@@ -1,0 +1,126 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[FEATURE] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Component
+      description: Which area would this feature affect?
+      options:
+        - "Backend (Django/API)"
+        - "Frontend (CSS/JS/Templates)"
+        - "Database/Migrations"
+        - "Authentication/Authorization"
+        - "Orders/Checkout"
+        - "Products/Catalog"
+        - "Users/Accounts"
+        - "Admin Dashboard"
+        - "Email/Notifications"
+        - "Payment (VNPay/Bank/COD)"
+        - "Search/Filter"
+        - "API/Integration"
+        - "Admin/Management Commands"
+        - "Performance/Optimization"
+        - "Security"
+        - "Documentation"
+        - "Testing/CI"
+        - "Deployment/DevOps"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - "Low - Nice to have"
+        - "Medium - Would improve UX/workflow"
+        - "High - Blocking or significant value"
+        - "Critical - Required for launch/compliance"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this solve? What pain point does it address?
+      placeholder: "Currently, users cannot... which leads to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution
+      placeholder: "Add a new endpoint/button/field that allows..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Any alternative approaches you've considered?
+      placeholder: "Could also achieve this by..."
+
+  - type: textarea
+    id: ux
+    attributes:
+      label: UX/UI Considerations
+      description: Any mockups, wireframes, or user flow descriptions?
+      placeholder: "See attached mockup / Figma link / user flow diagram"
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical Considerations
+      description: Any technical details, API changes, DB migrations, breaking changes?
+      placeholder: |
+        - New model fields: ...
+        - API endpoint: POST /api/...
+        - Migration needed: Yes/No
+        - Breaking changes: None / Describe
+        - Performance impact: Minimal / Moderate / Significant
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this feature is complete?
+      placeholder: |
+        - [ ] User can do X
+        - [ ] API returns Y
+        - [ ] Test coverage >= 80%
+        - [ ] Documentation updated
+        - [ ] No regression in existing tests
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Backend changes required
+        - label: Frontend changes required
+        - label: Database migration required
+        - label: API changes (breaking/non-breaking)
+        - label: New dependencies needed
+        - label: Configuration/environment changes
+        - label: Documentation update required
+        - label: Tests need to be added/updated
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      placeholder: "Related issues, PRs, external references, screenshots, etc."

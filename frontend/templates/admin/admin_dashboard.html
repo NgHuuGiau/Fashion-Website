@@ -1,0 +1,2140 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Bảng điều khiển quản trị{% endblock %}
+
+{% block content %}
+<section class="adm-shell">
+
+  <aside class="adm-sidebar">
+    <div class="adm-side-brand">
+      <span class="adm-side-logo">HG</span>
+      <div class="adm-side-brand-copy">
+        <strong>HUUGIAU Studio</strong>
+        <small>Bảng điều khiển quản trị</small>
+      </div>
+    </div>
+
+    <nav class="adm-side-nav" aria-label="Điều hướng quản trị">
+      <span class="adm-side-label">Điều hướng</span>
+      <button type="button" class="admin-tab adm-nav-item {% if not editing_product and not product_form_errors %}active{% endif %}" data-target="admin-overview">
+        <i class="fa-solid fa-gauge-high"></i> Tổng quan
+      </button>
+      <button type="button" class="admin-tab adm-nav-item {% if editing_product or product_form_errors %}active{% endif %}" data-target="admin-product-form">
+        <i class="fa-regular fa-square-plus"></i> Thêm sản phẩm
+      </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-product-table">
+        <i class="fa-solid fa-table-list"></i> Sản phẩm
+      </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-inventory">
+        <i class="fa-solid fa-warehouse"></i> Kho hàng
+      </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-reports">
+        <i class="fa-solid fa-chart-line"></i> Báo cáo
+      </button>
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-orders">
+        <i class="fa-solid fa-receipt"></i> Đơn hàng
+      </button>
+      {% if permissions.can_manage_coupons %}
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-coupons">
+        <i class="fa-solid fa-tags"></i> Mã giảm giá
+      </button>
+      {% endif %}
+      {% if permissions.is_admin %}
+      <button type="button" class="admin-tab adm-nav-item" data-target="admin-users">
+        <i class="fa-solid fa-user-shield"></i> Nhân viên &amp; Phân quyền
+      </button>
+      {% endif %}
+      <a href="{% url 'orders:admin_export_orders' %}" class="adm-nav-item">
+        <i class="fa-solid fa-download"></i> Xuất đơn hàng
+      </a>
+    </nav>
+
+    <div class="adm-side-foot">
+      <div class="adm-side-user">
+        <span class="adm-side-avatar">{{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}</span>
+        <div>
+          <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+          <small>{% if permissions.is_admin %}Quản trị viên{% elif permissions.is_staff_member %}Nhân viên{% endif %}</small>
+        </div>
+      </div>
+      <a href="{% url 'products:product_list' %}" class="adm-side-link"><i class="fa-solid fa-store"></i> Về trang chủ</a>
+      <a href="{% url 'users:logout' %}" class="adm-side-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</a>
+    </div>
+  </aside>
+
+  <div class="adm-main">
+
+    <header class="adm-topbar">
+      <div>
+        <p class="eyebrow">STUDIO CONTROL PANEL</p>
+        <h1 class="adm-title">Bảng điều khiển</h1>
+        <p class="adm-subtitle">Đơn hàng, doanh thu, tồn kho và sản phẩm — gom thành một bảng điều khiển.</p>
+      </div>
+      <div class="adm-topbar-meta">
+        <span class="adm-date-chip"><i class="fa-regular fa-calendar"></i> {% now "d/m/Y" %}</span>
+        <span class="adm-date-chip adm-date-chip-accent"><i class="fa-solid fa-circle-info"></i> {{ active_coupons }} mã giảm giá đang hoạt động</span>
+      </div>
+    </header>
+
+    
+    <section class="admin-tab-content {% if not editing_product and not product_form_errors %}active{% endif %}" id="admin-overview">
+
+      <div class="adm-kpis">
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-accent"><i class="fa-solid fa-sack-dollar"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Doanh thu tháng</span>
+            <strong class="adm-kpi-value">{{ month_revenue|vnd }}đ</strong>
+            <small class="adm-kpi-hint">Đơn hoàn thành từ đầu tháng</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-success"><i class="fa-solid fa-cart-shopping"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Đơn hôm nay</span>
+            <strong class="adm-kpi-value">{{ today_orders }}</strong>
+            <small class="adm-kpi-hint">Doanh thu {{ today_revenue|vnd }}đ</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-warning"><i class="fa-solid fa-box-open"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tồn kho thấp</span>
+            <strong class="adm-kpi-value">{{ low_stock_products|length }}</strong>
+            <small class="adm-kpi-hint">Sản phẩm còn lại ≤ 5</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-info"><i class="fa-solid fa-user-plus"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tài khoản mới</span>
+            <strong class="adm-kpi-value">{{ today_new_accounts }}</strong>
+            <small class="adm-kpi-hint">Đăng ký trong hôm nay</small>
+          </div>
+        </article>
+      </div>
+
+      <div class="adm-pipeline panel">
+        <div class="adm-pipe-head">
+          <div>
+            <p class="eyebrow">Trạng thái đơn hàng</p>
+            <h2>Luồng xử lý đơn</h2>
+          </div>
+          <div class="adm-pipe-total">
+            <strong>{{ total_orders }}</strong>
+            <small>Tổng đơn</small>
+          </div>
+        </div>
+        {% if total_orders %}
+        <div class="adm-stackbar">
+          <span class="adm-stack-seg adm-st-pending" style="flex-grow:{{ pending_orders }}"></span>
+          <span class="adm-stack-seg adm-st-processing" style="flex-grow:{{ processing_orders }}"></span>
+          <span class="adm-stack-seg adm-st-shipping" style="flex-grow:{{ shipping_orders }}"></span>
+          <span class="adm-stack-seg adm-st-delivered" style="flex-grow:{{ delivered_orders }}"></span>
+          <span class="adm-stack-seg adm-st-cancelled" style="flex-grow:{{ cancelled_orders }}"></span>
+        </div>
+        {% else %}
+        <div class="adm-stackbar-empty">Chưa có đơn hàng nào.</div>
+        {% endif %}
+        <div class="adm-pipe-legend">
+          <span><i class="adm-dot adm-dot-pending"></i> Chờ xử lý <b>{{ pending_orders }}</b></span>
+          <span><i class="adm-dot adm-dot-processing"></i> Đang xử lý <b>{{ processing_orders }}</b></span>
+          <span><i class="adm-dot adm-dot-shipping"></i> Đang giao <b>{{ shipping_orders }}</b></span>
+          <span><i class="adm-dot adm-dot-delivered"></i> Hoàn thành <b>{{ delivered_orders }}</b></span>
+          <span><i class="adm-dot adm-dot-cancelled"></i> Đã hủy <b>{{ cancelled_orders }}</b></span>
+        </div>
+      </div>
+
+      <article class="admin-board-panel adm-chart-panel">
+        <div class="admin-chart-head">
+          <div>
+            <p class="eyebrow">Phân tích</p>
+            <h2>Thống kê cửa hàng</h2>
+          </div>
+          <div class="adm-chart-switcher" role="tablist" aria-label="Chuyển biểu đồ">
+            <button type="button" class="chart-switch active" data-chart-target="chart-revenue" role="tab" aria-selected="true">Doanh thu</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-orders" role="tab" aria-selected="false">Đơn hàng</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-top" role="tab" aria-selected="false">Bán chạy</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-category" role="tab" aria-selected="false">Theo danh mục</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-status" role="tab" aria-selected="false">Theo trạng thái</button>
+            <button type="button" class="chart-switch" data-chart-target="chart-donut" role="tab" aria-selected="false">Tỷ trọng</button>
+          </div>
+        </div>
+        <div class="adm-chart-grid">
+
+        <div class="chart-pane chart-pane-active" id="chart-revenue" data-chart-pane>
+          <h3 class="chart-card-title">Doanh thu 7 ngày</h3>
+          <div class="admin-chart-meta">
+            {% if revenue_growth_class == "is-up" %}
+            <span class="admin-growth admin-growth-up"><i class="fa-solid fa-arrow-up"></i> {{ revenue_growth_label }}</span>
+            {% elif revenue_growth_class == "is-down" %}
+            <span class="admin-growth admin-growth-down"><i class="fa-solid fa-arrow-down"></i> {{ revenue_growth_label }}</span>
+            {% else %}
+            <span class="admin-growth admin-growth-flat"><i class="fa-solid fa-minus"></i> {{ revenue_growth_label }}</span>
+            {% endif %}
+            <strong class="admin-chart-total">{{ revenue_current_total|vnd }}đ</strong>
+            <small>7 ngày gần nhất</small>
+          </div>
+          {% if revenue_chart %}
+          <div class="week-chart">
+            {% for item in revenue_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total|vnd }}đ</strong>
+              <span>{{ item.label }} {{ item.date_label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có dữ liệu doanh thu 7 ngày.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane" id="chart-orders" data-chart-pane>
+          <h3 class="chart-card-title">Đơn hàng 7 ngày</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tổng đơn hàng 7 ngày gần nhất</small>
+          </div>
+          {% if orders_chart %}
+          <div class="week-chart">
+            {% for item in orders_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar week-chart-bar-alt" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total }} đơn</strong>
+              <span>{{ item.label }} {{ item.date_label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có dữ liệu đơn hàng 7 ngày.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane" id="chart-top" data-chart-pane>
+          <h3 class="chart-card-title">Sản phẩm bán chạy</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">Top 5</strong>
+            <small>theo số lượng đã bán (đơn hoàn thành)</small>
+          </div>
+          {% if top_products %}
+          <div class="category-chart">
+            {% for item in top_products %}
+            <div class="category-chart-row">
+              <span class="category-chart-name" title="{{ item.name }}">{{ item.name }}</span>
+              <div class="category-chart-track">
+                <div class="category-chart-bar category-chart-bar-top" style="width: {{ item.height }}%;"></div>
+              </div>
+              <strong class="category-chart-value">{{ item.quantity }} món · {{ item.revenue|vnd }}đ</strong>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-crown"></i>
+            <p>Chưa có dữ liệu sản phẩm bán chạy.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane" id="chart-category" data-chart-pane>
+          <h3 class="chart-card-title">Doanh thu theo danh mục</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ category_revenue|length }} nhóm</strong>
+            <small>theo doanh thu đơn hoàn thành</small>
+          </div>
+          {% if category_revenue %}
+          <div class="category-chart">
+            {% for item in category_revenue %}
+            <div class="category-chart-row">
+              <span class="category-chart-name">{{ item.name }}</span>
+              <div class="category-chart-track">
+                <div class="category-chart-bar" style="width: {{ item.height }}%;"></div>
+              </div>
+              <strong class="category-chart-value">{{ item.revenue|vnd }}đ</strong>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-tag"></i>
+            <p>Chưa có dữ liệu doanh thu theo danh mục.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane" id="chart-status" data-chart-pane>
+          <h3 class="chart-card-title">Đơn hàng theo trạng thái</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tất cả đơn hàng đang có</small>
+          </div>
+          {% if status_chart %}
+          <div class="week-chart week-chart-status">
+            {% for item in status_chart %}
+            <div class="week-chart-item">
+              <div class="week-chart-bar-wrap">
+                <div class="week-chart-bar week-chart-bar-{{ item.key }}" style="height: {{ item.height }}%;"></div>
+              </div>
+              <strong>{{ item.total }} đơn</strong>
+              <span>{{ item.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-chart-bar"></i>
+            <p>Chưa có đơn hàng nào.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="chart-pane" id="chart-donut" data-chart-pane>
+          <h3 class="chart-card-title">Tỷ trọng đơn theo trạng thái</h3>
+          <div class="admin-chart-meta">
+            <strong class="admin-chart-total">{{ total_orders }} đơn</strong>
+            <small>tỷ trọng theo trạng thái</small>
+          </div>
+          {% if status_chart %}
+          <div class="donut-layout">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 42 42" class="donut-chart" role="img" aria-label="Biểu đồ donut trạng thái đơn">
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface-tint)" stroke-width="5"></circle>
+                {% for item in status_chart %}
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="{{ item.color }}" stroke-width="5"
+                        stroke-dasharray="{{ item.pct|stringformat:'.1f' }} 100" stroke-dashoffset="{{ item.offset|stringformat:'.1f' }}"></circle>
+                {% endfor %}
+              </svg>
+              <div class="donut-center">
+                <strong>{{ total_orders }}</strong>
+                <span>đơn</span>
+              </div>
+            </div>
+            <ul class="donut-legend">
+              {% for item in status_chart %}
+              <li>
+                <span class="donut-dot" style="background: {{ item.color }}"></span>
+                <span class="donut-legend-name">{{ item.label }}</span>
+                <strong class="donut-legend-value">{{ item.total }} đơn · {{ item.pct }}%</strong>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-chart-pie"></i>
+            <p>Chưa có đơn hàng nào.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        </div>
+      </article>
+
+      <div class="adm-grid-2">
+        <article class="admin-board-panel">
+          <div class="section-head">
+            <div>
+              <h2>Tồn kho thấp</h2>
+              <p>Nên bổ sung sớm để không mất đơn.</p>
+            </div>
+          </div>
+          {% if low_stock_products %}
+          <div class="adm-alert-list">
+            {% for product in low_stock_products %}
+            <div class="adm-alert-item">
+              <div class="adm-alert-main">
+                {% if product.image and product.image.url %}
+                <img src="{{ product.image.url }}" alt="" class="adm-alert-thumb">
+                {% elif product.image_url %}
+                <img src="{{ product.image_url }}" alt="" class="adm-alert-thumb">
+                {% else %}
+                <div class="adm-alert-thumb adm-alert-thumb-empty">?</div>
+                {% endif %}
+                <div>
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.category.name|default:"" }}</small>
+                </div>
+              </div>
+              <span class="adm-stock-pill {% if product.stock == 0 %}is-empty{% endif %}">Còn {{ product.stock }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-solid fa-circle-check"></i>
+            <p>Kho đang ổn định.</p>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="admin-board-panel">
+          <div class="section-head">
+            <div>
+              <h2>Đơn hàng gần đây</h2>
+              <p>5 đơn mới nhất.</p>
+            </div>
+            <button type="button" class="btn ghost small" data-switch-to="admin-orders">Xem tất cả</button>
+          </div>
+          {% if recent_orders %}
+          <div class="adm-mini-orders">
+            {% for order in recent_orders|slice:":5" %}
+            <a href="{% url 'orders:order_review' order.id %}" class="adm-mini-order">
+              <div class="adm-mini-order-id">
+                <strong>#{{ order.id }}</strong>
+                <small>{{ order.customer_name|truncatechars:18 }}</small>
+              </div>
+              <span class="admin-badge admin-badge-status-{{ order.status }}">{% if order.status == "pending" %}Chờ xử lý{% elif order.status == "processing" %}Đang xử lý{% elif order.status == "shipping" %}Đang giao{% elif order.status == "delivered" %}Hoàn thành{% elif order.status == "cancelled" %}Đã hủy{% endif %}</span>
+              <strong class="adm-mini-order-total">{{ order.total_amount|vnd }}đ</strong>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="admin-chart-empty">
+            <i class="fa-regular fa-receipt"></i>
+            <p>Chưa có đơn hàng.</p>
+          </div>
+          {% endif %}
+        </article>
+      </div>
+    </section>
+
+    
+    <section class="admin-tab-content {% if editing_product or product_form_errors %}active{% endif %}" id="admin-product-form">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>{% if editing_product %}Chỉnh sửa sản phẩm{% else %}Thêm sản phẩm mới{% endif %}</h2>
+            <p>Mỗi sản phẩm có 6 slot ảnh chi tiết cố định để hiển thị ở trang khách.</p>
+          </div>
+          {% if editing_product %}
+          <a href="{% url 'orders:admin_dashboard' %}" class="btn ghost small">Tạo mới</a>
+          {% endif %}
+        </div>
+
+        {% if product_form_errors %}
+        <div class="message error">
+          {% for error in product_form_errors %}
+          <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="admin-product-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_product">
+          <input type="hidden" name="product_id" value="{{ product_form.product_id }}">
+          <input type="hidden" name="gallery_count" value="{{ product_form.gallery_count|default:0 }}">
+
+          <div class="admin-form-grid">
+            <label class="admin-field">
+              <span>Danh mục</span>
+              <select name="category_id" required>
+                <option value="">Chọn danh mục</option>
+                {% for category in product_categories %}
+                <option value="{{ category.id }}" {% if product_form.category_id == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="admin-field">
+              <span>Tên sản phẩm</span>
+              <input type="text" name="name" value="{{ product_form.name }}" placeholder="VD: Áo khoác local brand" required>
+            </label>
+            <label class="admin-field">
+              <span>Giá bán</span>
+              <input type="number" name="price" min="0" step="1" value="{{ product_form.price }}" placeholder="499000" required>
+            </label>
+            <label class="admin-field">
+              <span>Tồn kho tổng</span>
+              <input type="number" name="stock" min="0" step="1" value="{{ product_form.stock }}" placeholder="Tự động nếu có biến thể">
+            </label>
+            <label class="admin-field admin-field-wide">
+              <span>URL ảnh đại diện</span>
+              <input type="url" name="image_url" value="{{ product_form.image_url }}" placeholder="https://...">
+            </label>
+            <label class="admin-field admin-field-wide">
+              <span>Upload ảnh đại diện</span>
+              <input type="file" name="image" accept="image/*">
+            </label>
+
+            <div class="admin-field admin-field-full">
+              <span>6 ảnh chi tiết cố định</span>
+              <div class="admin-gallery-grid admin-gallery-grid-fixed">
+                {% for slot in editing_product_gallery_slots %}
+                <label class="admin-gallery-card admin-gallery-slot-card">
+                  {% if slot.image %}
+                  <img src="{{ slot.image.image.url }}" alt="{{ editing_product.name }} ảnh {{ forloop.counter }}">
+                  {% else %}
+                  <div class="admin-gallery-slot-empty">
+                    <strong>Slot {{ forloop.counter }}</strong>
+                    <span>Chưa có hình</span>
+                  </div>
+                  {% endif %}
+                  <small class="help-text">{{ slot.label }}</small>
+                  <input type="file" name="gallery_slot_{{ slot.slot_index }}" accept="image/*">
+                  {% if slot.image %}
+                  <span><input type="checkbox" name="remove_gallery_slot_{{ slot.slot_index }}"> Xóa ảnh</span>
+                  {% endif %}
+                </label>
+                {% endfor %}
+              </div>
+              <small class="help-text">Trang chi tiết luôn hiển thị đủ 6 ô dưới ảnh chính. Slot chưa có ảnh sẽ hiện placeholder.</small>
+            </div>
+
+            <label class="admin-field admin-field-full">
+              <span>Thêm nhanh nhiều ảnh</span>
+              <input type="file" name="gallery_images" accept="image/*" multiple>
+              <small class="help-text">Có thể thêm nhiều ảnh trong một lần. Hệ thống chỉ giữ tối đa 6 ảnh chi tiết đầu tiên.</small>
+            </label>
+
+            <label class="admin-field admin-field-full">
+              <span>Mô tả chi tiết</span>
+              <textarea name="description" rows="5" placeholder="Chất liệu, form dáng, cách phối đồ, hướng dẫn bảo quản...">{{ product_form.description }}</textarea>
+            </label>
+          </div>
+
+          <div class="admin-switches">
+            <label><input type="checkbox" name="available" {% if product_form.available %}checked{% endif %}> Đang bán</label>
+            <label><input type="checkbox" name="featured" {% if product_form.featured %}checked{% endif %}> Nổi bật</label>
+          </div>
+
+          <div class="admin-variant-panel">
+            <div class="section-head">
+              <div>
+                <h2>Biến thể màu × size</h2>
+                <p>Chọn màu (từng hàng) và size (cột S/M/L/XL), nhập tồn kho cho từng ô màu × size.</p>
+              </div>
+              <button type="button" class="btn ghost small" id="add-variant-color">+ Thêm màu</button>
+            </div>
+            <div class="table-wrap">
+              <table class="cart-table admin-variant-table admin-variant-matrix">
+                <thead>
+                  <tr id="variant-matrix-head">
+                    <th>Màu sắc</th>
+                    <th class="variant-check">Hiển thị</th>
+                    {% for size in variant_matrix.sizes %}<th class="matrix-size-col">{{ size }}</th>{% endfor %}
+                    <th class="matrix-corner-end"></th>
+                  </tr>
+                </thead>
+                <tbody id="variant-matrix-body">
+                  {% for color in variant_matrix.colors %}
+                  <tr class="variant-color-row" data-color-index="{{ color.index }}">
+                    <td>
+                      <div class="matrix-color-inputs">
+                        <input type="text" name="matrix_color_name[]" value="{{ color.name }}" placeholder="Đen">
+                        <input type="color" name="matrix_color_code[]" value="{{ color.code }}" title="Mã màu">
+                      </div>
+                    </td>
+                    <td class="variant-check"><input type="checkbox" name="matrix_color_active[]" value="{{ color.index }}" {% if color.is_active %}checked{% endif %}></td>
+                    {% for cell in color.stocks %}
+                    <td class="matrix-size-cell" data-size="{{ cell.size }}"><input type="number" name="matrix_stock_{{ color.index }}_{{ cell.token }}" min="0" step="1" value="{{ cell.stock }}" placeholder="0"></td>
+                    {% endfor %}
+                    <td><button type="button" class="btn danger small variant-color-remove">Xóa</button></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="admin-variant-addsize">
+              <span class="addsize-label">Thêm size nhanh:</span>
+              <button type="button" class="btn ghost small add-size-quick" data-size="S">S</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="M">M</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="L">L</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="XL">XL</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="XXL">XXL</button>
+              <button type="button" class="btn ghost small add-size-quick" data-size="3XL">3XL</button>
+              <input type="text" id="variant-custom-size" placeholder="Size khác (VD: 36)" class="admin-input" style="width:150px">
+              <button type="button" class="btn ghost small" id="add-variant-custom-size">Thêm size</button>
+            </div>
+            <div id="variant-matrix-sizes" style="display:none">
+              {% for size in variant_matrix.sizes %}<input type="hidden" name="matrix_sizes" value="{{ size }}">{% endfor %}
+            </div>
+            <p class="help-text">Bỏ tick &quot;Hiển thị&quot; ở màu nào sẽ ẩn toàn bộ size của màu đó ở shop. Khi đã có biến thể, &quot;Tồn kho tổng&quot; sẽ tự cộng từ các ô.</p>
+          </div>
+
+          <div class="admin-actions">
+            <button type="submit" class="btn inline-auto">{% if editing_product %}Lưu cập nhật{% else %}Lưu sản phẩm{% endif %}</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    
+    <section class="admin-tab-content" id="admin-product-table">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Toàn bộ sản phẩm</h2>
+            <p>Xem đầy đủ kho, sửa, xóa hoặc đánh dấu hết hàng ngay trong bảng dưới đây.</p>
+          </div>
+          <div>
+            <input type="text" id="admin-product-search" placeholder="Tìm sản phẩm..." class="admin-input" style="width:200px;max-width:100%">
+          </div>
+        </div>
+        <div class="bulk-actions" id="admin-bulk-actions">
+          <label class="bulk-label"><input type="checkbox" id="admin-select-all"> Chọn tất cả</label>
+          <form method="post" class="admin-inline-form" onsubmit="return confirm('Ẩn các sản phẩm đã chọn?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_toggle_available">
+            <div id="admin-bulk-ids"></div>
+            <button type="submit" class="btn small ghost" id="admin-bulk-hide-btn" disabled>Ẩn</button>
+          </form>
+          <form method="post" class="admin-inline-form" onsubmit="return confirm('Hiện các sản phẩm đã chọn?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_toggle_available">
+            <div id="admin-bulk-ids-show"></div>
+            <button type="submit" class="btn small ghost" id="admin-bulk-show-btn" disabled>Hiện</button>
+          </form>
+        </div>
+        <div class="admin-product-table-shell">
+          <div class="table-wrap">
+            <table class="cart-table admin-product-table">
+              <colgroup>
+                <col class="admin-col-check">
+                <col class="admin-col-thumb">
+                <col class="pcol-name">
+                <col class="pcol-category">
+                <col class="pcol-price">
+                <col class="pcol-stock">
+                <col class="pcol-status">
+                <col class="pcol-actions">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="adm-center"><input type="checkbox" id="admin-select-all-header"></th>
+                  <th>Ảnh</th>
+                  <th>Tên sản phẩm</th>
+                  <th>Danh mục</th>
+                  <th class="adm-num">Giá</th>
+                  <th class="adm-center">Tồn kho</th>
+                  <th class="adm-center">Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for product in recent_products %}
+                <tr>
+                  <td class="adm-center"><input type="checkbox" class="admin-product-check" value="{{ product.id }}"></td>
+                  <td>
+                    {% if product.image and product.image.url %}
+                    <img src="{{ product.image.url }}" alt="" class="admin-product-thumb">
+                    {% elif product.image_url %}
+                    <img src="{{ product.image_url }}" alt="" class="admin-product-thumb">
+                    {% else %}
+                    <div class="admin-product-placeholder">?</div>
+                    {% endif %}
+                  </td>
+                  <td><span class="admin-product-name">{{ product.name }}</span></td>
+                  <td><span class="admin-ellipsis">{{ product.category.name }}</span></td>
+                  <td class="adm-num">{{ product.price|vnd }}đ</td>
+                  <td class="adm-center">{{ product.stock }}</td>
+                  <td class="adm-center">
+                    {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
+                    {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
+                    {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
+                  </td>
+                  <td>
+                    <div class="admin-row-actions">
+                      <a href="{% url 'orders:admin_dashboard' %}?edit={{ product.id }}" class="btn ghost small">Sửa</a>
+                      <form method="post" class="admin-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="mark_out_of_stock">
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <button type="submit" class="btn small">Hết hàng</button>
+                      </form>
+                      {% if permissions.can_delete_product %}
+                      <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa sản phẩm này?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_product">
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <button type="submit" class="btn danger small">Xóa</button>
+                      </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="admin-empty-cell">Chưa có sản phẩm nào.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    
+    <section class="admin-tab-content" id="admin-inventory">
+      <div class="adm-kpis">
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-info"><i class="fa-solid fa-boxes-stacked"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tổng sản phẩm</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.total_products }}</strong>
+            <small class="adm-kpi-hint">{{ inventory_stats.hidden_products }} sản phẩm đang ẩn</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-success"><i class="fa-solid fa-box"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Tổng tồn kho</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.total_units }}</strong>
+            <small class="adm-kpi-hint">Số lượng hàng đang có</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-accent"><i class="fa-solid fa-sack-dollar"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Giá trị hàng tồn</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.stock_value|vnd }}đ</strong>
+            <small class="adm-kpi-hint">Theo giá bán hiện tại</small>
+          </div>
+        </article>
+        <article class="adm-kpi-card">
+          <span class="adm-kpi-icon adm-kpi-warning"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div class="adm-kpi-body">
+            <span class="adm-kpi-label">Hết hàng</span>
+            <strong class="adm-kpi-value">{{ inventory_stats.out_of_stock }}</strong>
+            <small class="adm-kpi-hint">{{ inventory_stats.low_stock }} sản phẩm sắp hết (≤ {{ low_stock_limit }})</small>
+          </div>
+        </article>
+      </div>
+
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Danh sách kho hàng</h2>
+            <p>Xem số lượng tồn của từng sản phẩm và biến thể màu/size.</p>
+          </div>
+          <form method="get" class="order-filter-form">
+            <select name="inventory_status" class="admin-input" data-auto-submit>
+              <option value="">Tất cả trạng thái kho</option>
+              <option value="out" {% if inventory_status == "out" %}selected{% endif %}>Hết hàng (tồn 0)</option>
+              <option value="low" {% if inventory_status == "low" %}selected{% endif %}>Sắp hết (1–{{ low_stock_limit }})</option>
+              <option value="hidden" {% if inventory_status == "hidden" %}selected{% endif %}>Đang ẩn còn hàng</option>
+            </select>
+            <input type="search" name="inventory_q" placeholder="Tìm tên sản phẩm, danh mục..." value="{{ inventory_q }}" class="admin-input" style="width:220px;max-width:100%">
+            <button type="submit" class="btn small ghost">Lọc</button>
+          </form>
+          <form method="post" enctype="multipart/form-data" class="order-filter-form" title="CSV: product_id,color_name,size,stock">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import_stock">
+            <input type="file" name="stock_file" accept=".csv" required class="admin-input">
+            <button type="submit" class="btn small">Nhập tồn kho</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table class="cart-table admin-inventory-table">
+            <colgroup>
+              <col class="admin-col-thumb">
+              <col class="icol-name">
+              <col class="icol-category">
+              <col class="icol-price">
+              <col class="icol-stock">
+              <col class="icol-variants">
+              <col class="icol-status">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Danh mục</th>
+                <th class="adm-num">Giá</th>
+                <th class="adm-center">Tồn kho</th>
+                <th>Chi tiết biến thể</th>
+                <th class="adm-center">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for product in inventory_products %}
+              <tr>
+                <td>
+                  {% if product.image and product.image.url %}
+                  <img src="{{ product.image.url }}" alt="" class="admin-product-thumb">
+                  {% elif product.image_url %}
+                  <img src="{{ product.image_url }}" alt="" class="admin-product-thumb">
+                  {% else %}
+                  <div class="admin-product-placeholder">?</div>
+                  {% endif %}
+                </td>
+                <td><span class="admin-product-name">{{ product.name }}</span></td>
+                <td><span class="admin-ellipsis">{{ product.category.name }}</span></td>
+                <td class="adm-num">{{ product.price|vnd }}đ</td>
+                <td class="adm-center"><span class="adm-stock-pill {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}</span></td>
+                <td>
+                  {% if product.variants.all %}
+                  <div class="inv-variant-list">
+                    {% for v in product.variants.all %}
+                    <span class="inv-variant-chip {% if not v.is_active %}is-inactive{% endif %}">{{ v.color_name|default:"—" }} / {{ v.size|default:"—" }}: {{ v.stock }}</span>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <small class="admin-muted">Không có biến thể</small>
+                  {% endif %}
+                </td>
+                <td class="adm-center">
+                  {% if product.stock == 0 %}<span class="admin-badge admin-badge-warn">Hết hàng</span>
+                  {% elif not product.available %}<span class="admin-badge admin-badge-muted">Ẩn</span>
+                  {% else %}<span class="admin-badge admin-badge-ok">Đang bán</span>{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="admin-empty-cell">Không có sản phẩm nào trong kho.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if inventory_page_obj.paginator.num_pages > 1 %}
+        <div class="admin-pagination">
+          {% if inventory_page_obj.has_previous %}
+            <a class="page-link" href="?inventory_page={{ inventory_page_obj.previous_page_number }}&inventory_status={{ request.GET.inventory_status|urlencode }}&inventory_q={{ request.GET.inventory_q|urlencode }}#admin-inventory">← Trước</a>
+          {% endif %}
+          <span class="admin-pagination-summary">Trang {{ inventory_page_obj.number }}/{{ inventory_page_obj.paginator.num_pages }} · {{ inventory_page_obj.paginator.count }} sản phẩm</span>
+          {% if inventory_page_obj.has_next %}
+            <a class="page-link" href="?inventory_page={{ inventory_page_obj.next_page_number }}&inventory_status={{ request.GET.inventory_status|urlencode }}&inventory_q={{ request.GET.inventory_q|urlencode }}#admin-inventory">Sau →</a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    
+    <section class="admin-tab-content" id="admin-orders">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Đơn hàng</h2>
+            <p>Danh sách tất cả đơn hàng. Chọn trạng thái để cập nhật.</p>
+          </div>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <form method="get" id="order-filter-form" class="order-filter-form">
+              <select name="order_status" class="admin-input" data-auto-submit>
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending" {% if request.GET.order_status == 'pending' %}selected{% endif %}>Chờ xử lý</option>
+                <option value="processing" {% if request.GET.order_status == 'processing' %}selected{% endif %}>Đang xử lý</option>
+                <option value="shipping" {% if request.GET.order_status == 'shipping' %}selected{% endif %}>Đang giao</option>
+                <option value="delivered" {% if request.GET.order_status == 'delivered' %}selected{% endif %}>Hoàn thành</option>
+                <option value="cancelled" {% if request.GET.order_status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+              </select>
+              <input type="search" name="order_q" placeholder="Tìm theo ID, tên, SĐT" value="{{ request.GET.order_q }}" class="admin-input" style="width:200px;max-width:100%">
+              <button type="submit" class="btn small ghost">Tìm</button>
+            </form>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="cart-table admin-order-table">
+            <colgroup>
+              <col class="ocol-id">
+              <col class="ocol-customer">
+              <col class="ocol-total">
+              <col class="ocol-payment">
+              <col class="ocol-status">
+              <col class="ocol-date">
+              <col class="ocol-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Mã ĐH</th>
+                <th>Khách hàng</th>
+                <th class="adm-num">Tổng tiền</th>
+                <th>Thanh toán</th>
+                <th class="adm-center">Trạng thái</th>
+                <th>Ngày tạo</th>
+                <th>Cập nhật</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in recent_orders %}
+              <tr>
+                <td><strong><a href="{% url 'orders:order_review' order.id %}" class="admin-order-link">#{{ order.id }}</a></strong></td>
+                <td>
+                  <div class="admin-ellipsis">{{ order.customer_name }}</div>
+                  <small class="admin-muted">{{ order.phone }}</small>
+                  {% if order.items.all %}
+                  <small class="admin-muted-sm">{{ order.items.all|length }} sản phẩm</small>
+                  {% endif %}
+                </td>
+                <td class="adm-num"><strong>{{ order.total_amount|vnd }}đ</strong></td>
+                <td>
+                  <div class="adm-badge-stack">
+                    {% if order.payment_method == "bank" %}
+                      <span class="admin-badge admin-badge-bank">Chuyển khoản</span>
+                      {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
+                    {% elif order.payment_method == "vnpay" %}
+                      <span class="admin-badge admin-badge-ok">VNPay</span>
+                      {% if order.is_paid %}<span class="admin-badge admin-badge-ok">Đã thanh toán</span>{% endif %}
+                    {% else %}
+                      <span class="admin-badge admin-badge-cod">COD</span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="adm-center">
+                  <span class="admin-badge admin-badge-status-{{ order.status }}">{% if order.status == "pending" %}Chờ xử lý{% elif order.status == "processing" %}Đang xử lý{% elif order.status == "shipping" %}Đang giao{% elif order.status == "delivered" %}Hoàn thành{% elif order.status == "cancelled" %}Đã hủy{% endif %}</span>
+                </td>
+                <td>
+                  <span class="adm-date-main">{{ order.created_at|date:"d/m/Y" }}</span>
+                  <span class="adm-date-sub">{{ order.created_at|date:"H:i" }}</span>
+                </td>
+                <td>
+                  <form method="post" class="admin-quick-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_order_status">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <select name="new_status" class="admin-input-sm">
+                      <option value="pending" {% if order.status == "pending" %}selected{% endif %}>Chờ xử lý</option>
+                      <option value="processing" {% if order.status == "processing" %}selected{% endif %}>Đang xử lý</option>
+                      <option value="shipping" {% if order.status == "shipping" %}selected{% endif %}>Đang giao</option>
+                      <option value="delivered" {% if order.status == "delivered" %}selected{% endif %}>Hoàn thành</option>
+                      <option value="cancelled" {% if order.status == "cancelled" %}selected{% endif %}>Đã hủy</option>
+                    </select>
+                    <button type="submit" class="btn small ghost">Lưu</button>
+                  </form>
+                  <div class="admin-order-extra">
+                    {% if order.status != "cancelled" and not order.is_paid %}
+                    <form method="post" class="admin-quick-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="refund_order">
+                      <input type="hidden" name="order_id" value="{{ order.id }}">
+                      <button type="submit" class="btn small ghost danger" onclick="return confirm('Hủy đơn chưa thanh toán #{{ order.id }} và trả hàng về kho?')">Hủy đơn</button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'orders:admin_print_invoice' order.id %}" target="_blank" rel="noopener" class="btn small ghost">In hoá đơn</a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="admin-empty-cell">Chưa có đơn hàng nào.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if orders_page.paginator.num_pages > 1 %}
+        <nav class="pagination admin-pagination" aria-label="Phân trang đơn hàng">
+          {% if orders_page.has_previous %}
+            <a class="page-link" href="?order_page={{ orders_page.previous_page_number }}&order_status={{ request.GET.order_status|urlencode }}&order_q={{ request.GET.order_q|urlencode }}">← Trước</a>
+          {% endif %}
+          <span class="admin-pagination-summary">Trang {{ orders_page.number }}/{{ orders_page.paginator.num_pages }} · {{ orders_page.paginator.count }} đơn</span>
+          {% if orders_page.has_next %}
+            <a class="page-link" href="?order_page={{ orders_page.next_page_number }}&order_status={{ request.GET.order_status|urlencode }}&order_q={{ request.GET.order_q|urlencode }}">Sau →</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+      </div>
+    </section>
+
+    
+    <section class="admin-tab-content" id="admin-reports">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Báo cáo doanh thu theo tháng</h2>
+            <p>Doanh thu đơn hoàn thành 12 tháng gần nhất.</p>
+          </div>
+          <a href="{% url 'orders:admin_export_revenue' %}" class="btn small">
+            <i class="fa-solid fa-download"></i> Xuất CSV doanh thu
+          </a>
+        </div>
+        {% if monthly_revenue %}
+        <div class="week-chart week-chart-status">
+          {% for item in monthly_revenue %}
+          <div class="week-chart-item">
+            <div class="week-chart-bar-wrap">
+              <div class="week-chart-bar week-chart-bar-alt" style="height: {{ item.height }}%;"></div>
+            </div>
+            <strong>{{ item.revenue|vnd }}đ</strong>
+            <span>{{ item.label }} · {{ item.orders_count }} đơn</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="table-wrap" style="margin-top:1rem">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th>Tháng</th>
+                <th class="adm-num">Doanh thu</th>
+                <th class="adm-center">Số đơn hoàn thành</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in monthly_revenue|slice:":6" %}
+              <tr>
+                <td>{{ item.label }}</td>
+                <td class="adm-num">{{ item.revenue|vnd }}đ</td>
+                <td class="adm-center">{{ item.orders_count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="admin-empty-cell">Chưa có dữ liệu.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="admin-chart-empty">
+          <i class="fa-regular fa-chart-bar"></i>
+          <p>Chưa có đơn hoàn thành nên chưa có báo cáo doanh thu.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    
+    {% if permissions.can_manage_coupons %}
+    <section class="admin-tab-content" id="admin-coupons">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Mã giảm giá</h2>
+            <p>Tạo, sửa, xoá mã giảm giá. Mã sẽ tự động được kiểm tra khi khách áp dụng tại checkout.{% if discount_stats %} Đã giảm tổng {{ discount_stats.total_discount|default:0|vnd }}đ trên {{ discount_stats.coupon_orders|default:0 }} đơn dùng mã.{% endif %}</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="cart-table admin-coupon-table">
+            <colgroup>
+              <col class="ccol-code">
+              <col class="ccol-type">
+              <col class="ccol-value">
+              <col class="ccol-min">
+              <col class="ccol-max">
+              <col class="ccol-active">
+              <col class="ccol-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Loại</th>
+                <th class="adm-num">Giá trị</th>
+                <th class="adm-num">Đơn tối thiểu</th>
+                <th class="adm-num">Giảm tối đa</th>
+                <th class="adm-num">Đã dùng</th>
+                <th class="adm-center">Cộng dồn</th>
+                <th class="adm-center">Kích hoạt</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for coupon in coupons %}
+              <tr>
+                <td><strong>{{ coupon.code }}</strong></td>
+                <td>{% if coupon.discount_type == "percent" %}%{% elif coupon.discount_type == "fixed" %}₫{% else %}Ship{% endif %}</td>
+                <td class="adm-num">{% if coupon.discount_type == "percent" %}{{ coupon.value|vnd }}%{% elif coupon.discount_type == "fixed" %}{{ coupon.value|vnd }}đ{% else %}Miễn phí ship{% endif %}</td>
+                <td class="adm-num">{{ coupon.min_order_amount|vnd }}đ</td>
+                <td class="adm-num">{% if coupon.max_discount_amount %}{{ coupon.max_discount_amount|vnd }}đ{% else %}—{% endif %}</td>
+                <td class="adm-num">{{ coupon.used_count }}</td>
+                <td class="adm-center">{% if coupon.stackable %}<span class="admin-badge admin-badge-ok">Có</span>{% else %}<span class="admin-badge admin-badge-warn">Độc quyền</span>{% endif %}</td>
+                <td class="adm-center">{% if coupon.is_active %}<span class="admin-badge admin-badge-ok">Bật</span>{% else %}<span class="admin-badge admin-badge-muted">Tắt</span>{% endif %}</td>
+                <td>
+                  <div class="admin-row-actions">
+                    <button type="button" class="btn ghost small" data-edit-coupon="{{ coupon.id }}" data-coupon-code="{{ coupon.code }}" data-coupon-type="{{ coupon.discount_type }}" data-coupon-value="{{ coupon.value }}" data-coupon-min="{{ coupon.min_order_amount }}" data-coupon-max="{{ coupon.max_discount_amount|default:'' }}" data-coupon-active="{{ coupon.is_active }}" data-coupon-stackable="{{ coupon.stackable }}">Sửa</button>
+                    <form method="post" class="admin-inline-form" onsubmit="return confirm('Xoá mã {{ coupon.code }}?')">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_coupon">
+                      <input type="hidden" name="coupon_id" value="{{ coupon.id }}">
+                      <button type="submit" class="btn danger small">Xóa</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="admin-empty-cell">Chưa có mã giảm giá nào.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <hr class="admin-hr">
+        <div class="section-head">
+          <div>
+            <h2 id="coupon-form-title">Thêm mã mới</h2>
+          </div>
+        </div>
+        <form method="post" class="coupon-form-layout">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_coupon">
+          <input type="hidden" name="coupon_id" id="coupon-id-input" value="">
+          <label class="admin-field">
+            <span>Mã giảm giá</span>
+            <input type="text" name="code" id="coupon-code-input" placeholder="VD: FREESHIP" required class="coupon-code-input">
+          </label>
+          <label class="admin-field">
+            <span>Loại</span>
+            <select name="discount_type" id="coupon-type-select">
+              <option value="percent">Phần trăm (%)</option>
+              <option value="fixed">Số tiền cố định (₫)</option>
+              <option value="freeship">Miễn phí ship</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>Giá trị</span>
+            <input type="number" name="value" id="coupon-value-input" min="0" step="1" placeholder="10" required>
+          </label>
+          <label class="admin-field">
+            <span>Đơn tối thiểu (₫)</span>
+            <input type="number" name="min_order_amount" id="coupon-min-input" min="0" step="1" value="0">
+          </label>
+          <label class="admin-field">
+            <span>Giới hạn giảm tối đa (₫)</span>
+            <input type="number" name="max_discount_amount" id="coupon-max-input" min="0" step="1" placeholder="Không giới hạn">
+          </label>
+          <label class="admin-field">
+            <span>Số lượt mỗi người</span>
+            <input type="number" name="max_uses_per_user" id="coupon-user-input" min="1" step="1" placeholder="Không giới hạn">
+          </label>
+          <label class="admin-field field-gap">
+            <input type="checkbox" name="is_active" id="coupon-active-input" checked>
+            <span>Kích hoạt ngay</span>
+          </label>
+          <label class="admin-field field-gap" title="Tắt = mã độc quyền, không cộng với giảm giá hạng và điểm">
+            <input type="checkbox" name="stackable" id="coupon-stackable-input" checked>
+            <span>Cộng dồn hạng/điểm</span>
+          </label>
+          <div class="coupon-full-width">
+            <button type="submit" class="btn">Lưu mã</button>
+            <button type="button" class="btn ghost" id="coupon-cancel-btn" style="display:none">Huỷ</button>
+          </div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+
+    
+    {% if permissions.is_admin %}
+    <section class="admin-tab-content" id="admin-users">
+      <div class="admin-board-panel">
+        <div class="section-head">
+          <div>
+            <h2>Nhân viên &amp; Phân quyền</h2>
+            <p>Đặt vai trò cho từng tài khoản: Quản trị viên (toàn quyền), Nhân viên (đơn hàng, kho, sản phẩm) hoặc Khách hàng (không vào được khu vực quản trị). Hệ thống luôn giữ ít nhất một quản trị viên.</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <span class="adm-date-chip"><i class="fa-solid fa-user-tag"></i> {{ staff_count }} tài khoản có quyền quản trị/nhân viên</span>
+            <button type="button" class="btn small ghost" data-toggle-user-create>+ Tạo tài khoản nhanh</button>
+          </div>
+        </div>
+
+        <div class="admin-create-user" id="admin-create-user" hidden>
+          <form method="post" class="admin-quick-form create-user-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_user">
+            <label class="admin-field">
+              <span>Tên đăng nhập</span>
+              <input type="text" name="username" placeholder="VD: nhanvien01" required autocomplete="off">
+            </label>
+            <label class="admin-field">
+              <span>Email</span>
+              <input type="email" name="email" placeholder="vd@email.com" autocomplete="off">
+            </label>
+            <label class="admin-field">
+              <span>Mật khẩu (tối thiểu 8 ký tự)</span>
+              <input type="password" name="password" placeholder="••••••••" required autocomplete="new-password">
+            </label>
+            <label class="admin-field">
+              <span>Vai trò</span>
+              <select name="role" class="admin-input-sm">
+                <option value="staff">Nhân viên</option>
+                <option value="admin">Quản trị viên</option>
+                <option value="user">Khách hàng</option>
+              </select>
+            </label>
+            <div class="admin-field">
+              <span>&nbsp;</span>
+              <button type="submit" class="btn">Tạo tài khoản</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table class="cart-table admin-user-table">
+            <colgroup>
+              <col class="ucol-name">
+              <col class="ucol-email">
+              <col class="ucol-role">
+              <col class="ucol-date">
+              <col class="ucol-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Tài khoản</th>
+                <th>Email</th>
+                <th class="adm-center">Vai trò</th>
+                <th>Ngày đăng ký</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for account in manage_users %}
+              <tr>
+                <td>
+                  <strong>{{ account.username }}</strong>
+                  {% if account.get_full_name %}<small class="admin-muted">{{ account.get_full_name }}</small>{% endif %}
+                </td>
+                <td><span class="admin-ellipsis">{{ account.email|default:"—" }}</span></td>
+                <td class="adm-center">
+                  {% if account.is_superuser %}
+                  <span class="admin-badge admin-badge-role-admin">Quản trị viên</span>
+                  {% elif account.is_staff %}
+                  <span class="admin-badge admin-badge-role-staff">Nhân viên</span>
+                  {% else %}
+                  <span class="admin-badge admin-badge-role-user">Khách hàng</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ account.date_joined|date:"d/m/Y" }}</small></td>
+                <td>
+                  <div class="admin-user-actions">
+                    <form method="post" class="admin-quick-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="set_user_role">
+                      <input type="hidden" name="user_id" value="{{ account.id }}">
+                      <select name="role" class="admin-input-sm" {% if account.is_superuser and account.id == request.user.id %}data-self-admin{% endif %}>
+                        <option value="admin" {% if account.is_superuser %}selected{% endif %}>Quản trị viên</option>
+                        <option value="staff" {% if not account.is_superuser and account.is_staff %}selected{% endif %}>Nhân viên</option>
+                        <option value="user" {% if not account.is_superuser and not account.is_staff %}selected{% endif %}>Khách hàng</option>
+                      </select>
+                      <button type="submit" class="btn small ghost">Lưu</button>
+                    </form>
+                    {% if account.id == request.user.id %}
+                    <span class="admin-muted admin-self-badge">Chính bạn</span>
+                    {% else %}
+                    <form method="post" class="admin-inline-form" onsubmit="return confirm('Xóa tài khoản {{ account.username }}? Toàn bộ dữ liệu liên quan cũng sẽ bị xóa.');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_user">
+                      <input type="hidden" name="user_id" value="{{ account.id }}">
+                      <button type="submit" class="btn danger small">Xóa TK</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="admin-empty-cell">Chưa có tài khoản nào.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+  </div>
+</section>
+
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-switch-to]');
+  if (!btn) return;
+  var nav = document.querySelector('.admin-tab[data-target="' + btn.dataset.switchTo + '"]');
+  if (nav) nav.click();
+});
+
+document.addEventListener('click', function(e) {
+  var toggleBtn = e.target.closest('[data-toggle-user-create]');
+  if (!toggleBtn) return;
+  var panel = document.getElementById('admin-create-user');
+  if (panel) panel.hidden = !panel.hidden;
+});
+
+document.addEventListener('click', function(e) {
+  var switchBtn = e.target.closest('.chart-switch[data-chart-target]');
+  if (!switchBtn) return;
+  var panes = document.querySelectorAll('.chart-pane[data-chart-pane]');
+  var switches = document.querySelectorAll('.chart-switch[data-chart-target]');
+  switches.forEach(function(s) {
+    var on = s === switchBtn;
+    s.classList.toggle('active', on);
+    s.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  panes.forEach(function(p) {
+    p.classList.toggle('chart-pane-active', p.id === switchBtn.dataset.chartTarget);
+  });
+});
+</script>
+
+<style nonce="{{ request.csp_nonce }}">
+
+.adm-shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1.25rem;
+}
+.adm-main { display: grid; gap: 1.25rem; min-width: 0; }
+.adm-main > * { min-width: 0; }
+
+
+.adm-sidebar {
+  position: sticky;
+  top: calc(var(--header-h) + 1rem);
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.1rem;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.adm-side-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.adm-side-logo {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 12px var(--accent-glow);
+  flex-shrink: 0;
+}
+.adm-side-brand-copy { display: grid; gap: 0.1rem; min-width: 0; }
+.adm-side-brand-copy strong {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.adm-side-brand-copy small {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.adm-side-nav { display: grid; gap: 0.25rem; }
+.adm-side-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-light);
+  padding: 0 0.55rem 0.35rem;
+}
+.adm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.62rem 0.7rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.adm-nav-item i { width: 18px; text-align: center; color: var(--muted); transition: color 0.15s ease; }
+.adm-nav-item:hover { background: var(--surface-tint); color: var(--text); }
+.adm-nav-item:hover i { color: var(--accent); }
+.adm-nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.adm-nav-item.active i { color: var(--accent-strong); }
+.adm-side-foot {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.adm-side-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem 0.7rem;
+}
+.adm-side-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-strong);
+  flex-shrink: 0;
+}
+.adm-side-user div { display: grid; gap: 0.05rem; min-width: 0; }
+.adm-side-user strong { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-side-user small { font-size: 0.66rem; color: var(--muted); }
+.adm-side-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.adm-side-link:hover { background: var(--surface-tint); color: var(--text); }
+
+
+.adm-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.adm-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin-top: 0.2rem;
+}
+.adm-subtitle { font-size: 0.84rem; color: var(--muted); margin-top: 0.25rem; }
+.adm-topbar-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.adm-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.adm-date-chip i { color: var(--accent); }
+.adm-date-chip-accent { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+.adm-date-chip-accent i { color: var(--accent-strong); }
+
+
+.admin-tab { background: none; border: none; padding: 0; font-family: inherit; cursor: pointer; }
+.admin-tab-content { display: none; }
+.admin-tab-content.active { display: grid; gap: 1.25rem; animation: adminFadeUp 0.25s ease; }
+@keyframes adminFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+.adm-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.adm-kpi-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, var(--surface-strong), rgba(252, 249, 245, 0.85));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+.adm-kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.adm-kpi-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+.adm-kpi-accent { background: var(--accent-soft); color: var(--accent-strong); }
+.adm-kpi-success { background: var(--success-soft); color: var(--success); }
+.adm-kpi-warning { background: rgba(217, 119, 6, 0.12); color: var(--warning); }
+.adm-kpi-info { background: rgba(91, 122, 154, 0.14); color: var(--info); }
+.adm-kpi-body { display: grid; gap: 0.15rem; min-width: 0; }
+.adm-kpi-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.adm-kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adm-kpi-hint { font-size: 0.68rem; color: var(--muted); }
+
+
+.adm-pipeline { padding: 1.1rem 1.2rem; display: grid; gap: 0.9rem; }
+.adm-pipe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.adm-pipe-head h2 { font-size: 1.05rem; }
+.adm-pipe-total { text-align: right; }
+.adm-pipe-total strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--accent-strong);
+}
+.adm-pipe-total small { font-size: 0.66rem; color: var(--muted); }
+.adm-stackbar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-tint);
+}
+.adm-stack-seg { display: block; height: 100%; min-width: 2px; }
+.adm-st-pending { background: var(--warning); }
+.adm-st-processing { background: var(--info); }
+.adm-st-shipping { background: var(--accent); }
+.adm-st-delivered { background: var(--success); }
+.adm-st-cancelled { background: var(--muted-light); }
+.adm-stackbar-empty {
+  padding: 0.7rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+}
+.adm-pipe-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.1rem;
+  font-size: 0.76rem;
+  color: var(--text-soft);
+}
+.adm-pipe-legend b { color: var(--text); }
+.adm-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: baseline;
+}
+.adm-dot-pending { background: var(--warning); }
+.adm-dot-processing { background: var(--info); }
+.adm-dot-shipping { background: var(--accent); }
+.adm-dot-delivered { background: var(--success); }
+.adm-dot-cancelled { background: var(--muted-light); }
+
+
+.adm-chart-panel { padding: 1.2rem; }
+.admin-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+.admin-chart-head h2 { font-size: 1.05rem; }
+.admin-chart-meta { display: grid; gap: 4px; justify-items: end; text-align: right; }
+.admin-chart-total {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--text);
+}
+.admin-chart-meta small { font-size: 0.68rem; color: var(--muted); }
+.admin-growth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+}
+.admin-growth-up { background: var(--success-soft); color: var(--success); }
+.admin-growth-down { background: var(--danger-soft); color: var(--danger); }
+.admin-growth-flat { background: var(--surface-tint); color: var(--muted); }
+.admin-chart-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--muted);
+}
+.admin-chart-empty i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+.admin-chart-empty p { font-size: 0.84rem; }
+
+.adm-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+.chart-pane {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  min-width: 0;
+}
+.chart-pane[data-chart-pane] { display: none; }
+.chart-pane.chart-pane-active { display: block; }
+.chart-card-title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  margin: 0 0 0.7rem;
+}
+.week-chart-status { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.adm-chart-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chart-switch {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.chart-switch:hover { border-color: var(--accent); color: var(--accent); }
+.chart-switch.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.week-chart-bar-alt { background: var(--info) !important; }
+.week-chart-bar-pending { background: #d97706 !important; }
+.week-chart-bar-processing { background: var(--info) !important; }
+.week-chart-bar-shipping { background: #7c3aed !important; }
+.week-chart-bar-delivered { background: var(--success, #16a34a) !important; }
+.week-chart-bar-cancelled { background: var(--danger, #dc2626) !important; }
+.category-chart-bar-top { background: linear-gradient(90deg, var(--info), var(--accent)) !important; }
+
+.donut-layout {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+.donut-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  flex: 0 0 auto;
+}
+.donut-chart { width: 100%; height: 100%; }
+.donut-chart circle { transition: stroke-dashoffset 0.4s ease; }
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.donut-center strong {
+  font-size: 1.8rem;
+  font-family: var(--font-display);
+  color: var(--text);
+  line-height: 1;
+}
+.donut-center span { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+.donut-legend {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 220px;
+}
+.donut-legend li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+.donut-dot { width: 10px; height: 10px; border-radius: 50%; }
+.donut-legend-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-legend-value { font-family: var(--font-display); color: var(--text); white-space: nowrap; }
+
+.chart-rank-list { display: grid; gap: 0.6rem; margin-top: 0.4rem; }
+.chart-rank-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.chart-rank-num {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+.chart-rank-main { display: grid; gap: 0.1rem; min-width: 0; }
+.chart-rank-main strong { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-rank-main small { font-size: 0.72rem; color: var(--muted); }
+.chart-rank-value { font-size: 0.84rem; font-family: var(--font-display); color: var(--text); white-space: nowrap; }
+
+.category-chart { display: grid; gap: 0.7rem; margin-top: 0.5rem; }
+.category-chart-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 0.7rem;
+}
+.category-chart-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.category-chart-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-tint);
+  overflow: hidden;
+}
+.category-chart-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+.category-chart-value {
+  font-size: 0.78rem;
+  font-family: var(--font-display);
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-create-user {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+}
+.create-user-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 0.8rem;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .create-user-form { grid-template-columns: 1fr 1fr; }
+  .adm-chart-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .category-chart-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .category-chart-value { grid-column: 2; text-align: left; }
+}
+
+
+.adm-grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.adm-alert-list { display: grid; gap: 0.6rem; margin-top: 0.4rem; }
+.adm-alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+.adm-alert-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.adm-alert-main div { display: grid; gap: 0.05rem; min-width: 0; }
+.adm-alert-main strong {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adm-alert-main small { font-size: 0.68rem; color: var(--muted); }
+.adm-alert-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--surface-tint);
+  flex-shrink: 0;
+}
+.adm-alert-thumb-empty {
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--muted);
+}
+.adm-stock-pill {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.adm-stock-pill.is-empty { background: var(--danger-soft); color: var(--danger); }
+
+
+.adm-mini-orders { display: grid; gap: 0.5rem; margin-top: 0.4rem; }
+.adm-mini-order {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.adm-mini-order:hover { border-color: var(--accent-glow); background: var(--surface-strong); transform: translateY(-1px); }
+.adm-mini-order-id { display: grid; gap: 0.05rem; min-width: 0; }
+.adm-mini-order-id strong { font-size: 0.8rem; }
+.adm-mini-order-id small {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adm-mini-order-total {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-order-extra {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  flex-wrap: wrap;
+}
+.admin-order-extra .btn,
+.admin-order-extra .btn.small {
+  width: auto;
+  min-height: 0;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+
+.admin-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-badge-ok { background: var(--success-soft); color: var(--success); }
+.admin-badge-warn { background: rgba(217, 119, 6, 0.12); color: var(--warning); }
+.admin-badge-muted { background: var(--surface-tint); color: var(--muted); }
+.admin-badge-bank { background: var(--accent-soft); color: var(--accent-strong); }
+.admin-badge-cod { background: var(--surface-tint); color: var(--text-soft); }
+.admin-badge-status-pending { background: rgba(217, 119, 6, 0.12); color: var(--warning); }
+.admin-badge-status-processing { background: rgba(91, 122, 154, 0.14); color: var(--info); }
+.admin-badge-status-shipping { background: var(--accent-soft); color: var(--accent-strong); }
+.admin-badge-status-delivered { background: var(--success-soft); color: var(--success); }
+.admin-badge-status-cancelled { background: var(--danger-soft); color: var(--danger); }
+.admin-badge-role-admin { background: var(--danger-soft, rgba(220,38,38,.12)); color: var(--danger, #dc2626); }
+.admin-badge-role-staff { background: rgba(91, 122, 154, 0.14); color: var(--info, #5b7a9a); }
+.admin-badge-role-user { background: var(--surface-tint); color: var(--muted); }
+
+
+.admin-product-table thead th,
+.admin-inventory-table thead th,
+.admin-coupon-table thead th,
+.admin-user-table thead th,
+.admin-order-table thead th { font-size: 0.66rem; letter-spacing: 0.04em; white-space: nowrap; text-align: center; border-bottom: 2px solid var(--line-strong); }
+.admin-col-check { width: 3.5%; }
+.admin-col-thumb { width: 7%; }
+
+.admin-product-table th,
+.admin-product-table td,
+.admin-inventory-table th,
+.admin-inventory-table td,
+.admin-coupon-table th,
+.admin-coupon-table td,
+.admin-user-table th,
+.admin-user-table td,
+.admin-order-table th,
+.admin-order-table td { padding: 0.5rem 0.7rem; vertical-align: middle; border-right: 1px solid var(--line); font-size: 0.8rem; }
+.admin-product-table th:last-child,
+.admin-product-table td:last-child,
+.admin-inventory-table th:last-child,
+.admin-inventory-table td:last-child,
+.admin-coupon-table th:last-child,
+.admin-coupon-table td:last-child,
+.admin-user-table th:last-child,
+.admin-user-table td:last-child,
+.admin-order-table th:last-child,
+.admin-order-table td:last-child { border-right: none; }
+.adm-num { text-align: right; white-space: nowrap; }
+.adm-center { text-align: center; }
+.admin-product-table td,
+.admin-inventory-table td,
+.admin-coupon-table td,
+.admin-user-table td,
+.admin-order-table td { text-align: left; }
+.admin-product-table td.adm-num,
+.admin-inventory-table td.adm-num,
+.admin-coupon-table td.adm-num,
+.admin-user-table td.adm-num,
+.admin-order-table td.adm-num { text-align: right; }
+.admin-product-table td.adm-center,
+.admin-inventory-table td.adm-center,
+.admin-coupon-table td.adm-center,
+.admin-user-table td.adm-center,
+.admin-order-table td.adm-center { text-align: center; }
+.admin-coupon-table .admin-row-actions { justify-content: center; }
+.admin-order-table td:last-child { text-align: center; }
+.admin-order-table .admin-order-extra { justify-content: center; }
+.admin-product-table td:nth-child(2),
+.admin-inventory-table td:nth-child(2) { text-align: center; overflow: hidden; }
+
+
+.pcol-name { width: 24%; }
+.pcol-category { width: 12%; }
+.pcol-price { width: 12%; }
+.pcol-stock { width: 9.5%; }
+.pcol-status { width: 11%; }
+.pcol-actions { width: 21%; }
+
+
+.icol-name { width: 21%; }
+.icol-category { width: 13%; }
+.icol-price { width: 11%; }
+.icol-stock { width: 11%; }
+.icol-variants { width: 24%; }
+.icol-status { width: 13%; }
+
+
+.ocol-id { width: 8%; }
+.ocol-customer { width: 20%; }
+.ocol-total { width: 11%; }
+.ocol-payment { width: 13%; }
+.ocol-status { width: 11%; }
+.ocol-date { width: 9%; }
+.ocol-actions { width: 28%; }
+
+
+.ccol-code { width: 15%; }
+.ccol-type { width: 6%; }
+.ccol-value { width: 16%; }
+.ccol-min { width: 15%; }
+.ccol-max { width: 15%; }
+.ccol-active { width: 10%; }
+.ccol-actions { width: 23%; }
+
+
+.ucol-name { width: 20%; }
+.ucol-email { width: 25%; }
+.ucol-role { width: 16%; }
+.ucol-date { width: 12%; }
+.ucol-actions { width: 27%; }
+
+.admin-row-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; row-gap: 0.3rem; }
+.admin-row-actions .btn,
+.admin-row-actions form { margin: 0; }
+.admin-inline-form { display: inline; }
+.admin-product-table,
+.admin-inventory-table,
+.admin-coupon-table,
+.admin-user-table,
+.admin-order-table { width: 100%; table-layout: fixed; min-width: 0; border-collapse: collapse; }
+.admin-product-table td,
+.admin-inventory-table td,
+.admin-coupon-table td,
+.admin-user-table td,
+.admin-order-table td { white-space: nowrap; overflow: hidden; }
+.admin-product-table th,
+.admin-inventory-table th,
+.admin-coupon-table th,
+.admin-user-table th,
+.admin-order-table th { overflow: hidden; text-overflow: ellipsis; }
+.admin-product-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-empty-cell { text-align: center; padding: 2rem !important; color: var(--muted); }
+.adm-badge-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.adm-date-main { display: block; font-size: 0.78rem; color: var(--text); white-space: nowrap; }
+.adm-date-sub { display: block; font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+.admin-order-link { color: var(--accent-strong); font-weight: 700; text-decoration: none; font-size: 0.75rem; }
+.admin-order-table td:first-child { padding-left: 0.45rem; padding-right: 0.45rem; }
+.admin-order-link:hover { text-decoration: underline; }
+.admin-muted { color: var(--muted); font-size: 0.72rem; display: block; }
+.admin-muted-sm { color: var(--muted-light); font-size: 0.66rem; display: block; margin-top: 0.15rem; }
+.admin-product-thumb {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--surface-tint);
+  max-width: 100%;
+}
+.admin-product-placeholder {
+  width: 46px;
+  height: 46px;
+  max-width: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  background: var(--surface-tint);
+  color: var(--muted);
+  font-weight: 800;
+}
+.admin-quick-form { display: inline-flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
+.admin-hr { border: 0; border-top: 1px solid var(--line); margin: 1.25rem 0; }
+
+
+.inv-variant-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.inv-variant-chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-xs);
+  background: var(--surface-tint);
+  border: 1px solid var(--line);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.inv-variant-chip.is-inactive { opacity: 0.45; text-decoration: line-through; }
+
+
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
+}
+.admin-user-actions .admin-quick-form,
+.admin-user-actions .admin-inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.admin-user-actions .btn { margin: 0; }
+.admin-self-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 0.2rem 0.45rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+}
+
+
+@media (max-width: 1100px) {
+  .adm-shell { grid-template-columns: 1fr; }
+  .adm-sidebar { position: static; }
+  .adm-side-nav { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .adm-side-label { display: none; }
+  .adm-nav-item { width: auto; }
+  .adm-side-foot { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .adm-side-user { border-right: 1px solid var(--line); padding-right: 1rem; }
+  .adm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .adm-kpis { grid-template-columns: 1fr; }
+  .adm-grid-2 { grid-template-columns: 1fr; }
+  .adm-topbar { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 1000px) {
+  .admin-product-table td,
+  .admin-inventory-table td,
+  .admin-coupon-table td,
+  .admin-user-table td,
+  .admin-order-table td {
+    padding: 0.4rem 0.35rem;
+    font-size: 0.72rem;
+  }
+  .admin-product-table thead th,
+  .admin-inventory-table thead th,
+  .admin-coupon-table thead th,
+  .admin-user-table thead th,
+  .admin-order-table thead th { font-size: 0.6rem; }
+  .admin-badge { font-size: 0.62rem; padding: 0.09rem 0.38rem; }
+  .admin-order-link { font-size: 0.68rem; }
+  .adm-date-main { font-size: 0.72rem; }
+  .adm-date-sub { font-size: 0.62rem; }
+  .adm-num { font-size: 0.66rem; }
+}
+</style>
+{% endblock %}

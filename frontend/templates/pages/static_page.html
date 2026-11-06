@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — HUUGIAU Atelier{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block content %}
+<main class="page-shell">
+    <div class="container page-narrow">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'products:product_list' %}">Trang chủ</a><span aria-hidden="true">/</span><span>{{ page_title }}</span>
+        </nav>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="page-body">{{ page_body|safe }}</div>
+        {% if page_title == "Liên hệ" %}
+        <section class="panel page-body contact-channels" aria-label="Kênh liên hệ đã cấu hình">
+            {% if HOTLINE %}<p><strong>Điện thoại:</strong> <a href="tel:{{ HOTLINE }}">{{ HOTLINE }}</a></p>{% endif %}
+            {% if SUPPORT_EMAIL %}<p><strong>Email:</strong> <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a></p>{% endif %}
+            {% if STORE_ADDRESS %}<p><strong>Địa chỉ:</strong> {{ STORE_ADDRESS }}</p>{% endif %}
+            {% if not HOTLINE and not SUPPORT_EMAIL and not STORE_ADDRESS %}<p>Thông tin liên hệ trực tiếp đang được cập nhật. Bạn có thể tra cứu đơn hàng hoặc gửi câu hỏi trên trang sản phẩm.</p>{% endif %}
+        </section>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

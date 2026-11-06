@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập{% endblock %}
+
+{% block content %}
+<section class="auth-layout auth-editorial section-space">
+    <div class="auth-panel">
+        <div class="auth-brand">
+            <div class="auth-brand-icon">
+                <i class="fa-regular fa-circle-user"></i>
+            </div>
+            <h1>Chào mừng quay lại</h1>
+            <p>Dùng email hoặc số điện thoại đã đăng ký để vào tài khoản nhanh hơn.</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}">
+            <div class="form-group">
+                <label for="id_username">
+                    <i class="fa-regular fa-envelope"></i>
+                    Email hoặc số điện thoại
+                </label>
+                <input type="text" id="id_username" name="username" required placeholder="Nhập email hoặc số điện thoại">
+            </div>
+            <div class="form-group">
+                <label for="id_password">
+                    <i class="fa-solid fa-lock"></i>
+                    Mật khẩu
+                </label>
+                <input type="password" id="id_password" name="password" required placeholder="Nhập mật khẩu">
+                <a href="{% url 'users:forgot_password' %}" class="forgot-password-link">Quên mật khẩu?</a>
+            </div>
+            <button type="submit" class="btn">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                Đăng nhập
+            </button>
+        </form>
+
+        {% if SOCIAL_LOGIN_AVAILABLE.google or SOCIAL_LOGIN_AVAILABLE.facebook or SOCIAL_LOGIN_AVAILABLE.apple %}
+        <div class="social-auth">
+            <p class="social-auth-label">Hoặc tiếp tục bằng</p>
+            <div class="social-auth-list">
+                {% if SOCIAL_LOGIN_AVAILABLE.google %}
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'google' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-google" aria-hidden="true"></i>
+                    <span>Google</span>
+                </a>
+                {% endif %}
+                {% if SOCIAL_LOGIN_AVAILABLE.facebook %}
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'facebook' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
+                    <span>Facebook</span>
+                </a>
+                {% endif %}
+                {% if SOCIAL_LOGIN_AVAILABLE.apple %}
+                <a class="social-auth-btn" href="{% url 'users:social_login' 'apple' %}?next={{ request.GET.next|urlencode }}">
+                    <i class="fa-brands fa-apple" aria-hidden="true"></i>
+                    <span>Apple</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="auth-footnote">Chưa có tài khoản? <a href="{% url 'users:register' %}">Đăng ký ngay</a></p>
+    </div>
+
+    <aside class="auth-benefits">
+        <div>
+            <div class="auth-benefits-brand">
+                <i class="fa-solid fa-crown"></i>
+                <span>HUUGIAU Atelier</span>
+            </div>
+            <h2>Đăng nhập để tiếp tục mua sắm nhanh hơn</h2>
+            <p>Mở tài khoản để xem đơn hàng, lưu wishlist và thanh toán thuận tiện trên mọi thiết bị.</p>
+        </div>
+        <ul class="auth-benefits-list">
+            <li><i class="fa-solid fa-box"></i> Đơn hàng của tôi</li>
+            <li><i class="fa-regular fa-heart"></i> Danh sách yêu thích</li>
+            <li><i class="fa-regular fa-credit-card"></i> Theo dõi thanh toán</li>
+            <li><i class="fa-regular fa-message"></i> Tư vấn size ngay trên web</li>
+        </ul>
+    </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Bảo mật 2 lớp{% endblock %}
+{% block content %}
+<section class="container page-wrap">
+    <p class="eyebrow">TÀI KHOẢN QUẢN TRỊ</p>
+    <h1>Xác minh 2 bước</h1>
+    {% if messages %}
+    <div class="messages">{% for m in messages %}<div class="message {{ m.tags }}">{{ m }}</div>{% endfor %}</div>
+    {% endif %}
+    {% if has_confirmed %}
+    <p class="muted">Tài khoản đã bật 2FA. Quét lại mã dưới để cài máy mới (mã cũ vẫn dùng được tới khi xác nhận mã mới).</p>
+    {% else %}
+    <p class="muted">Quét mã bằng Google Authenticator (hoặc Authy, 1Password), rồi nhập mã 6 số để kích hoạt. Từ nay mỗi lần vào trang quản trị đều cần mã.</p>
+    {% endif %}
+    <div class="twofa-qr">{{ qr_svg|safe }}</div>
+    <p class="muted">Không quét được? Nhập tay khóa: <code>{{ secret }}</code></p>
+    <form method="post" class="twofa-form">
+        {% csrf_token %}
+        <label class="field">
+            <span>Mã 6 số</span>
+            <input type="text" name="code" inputmode="numeric" maxlength="6" required autocomplete="one-time-code">
+        </label>
+        <button type="submit" class="btn">Xác nhận</button>
+    </form>
+    {% if has_confirmed %}
+    <form method="post" action="{% url 'users:twofa_disable' %}" onsubmit="return confirm('Tắt xác minh 2 bước? Tài khoản sẽ kém an toàn hơn.');">
+        {% csrf_token %}
+        <button type="submit" class="link-btn danger">Tắt 2FA</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

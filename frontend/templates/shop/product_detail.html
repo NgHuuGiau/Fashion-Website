@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}{{ product.name|repair_text }}{% endblock %}
+{% block meta_description %}{{ product.description|default:product.name|repair_text|truncatechars:160 }}{% endblock %}
+{% block og_title %}{{ product.name|repair_text }} — HUUGIAU Atelier{% endblock %}
+{% block og_description %}{{ product.description|default:""|repair_text|truncatechars:160 }} Giá {{ product.price|vnd }}đ.{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}">{% endblock %}
+{% block og_image %}{% if product.image and product.image.url %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}">{% elif product.image_url %}<meta property="og:image" content="{{ product.image_url }}">{% endif %}{% endblock %}
+{% block body_class %}product-detail-page{% endblock %}
+
+{% block content %}
+{% include "shop/_product_schema.html" %}
+{% include "shop/_breadcrumb_schema.html" %}
+{% json_script_nonce product_schema "product-schema" %}
+<script nonce="{{ request.csp_nonce }}" id="product-data" type="application/json">{
+  "id": {{ product.id }},
+  "name": "{{ product.name|repair_text|escapejs }}",
+  "slug": "{{ product.slug|escapejs }}",
+  "price": {{ product.price }},
+  "image_url": "{% if product.image %}{{ product.image.url }}{% else %}{{ product.image_url }}{% endif %}",
+  "discount_percent": {{ product.discount_percent|default:0 }}
+}</script>
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'products:product_list' %}?category={{ product.category.slug }}">{{ product.category.name|repair_text }}</a>
+    <span>/</span>
+    <span>{{ product.name|repair_text|truncatechars:30 }}</span>
+</nav>
+<section class="detail-layout">
+    <div class="detail-gallery panel">
+        <div class="gallery-rail">
+            {% for item in detail_gallery_slots %}
+            <button type="button" class="thumb {% if forloop.first %}active{% endif %} {% if item.is_placeholder %}is-placeholder{% endif %}" data-detail-image="{{ item.url }}" data-detail-alt="{{ item.alt }}" aria-label="Xem ảnh {{ forloop.counter }}">
+                <img src="{{ item.thumb_url }}" alt="{{ item.alt }}" loading="lazy">
+            </button>
+            {% endfor %}
+        </div>
+        <div class="gallery-stage">
+            <img id="detail-main-image" src="{{ detail_gallery_slots.0.url }}" alt="{{ detail_gallery_slots.0.alt }}">
+        </div>
+    </div>
+
+    <aside class="detail-panel panel">
+        <div class="detail-top">
+            <div>
+                <p class="eyebrow">{{ product.category.slug|product_type_label }}</p>
+                <h1>{{ product.name|repair_text }}</h1>
+                {% if product.attributes.price_is_reference %}<p class="eyebrow">GIÁ THAM KHẢO QUY ĐỔI</p>{% endif %}
+                <p class="detail-price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ{% if product.discount_percent %} <span class="detail-sale-tag">-{{ product.discount_percent }}%</span>{% endif %}</p>
+                {% if sold_count or total_stock and total_stock <= 15 %}<div class="detail-social-proof">
+                    {% if sold_count %}<span><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ sold_count }}</span>{% endif %}
+                    {% if total_stock and total_stock <= 15 %}<span class="low-stock"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Chỉ còn {{ total_stock }} sản phẩm</span>{% endif %}
+                </div>{% endif %}
+                <a href="{% url 'orders:promo_page' %}" class="voucher-strip">
+                    <i class="fa-solid fa-ticket" aria-hidden="true"></i>
+                    <span>Voucher của shop</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </a>
+                <div class="detail-share">
+                    <span>Chia sẻ:</span>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener" aria-label="Chia sẻ lên Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://zalo.me/share?url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener" aria-label="Chia sẻ qua Zalo"><i class="fa-solid fa-paper-plane"></i></a>
+                </div>
+            </div>
+            {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'products:wishlist_toggle' product.id %}" class="wishlist-inline">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="wishlist-btn {% if is_in_wishlist %}active{% endif %}" aria-label="Lưu vào yêu thích">
+                    <i class="fa-{% if is_in_wishlist %}solid{% else %}regular{% endif %} fa-heart" aria-hidden="true"></i>
+                </button>
+            </form>
+            {% endif %}
+            <p class="wishlist-note">❤️ Lưu vào yêu thích để xem lại sau.</p>
+            <form method="post" action="{% url 'products:compare_toggle' product.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}">
+                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                    {% if product.id in compare_ids %}Bỏ so sánh{% else %}Thêm vào so sánh{% endif %}
+                </button>
+                <a href="{% url 'products:compare_view' %}" class="compare-view-link">Xem bảng so sánh</a>
+            </form>
+        </div>
+
+        <form method="post" action="{% url 'orders:cart_add' product.id %}" class="buy-form" id="detail-buy-form">
+            {% csrf_token %}
+
+            {% if variants and requires_variant %}
+            <div class="variant-block">
+                <div class="variant-picker" id="variant-picker" data-default-variant="{{ default_variant_id|default:'' }}">
+                    <div class="variant-group">
+                        <label>Màu sắc</label>
+                        <div class="variant-option-list" data-variant-control="color">
+                            {% for color in color_options %}
+                            <button type="button" class="variant-swatch {% if color.value == default_color %}is-active{% endif %}" data-variant-color="{{ color.value }}" data-color-code="{{ color.code }}" aria-label="Chọn màu {{ color.label|repair_text }}">
+                                <span class="variant-swatch-dot" style="background: {{ color.code }};"></span>
+                                <span>{{ color.label|repair_text }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="variant-group">
+                        <label>Size <a href="{% url 'size_guide' %}" class="size-guide-link" target="_blank" rel="noopener">Hướng dẫn chọn size <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></label>
+                        <div class="variant-option-list" data-variant-control="size">
+                            {% for size in size_options %}
+                            <button type="button" class="variant-size-btn {% if size == default_size %}is-active{% endif %}" data-variant-size="{{ size }}">{{ size|repair_text }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="variant-stock-text" id="variant-stock-text"></p>
+                    <input type="hidden" id="variant-id-input" name="variant_id" value="{{ default_variant_id|default:'' }}">
+                    {% json_script_nonce variant_data_json "variant-data" %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if size_guide_rows %}
+            <details class="size-advisor panel" open>
+                <summary>Bảng số đo thương hiệu <i class="fa-solid fa-ruler" aria-hidden="true"></i></summary>
+                <div class="size-advisor-body">
+                    {% for row in size_guide_rows %}
+                    <p><strong>Size {{ row.size }}:</strong> {% for label, value in row.measurements %}{{ label }} {{ value }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                    {% endfor %}
+                    <p class="size-advisor-hint">Bảng số đo do shop nhập cho thương hiệu này. Hãy xác nhận độ vừa của mẫu cụ thể trước khi đặt.</p>
+                </div>
+            </details>
+            {% endif %}
+
+            {% if product.stock > 0 %}
+            <div class="qty-row">
+                <label>Số lượng</label>
+            <div class="qty-stepper">
+                <button type="button" class="qty-step" data-qty-step="-1">-</button>
+                <input id="qty" type="number" name="quantity" value="1" min="1" max="{{ product.stock|default:1 }}" data-qty-input>
+                <button type="button" class="qty-step" data-qty-step="1">+</button>
+            </div>
+            </div>
+
+            <div class="detail-promises">
+                <span>Freeship từ 499K</span>
+                <span>Gửi yêu cầu đổi trả trong 7 ngày sau giao hàng</span>
+                <span>Theo dõi trạng thái đơn hàng</span>
+            </div>
+
+            <div class="buy-actions">
+                <button type="submit" name="next" value="{% url 'orders:cart_detail' %}" class="btn ghost" data-detail-buy-submit data-ajax-add>Thêm vào giỏ</button>
+                <button type="submit" name="next" value="{% url 'orders:checkout' %}" class="btn" data-detail-buy-submit>Mua ngay</button>
+            </div>
+        </form>
+        {% else %}
+        </form>
+        <div class="detail-promises">
+            <span>Freeship từ 499K</span>
+            <span>Gửi yêu cầu đổi trả trong 7 ngày sau giao hàng</span>
+            <span>Theo dõi trạng thái đơn hàng</span>
+        </div>
+        {% if product.attributes.price_is_reference %}
+        <div class="back-in-stock panel">
+            <h3>Mẫu sản phẩm tham khảo</h3>
+            <p>Shop chưa xác nhận giá bán, size và tồn kho cho mẫu này.</p>
+        </div>
+        {% else %}
+        <div class="back-in-stock panel">
+            <h3>Sản phẩm này đang hết hàng</h3>
+            <p>Để lại email, shop sẽ báo bạn ngay khi sản phẩm về hàng.</p>
+            <form method="post" action="{% url 'products:back_in_stock_submit' product.id %}" class="back-in-stock-form">
+                {% csrf_token %}
+                <input type="email" name="email" value="{{ user.email|default:'' }}" placeholder="Email của bạn" required>
+                <button type="submit" class="btn">Báo khi có hàng</button>
+            </form>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        </aside>
+</section>
+
+<section class="detail-description panel">
+    <h2 class="detail-description-title">Mô tả</h2>
+    {% if product.spec_bullets %}
+    <ul class="spec-bullets">
+        {% for bullet in product.spec_bullets %}<li>{{ bullet|repair_text }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <div class="detail-description-body">
+        {% if product.attributes.source_url %}
+        <p><a href="{{ product.attributes.source_url }}" target="_blank" rel="noopener noreferrer">Sản phẩm gốc · {{ product.brand.name }}</a> · Mã sản phẩm gốc: {{ product.attributes.source_id }}</p>
+        <p>Tên, thông số và ảnh lấy từ cùng sản phẩm trong <a href="{{ product.attributes.dataset_url }}" target="_blank" rel="noopener noreferrer">bộ dữ liệu Fashion Product Images</a>. Mô tả gốc được giữ bên dưới.</p>
+        {% endif %}
+        <p>{{ product.description|default:"Chưa có mô tả sản phẩm."|repair_text|linebreaksbr }}</p>
+        {% if product.attributes.price_is_reference %}
+        <p>Giá nguồn lưu trữ: {{ product.attributes.source_price_inr }} INR. Giá tham khảo quy đổi theo {{ product.attributes.inr_vnd_rate }} VND/INR ngày {{ product.attributes.rate_date }}; đây chưa phải giá bán hiện hành.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="detail-description panel">
+    <h2 class="detail-description-title">Chính sách đổi trả</h2>
+    <div class="detail-description-body">
+        <ul>
+            <li>Sau khi đơn được ghi nhận đã giao, bạn có thể gửi yêu cầu đổi trả trong 7 ngày; shop sẽ xem xét theo từng trường hợp.</li>
+            <li>Lưu lại mã đơn khi cần liên hệ hỗ trợ nhanh.</li>
+            <li>Chất lượng sản phẩm và tồn kho có thể thay đổi theo từng đợt cập nhật.</li>
+        </ul>
+    </div>
+</section>
+
+<div class="sticky-buy" id="sticky-buy" aria-hidden="true">
+    <div class="sticky-buy-info">
+        <strong>{{ product.price|vnd }}đ</strong>
+        <span>{{ product.name|repair_text|truncatechars:40 }}</span>
+    </div>
+    <button type="button" class="btn" data-sticky-add data-detail-buy-submit data-sticky-next="{% url 'orders:cart_detail' %}">
+        <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i> Thêm vào giỏ
+    </button>
+    <button type="button" class="btn" data-sticky-buy data-detail-buy-submit data-sticky-next="{% url 'orders:checkout' %}">
+        Mua ngay
+    </button>
+</div>
+
+<section class="section-shell" id="danh-gia">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đánh giá</p>
+            <h2>Khách hàng nói gì</h2>
+        </div>
+    </div>
+
+    {% if can_review %}
+    <div class="review-form panel">
+        <h3>{% if purchased %}<i class="fa-solid fa-circle-check" style="color:var(--success,#16a34a)"></i> Bạn đã mua sản phẩm này{% else %}Đánh giá sản phẩm{% endif %}</h3>
+        <form method="post" action="{% url 'products:review_submit' product.id %}" class="review-form-grid" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="review-stars" data-star-rating>
+                <span class="review-stars-label">Số sao:</span>
+                {% for value in "12345" %}
+                <button type="button" class="star" data-star-value="{{ forloop.counter }}" aria-label="{{ forloop.counter }} sao"><i class="fa-regular fa-star"></i></button>
+                {% endfor %}
+                <input type="hidden" name="rating" id="review-rating-input" value="" required>
+            </div>
+            <label class="admin-field review-comment">
+                <span>Nội dung (tùy chọn)</span>
+                <textarea name="comment" rows="3" maxlength="1000" placeholder="Chất lượng, form, màu sắc thực tế..."></textarea>
+            </label>
+            <label class="admin-field review-image-field">
+                <span>Ảnh thực tế (tùy chọn)</span>
+                <input type="file" name="review_image" accept="image/*">
+            </label>
+            <button type="submit" class="btn review-submit">Gửi đánh giá</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if reviews %}
+    <div class="review-summary">
+        <div class="review-summary-score">
+            <strong>{{ rating_avg|floatformat:1 }}</strong>
+            <div class="review-summary-stars" data-static-stars="{{ rating_avg|floatformat:1 }}">
+                {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+            </div>
+            <span>{{ rating_count }} đánh giá</span>
+        </div>
+        <div class="review-summary-bars">
+            {% for item in review_buckets %}
+            <div class="review-bar-row">
+                <span>{{ item.rating }} sao</span>
+                <div class="review-bar-track">
+                    <div class="review-bar-fill" style="width: {% if rating_count %}{% widthratio item.total rating_count 100 %}{% else %}0{% endif %}%;"></div>
+                </div>
+                <small>{{ item.total }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="review-filter-bar">
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=&rsort={{ review_sort }}" class="chip {% if review_filter == '' %}active{% endif %}">Tất cả ({{ rating_count }})</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=5&rsort={{ review_sort }}" class="chip {% if review_filter == '5' %}active{% endif %}">5 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=4&rsort={{ review_sort }}" class="chip {% if review_filter == '4' %}active{% endif %}">4 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=3&rsort={{ review_sort }}" class="chip {% if review_filter == '3' %}active{% endif %}">3 sao</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rfilter=photo&rsort={{ review_sort }}" class="chip {% if review_filter == 'photo' %}active{% endif %}"><i class="fa-solid fa-image" aria-hidden="true"></i> Có ảnh</a>
+        <span class="chip-spacer" aria-hidden="true"></span>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rsort=new&rfilter={{ review_filter }}" class="chip {% if review_sort == 'new' %}active{% endif %}">Mới nhất</a>
+        <a href="{% url 'products:product_detail' product.id product.slug %}?rsort=old&rfilter={{ review_filter }}" class="chip {% if review_sort == 'old' %}active{% endif %}">Cũ nhất</a>
+    </div>
+
+    {% include "shop/_review_schema.html" %}
+
+    <div class="review-list">
+        {% for review in reviews %}
+        <article class="review-item panel">
+            <div class="review-item-head">
+                <div>
+                    <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                    {% if review.verified_purchase %}<span class="review-verified">Đã mua hàng</span>{% endif %}
+                </div>
+                <time>{{ review.created|date:"d/m/Y" }}</time>
+            </div>
+            <div class="review-item-stars" data-static-stars="{{ review.rating }}">
+                {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+            </div>
+            {% if review.comment %}<p>{{ review.comment|linebreaksbr }}</p>{% endif %}
+            {% if review.image %}
+            <figure class="review-photo">
+                <img src="{{ review.image.url }}" alt="Ảnh đánh giá của {{ review.user.get_full_name|default:review.user.username }}" loading="lazy">
+            </figure>
+            {% endif %}
+            {% if review.shop_reply %}
+            <div class="review-shop-reply">
+                <strong class="review-shop-reply-title"><i class="fa-solid fa-shop"></i> Shop phản hồi</strong>
+                <p>{{ review.shop_reply|linebreaksbr }}</p>
+                {% if review.customer_reply %}
+                <div class="review-customer-reply">
+                    <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                    <p>{{ review.customer_reply|linebreaksbr }}</p>
+                </div>
+                {% elif request.user.is_authenticated and request.user == review.user %}
+                <form method="post" action="{% url 'products:review_customer_reply' product.id %}" class="review-reply-form">
+                    {% csrf_token %}
+                    <input type="text" name="customer_reply" placeholder="Phản hồi của bạn..." required maxlength="500">
+                    <button type="submit" class="btn ghost">Gửi</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="review-empty">
+        <i class="fa-regular fa-star"></i>
+        <p>Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="section-shell" id="hoi-dap">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Hỏi đáp</p>
+            <h2>Thắc mắc của bạn</h2>
+        </div>
+    </div>
+
+    {% if request.user.is_authenticated %}
+    <form method="post" action="{% url 'products:question_submit' product.id %}" class="qa-form panel">
+        {% csrf_token %}
+        <label class="admin-field">
+            <span>Đặt câu hỏi về size, chất liệu, màu...</span>
+            <textarea name="question" rows="2" maxlength="500" placeholder="VD: 1m72 68kg mặc size nào?" required></textarea>
+        </label>
+        <button type="submit" class="btn small">Gửi câu hỏi</button>
+    </form>
+    {% else %}
+    <p class="muted"><a href="{% url 'users:login' %}">Đăng nhập</a> để đặt câu hỏi cho shop.</p>
+    {% endif %}
+
+    {% if questions %}
+    <div class="qa-list">
+        {% for q in questions %}
+        <article class="qa-item">
+            <div class="qa-question"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> {{ q.question }}</div>
+            {% if q.answer %}
+            <div class="qa-answer"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> <span>Shop trả lời:</span> {{ q.answer }}</div>
+            {% else %}
+            <div class="qa-pending">Đang chờ shop trả lời...</div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Chưa có câu hỏi nào. Bạn cứ hỏi, shop trả lời nhanh nhất có thể!</p>
+    {% endif %}
+</section>
+
+{% if related_products %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Gợi ý phù hợp</p>
+            <h2>Mix cùng vibe</h2>
+            <p>Những món cùng tinh thần để ghép outfit nhanh hơn.</p>
+        </div>
+    </div>
+    <div class="product-grid product-grid-editorial">
+        {% for item in related_products %}
+        <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if item.get_image %}
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}" loading="lazy">
+                {% else %}
+                <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
+                {% endif %}
+            </div>
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ item.category.name|repair_text }}</p>
+                <h3>{{ item.name|repair_text }}</h3>
+                <div class="card-footer">
+                    <strong class="price">{{ item.price|vnd }}đ</strong>
+                    <span>{% if item.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if recently_viewed_products %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đã xem gần đây</p>
+            <h2>Tiếp tục khám phá</h2>
+        </div>
+    </div>
+    <div class="product-grid product-grid-editorial">
+        {% for item in recently_viewed_products %}
+        <a href="{% url 'products:product_detail' item.id item.slug %}" class="product-card product-card-link product-card-editorial" aria-label="{{ item.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if item.get_image %}
+                <img src="{{ item.get_image }}" alt="{{ item.name|repair_text }}" loading="lazy">
+                {% else %}
+                <div class="product-fallback">{{ item.category.slug|product_type_label }}</div>
+                {% endif %}
+            </div>
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ item.category.name|repair_text }}</p>
+                <h3>{{ item.name|repair_text }}</h3>
+                <div class="card-footer">
+                    <strong class="price">{{ item.price|vnd }}đ</strong>
+                    <span>{% if item.stock > 0 %}Còn hàng{% else %}Hết hàng{% endif %}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<div class="size-guide-overlay" id="size-guide-modal">
+    <div class="size-guide-modal">
+        <button type="button" class="size-guide-close" data-modal="size-guide-modal" data-modal-action="close">&times;</button>
+        <h3>Bảng size tham khảo</h3>
+        {% if product.category.slug == "quan" %}
+        <table>
+            <thead><tr><th>Size</th><th>Lưng (cm)</th><th>Mông (cm)</th><th>Dài (cm)</th></tr></thead>
+            <tbody>
+                <tr><td>M</td><td>74-78</td><td>94</td><td>96</td></tr>
+                <tr><td>L</td><td>78-82</td><td>98</td><td>98</td></tr>
+                <tr><td>XL</td><td>82-86</td><td>102</td><td>100</td></tr>
+                <tr><td>XXL</td><td>86-90</td><td>106</td><td>102</td></tr>
+            </tbody>
+        </table>
+        {% elif product.category.slug == "phu-kien" %}
+        <table>
+            <thead><tr><th>Loại</th><th>Kích thước</th></tr></thead>
+            <tbody>
+                <tr><td>Túi nhỏ</td><td>Dài 18 cm, Rộng 6 cm, Cao 14 cm</td></tr>
+                <tr><td>Túi vừa</td><td>Dài 22 cm, Rộng 8 cm, Cao 16 cm</td></tr>
+                <tr><td>Nón</td><td>56-60 cm, có dây điều chỉnh</td></tr>
+            </tbody>
+        </table>
+        {% else %}
+        <table>
+            <thead><tr><th>Size</th><th>Ngang ngực (cm)</th><th>Dài áo (cm)</th><th>Dài tay (cm)</th></tr></thead>
+            <tbody>
+                <tr><td>S</td><td>50</td><td>66</td><td>55</td></tr>
+                <tr><td>M</td><td>53</td><td>69</td><td>57</td></tr>
+                <tr><td>L</td><td>56</td><td>72</td><td>59</td></tr>
+                <tr><td>XL</td><td>59</td><td>75</td><td>61</td></tr>
+            </tbody>
+        </table>
+        {% endif %}
+        <p class="size-guide-note">Số đo chỉ mang tính chất tham khảo, có thể chênh lệch &plusmn;1-2 cm theo từng đợt vải.</p>
+    </div>
+</div>
+
+
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to">
+    <button type="button" class="lightbox-close" aria-label="Đóng">×</button>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" id="lightbox-image">
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var lightbox = document.getElementById('lightbox');
+    var lightboxImg = document.getElementById('lightbox-image');
+    var main = document.getElementById('detail-main-image');
+    if (!lightbox || !lightboxImg || !main) return;
+
+    function open() {
+        lightboxImg.src = main.src;
+        lightboxImg.alt = main.alt;
+        lightbox.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    function close() {
+        lightbox.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('[data-lightbox]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.stopPropagation();
+            open();
+        });
+    });
+    lightbox.addEventListener('click', function (e) {
+        if (e.target === lightbox) close();
+    });
+    lightbox.querySelector('.lightbox-close').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+
+</script>
+{% include "shop/_recently_viewed.html" %}
+{% with cross_sell_products=product.get_cross_sell_products %}
+  {% include "shop/_cross_sell.html" %}
+{% endwith %}
+{% endblock %}

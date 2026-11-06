@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Đơn hàng của tôi{% endblock %}
+{% block body_class %}account-page{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Đơn hàng</p>
+            <h1>Đơn hàng của tôi</h1>
+            <p>Theo dõi các đơn đang xử lý, đang giao và đã hoàn tất.</p>
+        </div>
+    </div>
+
+    {% if orders %}
+    <div class="order-list">
+        {% for order in orders %}
+        <article class="order-card panel order-card-clickable">
+            <div class="order-head">
+                <div>
+                    <p class="eyebrow">#{{ order.id }}</p>
+                    <h3>{{ order.get_status_display }}</h3>
+                    <p class="muted">{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                </div>
+                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+            </div>
+            {% include "shop/_order_timeline.html" with order=order %}
+            {% if order.carrier %}
+            <div class="order-shipping">
+                <span><i class="fa-solid fa-truck-fast"></i> {{ order.carrier_label }} &middot; Mã vận đơn <strong>{{ order.tracking_code }}</strong></span>
+                {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener">Tra cứu <i class="fa-solid fa-arrow-up-right-from-square"></i></a>{% endif %}
+            </div>
+            {% endif %}
+            {% if order.delivery_time_slot or order.gift_wrap %}
+            <div class="order-shipping order-shipping-sub">
+                {% if order.delivery_time_slot %}<span><i class="fa-regular fa-clock"></i> Nhận lúc {{ order.get_delivery_slot_display }}</span>{% endif %}
+                {% if order.gift_wrap %}<span><i class="fa-solid fa-gift"></i> Đóng gói quà tặng{% if order.gift_note %} · "{{ order.gift_note|repair_text }}"{% endif %}</span>{% endif %}
+            </div>
+            {% endif %}
+            <div class="order-meta-grid">
+                <article><span>Thanh toán</span><strong>{{ order.get_payment_method_display }}</strong></article>
+                <article><span>Tổng tiền</span><strong>{{ order.total_amount|vnd }}đ</strong></article>
+                <article><span>Dự kiến giao (tham khảo)</span><strong>{{ order.eta_date|date:"d/m/Y" }}</strong></article>
+                <article><span>Đơn hàng</span><strong>{{ order.items.all|length }} món</strong></article>
+            </div>
+            <div class="order-lines">
+                {% for item in order.items.all %}
+                <div class="order-line">
+                    <span>{{ item.display_name|repair_text }} x {{ item.quantity }}</span>
+                    <strong>{{ item.subtotal|vnd }}đ</strong>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="order-actions">
+                <a href="{% url 'orders:order_review' order.id %}" class="btn ghost">Xem chi tiết</a>
+                {% if order.payment_method == "bank" and not order.is_paid and order.status == "processing" %}
+                <a href="{% url 'orders:bank_payment_waiting' order.id %}" class="btn">Thanh toán ngay</a>
+                {% endif %}
+                {% if order.payment_method == "vnpay" and not order.is_paid and order.status == "processing" %}
+                <a href="{% url 'orders:vnpay_payment' order.id %}" class="btn">Thanh toán VNPay</a>
+                {% endif %}
+                {% if not order.is_paid and order.status == "pending" or not order.is_paid and order.status == "processing" %}
+                <form method="post" action="{% url 'orders:user_cancel_order' order.id %}" class="form-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn ghost danger" onclick="return confirm('Huỷ đơn hàng #{{ order.id }}?')">Huỷ đơn</button>
+                </form>
+                {% endif %}
+                {% if order.status == "delivered" %}
+                <form method="post" action="{% url 'orders:reorder_order' order.id %}" class="form-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn">Mua lại</button>
+                </form>
+                {% with return_req=order.return_requests.first %}
+                {% if return_req %}
+                <span class="status-badge status-{{ return_req.status }}">Đổi trả: {{ return_req.get_status_display }}</span>
+                {% else %}
+                <a href="{% url 'orders:create_return' order.id %}" class="btn ghost">Yêu cầu đổi trả</a>
+                {% endif %}
+                {% endwith %}
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% if orders.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Phân trang đơn hàng">
+        {% if orders.has_previous %}
+        <a href="?page={{ orders.previous_page_number }}" class="pagination-prev">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Trước
+        </a>
+        {% endif %}
+        <div class="pagination-pages">
+            {% for num in orders.paginator.page_range %}
+                {% if num == orders.number %}
+                <span class="pagination-current">{{ num }}</span>
+                {% elif num > orders.number|add:"-3" and num < orders.number|add:"3" %}
+                <a href="?page={{ num }}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% if orders.has_next %}
+        <a href="?page={{ orders.next_page_number }}" class="pagination-next">
+            Sau
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state panel">
+        <h2>Bạn chưa có đơn hàng nào</h2>
+        <p>Hãy bắt đầu với một vài sản phẩm dễ mặc và dễ phối.</p>
+        <a href="{% url 'products:product_list' %}" class="btn">Xem sản phẩm</a>
+    </div>
+    {% endif %}
+</section>
+
+<style nonce="{{ request.csp_nonce }}">
+.order-list {
+    display: grid;
+    gap: 1rem;
+}
+.order-card.panel {
+    padding: 1.25rem;
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+    cursor: pointer;
+}
+.order-card.panel:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.order-head .eyebrow {
+    font-size: 0.7rem;
+    margin-bottom: 0.15rem;
+}
+.order-head h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    line-height: 1.2;
+}
+.order-head .muted {
+    font-size: 0.8rem;
+}
+.order-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1rem;
+    margin: 0.75rem 0;
+}
+.order-meta-grid article {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.order-meta-grid article span {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.order-meta-grid article strong {
+    font-size: 0.88rem;
+    color: var(--text);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.order-lines {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+    margin-top: 0.25rem;
+}
+.order-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.84rem;
+    color: var(--text-soft);
+}
+.order-line strong {
+    color: var(--text);
+    white-space: nowrap;
+}
+.order-line > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.order-timeline {
+    display: flex;
+    align-items: flex-start;
+    margin: 0.9rem 0 0.4rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--line);
+}
+.order-timeline.is-cancelled { opacity: 0.65; }
+.order-shipping {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: var(--accent-soft);
+    border-radius: var(--radius-md);
+    padding: 0.45rem 0.75rem;
+    margin: 0.6rem 0 0;
+    font-size: 0.78rem;
+    color: var(--accent-strong);
+}
+.order-shipping strong { color: var(--accent-deep); font-weight: 700; }
+.order-shipping-sub { margin-top: 0.25rem; font-size: 0.82rem; }
+.order-shipping-sub span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.order-shipping a {
+    color: var(--accent-strong);
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.order-shipping a:hover { color: var(--accent-deep); }
+.timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+    min-width: 68px;
+}
+.timeline-step > span:last-child {
+    font-size: 0.66rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+.timeline-step.is-active > span:last-child { color: var(--accent-strong); }
+.timeline-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--bg-soft);
+    border: 2px solid var(--line);
+    color: var(--muted);
+    font-size: 0.62rem;
+    transition: background 0.3s var(--ease-out), border-color 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+.timeline-step.is-active .timeline-dot {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: #fff;
+}
+.order-timeline.is-cancelled .timeline-step.is-active .timeline-dot {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+.timeline-line {
+    flex: 1;
+    height: 2px;
+    background: var(--line);
+    margin-top: 12px;
+    min-width: 14px;
+}
+.timeline-line.is-active { background: var(--accent-strong); }
+.order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+}
+.order-actions .btn { width: auto; }
+.status-badge {
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.status-processing {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+.status-shipping {
+    background: rgba(91, 122, 154, 0.12);
+    color: var(--info);
+}
+.status-delivered {
+    background: var(--success-soft);
+    color: var(--success);
+}
+.status-cancelled {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.status-pending {
+    background: rgba(217, 119, 6, 0.1);
+    color: var(--warning);
+}
+@media (max-width: 560px) {
+    .order-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .order-card.panel {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}

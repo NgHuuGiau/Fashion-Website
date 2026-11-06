@@ -1,0 +1,6 @@
+# PgBouncer userlist.txt
+# Format: "username" "password" (MD5 hash)
+; Format: "username" "md5<md5_hash>"
+; Generate with: echo -n "passwordusername" | md5sum | awk '{print "md5"$1}'
+
+; Generate real entries from DB_PASSWORD before production deployment.

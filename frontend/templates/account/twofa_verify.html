@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Nhập mã 2FA{% endblock %}
+{% block content %}
+<section class="container page-wrap">
+    <p class="eyebrow">TRANG QUẢN TRỊ</p>
+    <h1>Nhập mã xác minh</h1>
+    {% if messages %}
+    <div class="messages">{% for m in messages %}<div class="message {{ m.tags }}">{{ m }}</div>{% endfor %}</div>
+    {% endif %}
+    <p class="muted">Mở ứng dụng Authenticator và nhập mã 6 số hiện tại.</p>
+    <form method="post" class="twofa-form">
+        {% csrf_token %}
+        <label class="field">
+            <span>Mã 6 số</span>
+            <input type="text" name="code" inputmode="numeric" maxlength="6" required autocomplete="one-time-code" autofocus>
+        </label>
+        <button type="submit" class="btn">Vào quản trị</button>
+    </form>
+</section>
+{% endblock %}

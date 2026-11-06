@@ -1,0 +1,96 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    # Chưa cấu hình server thì bỏ qua thay vì fail đỏ: bật bằng repo variable
+    # DEPLOY_ENABLED=true kèm secrets SSH_PRIVATE_KEY, SSH_USER, SSH_HOST, DOMAIN.
+    if: vars.DEPLOY_ENABLED == 'true'
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd /opt/fashion-website
+
+            # Pull latest code
+            git fetch origin
+            git reset --hard origin/main
+
+            # Env files được tạo tay trên server; workflow không ghi secret.
+            if [ ! -f .env.production ] || [ ! -f .env.compose.production ]; then
+              echo "Thiếu .env.production hoặc .env.compose.production trên server." >&2
+              exit 1
+            fi
+            if grep -qE 'THAY_BANG|example\.com|django-insecure-' .env.production; then
+              echo ".env.production còn giá trị mẫu; điền giá trị thật trước khi deploy." >&2
+              exit 1
+            fi
+
+            # Deploy with docker-compose
+            docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml pull
+            # --build: app/celery dùng `build: .` nên không có image tag để pull;
+            # thiếu --build thì server tiếp tục chạy code cũ sau mỗi lần deploy.
+            docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml up -d --build --remove-orphans
+
+            # Wait for health (build + migrate có thể lâu hơn 15s)
+            ok=""
+            for i in $(seq 1 30); do
+              if curl -sf https://${{ secrets.DOMAIN }}/health/ >/dev/null; then ok=1; break; fi
+              sleep 5
+            done
+            if [ -z "$ok" ]; then
+              echo "Health check failed!" >&2
+              docker compose --env-file .env.compose.production -f docker-compose.yml -f docker-compose.production.yml logs --tail=50
+              exit 1
+            fi
+
+            # Cleanup old images
+            docker image prune -f
+          EOF
+      - name: Notify on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "SLACK_WEBHOOK chưa cấu hình, bỏ qua thông báo."
+            exit 0
+          fi
+          curl -X POST "$SLACK_WEBHOOK" \
+            -H 'Content-Type: application/json' \
+            -d '{"text": "❌ Deploy failed for ${{ github.repository }}"}'

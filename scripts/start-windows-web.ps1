@@ -1,0 +1,43 @@
+$ErrorActionPreference = "Stop"
+
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$backendPath = Join-Path $repoRoot "backend"
+$venvPath = Join-Path $repoRoot ".venv"
+$python = Join-Path $venvPath "Scripts\python.exe"
+$waitress = Join-Path $venvPath "Scripts\waitress-serve.exe"
+$productionEnv = Join-Path $repoRoot ".env.production"
+
+if (-not (Test-Path -LiteralPath $productionEnv -PathType Leaf)) {
+    throw "Missing $productionEnv. Create it from .env.production.example and fill verified values."
+}
+if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+    throw "Missing virtualenv. Create .venv at the repository root and install backend requirements first."
+}
+if (-not (Test-Path -LiteralPath $waitress -PathType Leaf)) {
+    throw "Waitress is not installed in .venv. Run: .venv\Scripts\python.exe -m pip install waitress"
+}
+
+$env:APP_ENV_FILE = ".env.production"
+$env:DJANGO_SETTINGS_MODULE = "core.settings"
+Push-Location $backendPath
+try {
+    & $python (Join-Path $repoRoot "scripts\verify_prod.py")
+    if ($LASTEXITCODE -ne 0) { throw "Production configuration verification failed." }
+
+    & $python manage.py check --deploy
+    if ($LASTEXITCODE -ne 0) { throw "Django deploy check failed." }
+
+    & $python manage.py compress --force
+    if ($LASTEXITCODE -ne 0) { throw "Static asset compression failed." }
+
+    & $python manage.py collectstatic --noinput
+    if ($LASTEXITCODE -ne 0) { throw "Collectstatic failed." }
+
+    # Tin proxy localhost (Caddy) để X-Forwarded-Proto tới Django;
+    # thiếu flag này sẽ redirect-loop https->https sau proxy.
+    & $waitress --listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 core.wsgi:application
+    if ($LASTEXITCODE -ne 0) { throw "Waitress stopped with an error." }
+}
+finally {
+    Pop-Location
+}

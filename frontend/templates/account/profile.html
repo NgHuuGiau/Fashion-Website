@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Tài khoản của tôi{% endblock %}
+{% block body_class %}account-page{% endblock %}
+
+{% block content %}
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Tài khoản</p>
+            <h1>Thông tin cá nhân</h1>
+            <p>Cập nhật tên, email và số điện thoại của bạn.</p>
+        </div>
+    </div>
+
+    <div class="account-layout">
+        <div class="account-sidebar panel">
+            <div class="account-avatar-box">
+                {% if profile.avatar %}
+                <img class="account-avatar-img" src="{{ profile.avatar.url }}" alt="Ảnh đại diện">
+                {% else %}
+                <div class="account-avatar" aria-hidden="true">{{ display_initials }}</div>
+                {% endif %}
+                <h2>{{ display_name }}</h2>
+                <p class="muted">{{ request.user.email|default:"Chưa cập nhật"|repair_text }}</p>
+            </div>
+            <div class="account-points">
+                <div class="account-points-badge" title="Tích điểm khi nhận hàng thành công, đổi điểm tại thanh toán"><i class="fa-solid fa-gem" aria-hidden="true"></i> {{ profile.points }} điểm</div>
+                <p class="account-points-tier"><span class="tier-pill tier-{{ profile.tier.badge }}">{{ profile.tier.name }}</span></p>
+                <p class="account-points-hint">{{ profile.tier.benefit }}</p>
+                {% if expiry_warning %}
+                <p class="points-expiry-warning"><i class="fa-regular fa-clock"></i> {{ profile.points }} điểm sẽ hết hạn ngày {{ profile.points_expire_at|date:"d/m/Y" }}</p>
+                {% endif %}
+                {% if profile.tier.next %}
+                <div class="tier-progress">
+                    <div class="tier-progress-track"><div class="tier-progress-fill" style="width: {{ profile.tier.progress }}%;"></div></div>
+                    <p>Còn <strong>{{ profile.tier.remaining }}</strong> điểm để lên <strong>{{ profile.tier.next.name }}</strong></p>
+                </div>
+                {% endif %}
+                {% if hbd_active %}
+                <div class="hbd-banner">
+                    <span class="hbd-banner-icon">🎂</span>
+                    <div>
+                        <strong>Chúc mừng sinh nhật!</strong>
+                        <p>Nhập mã <code>HBD</code> để được giảm 20% trong tháng này.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <nav class="account-nav">
+                <a href="{% url 'users:profile' %}" class="account-nav-item active">
+                    <i class="fa-regular fa-user"></i> Hồ sơ
+                </a>
+                <a href="{% url 'orders:my_orders' %}" class="account-nav-item">
+                    <i class="fa-solid fa-box"></i> Đơn hàng
+                </a>
+                <a href="{% url 'products:wishlist_list' %}" class="account-nav-item">
+                    <i class="fa-regular fa-heart"></i> Yêu thích
+                </a>
+                <a href="{% url 'users:change_password' %}" class="account-nav-item">
+                    <i class="fa-solid fa-key"></i> Đổi mật khẩu
+                </a>
+                <a href="{% url 'users:referral' %}" class="account-nav-item">
+                    <i class="fa-solid fa-user-plus"></i> Giới thiệu bạn bè
+                </a>
+            </nav>
+        </div>
+
+        <div class="account-main panel">
+            <form method="post" enctype="multipart/form-data" class="profile-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="message error">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+                <div class="profile-grid">
+                    <label class="profile-field avatar-field">
+                        <span>{{ form.avatar.label }}</span>
+                        {{ form.avatar }}
+                        {% if form.avatar.errors %}<small class="error-text">{{ form.avatar.errors|striptags }}</small>{% endif %}
+                        {% if form.avatar.help_text %}<small class="help-text">{{ form.avatar.help_text }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>Họ</span>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}<small class="error-text">{{ form.first_name.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>Tên</span>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}<small class="error-text">{{ form.last_name.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>Email</span>
+                        {{ form.email }}
+                        {% if form.email.errors %}<small class="error-text">{{ form.email.errors|striptags }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>{{ form.birthday.label }}</span>
+                        {{ form.birthday }}
+                        {% if form.birthday.errors %}<small class="error-text">{{ form.birthday.errors|striptags }}</small>{% endif %}
+                        {% if form.birthday.help_text %}<small class="help-text">{{ form.birthday.help_text }}</small>{% endif %}
+                    </label>
+                    <label class="profile-field">
+                        <span>Số điện thoại</span>
+                        {{ form.phone_number }}
+                        {% if form.phone_number.errors %}<small class="error-text">{{ form.phone_number.errors|striptags }}</small>{% endif %}
+                    </label>
+                </div>
+                <div class="profile-actions">
+                    <button type="submit" class="btn">Lưu thay đổi</button>
+                    <a href="{% url 'orders:my_orders' %}" class="btn ghost">Xem đơn hàng</a>
+                </div>
+            </form>
+
+            <div class="address-book">
+                <div class="address-book-head">
+                    <h2>Sổ địa chỉ giao hàng</h2>
+                    <button type="button" class="btn small ghost" id="addr-toggle">+ Thêm địa chỉ mới</button>
+                </div>
+
+                {% if addresses %}
+                <div class="address-grid">
+                    {% for addr in addresses %}
+                    <div class="address-card {% if addr.is_default %}is-default{% endif %}">
+                        {% if addr.is_default %}<span class="address-badge">Mặc định</span>{% endif %}
+                        {% if addr.label %}<span class="address-label">{{ addr.label }}</span>{% endif %}
+                        <p class="address-name">{{ addr.recipient_name }}</p>
+                        <p class="address-phone">{{ addr.phone }}</p>
+                        <p class="address-text">{{ addr.address }}</p>
+                        <div class="address-actions">
+                            <button type="button" class="link-btn addr-edit-btn"
+                                    data-id="{{ addr.id }}" data-name="{{ addr.recipient_name }}"
+                                    data-phone="{{ addr.phone }}" data-address="{{ addr.address }}"
+                                    data-label="{{ addr.label }}" data-default="{% if addr.is_default %}1{% endif %}">Sửa</button>
+                            {% if not addr.is_default %}
+                            <form method="post" action="{% url 'users:address_set_default' addr.id %}">{% csrf_token %}<button type="submit" class="link-btn">Đặt mặc định</button></form>
+                            {% endif %}
+                            <form method="post" action="{% url 'users:address_delete' addr.id %}" onsubmit="return confirm('Xóa địa chỉ này?');">{% csrf_token %}<button type="submit" class="link-btn danger">Xóa</button></form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="muted">Bạn chưa lưu địa chỉ nào. Thêm địa chỉ để thanh toán nhanh hơn.</p>
+                {% endif %}
+
+                <form method="post" action="{% url 'users:address_add' %}" class="address-form hidden" id="addr-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="address_id" id="addr-id" value="">
+                    <div class="profile-grid">
+                        <label class="profile-field">
+                            <span>Người nhận *</span>
+                            <input type="text" name="recipient_name" required placeholder="Tên người nhận">
+                        </label>
+                        <label class="profile-field">
+                            <span>Số điện thoại *</span>
+                            <input type="text" name="phone" required placeholder="Số điện thoại">
+                        </label>
+                        <label class="profile-field">
+                            <span>Nhãn</span>
+                            <input type="text" name="label" placeholder="Ví dụ: Nhà riêng, Công ty">
+                        </label>
+                        <label class="profile-field">
+                            <span>Địa chỉ *</span>
+                            <input type="text" name="address" required placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
+                        </label>
+                    </div>
+                    <label class="profile-field addr-default-check">
+                        <input type="checkbox" name="is_default"> Đặt làm địa chỉ mặc định
+                    </label>
+                    <div class="profile-actions">
+                        <button type="submit" class="btn">Lưu địa chỉ</button>
+                        <button type="button" class="btn ghost" id="addr-cancel">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var toggle = document.getElementById('addr-toggle');
+    var form = document.getElementById('addr-form');
+    var cancel = document.getElementById('addr-cancel');
+    if (!toggle || !form) return;
+    var addrId = document.getElementById('addr-id');
+    function openForm() {
+        form.classList.remove('hidden');
+        toggle.textContent = 'Đóng';
+        form.scrollIntoView({ block: 'nearest' });
+    }
+    function resetForm() {
+        form.reset();
+        if (addrId) addrId.value = '';
+    }
+    toggle.addEventListener('click', function () {
+        if (form.classList.contains('hidden')) {
+            resetForm();
+            openForm();
+        } else {
+            form.classList.add('hidden');
+            toggle.textContent = '+ Thêm địa chỉ mới';
+        }
+    });
+    if (cancel) cancel.addEventListener('click', function () {
+        form.classList.add('hidden');
+        toggle.textContent = '+ Thêm địa chỉ mới';
+        resetForm();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.addr-edit-btn'), function (btn) {
+        btn.addEventListener('click', function () {
+            resetForm();
+            if (addrId) addrId.value = btn.getAttribute('data-id');
+            var map = { recipient_name: 'data-name', phone: 'data-phone', address: 'data-address', label: 'data-label' };
+            Object.keys(map).forEach(function (name) {
+                var input = form.querySelector('[name="' + name + '"]');
+                if (input) input.value = btn.getAttribute(map[name]) || '';
+            });
+            var def = form.querySelector('[name="is_default"]');
+            if (def) def.checked = btn.getAttribute('data-default') === '1';
+            openForm();
+        });
+    });
+})();
+</script>
+
+<style nonce="{{ request.csp_nonce }}">
+.account-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+.account-sidebar {
+    padding: 1.25rem;
+}
+.account-avatar-box {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 1rem;
+}
+.account-avatar-box h2 {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+.account-avatar-box .muted {
+    font-size: 0.82rem;
+}
+.account-points {
+    text-align: center;
+    padding: 0.8rem;
+    margin: 0 0 1rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg-soft);
+}
+.account-points-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent-strong);
+}
+.account-points-badge i {
+    color: #e5b80b;
+}
+.account-points-tier {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 0.3rem;
+}
+.account-points-hint {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+}
+.points-expiry-warning {
+    font-size: 0.78rem;
+    color: var(--warn, #b8860b);
+    margin: 0.25rem 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.hbd-banner {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.7rem;
+    background: linear-gradient(135deg, #fff3e0, #ffe0e6);
+    border: 1px dashed #e8a0a8;
+    border-radius: var(--radius-sm);
+}
+.hbd-banner-icon { font-size: 1.3rem; }
+.hbd-banner strong { font-size: 0.85rem; }
+.hbd-banner p { font-size: 0.78rem; margin: 0.1rem 0 0; color: var(--muted-strong); }
+.hbd-banner code {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 700;
+    color: #c0392b;
+}
+.account-nav {
+    display: grid;
+    gap: 0.2rem;
+}
+.account-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-soft);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.88rem;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.account-nav-item:hover {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+.account-nav-item.active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+}
+.account-nav-item i {
+    width: 1.1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.account-main {
+    padding: 1.5rem;
+}
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.profile-field {
+    display: grid;
+    gap: 0.25rem;
+}
+.profile-field span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+.profile-field input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 0.88rem;
+}
+.profile-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+.address-book {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+}
+.address-book-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+}
+.address-book-head h2 {
+    font-size: 1.05rem;
+}
+.address-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+}
+.address-card {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.8rem 0.9rem;
+    background: var(--bg-soft);
+}
+.address-card.is-default { border-color: var(--accent); background: var(--accent-soft); }
+.address-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    padding: 0.1rem 0.45rem;
+    background: var(--surface);
+}
+.address-label {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-bottom: 0.25rem;
+}
+.address-name { font-weight: 700; font-size: 0.9rem; }
+.address-phone { font-size: 0.82rem; color: var(--text-soft); margin-top: 0.15rem; }
+.address-text { font-size: 0.82rem; color: var(--text-soft); margin-top: 0.3rem; line-height: 1.45; }
+.address-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 0.55rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--line);
+}
+.link-btn {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--accent-strong);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.link-btn.danger { color: #b42318; }
+.addr-default-check {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+}
+.addr-default-check input { width: auto; }
+@media (max-width: 700px) {
+    .address-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+    .account-layout { grid-template-columns: 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Xác minh Gmail{% endblock %}
+
+{% block content %}
+<section class="auth-layout auth-editorial section-space">
+    <div class="auth-panel">
+        <div class="auth-brand">
+            <div class="auth-brand-icon">
+                <i class="fa-regular fa-envelope"></i>
+            </div>
+            <h1>Nhập mã xác thực</h1>
+            <p>Shop đã gửi mã 6 số về <strong>{{ email }}</strong>. Mã hết hạn sau 10 phút.</p>
+        </div>
+
+        {% if messages %}
+        <div class="message-list">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_code">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Mã xác thực
+                </label>
+                <input type="text" name="code" id="id_code" inputmode="numeric"
+                    pattern="[0-9]{6}" maxlength="6" required
+                    placeholder="6 số trong email" autocomplete="one-time-code">
+            </div>
+            <button type="submit" class="btn">
+                <i class="fa-solid fa-circle-check"></i>
+                Xác nhận
+            </button>
+        </form>
+
+        <form method="post" class="auth-form" style="margin-top:0.75rem">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="resend">
+            <button type="submit" class="btn ghost">
+                <i class="fa-solid fa-rotate-right"></i>
+                Gửi lại mã
+            </button>
+        </form>
+
+        <p class="auth-footnote">Nhập sai email? <a href="{% url 'users:register' %}">Đăng ký lại</a></p>
+    </div>
+
+    <aside class="auth-benefits">
+        <div>
+            <div class="auth-benefits-brand">
+                <i class="fa-regular fa-gem"></i>
+                <span>HUUGIAU Atelier</span>
+            </div>
+            <h2>Một bước nữa là xong</h2>
+            <p>Mã xác thực giúp shop chắc chắn địa chỉ Gmail là của bạn để gửi thông báo đơn hàng sau này.</p>
+        </div>
+    </aside>
+</section>
+{% endblock %}

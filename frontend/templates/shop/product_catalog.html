@@ -1,0 +1,862 @@
+{% extends "base.html" %}
+{% load static shop_format %}
+
+{% block title %}HUUGIAU Atelier{% if not is_random_home %} | Catalog{% endif %}{% endblock %}
+{% block body_class %}{% if is_random_home %}home-page{% else %}catalog-page{% endif %}{% endblock %}
+
+{% block content %}
+{% if is_random_home %}
+<section class="hero-fullbleed" data-home-hero>
+    <div class="hero-bg-overlay"></div>
+    <picture class="hero-bg">
+        <source srcset="{% static 'images/banner.webp' %}" type="image/webp">
+        <img src="{% static 'images/banner.png' %}" alt="Lookbook HUUGIAU" loading="eager" decoding="async" fetchpriority="high">
+    </picture>
+    <div class="hero-content">
+        <p class="hero-eyebrow">HUUGIAU Atelier</p>
+        <h1 class="hero-title">Gọn mà có gu,<br>mặc mỗi ngày.</h1>
+        <p class="hero-subtitle">Streetwear tối giản, sắc nét và cực dễ match. Lướt nhanh, chọn chất, chốt đơn trong một nốt nhạc.</p>
+        <div class="hero-btn-group">
+            <a href="#featured-products" class="btn btn-hero">Mua ngay</a>
+            <a href="{% url 'products:product_list' %}?sort=newest" class="btn btn-hero btn-hero-ghost">Xem catalog</a>
+        </div>
+    </div>
+</section>
+
+<div class="trust-strip" aria-label="Cam kết của shop">
+    <div class="trust-item">
+        <i class="fa-solid fa-truck-fast" aria-hidden="true"></i>
+        <div><strong>Freeship từ 499K</strong><span>Phí vận chuyển hiển thị theo địa chỉ trước khi đặt</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+        <div><strong>Gửi yêu cầu đổi trả trong 7 ngày</strong><span>Shop xem xét sau khi đơn giao thành công</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+        <div><strong>Thanh toán COD</strong><span>Thanh toán khi nhận hàng</span></div>
+    </div>
+    <div class="trust-item">
+        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+        <div><strong>Hỗ trợ mua hàng</strong><span>Chat tư vấn size &amp; phối đồ</span></div>
+    </div>
+</div>
+
+{% if trust_stats %}
+<div class="stats-strip" aria-label="Số liệu cửa hàng">
+    <div class="stats-item"><strong>{{ trust_stats.sold_total|floatformat:0 }}<span>+</span></strong><span>sản phẩm đã bán</span></div>
+    <div class="stats-item"><strong>{{ trust_stats.review_avg|floatformat:1 }}/5</strong><span>từ {{ trust_stats.review_count }} đánh giá</span></div>
+    <div class="stats-item"><strong>{{ site_total_products }}</strong><span>thiết kế trong danh mục</span></div>
+</div>
+{% endif %}
+
+{% if home_new_arrivals or home_best_sellers %}
+<section class="collection-shell home-tabs-section" data-home-tabs>
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">MỚI &amp; BÁN CHẠY</p>
+            <h2>Đang được săn đón</h2>
+        </div>
+        <div class="catalog-controls" role="tablist" aria-label="Tab sản phẩm">
+            <button type="button" class="chip active" role="tab" aria-selected="true" data-tab-btn="new">New Arrivals</button>
+            <button type="button" class="chip" role="tab" aria-selected="false" data-tab-btn="best">Best Seller</button>
+        </div>
+    </div>
+    {% for group, key in home_tab_groups %}
+    <div class="home-tab-panel {% if forloop.first %}active{% endif %}" role="tabpanel" data-tab-panel="{{ key }}">
+        <div class="home-tab-grid">
+            {% for product in group %}
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="home-tab-card">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" loading="lazy">
+                {% else %}
+                <span class="fallback">SP</span>
+                {% endif %}
+                <span class="home-tab-name">{{ product.name|repair_text }}</span>
+                <strong class="price">{{ product.price|vnd }}đ{% if product.attributes.price_is_reference %} · tham khảo{% endif %}</strong>
+                {% if product.sold_count %}<span class="card-sold">Đã bán {{ product.sold_count }}</span>{% endif %}
+            </a>
+            {% empty %}
+            <p class="muted">Chưa có sản phẩm.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+<style nonce="{{ request.csp_nonce }}">
+.home-tabs-section .catalog-controls [role="tab"] { cursor: pointer; }
+.home-tab-panel { display: none; }
+.home-tab-panel.active { display: block; }
+.home-tab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.home-tab-card { display: flex; flex-direction: column; gap: 0.35rem; text-decoration: none; color: inherit; }
+.home-tab-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: var(--radius-sm); }
+.home-tab-card .home-tab-name { font-size: 0.9rem; }
+.home-tab-card .card-sold { font-size: 0.75rem; color: var(--text-soft); }
+@media (max-width: 900px) { .home-tab-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+<script nonce="{{ request.csp_nonce }}">
+document.querySelectorAll('[data-home-tabs]').forEach(function (root) {
+    root.querySelectorAll('[data-tab-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var key = btn.getAttribute('data-tab-btn');
+            root.querySelectorAll('[data-tab-btn]').forEach(function (b) {
+                var on = b === btn;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            root.querySelectorAll('[data-tab-panel]').forEach(function (panel) {
+                panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === key);
+            });
+        });
+    });
+});
+</script>
+{% endif %}
+
+<section class="collection-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">BỘ SƯU TẬP</p>
+            <h2>Mua theo danh mục</h2>
+            <p>Chọn đúng khoản cần, lên đồ nhanh, ít chọn nhầm.</p>
+        </div>
+    </div>
+    <div class="collection-grid">
+        <a href="{% url 'products:product_list' %}?category=ao" class="collection-card collection-card-ao">
+            <span class="collection-index">01</span>
+            <div class="collection-heading">
+                <h3>Áo</h3>
+            </div>
+            <p>Tee, sweatshirt, hoodie — lớp nền cho mọi outfit.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="{% url 'products:product_list' %}?category=quan" class="collection-card collection-card-quan">
+            <span class="collection-index">02</span>
+            <div class="collection-heading">
+                <h3>Quần</h3>
+            </div>
+            <p>Denim, cargo, short — form gọn, dễ phối giày.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="{% url 'products:product_list' %}?category=phu-kien" class="collection-card collection-card-pk">
+            <span class="collection-index">03</span>
+            <div class="collection-heading">
+                <h3>Phụ kiện</h3>
+            </div>
+            <p>Nón, túi, tất — điểm nhấn cuối cho bộ đồ.</p>
+            <span class="collection-cta">Khám phá <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+    </div>
+</section>
+{% else %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <span>Danh mục</span>
+</nav>
+{% endif %}
+
+<section class="lookbook-shell" id="featured-products">
+    <div class="section-head lookbook-head">
+        <div>
+            <p class="eyebrow">{% if is_random_home %}SẢN PHẨM NỔI BẬT{% else %}TẤT CẢ SẢN PHẨM{% endif %}</p>
+            <h2>{% if is_random_home %}Lookbook hôm nay{% else %}Catalog{% endif %}</h2>
+            <p>{% if is_random_home %}Những món dễ mặc nhưng vẫn giữ được cá tính riêng.{% else %}{{ total_products }} sản phẩm trong danh mục.{% endif %}</p>
+            {% if products.0.attributes.price_is_reference %}<p>Ảnh và tên sản phẩm từ catalog thật. Giá tham khảo quy đổi; shop chưa xác nhận tồn kho.</p>{% endif %}
+        </div>
+        <div class="catalog-controls">
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.newest }}" class="chip {% if selected_sort == 'newest' %}active{% endif %}">Mới nhất</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.bestseller }}" class="chip {% if selected_sort == 'bestseller' %}active{% endif %}">Bán chạy</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_asc }}" class="chip {% if selected_sort == 'price_asc' %}active{% endif %}">Giá thấp</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.price_desc }}" class="chip {% if selected_sort == 'price_desc' %}active{% endif %}">Giá cao</a>
+            <a href="{% url 'products:product_list' %}?{{ sidebar_sort_links.rating }}" class="chip {% if selected_sort == 'rating' %}active{% endif %}">Đánh giá cao</a>
+            {% if not is_random_home %}
+            <button type="button" class="chip filter-toggle" data-filters-toggle aria-expanded="false">Bộ lọc</button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if active_filters %}
+    <div class="active-filter-list" aria-label="Bộ lọc đang áp dụng">
+        <span class="active-filter-heading">Đang lọc</span>
+        {% for filter in active_filters %}
+        <a class="active-filter-chip" href="{% url 'products:product_list' %}{% if filter.query %}?{{ filter.query }}{% endif %}" aria-label="Bỏ lọc {{ filter.label }}">
+            {{ filter.label }} <span aria-hidden="true">×</span>
+        </a>
+        {% endfor %}
+        <a class="active-filter-clear" href="{% url 'products:product_list' %}{% if clear_filter_query %}?{{ clear_filter_query }}{% endif %}">Xóa tất cả</a>
+    </div>
+    {% endif %}
+
+    {% if is_random_home %}
+    <div class="product-grid product-grid-editorial">
+        {% for product in products %}
+        <div class="product-card product-card-editorial product-card-has-qv">
+            <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card-main" aria-label="{{ product.name|repair_text }}">
+            <div class="card-media card-media-editorial">
+                {% if product.get_image %}
+                <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" class="primary-img" loading="lazy">
+                {% with gallery=product.gallery_images.all %}
+                    {% if gallery.0 and gallery.0.image.url != product.get_image %}
+                    <img src="{{ gallery.0.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% elif gallery.1 and gallery.1.image.url != product.get_image %}
+                    <img src="{{ gallery.1.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                    {% endif %}
+                {% endwith %}
+                {% else %}
+                <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                {% endif %}
+                <div class="card-tags">
+                {% if product.featured %}
+                <span class="tag">NỔI BẬT</span>
+                {% endif %}
+                {% if product|is_new %}
+                <span class="tag tag-new">MỚI</span>
+                {% endif %}
+                {% if not product.available %}
+                <span class="tag tag-soldout">HẾT HÀNG</span>
+                {% endif %}
+                {% if product.stock <= 0 and product.available %}
+                <span class="tag tag-soldout">{% if product.attributes.price_is_reference %}MẪU THAM KHẢO{% else %}HẾT HÀNG{% endif %}</span>
+                {% endif %}
+                {% if product.discount_percent %}
+                <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
+                {% endif %}
+                {% if product.low_stock %}
+                <span class="tag tag-low-stock">Sắp hết hàng</span>
+                {% endif %}
+                </div>
+            </div>
+            <div class="card-body card-body-editorial">
+                <p class="card-category">{{ product.category.name|repair_text }}</p>
+                <h3>{{ product.name|repair_text }}</h3>
+                {% if product.rating_count %}
+                <div class="card-rating" data-static-stars="{{ product.rating_avg|floatformat:1 }}">
+                    {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+                    <span>{{ product.rating_count }}</span>
+                </div>
+                {% endif %}
+                <div class="card-footer">
+                    <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
+                    {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
+                    <span>{% if product.attributes.price_is_reference %}Giá tham khảo{% else %}Xem chi tiết{% endif %}</span>
+                </div>
+            </div>
+            </a>
+            <button type="button" class="qv-btn" data-qv='{"name":"{{ product.name|repair_text|escapejs }}","price":"{{ product.price|vnd }}","reference":{{ product.attributes.price_is_reference|yesno:"true,false" }},"rating":"{% if product.rating_count %}{{ product.rating_avg|floatformat:1 }}{% endif %}","url":"{% url 'products:product_detail' product.id product.slug %}"}' aria-label="Xem nhanh {{ product.name|repair_text }}">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem nhanh
+            </button>
+            <form method="post" action="{% url 'products:compare_toggle' product.id %}" class="card-compare-form">
+                {% csrf_token %}
+                <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}" aria-label="So sánh {{ product.name|repair_text }}">
+                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> So sánh
+                </button>
+            </form>
+        </div>
+        {% empty %}
+        <div class="empty-state panel">
+            <h2>Chưa có sản phẩm phù hợp</h2>
+            <p>Thử quay lại danh mục chính để xem thêm những mẫu đang lên kệ.</p>
+            <a href="{% url 'products:product_list' %}" class="btn">Xem toàn bộ sản phẩm</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="catalog-layout">
+        <aside class="filter-sidebar panel" id="catalog-filter-panel">
+            <div class="filter-sidebar-head">
+                <h3>Bộ lọc</h3>
+                <a href="{% url 'products:product_list' %}{% if clear_filter_query %}?{{ clear_filter_query }}{% endif %}" class="filter-reset" title="Xóa bộ lọc">Xóa</a>
+            </div>
+
+            <form method="get" action="{% url 'products:product_list' %}" class="filter-form" data-filter-form>
+                <input type="hidden" name="sort" value="{{ selected_sort }}">
+                {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
+                {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
+
+                <div class="filter-group">
+                    <span class="filter-label">Danh mục</span>
+                    <div class="filter-cats">
+                        <a href="{% url 'products:product_list' %}{% if all_category_query %}?{{ all_category_query }}{% endif %}" class="filter-cat {% if not selected_category %}active{% endif %}">Tất cả</a>
+                        {% for category in categories %}
+                        <a href="{% url 'products:product_list' %}?{{ category.catalog_query }}" class="filter-cat {% if selected_category and selected_category.id == category.id %}active{% endif %}">{{ category.name|repair_text }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <span class="filter-label">Khoảng giá</span>
+                    <div class="price-range">
+                        <input type="text" inputmode="numeric" name="min_price" value="{{ min_price }}" placeholder="Từ" aria-label="Giá tối thiểu">
+                        <span class="price-range-sep">–</span>
+                        <input type="text" inputmode="numeric" name="max_price" value="{{ max_price }}" placeholder="Đến" aria-label="Giá tối đa">
+                    </div>
+                </div>
+
+                {% if sidebar_size_options %}
+                <div class="filter-group">
+                    <span class="filter-label">Size</span>
+                    <div class="size-grid">
+                        {% for size in sidebar_size_options %}
+                        <label class="size-opt">
+                            <input type="checkbox" name="size" value="{{ size }}" {% if size in selected_sizes %}checked{% endif %}>
+                            <span>{{ size }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if sidebar_color_options %}
+                <div class="filter-group">
+                    <span class="filter-label">Màu sắc</span>
+                    <div class="color-options">
+                        {% for color in sidebar_color_options %}
+                        <label class="color-opt" title="{{ color.label }}">
+                            <input type="checkbox" name="color" value="{{ color.value }}" {% if color.value in selected_colors %}checked{% endif %}>
+                            <span class="color-swatch" style="background: {{ color.code }}"></span>
+                            <span class="color-name">{{ color.label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn filter-apply">Áp dụng</button>
+            </form>
+        </aside>
+
+        <div class="catalog-main">
+            <div class="product-grid product-grid-editorial">
+                {% for product in products %}
+                <div class="product-card product-card-editorial">
+                <a href="{% url 'products:product_detail' product.id product.slug %}" class="product-card-main product-card-link" aria-label="{{ product.name|repair_text }}">
+                    <div class="card-media card-media-editorial">
+                        {% if product.get_image %}
+                        <img src="{{ product.get_image }}" alt="{{ product.name|repair_text }}" class="primary-img" loading="lazy">
+                        {% with gallery=product.gallery_images.all %}
+                            {% if gallery.0 and gallery.0.image.url != product.get_image %}
+                            <img src="{{ gallery.0.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                            {% elif gallery.1 and gallery.1.image.url != product.get_image %}
+                            <img src="{{ gallery.1.image.url }}" alt="{{ product.name|repair_text }} - alt" class="secondary-img" loading="lazy">
+                            {% endif %}
+                        {% endwith %}
+                        {% else %}
+                        <span class="fallback">{% if product.category.slug == 'quan' %}QUẦN{% elif product.category.slug == 'phu-kien' %}PHỤ KIỆN{% else %}ÁO{% endif %}</span>
+                        {% endif %}
+                        <div class="card-tags">
+                        {% if product.featured %}
+                        <span class="tag">NỔI BẬT</span>
+                        {% endif %}
+                        {% if product|is_new %}
+                        <span class="tag tag-new">MỚI</span>
+                        {% endif %}
+                        {% if not product.available %}
+                        <span class="tag tag-soldout">HẾT HÀNG</span>
+                        {% endif %}
+                        {% if product.stock <= 0 and product.available %}
+                        <span class="tag tag-soldout">{% if product.attributes.price_is_reference %}MẪU THAM KHẢO{% else %}HẾT HÀNG{% endif %}</span>
+                        {% endif %}
+                        {% if product.discount_percent %}
+                        <span class="tag tag-sale">-{{ product.discount_percent }}%</span>
+                        {% endif %}
+                        {% if product.low_stock %}
+                        <span class="tag tag-low-stock">Sắp hết hàng</span>
+                        {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body card-body-editorial">
+                        <p class="card-category">{{ product.category.name|repair_text }}</p>
+                        <h3>{{ product.name|repair_text }}</h3>
+                        {% if product.rating_count %}
+                        <div class="card-rating" data-static-stars="{{ product.rating_avg|floatformat:1 }}">
+                            {% for value in "12345" %}<i class="fa-solid fa-star" data-star-index="{{ forloop.counter }}"></i>{% endfor %}
+                            <span>{{ product.rating_count }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-footer">
+                            <strong class="price">{% if product.discount_percent %}<s class="price-compare">{{ product.compare_price|vnd }}đ</s> {% endif %}{{ product.price|vnd }}đ</strong>
+                            {% if product.sold_count %}<span class="card-sold"><i class="fa-solid fa-fire" aria-hidden="true"></i> Đã bán {{ product.sold_count }}</span>{% endif %}
+                            <span>{% if product.attributes.price_is_reference %}Giá tham khảo{% else %}Xem chi tiết{% endif %}</span>
+                        </div>
+                    </div>
+                </a>
+                <form method="post" action="{% url 'products:compare_toggle' product.id %}" class="card-compare-form">
+                    {% csrf_token %}
+                    <button type="submit" class="compare-btn {% if product.id in compare_ids %}is-active{% endif %}" aria-label="So sánh {{ product.name|repair_text }}">
+                        <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> So sánh
+                    </button>
+                </form>
+                </div>
+                {% empty %}
+                <div class="empty-state panel">
+                    <h2>Chưa có sản phẩm phù hợp</h2>
+                    <p>Thử giảm bớt bộ lọc hoặc quay lại danh mục chính.</p>
+                    <a href="{% url 'products:product_list' %}" class="btn">Xem toàn bộ sản phẩm</a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if products.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}&{{ query_without_page }}" class="pagination-prev">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                    Trước
+                </a>
+                {% endif %}
+
+                <div class="pagination-pages">
+                    {% for num in products.paginator.page_range %}
+                        {% if num == products.number %}
+                        <span class="pagination-current">{{ num }}</span>
+                        {% elif num > products.number|add:"-3" and num < products.number|add:"3" %}
+                        <a href="?page={{ num }}&{{ query_without_page }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}&{{ query_without_page }}" class="pagination-next">
+                    Sau
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+{% if is_random_home %}
+<section class="section-shell social-strip">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">@huugiau.atelier</p>
+            <h2>Khoảnh khắc cùng HUUGIAU</h2>
+            <p>Gắn thẻ <strong>#huugiau</strong> để xuất hiện trên trang của shop nhé.</p>
+        </div>
+        <span class="btn ghost" aria-hidden="true">Theo dõi chúng tôi</span>
+    </div>
+    <div class="social-grid" id="social-grid" data-social-grid></div>
+<script nonce="{{ request.csp_nonce }}" type="application/json" id="social-data">[
+    {% for item in products|slice:":6" %}
+    {"name": "{{ item.name|repair_text|escapejs }}", "img": "{{ item.get_image|escapejs }}", "url": "{% url 'products:product_detail' item.id item.slug %}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]</script>
+</section>
+{% endif %}
+
+<style nonce="{{ request.csp_nonce }}">
+.catalog-layout {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+.filter-sidebar {
+    position: sticky;
+    top: 1.25rem;
+    padding: 1.1rem;
+}
+.filter-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+}
+.filter-sidebar-head h3 {
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.filter-reset {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    text-decoration: none;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    transition: background 0.2s ease;
+}
+.filter-reset:hover {
+    background: var(--accent);
+    color: #fff;
+}
+.filter-group {
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+}
+.filter-group:first-of-type {
+    border-top: 0;
+}
+.filter-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.55rem;
+}
+.filter-cats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.filter-cat {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    text-decoration: none;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border-left: 2px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.filter-cat:hover {
+    background: var(--surface-tint);
+    color: var(--accent-strong);
+}
+.filter-cat.active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+    border-left-color: var(--accent);
+}
+.price-range {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.4rem;
+    align-items: center;
+}
+.price-range input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.6rem;
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 0.78rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.price-range input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.price-range-sep {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+.size-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.size-opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.size-opt span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.size-opt input:checked + span {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 3px 8px var(--accent-glow);
+}
+.size-opt:hover span {
+    border-color: var(--accent);
+    color: var(--accent-strong);
+}
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.color-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.74rem;
+    color: var(--text-soft);
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    transition: all 0.2s ease;
+}
+.color-opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    display: inline-block;
+}
+.color-opt:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 700;
+}
+.color-opt:hover {
+    border-color: var(--accent);
+}
+.filter-apply {
+    width: 100%;
+    margin-top: 0.4rem;
+    justify-content: center;
+}
+.catalog-main {
+    min-width: 0;
+}
+.filter-toggle {
+    cursor: pointer;
+    font-family: inherit;
+    display: none;
+}
+@media (max-width: 900px) {
+    .filter-toggle {
+        display: inline-flex;
+    }
+    .catalog-layout {
+        grid-template-columns: 1fr;
+    }
+    .filter-sidebar {
+        position: static;
+    }
+    .filter-sidebar[hidden] {
+        display: none;
+    }
+}
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+.pagination-prev,
+.pagination-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    border: 1px solid var(--line);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.pagination-prev:hover,
+.pagination-next:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.pagination-pages {
+    display: flex;
+    gap: 0.25rem;
+}
+.pagination-pages a,
+.pagination-current {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.pagination-pages a {
+    color: var(--text-soft);
+    border: 1px solid var(--line);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.pagination-pages a:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.pagination-current {
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid var(--accent);
+}
+@media (max-width: 560px) {
+    .pagination { gap: 0.25rem; flex-wrap: wrap; }
+    .pagination-prev,
+    .pagination-next { font-size: 0.7rem; padding: 0.35rem 0.5rem; }
+    .pagination-pages a,
+    .pagination-current { width: 28px; height: 28px; font-size: 0.72rem; }
+}
+.social-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+}
+.social-tile {
+    position: relative;
+    display: block;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-soft);
+}
+.social-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+.social-tile:hover img { transform: scale(1.05); }
+.social-tile .social-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.social-tile:hover .social-overlay { opacity: 1; }
+@media (max-width: 760px) {
+    .social-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+<div id="qv-modal" class="qv-modal" role="dialog" aria-modal="true" aria-label="Xem nhanh sản phẩm">
+    <div class="qv-panel panel">
+        <button type="button" class="qv-close" aria-label="Đóng">×</button>
+        <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="">
+        <div class="qv-copy">
+            <h3></h3>
+            <p class="qv-rating"></p>
+            <strong class="price qv-price"></strong>
+            <div class="qv-actions">
+                <a href="#" class="btn qv-view-link">Xem chi tiết</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var toggle = document.querySelector('[data-filters-toggle]');
+    var panel = document.getElementById('catalog-filter-panel');
+    if (!toggle || !panel) return;
+    function applyState() {
+        var collapsed = window.innerWidth <= 900 && !panel.hasAttribute('hidden');
+        if (collapsed) panel.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+    applyState();
+    toggle.addEventListener('click', function () {
+        var isHidden = panel.hasAttribute('hidden');
+        if (isHidden) {
+            panel.removeAttribute('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+        } else {
+            panel.setAttribute('hidden', '');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+    window.addEventListener('resize', applyState);
+})();
+
+(function () {
+    var grid = document.getElementById('social-grid');
+    if (!grid) return;
+    var dataEl = document.getElementById('social-data');
+    var items = [];
+    try { items = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    items.forEach(function (item) {
+        var a = document.createElement('a');
+        a.className = 'social-tile';
+        a.href = item.url;
+        a.setAttribute('aria-label', 'Mặc thử ' + item.name);
+        var img = document.createElement('img');
+        img.src = item.img;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        var overlay = document.createElement('span');
+        overlay.className = 'social-overlay';
+        overlay.textContent = 'Mặc thử';
+        a.appendChild(img);
+        a.appendChild(overlay);
+        grid.appendChild(a);
+    });
+})();
+
+(function () {
+    var modal = document.getElementById('qv-modal');
+    if (!modal) return;
+    var img = modal.querySelector('.qv-panel img');
+    var nameEl = modal.querySelector('.qv-copy h3');
+    var priceEl = modal.querySelector('.qv-price');
+    var ratingEl = modal.querySelector('.qv-rating');
+    var link = modal.querySelector('.qv-view-link');
+    var close = modal.querySelector('.qv-close');
+
+    function hide() {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('[data-qv]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var data;
+            try { data = JSON.parse(btn.getAttribute('data-qv')); } catch (err) { return; }
+            var cardImg = btn.closest('.product-card') && btn.closest('.product-card').querySelector('.card-media img');
+            img.src = cardImg ? cardImg.src : '';
+            img.alt = data.name;
+            nameEl.textContent = data.name;
+            priceEl.textContent = data.price + 'đ' + (data.reference ? ' · giá tham khảo' : '');
+            ratingEl.textContent = data.rating ? data.rating + ' / 5 sao' : 'Chưa có đánh giá';
+            link.href = data.url;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    close.addEventListener('click', hide);
+    modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+})();
+</script>
+{% endblock %}
