@@ -1,0 +1,1 @@
+fix: frontend lint - fix linebreak style (CRLF to LF)
