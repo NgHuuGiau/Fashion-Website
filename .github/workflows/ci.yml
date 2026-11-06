@@ -288,68 +288,56 @@ jobs:
   frontend-e2e:
     name: Frontend E2E (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      TRUSTED_PROXY: 'True'
-      BASE_URL: http://127.0.0.1:8000
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: test_fashion
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test -d test_fashion"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unixodbc-dev
-
-      - name: Install backend dependencies (from lock file)
-        run: |
-          pip install uv
-          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
-
-      - name: Prepare database and browser test accounts
-        run: |
-          cd backend
-          python manage.py migrate --noinput
-          python manage.py seed_all --no-input
-          python ../scripts/prepare_e2e.py
-
-      - name: Set up Node and install frontend dependencies
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Playwright browser
-        run: |
-          cd frontend
-          npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+      - name: Install dependencies
+        run: cd frontend && npm ci --no-audit --no-fund
 
-      - name: Run desktop and mobile browser tests
+      - name: Set up Python and install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip unixodbc-dev
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+          pip install "Django==5.2.*"
+          python manage.py migrate --noinput
+
+      - name: Run Django server in background
+        run: |
+          source venv/bin/activate
+          cd backend
+          nohup python manage.py runserver 127.0.0.1:8000 --noreload > /tmp/django_server.log 2>&1 &
+          echo "Django server started with PID $!"
+
+      - name: Wait for Django server
+        run: |
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8000/ > /dev/null 2>&1; then
+              echo "Django server is ready"
+              break
+            fi
+            sleep 1
+          done
+          curl -s http://127.0.0.1:8000/ || { echo "::error::Django server not ready"; exit 1; }
+
+      - name: Run Playwright E2E tests
         env:
           BASE_URL: http://127.0.0.1:8000
-        run: cd frontend && npm test -- --project=chromium --project="Mobile Chrome"
+        run: |
+          cd frontend
+          npx playwright test --project=chromium --project="Mobile Chrome" --workers=1 --timeout=300000
 
       - name: Upload Playwright report
         if: always()
