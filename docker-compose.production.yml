@@ -1,45 +1,116 @@
+version: '3.8'
+
 services:
-  app:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fashion-postgres
     environment:
-      BEHIND_PROXY: "True"
-      TRUSTED_PROXY: "True"
-      SECURE_SSL_REDIRECT: "True"
-      SESSION_COOKIE_SECURE: "True"
-      CSRF_COOKIE_SECURE: "True"
-      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-31536000}
+      POSTGRES_DB: fashion
+      POSTGRES_USER: fashion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fashion -d fashion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fashion-network
 
-  celery-worker:
+  redis:
+    image: redis:7-alpine
+    container_name: fashion-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fashion-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fashion-backend
     environment:
-      BEHIND_PROXY: "True"
-      TRUSTED_PROXY: "True"
-
-  celery-beat:
-    environment:
-      BEHIND_PROXY: "True"
-      TRUSTED_PROXY: "True"
-
-  caddy:
-    image: caddy:2-alpine
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DATABASE_URL=postgresql://fashion:${POSTGRES_PASSWORD}@postgres:5432/fashion
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_USE_TLS=True
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - VNPAY_TMN_CODE=${VNPAY_TMN_CODE}
+      - VNPAY_HASH_SECRET=${VNPAY_HASH_SECRET}
+      - VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      - VNPAY_RETURN_URL=https://${ALLOWED_HOSTS}/thanh-toan/vnpay-return/
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fashion-network
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:?Set DOMAIN to the DNS name pointing at this server}
-      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL for TLS certificate notices}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fashion-frontend
+    depends_on:
+      - backend
+    networks:
+      - fashion-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: fashion-nginx
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
     depends_on:
-      nginx:
-        condition: service_started
+      - backend
+      - frontend
+    networks:
+      - fashion-network
+    restart: unless-stopped
 
-  meilisearch:
-    environment:
-      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:?Set MEILISEARCH_API_KEY}
+  certbot:
+    image: certbot/certbot
+    container_name: fashion-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
 
 volumes:
-  caddy_data:
-  caddy_config:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+
+networks:
+  fashion-network:
+    driver: bridge
