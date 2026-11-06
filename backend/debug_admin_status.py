@@ -1,6 +1,8 @@
 import sys
-sys.stdout.reconfigure(encoding='utf-8')
-import requests, re, json
+import requests
+import re
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 # Login as admin first
 s = requests.Session()
@@ -12,11 +14,16 @@ csrf_match = re.search(r'name="csrfmiddlewaretoken"\s+value="([^"]+)"', resp.tex
 csrf_token = csrf_match.group(1) if csrf_match else s.cookies.get("csrftoken")
 
 # Login as admin (admin/admin123 from prepare_e2e.py)
-resp = s.post(f"{BASE}/dang-nhap/", data={
-    "username": "admin",
-    "password": "admin123",
-    "csrfmiddlewaretoken": csrf_token,
-}, headers={"X-Forwarded-For": "198.18.200.50"}, allow_redirects=False)
+resp = s.post(
+    f"{BASE}/dang-nhap/",
+    data={
+        "username": "admin",
+        "password": "admin123",
+        "csrfmiddlewaretoken": csrf_token,
+    },
+    headers={"X-Forwarded-For": "198.18.200.50"},
+    allow_redirects=False,
+)
 print("Admin login status:", resp.status_code)
 print("Location:", resp.headers.get("Location", "N/A"))
 

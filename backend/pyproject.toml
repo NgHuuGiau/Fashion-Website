@@ -4,7 +4,7 @@
 
 [tool.mypy]
 python_version = "3.12"
-plugins = ["mypy_django_plugin.main"]
+# plugins = ["django-stubs.mypy_plugin"]  # Disabled due to plugin issues
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false

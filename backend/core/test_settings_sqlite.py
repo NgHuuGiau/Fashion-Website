@@ -10,13 +10,22 @@ os.environ.setdefault(
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault(
     "SQLITE_TEST_DB",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".tmp-e2e.sqlite3"),
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".tmp-e2e.sqlite3"
+    ),
 )
 os.environ.setdefault("SHOP_BANK_ACCOUNT", "")
 os.environ.setdefault("VNPAY_TMN_CODE", "")
 # Use file-based email backend for E2E tests (writes to files for cross-process access)
-os.environ.setdefault("EMAIL_BACKEND", "django.core.mail.backends.filebased.EmailBackend")
-os.environ.setdefault("EMAIL_FILE_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".tmp-e2e-emails"))
+os.environ.setdefault(
+    "EMAIL_BACKEND", "django.core.mail.backends.filebased.EmailBackend"
+)
+os.environ.setdefault(
+    "EMAIL_FILE_PATH",
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".tmp-e2e-emails"
+    ),
+)
 
 from .settings import *  # noqa: E402,F403
 
