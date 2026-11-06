@@ -116,6 +116,18 @@ def email_for(addr: str) -> str:
             parts = content.split("\n\n", 1)
             return parts[1] if len(parts) > 1 else content
     raise AssertionError(f"chua thay email cho {addr} trong {EMAIL_DIR} ({len(files)} files)")
+def log_text() -> str:
+    return open(LOG, encoding="utf-8", errors="replace").read()
+
+
+def email_for(addr: str) -> str:
+    """Email cuoi cung trong log console backend gui cho addr."""
+    txt = log_text()
+    parts = re.split(r"(?=^From: )", txt, flags=re.MULTILINE)
+    hits = [p for p in parts if addr.lower() in p.lower()]
+    if not hits:
+        raise AssertionError(f"chua thay email cho {addr}")
+    return hits[-1]
 
 
 def code_in(html: str) -> str:
@@ -134,6 +146,7 @@ def reset_link(html: str) -> str:
         raise AssertionError("khong thay link dat-lai")
     from urllib.parse import urlparse
     return urlparse(m.group(0)).path
+    return m.group(0)[len(BASE):]
 
 
 class B(requests.Session):
@@ -157,8 +170,7 @@ class B(requests.Session):
         return r
 
 
-# ========== A. USER: quen mat khau + dang nhap ==========
-prepare()
+# ========== A. USER: quen mat khau + dang nhap ===prepare()
 A1 = B("203.0.113.10")
 r = A1.get("/dang-nhap/")
 check("A1 trang dang nhap hien ra", r.status_code == 200, f"{r.status_code}")
@@ -185,6 +197,7 @@ for f in email_files:
     with open(f, "r", encoding="utf-8", errors="replace") as ef:
         print(f"  Content: {ef.read()[:500]}")
 
+check("A3 tim TK qua username -> ve login", r2.url == BASE + "/dang-nhap/", f"{r2.status_code} {r2.url}")
 b_anti = B("203.0.113.10")
 r2b_page = b_anti.get("/quen-mat-khau/")
 r2b = b_anti.post("/quen-mat-khau/", {"identifier": "khong-ton-tai-xyz"}, from_page=r2b_page)
@@ -204,8 +217,7 @@ u = A2.get("/quen-mat-khau/")
 check("A8 user da login truy cap quen-MK bi day ve san pham", u.url == BASE + "/", f"{u.url}" if u.url else u.path)
 A2.get("/dang-xuat/")
 
-# ========== B. DANG KY MOI (user moi) ==========
-s6 = str(int(time.time()))[-6:]
+# ========== B. DANG KY MOI (user moi) ===s6 = str(int(time.time()))[-6:]
 em = f"e2e{s6}@test.com"
 n1 = B("198.51.100.55")
 r = n1.post(
@@ -266,8 +278,7 @@ r = n3.post(
 )
 check("B3 password yeu bi tu choi", "Mật khẩu" in r.text and r.status_code == 200 and 'name="password2"' in r.text, f"{r.status_code}")
 
-# ========== C. STAFF (codexstaff) + 2FA ==========
-S1 = B("192.0.2.77")
+# ========== C. STAFF (codexstaff) + 2FA ===S1 = B("192.0.2.77")
 r = S1.post("/dang-nhap/", {"username": "codexstaff", "password": "staff123"}, from_page=S1.get("/dang-nhap/"))
 check("C1 staff dang nhap ok", r.status_code == 200, f"{r.status_code}")
 r = S1.get("/admin/")
@@ -287,8 +298,7 @@ check("C5 xac minh ma -> vao /admin/ (staff dashboard)", adm.status_code == 200 
 u = S1.get("/admin/auth/user/")
 check("C6 staff BI TU CHOI trang user (403)", u.status_code == 403 and u.url == BASE + "/admin/auth/user/", f"{u.status_code} {u.url}")
 
-# ========== D. ADMIN (admin / admin123) ==========
-D1 = B("192.0.2.200")
+# ========== D. ADMIN (admin / admin123) ===D1 = B("192.0.2.200")
 r = D1.post("/dang-nhap/", {"username": "admin", "password": "admin123"}, from_page=D1.get("/dang-nhap/"))
 check("D1 admin dang nhap ok", r.status_code == 200, f"{r.status_code}")
 r = D1.get("/admin/")
@@ -304,8 +314,7 @@ check("D4 admin vao toan quyen /admin/", adm.status_code == 200 and adm.url == B
 u = D1.get("/admin/auth/user/")
 check("D5 admin vao duoc trang quan ly user", u.status_code == 200 and u.url == BASE + "/admin/auth/user/", f"{u.status_code} {u.url}")
 
-# ========== E. RATE LIMIT LOGIN ==========
-R1 = B("192.0.2.99")
+# ========== E. RATE LIMIT LOGIN ===R1 = B("192.0.2.99")
 page = R1.get("/dang-nhap/")
 codes = []
 for i in range(11):

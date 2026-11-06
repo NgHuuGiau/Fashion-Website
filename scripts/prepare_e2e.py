@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 # This allows running with: DJANGO_SETTINGS_MODULE=core.test_settings_sqlite python prepare_e2e.py
 if "DJANGO_SETTINGS_MODULE" not in os.environ:
     os.environ["DJANGO_SETTINGS_MODULE"] = "core.settings"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
 import django
 

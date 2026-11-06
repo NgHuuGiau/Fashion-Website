@@ -118,6 +118,9 @@ def staff_session():
         # Verify đăng nhập thành công
         r = w.get("/admin/")
         assert r.status_code == 200, f"Staff login failed: {r.status_code}"
+        time.sleep(31 - time.time() % 30)  # mã TOTP không dùng lại được trong cùng cửa sổ 30s
+        r = w.post("/tai-khoan/bao-mat-2-lop/ma/", {"code": totp(key)})
+        w.get("/admin/")
     return w
 
 
