@@ -75,12 +75,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      DB_ENGINE: 'postgres'
-      DB_NAME: 'test_fashion'
-      DB_HOST: 'localhost'
-      DB_PORT: '5432'
-      DB_USER: 'test'
-      DB_PASSWORD: 'test'
+      SECRET_KEY: 'ci-test-only-not-for-production-7gH4bY9mP2kR8xV6sT1qW3cN5dF0aLZp'
+      DEBUG: 'True'
+      DB_ENGINE: 'sqlite'
+      SQLITE_TEST_DB: '/tmp/test.sqlite3'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,15 +101,8 @@ jobs:
           uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
 
       - name: Run mypy
-        env:
-          DB_ENGINE: postgres
-          DB_NAME: test_fashion
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: test
-          DB_PASSWORD: test
         run: |
-          cd backend && DJANGO_SETTINGS_MODULE=core.settings mypy \
+          cd backend && DJANGO_SETTINGS_MODULE=core.test_settings_sqlite mypy \
             core/settings.py core/text_utils.py core/ratelimit.py \
             products/constants.py products/validators.py \
             orders/constants.py orders/vnpay.py users/activity.py \
