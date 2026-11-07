@@ -318,6 +318,20 @@ jobs:
       DB_PORT: '5432'
       DB_USER: 'test'
       DB_PASSWORD: 'test'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_fashion
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -341,6 +355,14 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/requirements-dev.txt
           pip install "Django==5.2.*"
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U test -d test_fashion && break
+            sleep 1
+          done
+          pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready"; exit 1; }
 
       - name: Run database migrations
         env:
