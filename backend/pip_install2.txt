@@ -1,0 +1,47 @@
+Collecting pip-audit==2.7.0
+  Downloading pip_audit-2.7.0-py3-none-any.whl.metadata (25 kB)
+Requirement already satisfied: CacheControl>=0.13.0 in .\.venv\Lib\site-packages (from CacheControl[filecache]>=0.13.0->pip-audit==2.7.0) (0.14.4)
+Collecting cyclonedx-python-lib<7,>=5 (from pip-audit==2.7.0)
+  Downloading cyclonedx_python_lib-6.4.4-py3-none-any.whl.metadata (6.7 kB)
+Requirement already satisfied: html5lib>=1.1 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (1.1)
+Requirement already satisfied: packaging>=23.0.0 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (26.3)
+Requirement already satisfied: pip-api>=0.0.28 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (0.0.35)
+Requirement already satisfied: pip-requirements-parser>=32.0.0 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (32.0.1)
+Requirement already satisfied: requests>=2.31.0 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (2.34.2)
+Requirement already satisfied: rich>=12.4 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (15.0.0)
+Requirement already satisfied: toml>=0.10 in .\.venv\Lib\site-packages (from pip-audit==2.7.0) (0.10.2)
+Requirement already satisfied: license-expression<31,>=30 in .\.venv\Lib\site-packages (from cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (30.4.4)
+Requirement already satisfied: packageurl-python<2,>=0.11 in .\.venv\Lib\site-packages (from cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (0.17.6)
+Requirement already satisfied: py-serializable<2,>=0.16 in .\.venv\Lib\site-packages (from cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (1.1.2)
+Requirement already satisfied: sortedcontainers<3.0.0,>=2.4.0 in .\.venv\Lib\site-packages (from cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (2.4.0)
+Requirement already satisfied: boolean.py>=4.0 in .\.venv\Lib\site-packages (from license-expression<31,>=30->cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (5.0)
+Requirement already satisfied: defusedxml<0.8.0,>=0.7.1 in .\.venv\Lib\site-packages (from py-serializable<2,>=0.16->cyclonedx-python-lib<7,>=5->pip-audit==2.7.0) (0.7.1)
+Requirement already satisfied: msgpack<2.0.0,>=0.5.2 in .\.venv\Lib\site-packages (from CacheControl>=0.13.0->CacheControl[filecache]>=0.13.0->pip-audit==2.7.0) (1.2.3)
+Requirement already satisfied: filelock>=3.8.0 in .\.venv\Lib\site-packages (from CacheControl[filecache]>=0.13.0->pip-audit==2.7.0) (3.16.1)
+Requirement already satisfied: six>=1.9 in .\.venv\Lib\site-packages (from html5lib>=1.1->pip-audit==2.7.0) (1.17.0)
+Requirement already satisfied: webencodings in .\.venv\Lib\site-packages (from html5lib>=1.1->pip-audit==2.7.0) (0.6.1)
+Requirement already satisfied: pip in .\.venv\Lib\site-packages (from pip-api>=0.0.28->pip-audit==2.7.0) (26.2.1)
+Requirement already satisfied: pyparsing in .\.venv\Lib\site-packages (from pip-requirements-parser>=32.0.0->pip-audit==2.7.0) (3.3.3)
+Requirement already satisfied: charset_normalizer<4,>=2 in .\.venv\Lib\site-packages (from requests>=2.31.0->pip-audit==2.7.0) (3.5.2)
+Requirement already satisfied: idna<4,>=2.5 in .\.venv\Lib\site-packages (from requests>=2.31.0->pip-audit==2.7.0) (3.20)
+Requirement already satisfied: urllib3<3,>=1.26 in .\.venv\Lib\site-packages (from requests>=2.31.0->pip-audit==2.7.0) (2.8.0)
+Requirement already satisfied: certifi>=2023.5.7 in .\.venv\Lib\site-packages (from requests>=2.31.0->pip-audit==2.7.0) (2026.7.22)
+Requirement already satisfied: markdown-it-py>=2.2.0 in .\.venv\Lib\site-packages (from rich>=12.4->pip-audit==2.7.0) (4.2.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in .\.venv\Lib\site-packages (from rich>=12.4->pip-audit==2.7.0) (2.21.0)
+Requirement already satisfied: mdurl~=0.1 in .\.venv\Lib\site-packages (from markdown-it-py>=2.2.0->rich>=12.4->pip-audit==2.7.0) (0.1.2)
+Downloading pip_audit-2.7.0-py3-none-any.whl (55 kB)
+Downloading cyclonedx_python_lib-6.4.4-py3-none-any.whl (249 kB)
+Installing collected packages: cyclonedx-python-lib, pip-audit
+  Attempting uninstall: cyclonedx-python-lib
+    Found existing installation: cyclonedx-python-lib 7.6.2
+    Uninstalling cyclonedx-python-lib-7.6.2:
+      Successfully uninstalled cyclonedx-python-lib-7.6.2
+  Attempting uninstall: pip-audit
+    Found existing installation: pip_audit 2.7.3
+    Uninstalling pip_audit-2.7.3:
+      Successfully uninstalled pip_audit-2.7.3
+
+Successfully installed cyclonedx-python-lib-6.4.4 pip-audit-2.7.0
+
+[notice] A new release of pip is available: 26.2.1 -> 26.3
+[notice] To update, run: D:\Project\Fashion-Website\.venv\Scripts\python.exe -m pip install --upgrade pip

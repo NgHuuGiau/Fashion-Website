@@ -1,0 +1,9 @@
+Found 65 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+...{"asctime": "2026-11-06T21:32:47+0700", "levelname": "WARNING", "name": "django.request", "message": "Conflict: /api/admin/orders/1/refund/", "correlation_id": "3f0db98d-ecd0-4924-ab48-adc47a238d22", "request_id": "9fc5d047", "status_code": 409, "request": "<WSGIRequest: POST '/api/admin/orders/1/refund/'>"}
+....{"asctime": "2026-11-06T21:32:51+0700", "levelname": "WARNING", "name": "django.request", "message": "Forbidden: /api/admin/stats/", "correlation_id": "5074b346-fcc7-4bf5-8323-b05a9dd3c602", "request_id": "d6bf1e5f", "status_code": 403, "request": "<WSGIRequest: GET '/api/admin/stats/'>"}
+....{"asctime": "2026-11-06T21:32:56+0700", "levelname": "WARNING", "name": "django.request", "message": "Not Found: /api/coupons/check/", "correlation_id": "bc079e74-10c2-4d71-9a39-876bcc3af118", "request_id": "f706ab50", "status_code": 404, "request": "<WSGIRequest: POST '/api/coupons/check/'>"}
+.....{"asctime": "2026-11-06T21:33:02+0700", "levelname": "WARNING", "name": "django.request", "message": "Not Found: /api/orders/1/", "correlation_id": "37b6fa2d-e86b-4160-a46f-8949389fdddd", "request_id": "0435a5db", "status_code": 404, "request": "<WSGIRequest: GET '/api/orders/1/'>"}
+..{"asctime": "2026-11-06T21:33:04+0700", "levelname": "WARNING", "name": "django.request", "message": "Not Found: /api/orders/lookup/", "correlation_id": "f589ad12-33f4-4548-8d9e-1f93a5bb516a", "request_id": "7b9d8285", "status_code": 404, "request": "<WSGIRequest: POST '/api/orders/lookup/'>"}
+.....

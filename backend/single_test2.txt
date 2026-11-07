@@ -1,0 +1,7 @@
+Found 1 test(s).
+System check identified no issues (0 silenced).
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.018s
+
+OK
