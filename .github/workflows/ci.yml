@@ -103,6 +103,13 @@ jobs:
           uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
 
       - name: Run mypy
+        env:
+          DB_ENGINE: postgres
+          DB_NAME: test_fashion
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: test
+          DB_PASSWORD: test
         run: |
           cd backend && DJANGO_SETTINGS_MODULE=core.settings mypy \
             core/settings.py core/text_utils.py core/ratelimit.py \
@@ -232,12 +239,12 @@ jobs:
       - name: Run Django check
         run: |
           cd backend
-          python manage.py check --traceback 2>&1
+          python manage.py check --traceback --settings=core.test_settings_sqlite 2>&1
 
       - name: Run migrations
         run: |
           cd backend
-          python manage.py migrate --noinput --traceback --verbosity 2 2>&1
+          python manage.py migrate --noinput --traceback --verbosity 2 --settings=core.test_settings_sqlite 2>&1
 
       - name: Run tests with coverage
         run: |
@@ -252,7 +259,7 @@ jobs:
             --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
             --ignore=tests/stress \
             --ignore=tests/performance \
-            --ds=core.settings
+            --ds=core.test_settings_sqlite
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -336,6 +343,13 @@ jobs:
           pip install "Django==5.2.*"
 
       - name: Run database migrations
+        env:
+          DB_ENGINE: postgres
+          DB_NAME: test_fashion
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: test
+          DB_PASSWORD: test
         run: |
           source venv/bin/activate
           python manage.py migrate --noinput
