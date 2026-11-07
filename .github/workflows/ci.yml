@@ -74,6 +74,13 @@ jobs:
     name: Type Check (mypy)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      DB_ENGINE: 'postgres'
+      DB_NAME: 'test_fashion'
+      DB_HOST: 'localhost'
+      DB_PORT: '5432'
+      DB_USER: 'test'
+      DB_PASSWORD: 'test'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,7 +104,7 @@ jobs:
 
       - name: Run mypy
         run: |
-          cd backend && mypy \
+          cd backend && DJANGO_SETTINGS_MODULE=core.settings mypy \
             core/settings.py core/text_utils.py core/ratelimit.py \
             products/constants.py products/validators.py \
             orders/constants.py orders/vnpay.py users/activity.py \
@@ -176,6 +183,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      DB_ENGINE: 'postgres'
+      DB_NAME: 'test_fashion'
+      DB_HOST: 'localhost'
+      DB_PORT: '5432'
+      DB_USER: 'test'
+      DB_PASSWORD: 'test'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -237,7 +251,8 @@ jobs:
             --tb=short \
             --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
             --ignore=tests/stress \
-            --ignore=tests/performance
+            --ignore=tests/performance \
+            --ds=core.settings
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -289,6 +304,13 @@ jobs:
     name: Frontend E2E (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DB_ENGINE: 'postgres'
+      DB_NAME: 'test_fashion'
+      DB_HOST: 'localhost'
+      DB_PORT: '5432'
+      DB_USER: 'test'
+      DB_PASSWORD: 'test'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -312,6 +334,10 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/requirements-dev.txt
           pip install "Django==5.2.*"
+
+      - name: Run database migrations
+        run: |
+          source venv/bin/activate
           python manage.py migrate --noinput
 
       - name: Run Django server in background
