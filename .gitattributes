@@ -1,0 +1,47 @@
+# Enforce LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly set LF for specific file types
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.bat text eol=lf
+*.ps1 text eol=lf
+*.sql text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+
+# Binary files - don't convert
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.sqlite3 binary
+*.db binary
+*.pyc binary
+*.pyo binary
+*.pyd binary
+*.so binary
+*.dll binary
+*.exe binary
