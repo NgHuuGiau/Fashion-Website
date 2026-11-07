@@ -253,7 +253,7 @@ jobs:
             --cov=. \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
-            -n auto \
+            -n 1 \
             -v \
             --tb=short \
             --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
