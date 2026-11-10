@@ -1,0 +1,955 @@
+import hashlib
+import uuid
+from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
+from functools import wraps
+from urllib.parse import quote
+
+from django.conf import settings
+from django.contrib import messages
+from django.db import IntegrityError, transaction
+from django.db.models import F, Sum
+from django.db.models.functions import Greatest
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
+from core.text_utils import normalize_vn_text
+from products.models import Product, ProductVariant
+from users.activity import log_activity
+from users.models import UserAddress, UserProfile
+
+from ..cart import add_cart, clear_cart, iter_cart, remove_cart
+from ..constants import (
+    BANKS,
+    FREESHIP_THRESHOLD,
+    PAYMENT_TIMEOUT_MINUTES,
+    bank_transfer_is_enabled,
+    shop_bank_context,
+    shop_bank_meta,
+    TIER_DISCOUNTS,
+    VIETQR_DEMO_NOTE,
+)
+from core.ratelimit import rate_limit
+from ..forms import CheckoutForm
+from ..models import Coupon, CouponRedemption, Order, OrderItem
+
+
+def _upsert_cart_reminder(request, items):
+    """Lưu snapshot giỏ hàng để email nhắc sau 3h (only khi đã đăng nhập)."""
+    try:
+        from ..models import CartReminder
+    except ImportError:
+        return
+    import json
+
+    snapshot = [
+        {
+            "name": str(row["product"].name),
+            "meta": " / ".join(
+                filter(
+                    None,
+                    [
+                        getattr(row.get("variant"), "color_name", ""),
+                        getattr(row.get("variant"), "size", ""),
+                    ],
+                )
+            ),
+            "quantity": row["quantity"],
+            "subtotal": float(row["subtotal"]),
+        }
+        for row in items
+    ]
+    session_key = request.session.session_key or ""
+    if not session_key:
+        return
+    CartReminder.objects.update_or_create(
+        session_key=session_key,
+        defaults={
+            "user": request.user,
+            "email": request.user.email or "",
+            "cart_snapshot": json.dumps(snapshot, ensure_ascii=False),
+        },
+    )
+
+
+def _clear_cart_reminder(request):
+    try:
+        from ..models import CartReminder
+    except ImportError:
+        return
+    sk = request.session.session_key
+    if sk:
+        CartReminder.objects.filter(session_key=sk).delete()
+
+
+def _replayed_order(key):
+    """Tra don da tao boi key (double-click/back-resubmit) hoac None.
+
+    Tra trong DB (khong phai session): resubmit tu session moi, mat session
+    van khong tao don trung.
+    """
+    if not key or len(key) > 64:
+        return None
+    return Order.objects.filter(idempotency_key=key).first()
+
+
+def _redirect_for_created_order(request, order, replayed=False):
+    if replayed:
+        messages.info(request, "Đơn hàng đã được tạo, không tạo trùng.")
+    if order.payment_method == "bank":
+        return redirect("orders:bank_payment_waiting", order_id=order.id)
+    if order.payment_method == "vnpay":
+        return redirect("orders:vnpay_payment", order_id=order.id)
+    if order.payment_method in ("momo", "zalopay", "shopeepay"):
+        return redirect(
+            "orders:wallet_payment",
+            method=order.payment_method,
+            order_id=order.id,
+        )
+    return redirect("orders:order_success", order_id=order.id)
+
+
+def checkout_idempotent(view):
+    """2 request cung idempotency_key dong thoi: thua unique constraint
+    thi tra lai don da commit thay vi 500."""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view(request, *args, **kwargs)
+        except IntegrityError:
+            key = (request.POST.get("idempotency_key") or "").strip()[:64]
+            order = _replayed_order(key)
+            if order is None:
+                raise
+            return _redirect_for_created_order(request, order, replayed=True)
+
+    return wrapper
+
+
+def build_vietqr_url(amount, transfer_note):
+    """Tạo QR tới ngân hàng nhận cố định đã cấu hình cho shop."""
+    bank = shop_bank_meta()
+    if not bank or not bank_transfer_is_enabled():
+        return ""
+    return (
+        f"https://img.vietqr.io/image/{bank['bin']}-{settings.SHOP_BANK_ACCOUNT}-compact2.png"
+        f"?amount={int(amount)}&addInfo={quote(transfer_note)}&accountName={quote(settings.SHOP_ACCOUNT_NAME)}"
+    )
+
+
+def normalize_shipping_address(value):
+    return normalize_vn_text(value)
+
+
+# P-refactor: pricing thuan tuy chuyen sang services.checkout, giu re-export
+# de test va module khac (api, payment) khong phai doi import.
+from ..services.checkout import (  # noqa: E402
+    apply_stacking_policy,
+    calculate_coupon_discount,
+    calculate_shipping_fee,
+    shipping_zone,
+    validate_coupon,
+)
+
+
+def restore_order_stock(order):
+    if order.status == "cancelled":
+        return
+    with transaction.atomic():
+        for item in order.items.select_related("product", "variant"):
+            if item.variant:
+                ProductVariant.objects.filter(id=item.variant.id).update(
+                    stock=F("stock") + item.quantity
+                )
+                total_stock = (
+                    item.product.variants.filter(is_active=True).aggregate(
+                        total=Sum("stock")
+                    )["total"]
+                    or 0
+                )
+                item.product.stock = total_stock
+                item.product.save(update_fields=["stock", "updated"])
+            else:
+                Product.objects.filter(id=item.product.id).update(
+                    stock=F("stock") + item.quantity, updated=timezone.now()
+                )
+
+
+def reserve_order_stock(order):
+    with transaction.atomic():
+        for item in order.items.select_related("product", "variant"):
+            if item.variant:
+                updated = ProductVariant.objects.filter(
+                    id=item.variant.id, is_active=True, stock__gte=item.quantity
+                ).update(stock=F("stock") - item.quantity)
+                if not updated:
+                    raise ValueError(
+                        f"Không đủ tồn kho cho sản phẩm {item.product.name}, biến thể {item.selected_size or item.selected_color}."
+                    )
+                total_stock = (
+                    item.product.variants.filter(is_active=True).aggregate(
+                        total=Sum("stock")
+                    )["total"]
+                    or 0
+                )
+                item.product.stock = total_stock
+                item.product.save(update_fields=["stock", "updated"])
+            else:
+                updated = Product.objects.filter(
+                    id=item.product.id, stock__gte=item.quantity
+                ).update(
+                    stock=F("stock") - item.quantity,
+                    updated=timezone.now(),
+                )
+                if not updated:
+                    raise ValueError(
+                        f"Không đủ tồn kho cho sản phẩm {item.product.name}."
+                    )
+
+
+def apply_order_status_change(
+    order,
+    new_status,
+    is_paid=False,
+    *,
+    actor=None,
+    source="staff_dashboard",
+    transaction_id="",
+    note="",
+):
+    """Cập nhật trạng thái đơn và đồng bộ tồn kho.
+
+    - Chuyển sang trạng thái 'cancelled': trả lại hàng về kho.
+    - Bỏ huỷ (từ 'cancelled' sang trạng thái khác): trừ lại hàng khỏi kho.
+    - Đơn đã giao chỉ xử lý qua luồng đổi/trả; không dùng hủy để giả lập hoàn tiền.
+    - Hủy chỉ áp dụng cho đơn chưa thanh toán; kho chỉ được trả lại một lần.
+    """
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        old_status = order.status
+        if old_status == "delivered" and new_status != "delivered":
+            raise ValueError(
+                f"Đơn #{order.id} đã giao, không thể chuyển trạng thái bằng thao tác hủy. "
+                "Dùng luồng đổi/trả để xử lý."
+            )
+        if new_status == "cancelled" and (order.is_paid or is_paid):
+            raise ValueError(
+                f"Đơn #{order.id} đã thanh toán; không thể xác nhận hoàn tiền bằng thao tác hủy. "
+                "Hãy hoàn tiền qua cổng hoặc xác nhận hoàn thủ công trước."
+            )
+        if old_status == "cancelled" and new_status != "cancelled" and order.is_paid:
+            raise ValueError(
+                f"Đơn #{order.id} đã thanh toán nhưng đang hủy; cần đối soát thủ công trước khi mở lại."
+            )
+        if new_status == "delivered" and not is_paid:
+            raise ValueError(
+                f"Đơn #{order.id} chưa thanh toán, không thể đánh dấu hoàn thành."
+            )
+        if old_status != "cancelled" and new_status == "cancelled":
+            restore_order_stock(order)
+        elif old_status == "cancelled" and new_status != "cancelled":
+            reserve_order_stock(order)
+        order.status = new_status
+        order.is_paid = bool(is_paid)
+        order._status_changed_by_id = getattr(actor, "pk", None)
+        order._status_change_source = source
+        order._status_change_transaction_id = transaction_id
+        order._status_change_note = note
+        fields = ["status", "is_paid", "updated_at"]
+        if new_status == "delivered" and old_status != "delivered":
+            order.delivered_at = timezone.now()
+            fields.append("delivered_at")
+        order.save(update_fields=fields)
+    if new_status == "delivered":
+        from ..services.order_email import send_order_email
+        from .order import _grant_order_points
+
+        send_order_email(order, event="delivered")
+        _grant_order_points(order)
+    elif new_status == "shipping":
+        from ..services.order_email import send_order_email
+
+        send_order_email(order, event="shipping")
+    return order
+
+
+def is_bank_order_expired(order):
+    if order.payment_method not in ("bank", "vnpay", "momo", "zalopay", "shopeepay"):
+        return False
+    if order.is_paid:
+        return False
+    if order.status != "processing":
+        return False
+    return timezone.now() > (
+        order.created_at + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
+    )
+
+
+def expire_bank_order_if_needed(order):
+    if not is_bank_order_expired(order):
+        return False
+    # Khóa row đơn hàng: 2 poll đồng thời chỉ 1 luồng thắng, tránh restore stock 2 lần.
+    with transaction.atomic():
+        locked = Order.objects.select_for_update().get(id=order.id)
+        if not is_bank_order_expired(locked):
+            return False  # luồng khác đã xử lý xong
+        restore_order_stock(locked)
+        locked.status = "cancelled"
+        timeout_note = "[AUTO_TIMEOUT_15_MIN]"
+        locked.note = (
+            f"{locked.note}\n{timeout_note}".strip() if locked.note else timeout_note
+        )
+        locked._status_change_source = "payment_timeout"
+        locked._status_change_note = "Thanh toán quá hạn; tồn kho đã được hoàn lại."
+        locked.save(update_fields=["status", "note", "updated_at"])
+    order.status = "cancelled"
+    order.note = locked.note
+    return True
+
+
+def _payment_token(order_id):
+    raw = f"bank:{order_id}:qr:{settings.SECRET_KEY}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+@require_POST
+def cart_add(request: HttpRequest, product_id) -> HttpResponse:
+    is_ajax = request.headers.get("x-requested-with", "").lower() == "xmlhttprequest"
+
+    def finish(
+        message: str, is_error: bool = False, url: str | None = None
+    ) -> HttpResponse:
+        if is_ajax:
+            return JsonResponse({"ok": not is_error, "message": message})
+        if is_error:
+            messages.error(request, message)
+        else:
+            messages.success(request, message)
+        return redirect(url or "orders:cart_detail")
+
+    product = get_object_or_404(Product, id=product_id, available=True)
+    variant_id = request.POST.get("variant_id")
+    selected_variant = None
+    requires_variant = product.requires_variants
+
+    if variant_id:
+        selected_variant = ProductVariant.objects.filter(
+            id=variant_id, product=product, is_active=True
+        ).first()
+
+    if requires_variant and not selected_variant:
+        return finish(
+            "Vui lòng chọn màu và size trước khi thêm vào giỏ.",
+            True,
+            product.get_absolute_url(),
+        )
+
+    stock = selected_variant.stock if selected_variant else product.stock
+    if stock <= 0:
+        return finish(
+            "Sản phẩm đã hết hàng.",
+            True,
+            request.POST.get("next") or "products:product_list",
+        )
+
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+    except (TypeError, ValueError):
+        quantity = 0
+    if quantity < 1:
+        return finish(
+            "Số lượng không hợp lệ.",
+            True,
+            request.POST.get("next") or product.get_absolute_url(),
+        )
+    success, msg = add_cart(
+        request,
+        product.id,
+        quantity=quantity,
+        variant_id=selected_variant.id if selected_variant else None,
+    )
+    if not success:
+        return finish(msg, True, request.POST.get("next") or "products:product_list")
+    log_activity(
+        request,
+        event_type="cart_add",
+        metadata={
+            "product_id": product.id,
+            "variant_id": selected_variant.id if selected_variant else None,
+            "quantity": quantity,
+        },
+    )
+    return finish(msg)
+
+
+def cart_summary(request: HttpRequest) -> JsonResponse:
+    items, subtotal = iter_cart(request)
+    payload = {
+        "count": sum(item["quantity"] for item in items),
+        "subtotal": str(subtotal),
+        "items": [
+            {
+                "name": row["product"].name,
+                "quantity": row["quantity"],
+                "price": str(row["price"]),
+                "line_total": str(row["subtotal"]),
+                "variant_label": (
+                    f"{row['variant'].color_name} / {row['variant'].size}"
+                    if row["variant"]
+                    else ""
+                ),
+                "image": row["product"].get_image(),
+                "url": reverse(
+                    "products:product_detail",
+                    kwargs={"pk": row["product"].id, "slug": row["product"].slug},
+                ),
+            }
+            for row in items[:10]
+        ],
+    }
+    return JsonResponse(payload)
+
+
+@require_POST
+def cart_update(request: HttpRequest) -> HttpResponse:
+    item_key = request.POST.get("item_key", "").strip()
+    if not item_key:
+        messages.error(request, "Không tìm thấy sản phẩm trong giỏ.")
+        return redirect("orders:cart_detail")
+
+    parts = item_key.split(":")
+    if len(parts) != 2:
+        messages.error(request, "Không tìm thấy sản phẩm trong giỏ.")
+        return redirect("orders:cart_detail")
+
+    try:
+        product_id = int(parts[0])
+    except ValueError:
+        messages.error(request, "Không tìm thấy sản phẩm trong giỏ.")
+        return redirect("orders:cart_detail")
+
+    variant_id = int(parts[1]) if parts[1].isdigit() else None
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+    except (TypeError, ValueError):
+        messages.error(request, "Số lượng không hợp lệ.")
+        return redirect("orders:cart_detail")
+    if quantity < 1:
+        remove_cart(request, item_key)
+        messages.success(request, "Đã xóa sản phẩm khỏi giỏ hàng.")
+        return redirect("orders:cart_detail")
+    success, msg = add_cart(
+        request,
+        product_id,
+        quantity=quantity,
+        override_quantity=True,
+        variant_id=variant_id if variant_id and variant_id > 0 else None,
+    )
+    if success:
+        messages.success(request, msg)
+    else:
+        messages.error(request, msg)
+    return redirect("orders:cart_detail")
+
+
+@require_POST
+def cart_remove(request: HttpRequest) -> HttpResponse:
+    item_key = request.POST.get("item_key", "").strip()
+    remove_cart(request, item_key=item_key)
+    messages.success(request, "Đã xóa sản phẩm khỏi giỏ hàng.")
+    return redirect("orders:cart_detail")
+
+
+@require_POST
+def cart_clear_all(request: HttpRequest) -> HttpResponse:
+    clear_cart(request)
+    _clear_cart_reminder(request)
+    messages.success(request, "Đã xóa toàn bộ giỏ hàng.")
+    return redirect("orders:cart_detail")
+
+
+def cart_detail(request: HttpRequest) -> HttpResponse:
+    items, subtotal = iter_cart(request)
+    shipping_fee = calculate_shipping_fee(subtotal)
+    total = subtotal + shipping_fee
+
+    if request.user.is_authenticated:
+        if items:
+            _upsert_cart_reminder(request, items)
+        else:
+            _clear_cart_reminder(request)
+
+    return render(
+        request,
+        "shop/cart.html",
+        {
+            "items": items,
+            "subtotal": subtotal,
+            "shipping_fee": shipping_fee,
+            "total": total,
+            "freeship_threshold": FREESHIP_THRESHOLD,
+            "freeship_remaining": max(FREESHIP_THRESHOLD - subtotal, 0),
+        },
+    )
+
+
+@rate_limit(
+    "checkout",
+    max_requests=20,
+    window=60,
+    error_msg="Bạn thao tác checkout quá nhanh. Vui lòng thử lại sau.",
+)
+@checkout_idempotent
+def checkout(request: HttpRequest) -> HttpResponse:
+    items, subtotal = iter_cart(request)
+    if not items:
+        messages.warning(request, "Giỏ hàng đang trống.")
+        return redirect("products:product_list")
+
+    if request.method == "POST" and any(item["price_changed"] for item in items):
+        messages.warning(
+            request,
+            "Giá sản phẩm vừa thay đổi. Vui lòng kiểm tra lại giỏ hàng trước khi đặt.",
+        )
+        return redirect("orders:checkout")
+
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        initial = {}
+        default_address = None
+        saved_addresses = []
+        tier_name = ""
+        tier_discount_pct_value = 0
+        profile = None
+    else:
+        initial = {
+            "customer_name": f"{request.user.first_name} {request.user.last_name}".strip()
+            or request.user.username,
+            "customer_email": request.user.email,
+        }
+        default_address = UserAddress.objects.filter(
+            user=request.user, is_default=True
+        ).first() or (UserAddress.objects.filter(user=request.user).first())
+        if default_address:
+            initial["phone"] = default_address.phone
+            initial["shipping_address"] = default_address.address
+        saved_addresses = list(UserAddress.objects.filter(user=request.user))
+        tier_name = UserProfile.objects.get_or_create(user=request.user)[0].tier_name()
+        tier_discount_pct_value = TIER_DISCOUNTS.get(tier_name, 0)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    shipping_fee = calculate_shipping_fee(
+        subtotal, default_address.address if default_address else ""
+    )
+    discount_amount = Decimal("0")
+    tier_discount_amount = Decimal("0")
+
+    if request.method == "POST":
+        form = CheckoutForm(request.POST)
+        if form.is_valid():
+            # P1.4: double-click/back-resubmit tra ve don cu thay vi tao don moi
+            idem_key = (request.POST.get("idempotency_key") or "").strip()[:64]
+            replayed = _replayed_order(idem_key)
+            if replayed is not None:
+                return _redirect_for_created_order(request, replayed, replayed=True)
+            payment_method = form.cleaned_data["payment_method"]
+            bank_code = settings.SHOP_BANK_CODE if payment_method == "bank" else ""
+            coupon_code = form.cleaned_data.get("coupon_code", "")
+            shipping_fee = calculate_shipping_fee(
+                subtotal, form.cleaned_data["shipping_address"]
+            )
+            tier_discount_amount = (
+                subtotal * Decimal(tier_discount_pct_value) / Decimal("100")
+            ).quantize(Decimal("1"), ROUND_HALF_UP)
+
+            coupon_user = None if is_guest else request.user
+            selected_coupon, coupon_error = validate_coupon(
+                coupon_code, subtotal, user=coupon_user
+            )
+            if coupon_error:
+                form.add_error("coupon_code", coupon_error)
+            else:
+                discount_amount = calculate_coupon_discount(
+                    selected_coupon, subtotal, shipping_fee
+                )
+                total_amount = max(
+                    Decimal("0"),
+                    subtotal + shipping_fee - discount_amount - tier_discount_amount,
+                )
+
+                points_to_use = 0
+                points_discount = Decimal("0")
+                if (
+                    not is_guest
+                    and profile.points
+                    and (form.cleaned_data.get("points_to_use") or 0) > 0
+                ):
+                    points_to_use = min(
+                        form.cleaned_data["points_to_use"], profile.points
+                    )
+                    points_discount = min(
+                        Decimal(points_to_use) * Decimal("100"),
+                        max(Decimal("0"), subtotal - discount_amount),
+                    )
+                    total_amount = max(Decimal("0"), total_amount - points_discount)
+
+                # P3.1/service: policy cong don tap trung o services.checkout
+                (
+                    tier_discount_amount,
+                    points_to_use,
+                    points_discount,
+                    total_amount,
+                ) = apply_stacking_policy(
+                    coupon=selected_coupon,
+                    subtotal=subtotal,
+                    shipping_fee=shipping_fee,
+                    discount_amount=discount_amount,
+                    tier_discount_amount=tier_discount_amount,
+                    points_to_use=points_to_use,
+                    points_discount=points_discount,
+                )
+
+                if payment_method == "vnpay":
+                    from ..vnpay import is_configured
+
+                    if not is_configured():
+                        form.add_error(
+                            "payment_method",
+                            "Cổng thanh toán VNPay chưa được cấu hình. Vui lòng chọn phương thức đang khả dụng.",
+                        )
+                        return render(
+                            request,
+                            "shop/checkout.html",
+                            {
+                                "items": items,
+                                "subtotal": subtotal,
+                                "shipping_fee": shipping_fee,
+                                "discount_amount": Decimal("0"),
+                                "total": subtotal + shipping_fee,
+                                "form": form,
+                                **shop_bank_context(),
+                                "demo_qr_url": build_vietqr_url(
+                                    subtotal + shipping_fee,
+                                    VIETQR_DEMO_NOTE,
+                                ),
+                                "banks": BANKS,
+                                "saved_addresses": saved_addresses,
+                                "tier_name": tier_name,
+                                "tier_discount_pct": tier_discount_pct_value,
+                                "tier_discount_amount": tier_discount_amount,
+                                "shipping_zone": shipping_fee,
+                                "idempotency_key": idem_key,
+                            },
+                        )
+
+                with transaction.atomic():
+                    if selected_coupon:
+                        selected_coupon = Coupon.objects.select_for_update().get(
+                            id=selected_coupon.id
+                        )
+                        if not selected_coupon.is_usable_now() or (
+                            not is_guest
+                            and not selected_coupon.is_usable_by_user(request.user)
+                        ):
+                            form.add_error(
+                                "coupon_code",
+                                "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử mã khác.",
+                            )
+                            transaction.set_rollback(True)
+                            return render(
+                                request,
+                                "shop/checkout.html",
+                                {
+                                    "items": items,
+                                    "subtotal": subtotal,
+                                    "shipping_fee": shipping_fee,
+                                    "discount_amount": Decimal("0"),
+                                    "total": subtotal + shipping_fee,
+                                    "form": form,
+                                    **shop_bank_context(),
+                                    "demo_qr_url": build_vietqr_url(
+                                        subtotal + shipping_fee,
+                                        VIETQR_DEMO_NOTE,
+                                    ),
+                                    "banks": BANKS,
+                                    "saved_addresses": saved_addresses,
+                                    "tier_name": tier_name,
+                                    "tier_discount_pct": tier_discount_pct_value,
+                                    "tier_discount_amount": tier_discount_amount,
+                                    "shipping_zone": shipping_fee,
+                                    "idempotency_key": idem_key,
+                                },
+                            )
+                        # Tăng atomic ở DB (tránh 2 checkout đồng thời ghi đè used_count).
+                        Coupon.objects.filter(id=selected_coupon.id).update(
+                            used_count=F("used_count") + 1,
+                            updated_at=timezone.now(),
+                        )
+
+                    order = Order(
+                        user=None if is_guest else request.user,
+                        idempotency_key=idem_key or uuid.uuid4().hex,
+                        customer_name=form.cleaned_data["customer_name"],
+                        customer_email=form.cleaned_data["customer_email"],
+                        phone=form.cleaned_data["phone"],
+                        shipping_address=form.cleaned_data["shipping_address"],
+                        shipping_ward_name=form.cleaned_data["shipping_ward_name"],
+                        shipping_province_name=form.cleaned_data[
+                            "shipping_province_name"
+                        ],
+                        note=form.cleaned_data["note"],
+                        delivery_time_slot=form.cleaned_data.get(
+                            "delivery_time_slot", ""
+                        ),
+                        gift_wrap=form.cleaned_data.get("gift_wrap", False),
+                        gift_note=form.cleaned_data.get("gift_note", ""),
+                        payment_method=payment_method,
+                        bank_code=bank_code,
+                        subtotal_amount=subtotal,
+                        shipping_fee=shipping_fee,
+                        discount_amount=discount_amount + tier_discount_amount,
+                        points_used=points_to_use,
+                        coupon=selected_coupon,
+                        coupon_code=selected_coupon.code if selected_coupon else "",
+                        total_amount=total_amount,
+                        is_paid=False,
+                        status="processing"
+                        if payment_method
+                        in ("bank", "vnpay", "momo", "zalopay", "shopeepay")
+                        else "pending",
+                    )
+                    order._status_changed_by_id = (
+                        request.user.pk if not is_guest else None
+                    )
+                    order._status_change_source = "checkout"
+                    order._status_change_note = (
+                        "Đơn hàng được tạo từ quy trình thanh toán."
+                    )
+                    order.save()
+
+                    if points_to_use and not is_guest:
+                        # Trừ atomic có điều kiện: hết điểm giữa chừng thì hủy
+                        # cả đơn (rollback) thay vì cho số dư âm (2 checkout
+                        # đồng thời).
+                        deducted = UserProfile.objects.filter(
+                            id=profile.id, points__gte=points_to_use
+                        ).update(points=F("points") - points_to_use)
+                        if not deducted:
+                            messages.error(
+                                request,
+                                "Số điểm của bạn vừa thay đổi, vui lòng kiểm tra lại.",
+                            )
+                            transaction.set_rollback(True)
+                            return redirect("orders:checkout")
+
+                    if selected_coupon:
+                        CouponRedemption.objects.create(
+                            coupon=selected_coupon,
+                            user=None if is_guest else request.user,
+                            order=order,
+                        )
+
+                    variant_ids = [
+                        item["variant"].id for item in items if item.get("variant")
+                    ]
+                    plain_product_ids = [
+                        item["product"].id for item in items if not item.get("variant")
+                    ]
+
+                    locked_variants = {
+                        v.id: v
+                        for v in ProductVariant.objects.select_for_update().filter(
+                            id__in=variant_ids
+                        )
+                    }
+                    locked_products = {
+                        p.id: p
+                        for p in Product.objects.select_for_update().filter(
+                            id__in=plain_product_ids
+                        )
+                    }
+
+                    for item in items:
+                        variant = item.get("variant")
+                        quantity = item["quantity"]
+                        product = item["product"]
+
+                        if variant:
+                            lv = locked_variants.get(variant.id)
+                            if not lv or lv.stock < quantity:
+                                transaction.set_rollback(True)
+                                messages.error(
+                                    request,
+                                    # variant luon co san; lv co the None khi
+                                    # bien the da bi an/gia khoa giua chung.
+                                    f"Sản phẩm {product.name} ({variant.color_name}/{variant.size}) không đủ hàng.",
+                                )
+                                return redirect("orders:cart_detail")
+                            ProductVariant.objects.filter(id=variant.id).update(
+                                stock=Greatest(F("stock") - quantity, 0)
+                            )
+                        else:
+                            lp = locked_products.get(product.id)
+                            if not lp or lp.stock < quantity:
+                                transaction.set_rollback(True)
+                                messages.error(
+                                    request, f"Sản phẩm {product.name} không đủ hàng."
+                                )
+                                return redirect("orders:cart_detail")
+                            Product.objects.filter(id=product.id).update(
+                                stock=Greatest(F("stock") - quantity, 0),
+                                updated=timezone.now(),
+                            )
+
+                        OrderItem.objects.create(
+                            order=order,
+                            product=product,
+                            product_name=product.name,
+                            variant=variant,
+                            selected_color=variant.color_name if variant else "",
+                            selected_size=variant.size if variant else "",
+                            quantity=quantity,
+                            price=item["price"],
+                        )
+
+                    if (
+                        selected_coupon
+                        and selected_coupon.discount_type == Coupon.TYPE_GIFT
+                    ):
+                        gift = (
+                            Product.objects.select_for_update()
+                            .filter(id=selected_coupon.gift_product_id, available=True)
+                            .first()
+                        )
+                        if not gift or gift.stock < 1:
+                            transaction.set_rollback(True)
+                            messages.error(
+                                request,
+                                "Sản phẩm quà tặng đã hết hàng, vui lòng thử lại sau.",
+                            )
+                            return redirect("orders:cart_detail")
+                        Product.objects.filter(id=gift.id).update(
+                            stock=F("stock") - 1,
+                            updated=timezone.now(),
+                        )
+                        OrderItem.objects.create(
+                            order=order,
+                            product=gift,
+                            product_name=f"{gift.name} (Quà tặng)",
+                            quantity=1,
+                            price=Decimal("0"),
+                        )
+
+                    for item in items:
+                        product = item["product"]
+                        variant = item.get("variant")
+                        if variant:
+                            product.stock = (
+                                ProductVariant.objects.filter(
+                                    product=product, is_active=True
+                                ).aggregate(total=Sum("stock"))["total"]
+                                or 0
+                            )
+                            product.save(update_fields=["stock", "updated"])
+
+                clear_cart(request)
+                if is_guest:
+                    request.session.setdefault("guest_orders", []).append(order.id)
+                    request.session.modified = True
+                else:
+                    # Luu thong tin de lan sau mua lai khong can nhap lai;
+                    # sua thong tin -> dia chi moi, dia chi cu giu nguyen.
+                    # Dia chi dau tien lam mac dinh.
+                    addr, created = UserAddress.objects.get_or_create(
+                        user=request.user,
+                        recipient_name=form.cleaned_data["customer_name"][:150],
+                        phone=form.cleaned_data["phone"],
+                        address=form.cleaned_data["shipping_address"],
+                        defaults={"is_default": False},
+                    )
+                    if (
+                        created
+                        and not UserAddress.objects.filter(
+                            user=request.user, is_default=True
+                        ).exists()
+                    ):
+                        addr.is_default = True
+                        addr.save(update_fields=["is_default"])
+                from ..services.after_commit import notify_order_after_commit
+
+                notify_order_after_commit(
+                    order, "created", ship=payment_method == "cod"
+                )
+                log_activity(
+                    request,
+                    event_type="checkout",
+                    metadata={
+                        "order_id": order.id,
+                        "subtotal": str(order.subtotal_amount),
+                        "shipping_fee": str(order.shipping_fee),
+                        "discount_amount": str(order.discount_amount),
+                        "coupon_code": order.coupon_code,
+                        "total_amount": str(order.total_amount),
+                    },
+                    status_code=201,
+                )
+                messages.success(request, "Đặt hàng thành công.")
+                return _redirect_for_created_order(request, order)
+    else:
+        form = CheckoutForm(initial=initial)
+
+    if request.method == "POST" and form.is_valid() and not coupon_error:
+        discount_amount = calculate_coupon_discount(
+            selected_coupon, subtotal, shipping_fee
+        )
+
+    total = max(
+        Decimal("0"), subtotal + shipping_fee - discount_amount - tier_discount_amount
+    )
+
+    if is_guest:
+        user_points = 0
+    else:
+        user_points = UserProfile.objects.get_or_create(user=request.user)[0].points
+
+    return render(
+        request,
+        "shop/checkout.html",
+        {
+            "items": items,
+            "subtotal": subtotal,
+            "shipping_fee": shipping_fee,
+            "discount_amount": discount_amount,
+            "tier_name": tier_name,
+            "tier_discount_pct": tier_discount_pct_value,
+            "tier_discount_amount": tier_discount_amount,
+            "shipping_zone": shipping_zone(form.cleaned_data["shipping_address"])
+            if request.method == "POST" and form.is_valid()
+            else shipping_zone(default_address.address if default_address else ""),
+            "total": total,
+            "form": form,
+            **shop_bank_context(),
+            "demo_qr_url": build_vietqr_url(total, VIETQR_DEMO_NOTE),
+            "freeship_threshold": FREESHIP_THRESHOLD,
+            "banks": BANKS,
+            "user_points": user_points,
+            "saved_addresses": saved_addresses,
+            "is_guest": is_guest,
+            "idempotency_key": (request.POST.get("idempotency_key") or "").strip()[:64]
+            or uuid.uuid4().hex,
+        },
+    )
+
+
+def promo_page(request: HttpRequest) -> HttpResponse:
+    coupons = [c for c in Coupon.objects.filter(is_active=True) if c.is_usable_now()]
+    return render(
+        request,
+        "shop/promo.html",
+        {"coupons": coupons, "freeship_threshold": FREESHIP_THRESHOLD},
+    )

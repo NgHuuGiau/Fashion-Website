@@ -1,0 +1,42 @@
+import { defineConfig, devices } from "@playwright/test";
+
+const port = process.env.PORT || "8000";
+const baseURL = process.env.BASE_URL || `http://localhost:${port}`;
+
+export default defineConfig({
+  testDir: "./tests",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers:
+    process.env.CI || process.env.DJANGO_SETTINGS_MODULE === "core.test_settings_sqlite"
+      ? 1
+      : undefined,
+  reporter: "html",
+  use: {
+    baseURL,
+    trace: "on-first-retry",
+    screenshot: "only-on-failure"
+  },
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
+    { name: "Mobile Safari", use: { ...devices["iPhone 12"] } }
+  ],
+  webServer: process.env.PW_REUSE_SERVER === "1"
+    ? undefined
+    : {
+        command: `${process.env.PYTHON || "python"} ../backend/manage.py runserver 127.0.0.1:${port} --noreload`,
+        url: baseURL,
+        env: {
+          DJANGO_SETTINGS_MODULE: process.env.DJANGO_SETTINGS_MODULE || "core.settings",
+          SQLITE_TEST_DB: process.env.SQLITE_TEST_DB || "",
+          SHOP_BANK_ACCOUNT: "",
+          VNPAY_TMN_CODE: "",
+        },
+        reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
+        timeout: 120000,
+      },
+});

@@ -891,6 +891,9 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_order_status">
                     <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <label class="admin-paid-toggle" title="Đánh dấu đã thu tiền (bắt buộc để hoàn thành đơn)">
+                      <input type="checkbox" name="is_paid" {% if order.is_paid %}checked{% endif %}> Đã TT
+                    </label>
                     <select name="new_status" class="admin-input-sm">
                       <option value="pending" {% if order.status == "pending" %}selected{% endif %}>Chờ xử lý</option>
                       <option value="processing" {% if order.status == "processing" %}selected{% endif %}>Đang xử lý</option>

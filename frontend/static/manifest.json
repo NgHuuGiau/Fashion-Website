@@ -1,0 +1,77 @@
+{
+  "name": "HUUGIAU Atelier",
+  "short_name": "HUUGIAU",
+  "description": "Streetwear local phong cách gọn, dễ mặc, có điểm nhấn. Áo, quần, phụ kiện thời trang nam nữ. Freeship từ 499K.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdfbf8",
+  "theme_color": "#8b6914",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Sản phẩm mới",
+      "short_name": "Mới",
+      "description": "Xem bộ sưu tập mới nhất",
+      "url": "/?filter=new",
+      "icons": [{ "src": "/static/icons/shortcut-new.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Đơn hàng của tôi",
+      "short_name": "Đơn hàng",
+      "description": "Tra cứu và quản lý đơn hàng",
+      "url": "/don-hang-cua-toi/",
+      "icons": [{ "src": "/static/icons/shortcut-orders.png", "sizes": "96x96" }]
+    }
+  ]
+}
