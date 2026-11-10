@@ -156,8 +156,9 @@ class UserAuthFlowTest(TestCase):
     def test_register_send_failure_dev_shows_code_keeps_session(self):
         from unittest.mock import patch
 
-        with override_settings(DEBUG=True), patch(
-            "users.views._send_register_code", side_effect=OSError("smtp")
+        with (
+            override_settings(DEBUG=True),
+            patch("users.views._send_register_code", side_effect=OSError("smtp")),
         ):
             response = self.client.post(
                 reverse("users:register"),
@@ -179,8 +180,9 @@ class UserAuthFlowTest(TestCase):
     def test_register_send_failure_prod_errors_and_drops_session(self):
         from unittest.mock import patch
 
-        with override_settings(DEBUG=False), patch(
-            "users.views._send_register_code", side_effect=OSError("smtp")
+        with (
+            override_settings(DEBUG=False),
+            patch("users.views._send_register_code", side_effect=OSError("smtp")),
         ):
             response = self.client.post(
                 reverse("users:register"),
@@ -615,8 +617,9 @@ class ForgotPasswordResetFlowTest(TestCase):
     def test_forgot_password_send_failure_dev_shows_link(self):
         from unittest.mock import patch
 
-        with override_settings(DEBUG=True), patch(
-            "users.views._send_reset_email", side_effect=OSError("smtp")
+        with (
+            override_settings(DEBUG=True),
+            patch("users.views._send_reset_email", side_effect=OSError("smtp")),
         ):
             response = self.client.post(
                 reverse("users:forgot_password"), {"identifier": "resetme"}
@@ -627,8 +630,9 @@ class ForgotPasswordResetFlowTest(TestCase):
     def test_forgot_password_send_failure_prod_errors(self):
         from unittest.mock import patch
 
-        with override_settings(DEBUG=False), patch(
-            "users.views._send_reset_email", side_effect=OSError("smtp")
+        with (
+            override_settings(DEBUG=False),
+            patch("users.views._send_reset_email", side_effect=OSError("smtp")),
         ):
             response = self.client.post(
                 reverse("users:forgot_password"), {"identifier": "resetme"}

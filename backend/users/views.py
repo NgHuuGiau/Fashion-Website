@@ -146,7 +146,9 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         request,
                         "Không gửi được mã xác thực. Vui lòng thử lại sau.",
                     )
-                    _remove_form_errors(form, set(form.errors) & _REGISTER_IDENTITY_FIELDS)
+                    _remove_form_errors(
+                        form, set(form.errors) & _REGISTER_IDENTITY_FIELDS
+                    )
                     return render(request, "auth/register.html", {"form": form})
                 # DEV: SMTP chưa cấu hình — vẫn cho đăng ký bằng mã hiển thị tại chỗ.
                 messages.warning(

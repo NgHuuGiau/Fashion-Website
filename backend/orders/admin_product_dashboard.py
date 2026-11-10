@@ -814,7 +814,8 @@ def admin_dashboard(request):
                         order,
                         order_status_form.cleaned_data["status"],
                         # Đã thanh toán là "dính": bỏ tick không làm mất trạng thái đã thu tiền.
-                        order_status_form.cleaned_data.get("is_paid", False) or order.is_paid,
+                        order_status_form.cleaned_data.get("is_paid", False)
+                        or order.is_paid,
                         actor=request.user,
                         source="staff_dashboard",
                     )
