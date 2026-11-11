@@ -13,20 +13,20 @@ django-celery-beat>=2.9,<3
 django-celery-results>=2.6,<3
 django-cors-headers>=4.9,<5
 
-# Database (mssql-django tự kéo pyodbc; psycopg2 cho CI PostgreSQL)
+# Database (mssql-django t  k o pyodbc; psycopg2 cho CI PostgreSQL)
 mssql-django>=1.7,<2
 psycopg2-binary>=2.9,<2.10
 
-# Cache/session (tùy chọn — đặt REDIS_URL trong .env để bật)
+# Cache/session (t y ch n    t REDIS_URL trong .env   b t)
 django-redis>=5.4,<5.5
 
-# Nén CSS/JS + tiện ích manage.py
-# (>=4.5: 4.2 import get_storage_class đã bị xóa khỏi Django 5.x; 4.6 tested local)
+# N n CSS/JS + ti n  ch manage.py
+# (>=4.5: 4.2 import get_storage_class   b  x a kh i Django 5.x; 4.6 tested local)
 django-compressor>=4.5,<4.7
 Django-extensions>=4.1,<5
 uvicorn>=0.34,<1
 
-# Hỗ trợ certificate và mã hóa khi cần tích hợp hạ tầng HTTPS
+# H  tr  certificate v  m  h a khi c n t ch h p h  t ng HTTPS
 cryptography>=50.0.0
 
 # JSON logging formatter
