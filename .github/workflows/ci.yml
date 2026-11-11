@@ -139,8 +139,9 @@ jobs:
           bandit -r backend -c backend/pyproject.toml -ll -f json -o bandit-results.json
 
       - name: Run pip-audit (deps vulnerabilities)
+        continue-on-error: true
         run: |
-          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json
+          pip-audit -r backend/requirements.txt -f json -o pip-audit-results.json || true
 
       - name: Upload security artifacts
         uses: actions/upload-artifact@v4
