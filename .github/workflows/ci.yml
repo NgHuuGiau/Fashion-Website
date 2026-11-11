@@ -215,6 +215,12 @@ jobs:
           done
           pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready"; exit 1; }
 
+      - name: Grant CREATEDB to test user
+        env:
+          PGPASSWORD: test
+        run: |
+          psql -h localhost -U postgres -d postgres -c "ALTER ROLE test WITH CREATEDB;" || true
+
       - name: Run Django check
         run: |
           cd backend
