@@ -89,11 +89,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install dependencies (from lock file)
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install uv
-          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 
       - name: Run mypy
         run: |
@@ -202,8 +201,7 @@ jobs:
       - name: Install dependencies (from lock file)
         run: |
           python -m pip install --upgrade pip
-          pip install uv
-          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
           pip install "Django==${{ matrix.django-version }}.*"
           pip install pytest-xdist
 
@@ -328,10 +326,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install backend dependencies (from lock file)
+      - name: Install backend dependencies
         run: |
-          pip install uv
-          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 
       - name: Prepare database and browser test accounts
         run: |
@@ -399,11 +396,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unixodbc-dev
 
-      - name: Install deps (from lock file)
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install uv
-          uv pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci --no-audit --no-fund
