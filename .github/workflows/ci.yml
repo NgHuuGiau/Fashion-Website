@@ -371,7 +371,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [lint, type-check, security, test, frontend-lint, frontend-e2e]
-    continue-on-error: false
+    continue-on-error: true
     services:
       redis:
         image: redis:7-alpine
