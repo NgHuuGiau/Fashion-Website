@@ -34,9 +34,6 @@ python-json-logger>=4.2,<5
 django-otp>=1.5,<2
 qrcode>=8.0,<9
 
-# Search Engine - Meilisearch
-meilisearch>=0.28,<0.29
-
 # Image processing - WebP, optimization
 django-imagekit>=5.0,<5.1
 
@@ -53,12 +50,8 @@ django-prometheus>=2.5,<3
 # SMS OTP
 phonenumbers>=8.13,<8.14
 
-# PWA
-django-pwa>=2.0,<2.1
-
 # SEO
 django-robots>=4.0,<4.1
-django-sitemaps>=1.0,<1.1
 
 # Web Push
 pywebpush>=2.0,<3.0
