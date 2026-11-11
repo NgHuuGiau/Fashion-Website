@@ -2,7 +2,7 @@
 Django>=5.2,<5.3
 djangorestframework>=3.18,<3.19
 drf-spectacular>=0.30,<0.31
-Pillow>=12.0,<13
+Pillow>=12.2.0,<13
 sqlparse>=0.6.0
 
 # Celery + Redis (async tasks)
@@ -13,26 +13,24 @@ django-celery-beat>=2.9,<3
 django-celery-results>=2.6,<3
 django-cors-headers>=4.9,<5
 
-# Database (mssql-django t  k o pyodbc; psycopg2 cho CI PostgreSQL)
-mssql-django>=1.7,<2
+# Database (CI uses PostgreSQL via psycopg2; mssql-django is local-only, needs ODBC driver)
 psycopg2-binary>=2.9,<2.10
 
-# Cache/session (t y ch n    t REDIS_URL trong .env   b t)
+# Cache/session (optional — set REDIS_URL in .env to enable)
 django-redis>=5.4,<5.5
 
-# N n CSS/JS + ti n  ch manage.py
-# (>=4.5: 4.2 import get_storage_class   b  x a kh i Django 5.x; 4.6 tested local)
+# CSS/JS compression + manage.py utilities
 django-compressor>=4.5,<4.7
 Django-extensions>=4.1,<5
 uvicorn>=0.34,<1
 
-# H  tr  certificate v  m  h a khi c n t ch h p h  t ng HTTPS
-cryptography>=50.0.0
+# Certificate and encryption support when integrating HTTPS infrastructure
+cryptography>=52.0.0
 
 # JSON logging formatter
 python-json-logger>=4.2,<5
 
-# 2FA TOTP cho trang quan tri + QR dang ky
+# 2FA TOTP for admin + QR registration
 django-otp>=1.5,<2
 qrcode>=8.0,<9
 
@@ -49,7 +47,7 @@ daphne>=4.2.2,<4.3
 
 # Monitoring
 sentry-sdk>=2.0,<3.0
-prometheus-client>=0.20,<0.21
+prometheus-client>=0.20,<3
 django-prometheus>=2.5,<3
 
 # SMS OTP
