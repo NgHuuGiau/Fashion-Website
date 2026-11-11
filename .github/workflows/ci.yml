@@ -220,6 +220,7 @@ jobs:
           PGPASSWORD: test
         run: |
           psql -h localhost -U postgres -d postgres -c "ALTER ROLE test WITH CREATEDB;" || true
+          psql -h localhost -U postgres -d postgres -c "GRANT CONNECT ON DATABASE postgres TO test;" || true
 
       - name: Run Django check
         run: |
