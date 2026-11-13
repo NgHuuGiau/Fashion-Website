@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.test_settings_sqlite")
 
 import django
 
@@ -22,6 +22,7 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from products.models import Product, ProductVariant
 
 db_name = str(settings.DATABASES["default"]["NAME"])
+# Accept either CI test database (PostgreSQL) or local SQLite test database
 sqlite_fixture = (
     settings.DATABASES["default"]["ENGINE"].endswith("sqlite3")
     and Path(db_name).resolve().parent == ROOT

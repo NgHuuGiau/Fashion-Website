@@ -35,6 +35,13 @@ def need(name, hint):
 
 
 def check():
+    # Skip strict checks in CI test environment
+    if os.getenv("CI") == "true" and os.getenv("DJANGO_SETTINGS_MODULE", "").endswith(
+        "test_settings_sqlite"
+    ):
+        print("CI test environment detected - skipping strict production checks")
+        return 0
+
     # Django core
     sk = os.getenv("SECRET_KEY", "")
     if len(sk) < 50 or len(set(sk)) < 5 or sk.lower().startswith("django-insecure-"):

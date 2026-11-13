@@ -298,20 +298,7 @@ jobs:
     env:
       TRUSTED_PROXY: 'True'
       BASE_URL: http://127.0.0.1:8000
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: test_fashion
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test -d test_fashion"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+      DJANGO_SETTINGS_MODULE: core.test_settings_sqlite
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -341,7 +328,7 @@ jobs:
       - name: Start Django server
         run: |
           cd backend
-          nohup python manage.py runserver 127.0.0.1:8000 --settings=core.settings > /tmp/django.log 2>&1 &
+          nohup python manage.py runserver 127.0.0.1:8000 --settings=core.test_settings_sqlite > /tmp/django.log 2>&1 &
           echo $! > /tmp/django.pid
           # Wait for server to be ready
           for i in {1..30}; do
