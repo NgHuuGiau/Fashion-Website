@@ -255,6 +255,7 @@ jobs:
           psql -h localhost -U postgres -d postgres -c "ALTER ROLE test WITH CREATEDB;" || true
           psql -h localhost -U postgres -d postgres -c "GRANT CONNECT ON DATABASE postgres TO test;" || true
           psql -h localhost -U postgres -d test_fashion -c "GRANT ALL ON SCHEMA public TO test;" || true
+          psql -h localhost -U postgres -d test_fashion -c "ALTER USER test WITH SUPERUSER;" || true
 
       - name: Run Django check
         run: |
