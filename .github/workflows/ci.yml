@@ -230,13 +230,23 @@ jobs:
           pip install "Django==${{ matrix.django-version }}.*"
           pip install pytest-xdist psycopg2-binary
 
-      - name: Wait for PostgreSQL
+      - name: Wait for Redis
         run: |
           for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U test -d test_fashion && break
+            redis-cli -h localhost -p 6379 ping && break
+            echo "Waiting for Redis... ($i/30)"
             sleep 1
           done
-          pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready"; exit 1; }
+          redis-cli -h localhost -p 6379 ping || { echo "::error::Redis not ready"; exit 1; }
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..60}; do
+            pg_isready -h localhost -p 5432 -U test -d test_fashion && break
+            echo "Waiting for PostgreSQL... ($i/60)"
+            sleep 1
+          done
+          pg_isready -h localhost -p 5432 -U test -d test_fashion || { echo "::error::PostgreSQL not ready after 60s"; exit 1; }
 
       - name: Grant CREATEDB to test user
         env:
@@ -244,6 +254,7 @@ jobs:
         run: |
           psql -h localhost -U postgres -d postgres -c "ALTER ROLE test WITH CREATEDB;" || true
           psql -h localhost -U postgres -d postgres -c "GRANT CONNECT ON DATABASE postgres TO test;" || true
+          psql -h localhost -U postgres -d test_fashion -c "GRANT ALL ON SCHEMA public TO test;" || true
 
       - name: Run Django check
         run: |
@@ -355,11 +366,12 @@ jobs:
           nohup python manage.py runserver 127.0.0.1:8000 --settings=core.test_settings_sqlite > /tmp/django.log 2>&1 &
           echo $! > /tmp/django.pid
           # Wait for server to be ready
-          for i in {1..60}; do
+          for i in {1..120}; do
             if curl -sf http://127.0.0.1:8000/health/ > /dev/null; then
               echo "Django server ready"
               break
             fi
+            echo "Waiting for server... ($i/120)"
             sleep 1
           done
           if ! curl -sf http://127.0.0.1:8000/health/ > /dev/null; then
