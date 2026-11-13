@@ -1,10 +1,13 @@
 import contextlib
 import io
 import os
+import sys
 import unittest
 from unittest.mock import patch
 
-from scripts import verify_prod
+# Add parent directory to path to import verify_prod
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from verify import verify_prod
 
 
 class VerifyProdTest(unittest.TestCase):
