@@ -103,6 +103,10 @@ def _redirect_for_created_order(request, order, replayed=False):
         return redirect("orders:bank_payment_waiting", order_id=order.id)
     if order.payment_method == "vnpay":
         return redirect("orders:vnpay_payment", order_id=order.id)
+    if order.payment_method == "mock":
+        return redirect("orders:mock_payment", order_id=order.id)
+    if order.payment_method == "paypal":
+        return redirect("orders:wallet_payment", method="paypal", order_id=order.id)
     if order.payment_method in ("momo", "zalopay", "shopeepay"):
         return redirect(
             "orders:wallet_payment",

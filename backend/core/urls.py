@@ -130,6 +130,7 @@ urlpatterns = [
     path("", include("products.urls", namespace="products")),
     path("", include("users.urls", namespace="users")),
     path("", include("orders.urls", namespace="orders")),
+    path("newsletter/", include("newsletter.urls", namespace="newsletter")),
     path(
         "sitemap.xml",
         sitemap,

@@ -148,6 +148,7 @@ INSTALLED_APPS = [
     "products",
     "users",
     "orders",
+    "newsletter",
     "django_otp",
     "django_otp.plugins.otp_totp",
 ]
@@ -327,6 +328,35 @@ VIETTELPOST_SHOP_ID = os.getenv("VIETTELPOST_SHOP_ID", "")
 VIETTELPOST_ENDPOINT = os.getenv(
     "VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder"
 )
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+VIETTELPOST_ENDPOINT = os.getenv(
+    "VIETTELPOST_ENDPOINT", "https://partner.viettelpost.vn/v2/order/createOrder"
+)
+
+# ============================================================
+# NEW: PayPal Configuration
+# ============================================================
+PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
+PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET", "")
+PAYPAL_MODE = os.getenv("PAYPAL_MODE", "sandbox")  # sandbox or live
+PAYPAL_WEBHOOK_ID = os.getenv("PAYPAL_WEBHOOK_ID", "")
+
+# ============================================================
+# NEW: VAT/Tax Configuration
+# ============================================================
+VAT_PERCENT = int(os.getenv("VAT_PERCENT", "10"))  # 10% VAT for Vietnam
+VAT_ENABLED = env_bool("VAT_ENABLED", True)
+
+# ============================================================
+# NEW: Newsletter/Email Marketing Configuration
+# ============================================================
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+NEWSLETTER_WELCOME_VOUCHER = os.getenv("NEWSLETTER_WELCOME_VOUCHER", "WELCOME10")
+
+# Email templates (Django template paths)
+EMAIL_TEMPLATE_WELCOME = "emails/welcome.html"
+EMAIL_TEMPLATE_CAMPAIGN = "emails/campaign.html"
+
 SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 SHOP_BANK_ACCOUNT = os.getenv("SHOP_BANK_ACCOUNT", "").strip()
 SHOP_ACCOUNT_NAME = os.getenv("SHOP_ACCOUNT_NAME", "").strip()

@@ -25,18 +25,4 @@ export default defineConfig({
     { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
     { name: "Mobile Safari", use: { ...devices["iPhone 12"] } }
   ],
-  webServer: process.env.PW_REUSE_SERVER === "1"
-    ? undefined
-    : {
-        command: `${process.env.PYTHON || "python"} ../backend/manage.py runserver 127.0.0.1:${port} --noreload`,
-        url: baseURL,
-        env: {
-          DJANGO_SETTINGS_MODULE: process.env.DJANGO_SETTINGS_MODULE || "core.settings",
-          SQLITE_TEST_DB: process.env.SQLITE_TEST_DB || "",
-          SHOP_BANK_ACCOUNT: "",
-          VNPAY_TMN_CODE: "",
-        },
-        reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
-        timeout: 120000,
-      },
 });
