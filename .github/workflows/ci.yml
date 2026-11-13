@@ -338,6 +338,25 @@ jobs:
           python manage.py seed_all --no-input
           python ../scripts/prepare_e2e.py
 
+      - name: Start Django server
+        run: |
+          cd backend
+          nohup python manage.py runserver 127.0.0.1:8000 --settings=core.settings > /tmp/django.log 2>&1 &
+          echo $! > /tmp/django.pid
+          # Wait for server to be ready
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:8000/health/ > /dev/null; then
+              echo "Django server ready"
+              break
+            fi
+            sleep 1
+          done
+          if ! curl -sf http://127.0.0.1:8000/health/ > /dev/null; then
+            echo "::error::Django server failed to start"
+            cat /tmp/django.log
+            exit 1
+          fi
+
       - name: Set up Node and install frontend dependencies
         uses: actions/setup-node@v4
         with:
