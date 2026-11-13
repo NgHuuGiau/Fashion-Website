@@ -262,7 +262,7 @@ jobs:
             --cov=. \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
-            -n auto \
+            -n 1 \
             -v \
             --tb=short \
             --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.django-version }}.xml \
@@ -355,7 +355,7 @@ jobs:
           nohup python manage.py runserver 127.0.0.1:8000 --settings=core.test_settings_sqlite > /tmp/django.log 2>&1 &
           echo $! > /tmp/django.pid
           # Wait for server to be ready
-          for i in {1..30}; do
+          for i in {1..60}; do
             if curl -sf http://127.0.0.1:8000/health/ > /dev/null; then
               echo "Django server ready"
               break
