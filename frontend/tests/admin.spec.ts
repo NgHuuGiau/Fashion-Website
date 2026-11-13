@@ -60,4 +60,10 @@ test.describe("Admin Dashboard", () => {
     await expect(invoiceLink).toHaveAttribute("target", "_blank");
     await expect(invoiceLink).toHaveAttribute("href", /\/in-hoa-don\//);
   });
+  test("should display cart summary", async ({ page }) => {
+    await page.goto(`${BASE_URL}/gio-hang/`);
+    await expect(page.locator("h1")).toContainText(/Cart|Giỏ hàng/);
+    await page.locator("button:has-text('Add to cart')").click();
+    await expect(page.locator(".cart-summary")).toBeVisible();
+  });
 });
