@@ -68,7 +68,7 @@ jobs:
         run: |
           cd backend && ruff check ../scripts/verify/verify_prod.py ../scripts/verify/test_verify_prod.py
           cd backend && ruff format --check ../scripts/verify/verify_prod.py ../scripts/verify/test_verify_prod.py
-          python -c "import sys; sys.path.insert(0, 'scripts/verify'); import unittest; loader = unittest.TestLoader(); suite = loader.loadTestsFromName('test_verify_prod'); runner = unittest.TextTestRunner(verbosity=1); result = runner.run(suite); exit(0 if result.wasSuccessful() else 1)"
+          cd backend && python -c "import sys; sys.path.insert(0, '../scripts/verify'); import unittest; loader = unittest.TestLoader(); suite = loader.loadTestsFromName('test_verify_prod'); runner = unittest.TextTestRunner(verbosity=1); result = runner.run(suite); exit(0 if result.wasSuccessful() else 1)"
 
   type-check:
     name: Type Check (mypy)
