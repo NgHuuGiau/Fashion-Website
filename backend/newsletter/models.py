@@ -2,6 +2,7 @@
 Newsletter/Email Marketing models for Fashion-Website
 Ported from ElectroHub - adapted for Fashion-Website
 """
+
 import hashlib
 import hmac
 from django.db import models
@@ -11,11 +12,14 @@ from django.utils import timezone
 
 class NewsletterSubscriber(models.Model):
     """Email subscriber for marketing campaigns"""
+
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
     subscribed_at = models.DateTimeField(default=timezone.now)
     unsubscribed_at = models.DateTimeField(null=True, blank=True)
-    source = models.CharField(max_length=50, default="website")  # website, checkout, admin
+    source = models.CharField(
+        max_length=50, default="website"
+    )  # website, checkout, admin
 
     class Meta:
         db_table = "newsletter_subscriber"
@@ -27,6 +31,7 @@ class NewsletterSubscriber(models.Model):
 
 class EmailCampaign(models.Model):
     """Email marketing campaign"""
+
     STATUS_CHOICES = [
         ("draft", "Draft"),
         ("sending", "Sending"),
@@ -46,7 +51,7 @@ class EmailCampaign(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name="created_campaigns"
+        related_name="created_campaigns",
     )
     created_at = models.DateTimeField(default=timezone.now)
     sent_at = models.DateTimeField(null=True, blank=True)
@@ -61,6 +66,7 @@ class EmailCampaign(models.Model):
 
 class EmailTemplate(models.Model):
     """Predefined email templates"""
+
     TEMPLATE_CHOICES = [
         ("welcome", "Welcome Email"),
         ("flash_sale", "Flash Sale"),

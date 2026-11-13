@@ -20,6 +20,7 @@
 ```python
 # Trong Django model OrdersOrder.save()
 from django.db import connection
+
 with connection.cursor() as cursor:
     cursor.execute("SELECT NEXT VALUE FOR dbo.seq_order_code")
     seq = cursor.fetchone()[0]
@@ -47,6 +48,7 @@ def create_order_atomic(...):
 ```python
 from django.db import connection
 
+
 def get_monthly_revenue():
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM dbo.v_BaoCaoDoanhThuTheoThang")
@@ -57,7 +59,9 @@ def get_monthly_revenue():
 ```python
 def calculate_discount(coupon_code, subtotal):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT dbo.fn_TinhGiamGiaVoucher(%s, %s)", [coupon_code, subtotal])
+        cursor.execute(
+            "SELECT dbo.fn_TinhGiamGiaVoucher(%s, %s)", [coupon_code, subtotal]
+        )
         return cursor.fetchone()[0]
 ```
 

@@ -2,6 +2,7 @@
 PayPal Sandbox Integration for Fashion-Website
 Ported from ElectroHub project - adapted for Fashion-Website schema
 """
+
 import logging
 import uuid
 from decimal import Decimal
@@ -38,7 +39,10 @@ class PayPalService:
 
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
-                f"{self.base_url}/v1/oauth2/token", auth=auth, headers=headers, data=data
+                f"{self.base_url}/v1/oauth2/token",
+                auth=auth,
+                headers=headers,
+                data=data,
             )
             response.raise_for_status()
             self._access_token = response.json()["access_token"]
@@ -60,16 +64,21 @@ class PayPalService:
         cancel_url: str = "",
     ) -> dict:
         """Create PayPal order (v2/checkout/orders)"""
-        purchase_units = [{
-            "reference_id": reference_id or str(uuid.uuid4()),
-            "amount": {
-                "currency_code": currency,
-                "value": f"{amount:.2f}",
-                "breakdown": {
-                    "item_total": {"currency_code": currency, "value": f"{amount:.2f}"}
-                }
+        purchase_units = [
+            {
+                "reference_id": reference_id or str(uuid.uuid4()),
+                "amount": {
+                    "currency_code": currency,
+                    "value": f"{amount:.2f}",
+                    "breakdown": {
+                        "item_total": {
+                            "currency_code": currency,
+                            "value": f"{amount:.2f}",
+                        }
+                    },
+                },
             }
-        }]
+        ]
 
         payload = {
             "intent": "CAPTURE",
@@ -81,14 +90,14 @@ class PayPalService:
                 "user_action": "PAY_NOW",
                 "return_url": return_url or "",
                 "cancel_url": cancel_url or "",
-            }
+            },
         }
 
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
                 f"{self.base_url}/v2/checkout/orders",
                 headers=self._headers(),
-                json=payload
+                json=payload,
             )
             response.raise_for_status()
             return response.json()
@@ -98,7 +107,7 @@ class PayPalService:
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
                 f"{self.base_url}/v2/checkout/orders/{order_id}/capture",
-                headers=self._headers()
+                headers=self._headers(),
             )
             response.raise_for_status()
             return response.json()
@@ -108,22 +117,24 @@ class PayPalService:
         with httpx.Client(timeout=30.0) as client:
             response = client.get(
                 f"{self.base_url}/v2/checkout/orders/{order_id}",
-                headers=self._headers()
+                headers=self._headers(),
             )
             response.raise_for_status()
             return response.json()
 
-    def refund_capture(self, capture_id: str, amount: Decimal, currency: str = "VND") -> dict:
+    def refund_capture(
+        self, capture_id: str, amount: Decimal, currency: str = "VND"
+    ) -> dict:
         """Refund a captured payment"""
         payload = {
             "amount": {"currency_code": currency, "value": f"{amount:.2f}"},
-            "note_to_payer": "Refund from HUUGIAU Fashion"
+            "note_to_payer": "Refund from HUUGIAU Fashion",
         }
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
                 f"{self.base_url}/v2/payments/captures/{capture_id}/refund",
                 headers=self._headers(),
-                json=payload
+                json=payload,
             )
             response.raise_for_status()
             return response.json()
@@ -136,7 +147,7 @@ class PayPalService:
         event_body: str,
         cert_url: str,
         transmission_sig: str,
-        auth_algo: str
+        auth_algo: str,
     ) -> bool:
         """Verify PayPal webhook signature"""
         # In production, implement proper webhook verification

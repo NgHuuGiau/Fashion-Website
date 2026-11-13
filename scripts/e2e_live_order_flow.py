@@ -60,7 +60,7 @@ def totp(key_hex):
     key = bytes.fromhex(key_hex)
     d = hmac.new(key, struct.pack(">Q", int(time.time()) // 30), hashlib.sha1).digest()
     o = d[19] & 0x0F
-    return f"{(struct.unpack('>I', d[o:o + 4])[0] & 0x7FFFFFFF) % 1000000:06d}"
+    return f"{(struct.unpack('>I', d[o : o + 4])[0] & 0x7FFFFFFF) % 1000000:06d}"
 
 
 class Web:
@@ -82,9 +82,7 @@ class Web:
     def post(self, path, data):
         payload = dict(data)
         payload.setdefault("csrfmiddlewaretoken", self.token)
-        r = self.s.post(
-            BASE + path, data=payload, headers=self._h(), timeout=30
-        )
+        r = self.s.post(BASE + path, data=payload, headers=self._h(), timeout=30)
         self.page = r.url
         self.token = csrf(r.text) or self.token
         return r
@@ -112,14 +110,20 @@ def staff_session():
             (uid,),
         )[0][0]
         w.get("/tai-khoan/bao-mat-2-lop/ma/")
-        time.sleep(31 - time.time() % 30)  # mã TOTP không dùng lại được trong cùng cửa sổ 30s
+        time.sleep(
+            31 - time.time() % 30
+        )  # mã TOTP không dùng lại được trong cùng cửa sổ 30s
         r = w.post("/tai-khoan/bao-mat-2-lop/ma/", {"code": totp(key)})
         w.get("/admin/")
     return w
 
 
 def set_status(w, order_id, status, paid=False):
-    data = {"action": "update_order_status", "order_id": str(order_id), "new_status": status}
+    data = {
+        "action": "update_order_status",
+        "order_id": str(order_id),
+        "new_status": status,
+    }
     if paid:
         data["is_paid"] = "on"
     return w.post("/admin-dashboard/", data)
@@ -172,23 +176,34 @@ row = db(
 )[0]
 check(
     "F3 đơn tạo đúng: pending, chưa thanh toán, có giảm giá",
-    row[0] == "pending" and row[1] == 0 and float(row[3]) == 50000.0 and row[5] == "GIAM50K",
+    row[0] == "pending"
+    and row[1] == 0
+    and float(row[3]) == 50000.0
+    and row[5] == "GIAM50K",
     str(row),
 )
 stock1 = db("select stock from products_productvariant where id=?", (vid,))[0][0]
 check("F4 tồn kho trừ đúng 2", stock1 == stock0 - 2, f"{stock0} -> {stock1}")
 
 r = u.post("/tra-cuu-don/", {"order_id": str(oid), "phone": "0912345678"})
-check("F5 tra cứu đơn bằng mã + SĐT", f"#{oid}" in r.text and "Chờ xử lý" in r.text, r.url)
+check(
+    "F5 tra cứu đơn bằng mã + SĐT", f"#{oid}" in r.text and "Chờ xử lý" in r.text, r.url
+)
 
 s = staff_session()
 check("F6 nhân viên đăng nhập + 2FA", "/admin/" in s.page, s.page)
 
 r = set_status(s, oid, "processing")
-check("F7 NV: pending -> Đang xử lý", s.has(r, "chuyển sang trạng thái"), "|".join(s.msgs(r))[:80])
+check(
+    "F7 NV: pending -> Đang xử lý",
+    s.has(r, "chuyển sang trạng thái"),
+    "|".join(s.msgs(r))[:80],
+)
 
 r = set_status(s, oid, "shipping")
-check("F8 NV: -> Đang giao", s.has(r, "chuyển sang trạng thái"), "|".join(s.msgs(r))[:80])
+check(
+    "F8 NV: -> Đang giao", s.has(r, "chuyển sang trạng thái"), "|".join(s.msgs(r))[:80]
+)
 
 r = set_status(s, oid, "delivered")
 check(
@@ -198,7 +213,11 @@ check(
 )
 
 r = set_status(s, oid, "delivered", paid=True)
-check("F10 NV: hoàn thành đơn + xác nhận đã thu tiền", s.has(r, "chuyển sang trạng thái"), "|".join(s.msgs(r))[:90])
+check(
+    "F10 NV: hoàn thành đơn + xác nhận đã thu tiền",
+    s.has(r, "chuyển sang trạng thái"),
+    "|".join(s.msgs(r))[:90],
+)
 row = db("select status, is_paid from orders_order where id=?", (oid,))[0]
 check("F11 DB: đơn delivered + is_paid", row == ("delivered", 1), str(row))
 
@@ -209,21 +228,37 @@ check(
     "|".join(s.msgs(r))[:90],
 )
 
-r = u.post(f"/don-hang/{oid}/doi-tra/", {
-    "return_type": "refund",
-    "reason": "wrong_size",
-    "item_ids": [str(db("select id from orders_orderitem where order_id=? limit 1", (oid,))[0][0])],
-})
-rr = db("select status, return_type, reason, refund_amount from orders_returnrequest where order_id=?", (oid,))
+r = u.post(
+    f"/don-hang/{oid}/doi-tra/",
+    {
+        "return_type": "refund",
+        "reason": "wrong_size",
+        "item_ids": [
+            str(
+                db("select id from orders_orderitem where order_id=? limit 1", (oid,))[
+                    0
+                ][0]
+            )
+        ],
+    },
+)
+rr = db(
+    "select status, return_type, reason, refund_amount from orders_returnrequest where order_id=?",
+    (oid,),
+)
 check("F13 khách tạo yêu cầu đổi/trả", bool(rr), str(rr))
 
 # ------------------------------------------------------------------ huy don
 r = place_order()
 oid2 = int(re.search(r"/dat-hang-thanh-cong/(\d+)/", r.url).group(1))
-stock_before_cancel = db("select stock from products_productvariant where id=?", (vid,))[0][0]
+stock_before_cancel = db(
+    "select stock from products_productvariant where id=?", (vid,)
+)[0][0]
 r = u.post(f"/don-hang/{oid2}/huy/", {})
 row = db("select status from orders_order where id=?", (oid2,))[0]
-stock_after_cancel = db("select stock from products_productvariant where id=?", (vid,))[0][0]
+stock_after_cancel = db("select stock from products_productvariant where id=?", (vid,))[
+    0
+][0]
 check(
     "F14 khách tự huỷ đơn chưa thanh toán + hoàn kho",
     row[0] == "cancelled" and stock_after_cancel == stock_before_cancel + 2,
@@ -236,13 +271,18 @@ check("F15 huỷ lần 2 bị từ chối", u.has(r, "Không thể huỷ"), "|".
 # ------------------------------------------------------------------ NV hoan don chua thanh toan
 r = place_order()
 oid3 = int(re.search(r"/dat-hang-thanh-cong/(\d+)/", r.url).group(1))
-stock_before_refund = db("select stock from products_productvariant where id=?", (vid,))[0][0]
+stock_before_refund = db(
+    "select stock from products_productvariant where id=?", (vid,)
+)[0][0]
 r = s.post("/admin-dashboard/", {"action": "refund_order", "order_id": str(oid3)})
 row = db("select status from orders_order where id=?", (oid3,))[0]
-stock_after_refund = db("select stock from products_productvariant where id=?", (vid,))[0][0]
+stock_after_refund = db("select stock from products_productvariant where id=?", (vid,))[
+    0
+][0]
 check(
     "F16 NV hoàn/huỷ đơn chưa thanh toán + trả kho",
-    s.has(r, "trả hàng về kho") and row[0] == "cancelled"
+    s.has(r, "trả hàng về kho")
+    and row[0] == "cancelled"
     and stock_after_refund == stock_before_refund + 2,
     f"{row[0]} {stock_before_refund}->{stock_after_refund}",
 )

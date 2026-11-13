@@ -3,6 +3,7 @@ VNPAY sandbox/production adapter: URL signing, callback verification, query, ref
 Ported from ElectroHub - adapted for Django/Fashion-Website
 Part 1: Core utilities and payment URL building
 """
+
 import hashlib
 import hmac
 import re
@@ -10,7 +11,6 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
 from typing import Dict
-
 
 
 VNPAY_VERSION = "2.1.0"
@@ -34,8 +34,12 @@ def normalize_order_info(value: str, limit: int = 255) -> str:
 
 
 def hash_data(params: Dict[str, str]) -> str:
-    items = sorted((key, value) for key, value in params.items() if value not in (None, ""))
-    return "&".join(f"{quote_plus(key)}={quote_plus(str(value))}" for key, value in items)
+    items = sorted(
+        (key, value) for key, value in params.items() if value not in (None, "")
+    )
+    return "&".join(
+        f"{quote_plus(key)}={quote_plus(str(value))}" for key, value in items
+    )
 
 
 def sign_params(params: Dict[str, str], secret: str) -> str:
@@ -52,7 +56,9 @@ def verify_callback(params: Dict[str, str], secret: str) -> bool:
         for key, value in params.items()
         if key not in {"vnp_SecureHash", "vnp_SecureHashType"}
     }
-    return bool(received) and hmac.compare_digest(received.lower(), sign_params(unsigned, secret))
+    return bool(received) and hmac.compare_digest(
+        received.lower(), sign_params(unsigned, secret)
+    )
 
 
 def callback_params(params: Dict[str, str]) -> Dict[str, str]:

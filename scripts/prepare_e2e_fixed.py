@@ -1,17 +1,18 @@
+import json
 import os
 import sys
-import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.test_settings_sqlite')
-os.environ['BASE_URL'] = 'http://localhost:8001'
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.test_settings_sqlite")
+os.environ["BASE_URL"] = "http://localhost:8001"
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 import django
+
 django.setup()
 
 from django.conf import settings

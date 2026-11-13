@@ -1,6 +1,7 @@
 """
 Payment orchestration service - Part 4a: Refund request and gateway refund
 """
+
 from typing import Optional
 
 from django.db import transaction
@@ -10,7 +11,10 @@ from orders.services.payments import paypal, vnpay
 from orders.services.payments.base import GatewayOutcome
 
 from .payment_service import (
-    _now_utc, _vnpay_transaction_date, PaymentServiceError, PaymentGatewayError,
+    _now_utc,
+    _vnpay_transaction_date,
+    PaymentServiceError,
+    PaymentGatewayError,
 )
 
 
@@ -34,7 +38,9 @@ def request_refund(
         amount_minor = payment.amount_minor
 
     # Check if already has pending refund
-    existing = Refund.objects.filter(payment=payment, status__in={"scheduled", "processing"}).first()
+    existing = Refund.objects.filter(
+        payment=payment, status__in={"scheduled", "processing"}
+    ).first()
     if existing:
         raise PaymentServiceError("Đã có yêu cầu hoàn tiền đang xử lý")
 
@@ -82,4 +88,6 @@ def _run_gateway_refund(payment: Payment, refund: Refund) -> GatewayOutcome:
             request_id=f"refund-{refund.id}",
         )
 
-    raise PaymentGatewayError(f"Không hỗ trợ hoàn tiền cho provider: {payment.provider}")
+    raise PaymentGatewayError(
+        f"Không hỗ trợ hoàn tiền cho provider: {payment.provider}"
+    )

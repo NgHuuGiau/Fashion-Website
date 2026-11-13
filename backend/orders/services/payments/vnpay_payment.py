@@ -1,6 +1,7 @@
 """
 VNPAY Part 2: Payment URL building and callback parsing
 """
+
 import hashlib
 import hmac
 from datetime import timedelta
@@ -10,8 +11,11 @@ from django.conf import settings
 
 from .base import GatewayOutcome, PaymentGatewayError
 from .vnpay import (
-    VNPAY_VERSION, _now_gmt7, _format_time, normalize_order_info,
-    hash_data
+    VNPAY_VERSION,
+    _now_gmt7,
+    _format_time,
+    normalize_order_info,
+    hash_data,
 )
 
 
@@ -27,7 +31,9 @@ def build_payment_url(
     if amount_vnd <= 0:
         raise PaymentGatewayError("Số tiền thanh toán không hợp lệ")
 
-    vnpay_pay_url = getattr(settings, "VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+    vnpay_pay_url = getattr(
+        settings, "VNPAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    )
     vnpay_tmn_code = getattr(settings, "VNPAY_TMN_CODE", "")
     vnpay_hash_secret = getattr(settings, "VNPAY_HASH_SECRET", "")
     vnpay_return_url = getattr(settings, "VNPAY_RETURN_URL", return_url or "")
@@ -46,7 +52,9 @@ def build_payment_url(
         "vnp_Locale": "vn",
         "vnp_IpAddr": ip_addr or "127.0.0.1",
         "vnp_CreateDate": _format_time(created),
-        "vnp_ExpireDate": _format_time(created + timedelta(minutes=vnpay_expire_minutes)),
+        "vnp_ExpireDate": _format_time(
+            created + timedelta(minutes=vnpay_expire_minutes)
+        ),
         "vnp_ReturnUrl": vnpay_return_url,
     }
 

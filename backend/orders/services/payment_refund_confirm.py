@@ -1,6 +1,7 @@
 """
 Payment orchestration service - Part 4b: Confirm/Reject refund
 """
+
 from datetime import timezone as tz, timedelta as td
 
 from django.db import transaction
@@ -35,7 +36,9 @@ def confirm_refund(refund_id: int, admin, reason: str = "") -> Refund:
     refund.confirmed_at = _now_utc()
     refund.reason = reason or refund.reason
     refund.updated_at = _now_utc()
-    refund.save(update_fields=["status", "confirmed_by", "confirmed_at", "reason", "updated_at"])
+    refund.save(
+        update_fields=["status", "confirmed_by", "confirmed_at", "reason", "updated_at"]
+    )
 
     try:
         outcome = _run_gateway_refund(payment, refund)
@@ -55,7 +58,9 @@ def confirm_refund(refund_id: int, admin, reason: str = "") -> Refund:
         payment.status = "refunded"
         payment.provider_status = outcome.provider_status or payment.provider_status
         payment.raw_payload = {**(payment.raw_payload or {}), **outcome.raw}
-        payment.save(update_fields=["status", "provider_status", "raw_payload", "updated_at"])
+        payment.save(
+            update_fields=["status", "provider_status", "raw_payload", "updated_at"]
+        )
 
         order = payment.order
         order.status = "refunded"
@@ -66,7 +71,9 @@ def confirm_refund(refund_id: int, admin, reason: str = "") -> Refund:
     else:
         refund.status = "failed"
 
-    refund.save(update_fields=["status", "provider_refund_id", "raw_payload", "updated_at"])
+    refund.save(
+        update_fields=["status", "provider_refund_id", "raw_payload", "updated_at"]
+    )
     return refund
 
 
@@ -85,7 +92,9 @@ def reject_refund(refund_id: int, admin, reason: str = "") -> Refund:
     refund.confirmed_by = admin
     refund.confirmed_at = _now_utc()
     refund.updated_at = _now_utc()
-    refund.save(update_fields=["status", "reason", "confirmed_by", "confirmed_at", "updated_at"])
+    refund.save(
+        update_fields=["status", "reason", "confirmed_by", "confirmed_at", "updated_at"]
+    )
 
     # No money moved, payment returns to paid state
     if payment.status == "refund_pending":

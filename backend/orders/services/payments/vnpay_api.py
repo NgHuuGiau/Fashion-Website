@@ -1,6 +1,7 @@
 """
 VNPAY Part 3: Query transaction and Refund
 """
+
 import hashlib
 import hmac
 import secrets
@@ -12,10 +13,15 @@ from django.conf import settings
 
 from .base import GatewayOutcome
 from .vnpay import (
-    VNPAY_VERSION, _now_gmt7, _format_time, normalize_order_info,
-    verify_callback, callback_params
+    VNPAY_VERSION,
+    _now_gmt7,
+    _format_time,
+    normalize_order_info,
+    verify_callback,
+    callback_params,
 )
 from .vnpay_payment import build_payment_url, outcome_from_callback
+
 
 def _request_id(prefix: str) -> str:
     return f"{prefix}{_now_gmt7().strftime('%H%M%S')}{secrets.token_hex(4)}"
@@ -25,9 +31,15 @@ def _querydr_signature(payload: Dict[str, str]) -> str:
     return "|".join(
         payload[key]
         for key in (
-            "vnp_RequestId", "vnp_Version", "vnp_Command", "vnp_TmnCode",
-            "vnp_TxnRef", "vnp_TransactionDate", "vnp_CreateDate",
-            "vnp_IpAddr", "vnp_OrderInfo",
+            "vnp_RequestId",
+            "vnp_Version",
+            "vnp_Command",
+            "vnp_TmnCode",
+            "vnp_TxnRef",
+            "vnp_TransactionDate",
+            "vnp_CreateDate",
+            "vnp_IpAddr",
+            "vnp_OrderInfo",
         )
     )
 
@@ -36,10 +48,19 @@ def _refund_signature(payload: Dict[str, str]) -> str:
     return "|".join(
         payload[key]
         for key in (
-            "vnp_RequestId", "vnp_Version", "vnp_Command", "vnp_TmnCode",
-            "vnp_TransactionType", "vnp_TxnRef", "vnp_Amount",
-            "vnp_TransactionNo", "vnp_TransactionDate", "vnp_CreateBy",
-            "vnp_CreateDate", "vnp_IpAddr", "vnp_OrderInfo",
+            "vnp_RequestId",
+            "vnp_Version",
+            "vnp_Command",
+            "vnp_TmnCode",
+            "vnp_TransactionType",
+            "vnp_TxnRef",
+            "vnp_Amount",
+            "vnp_TransactionNo",
+            "vnp_TransactionDate",
+            "vnp_CreateBy",
+            "vnp_CreateDate",
+            "vnp_IpAddr",
+            "vnp_OrderInfo",
         )
     )
 
@@ -68,7 +89,11 @@ def query_transaction(
     """Query transaction status from VNPay."""
     vnpay_tmn_code = getattr(settings, "VNPAY_TMN_CODE", "")
     vnpay_hash_secret = getattr(settings, "VNPAY_HASH_SECRET", "")
-    vnpay_api_url = getattr(settings, "VNPAY_API_URL", "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction")
+    vnpay_api_url = getattr(
+        settings,
+        "VNPAY_API_URL",
+        "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction",
+    )
 
     now = _now_gmt7()
     payload = {
@@ -98,7 +123,11 @@ def refund(
     """Request refund from VNPay."""
     vnpay_tmn_code = getattr(settings, "VNPAY_TMN_CODE", "")
     vnpay_hash_secret = getattr(settings, "VNPAY_HASH_SECRET", "")
-    vnpay_api_url = getattr(settings, "VNPAY_API_URL", "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction")
+    vnpay_api_url = getattr(
+        settings,
+        "VNPAY_API_URL",
+        "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction",
+    )
 
     now = _now_gmt7()
     payload = {

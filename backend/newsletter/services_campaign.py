@@ -2,6 +2,7 @@
 Newsletter/Email Marketing services for Fashion-Website
 Part 3: Campaign sending (background task)
 """
+
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -22,14 +23,21 @@ def send_campaign_email(campaign_id: int) -> None:
         logger.error("Campaign %s not found", campaign_id)
         return
 
-    if not all((getattr(settings, "EMAIL_HOST", None), getattr(settings, "DEFAULT_FROM_EMAIL", None))):
+    if not all(
+        (
+            getattr(settings, "EMAIL_HOST", None),
+            getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        )
+    ):
         logger.warning("SMTP not configured for campaign %s", campaign_id)
         campaign.status = "failed"
         campaign.save(update_fields=["status"])
         return
 
     recipients = list(
-        NewsletterSubscriber.objects.filter(is_active=True).values_list("email", flat=True)
+        NewsletterSubscriber.objects.filter(is_active=True).values_list(
+            "email", flat=True
+        )
     )
     if not recipients:
         logger.warning("No active subscribers for campaign %s", campaign_id)
@@ -52,6 +60,7 @@ def send_campaign_email(campaign_id: int) -> None:
 
     try:
         from .services import render_campaign_email  # avoid circular import
+
         with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as smtp:
             if use_tls and hasattr(smtp, "has_extn") and smtp.has_extn("starttls"):
                 try:

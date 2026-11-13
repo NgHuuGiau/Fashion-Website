@@ -2,6 +2,7 @@
 Newsletter/Email Marketing services for Fashion-Website
 Part 1: Core email functions
 """
+
 import logging
 from urllib.parse import urlencode
 

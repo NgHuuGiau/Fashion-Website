@@ -49,7 +49,7 @@ def totp(key_hex):
     ctr = int(time.time()) // 30
     d = hmac.new(key, struct.pack(">Q", ctr), hashlib.sha1).digest()
     o = d[19] & 0x0F
-    return f"{(struct.unpack('>I', d[o:o+4])[0] & 0x7FFFFFFF) % 10**6:06d}"
+    return f"{(struct.unpack('>I', d[o : o + 4])[0] & 0x7FFFFFFF) % 10**6:06d}"
 
 
 def db_rows(sql, args=()):
@@ -90,7 +90,6 @@ def drop_test_user():
     from django.contrib.auth.models import User
 
     User.objects.filter(username="uitestuser").delete()
-
 
 
 class Web:
@@ -155,7 +154,11 @@ def test_guest():
     print("\n--- GUEST ---")
 
     r = g.get("/")
-    check("G1 trang chủ 200 + có sản phẩm", r.status_code == 200 and "san-pham/" in r.text, f"{r.status_code}")
+    check(
+        "G1 trang chủ 200 + có sản phẩm",
+        r.status_code == 200 and "san-pham/" in r.text,
+        f"{r.status_code}",
+    )
 
     r = g.get("/?q=quần")
     check("G2 tìm kiếm theo từ khoá", r.status_code == 200, f"{r.status_code}")
@@ -167,53 +170,99 @@ def test_guest():
     check("G4 lọc giá + sắp xếp", r.status_code == 200, f"{r.status_code}")
 
     r = g.get("/tim-kiem/goi-y/?q=ao")
-    check("G5 gợi ý tìm kiếm (JSON)", r.status_code == 200 and r.headers.get("content-type", "").startswith("application/json"), f"{r.status_code}")
+    check(
+        "G5 gợi ý tìm kiếm (JSON)",
+        r.status_code == 200
+        and r.headers.get("content-type", "").startswith("application/json"),
+        f"{r.status_code}",
+    )
 
-    pid, pslug = db_rows("select id, slug from products_product where available=1 limit 1")[0]
+    pid, pslug = db_rows(
+        "select id, slug from products_product where available=1 limit 1"
+    )[0]
     r = g.get(f"/san-pham/{pid}/{pslug}/")
-    check("G6 chi tiết sản phẩm", r.status_code == 200 and pslug in r.text, f"{r.status_code}")
+    check(
+        "G6 chi tiết sản phẩm",
+        r.status_code == 200 and pslug in r.text,
+        f"{r.status_code}",
+    )
 
     r = g.post(f"/so-sanh/{pid}/toggle/")
     check("G7 thêm vào so sánh", r.status_code in (200, 302), f"{r.status_code}")
     r = g.get("/so-sanh/")
-    check("G8 trang so sánh có sản phẩm", r.status_code == 200 and pslug in r.text, f"{r.status_code}")
+    check(
+        "G8 trang so sánh có sản phẩm",
+        r.status_code == 200 and pslug in r.text,
+        f"{r.status_code}",
+    )
 
     r = g.post(f"/gio-hang/them/{pid}/", {"quantity": "2", "variant_id": ""})
     r = g.get("/gio-hang/")
-    check("G9 thêm giỏ hàng + xem giỏ", r.status_code == 200 and pslug in r.text, f"{r.status_code}")
+    check(
+        "G9 thêm giỏ hàng + xem giỏ",
+        r.status_code == 200 and pslug in r.text,
+        f"{r.status_code}",
+    )
 
     r = g.post("/gio-hang/xoa-tat-ca/")
     check("G10 xoá toàn bộ giỏ", g.has_msg(r, "xóa toàn bộ"), "|".join(g.msgs(r))[:80])
 
     r = g.get("/thanh-toan/")
-    check("G11 checkout rỗng chuyển về giỏ/trang chủ", r.status_code in (200, 302), f"{r.status_code}")
+    check(
+        "G11 checkout rỗng chuyển về giỏ/trang chủ",
+        r.status_code in (200, 302),
+        f"{r.status_code}",
+    )
 
     r = g.get("/tra-cuu-don/")
     check("G12 trang tra cứu đơn", r.status_code == 200, f"{r.status_code}")
 
     r = g.post("/nhan-tin/dang-ky/", {"email": "guest-news@test.com"})
-    check("G13 đăng ký newsletter", g.has_msg(r, "thành công"), "|".join(g.msgs(r))[:80])
+    check(
+        "G13 đăng ký newsletter", g.has_msg(r, "thành công"), "|".join(g.msgs(r))[:80]
+    )
 
     r = g.get("/ho-tro/chat/?q=size")
-    check("G14 chat hỗ trợ trả lời", r.status_code == 200 and "reply" in r.text, f"{r.status_code}")
+    check(
+        "G14 chat hỗ trợ trả lời",
+        r.status_code == 200 and "reply" in r.text,
+        f"{r.status_code}",
+    )
 
     for path in [
-        "/ve-chung-toi/", "/huong-dan-chon-size/", "/chinh-sach-doi-tra/",
-        "/chinh-sach-giao-hang/", "/chinh-sach-thanh-toan/", "/chat-lieu-bao-quan/",
-        "/tuyen-dung/", "/chinh-sach-bao-mat/", "/dieu-khoan/", "/lien-he/",
-        "/hoi-dap-chung/", "/khuyen-mai/", "/lookbook/",
+        "/ve-chung-toi/",
+        "/huong-dan-chon-size/",
+        "/chinh-sach-doi-tra/",
+        "/chinh-sach-giao-hang/",
+        "/chinh-sach-thanh-toan/",
+        "/chat-lieu-bao-quan/",
+        "/tuyen-dung/",
+        "/chinh-sach-bao-mat/",
+        "/dieu-khoan/",
+        "/lien-he/",
+        "/hoi-dap-chung/",
+        "/khuyen-mai/",
+        "/lookbook/",
     ]:
         r = g.get(path)
         check(f"G15 trang tĩnh {path}", r.status_code == 200, f"{r.status_code}")
 
     r = g.get("/khong-co-trang-nay/")
-    check("G16 trang 404 tuỳ biến", r.status_code == 404 and "404" in r.text, f"{r.status_code}")
+    check(
+        "G16 trang 404 tuỳ biến",
+        r.status_code == 404 and "404" in r.text,
+        f"{r.status_code}",
+    )
 
     r = g.get("/api/products/")
     check("G17 API sản phẩm công khai", r.status_code == 200, f"{r.status_code}")
 
     r = g.get("/admin/", allow_redirects=False)
-    check("G18 khách bị chặn /admin/", r.status_code == 302 and "/admin/login/" in r.headers.get("Location", ""), f"{r.status_code}")
+    check(
+        "G18 khách bị chặn /admin/",
+        r.status_code == 302 and "/admin/login/" in r.headers.get("Location", ""),
+        f"{r.status_code}",
+    )
 
     r = g.get("/admin-dashboard/", allow_redirects=False)
     check("G19 khách bị chặn dashboard", r.status_code == 302, f"{r.status_code}")
@@ -230,26 +279,39 @@ def test_user():
 
     check("U2 hồ sơ cá nhân", "Thông tin cá nhân" in r.text, "")
 
-    r = u.post("/tai-khoan/", {
-        "first_name": "UI", "last_name": "Tester",
-        "email": "uitestuser@test.com", "phone_number": "0907654321",
-        "birthday": "1995-05-20",
-    })
+    r = u.post(
+        "/tai-khoan/",
+        {
+            "first_name": "UI",
+            "last_name": "Tester",
+            "email": "uitestuser@test.com",
+            "phone_number": "0907654321",
+            "birthday": "1995-05-20",
+        },
+    )
     check("U3 cập nhật hồ sơ", u.has_msg(r, "lưu thông tin"), "|".join(u.msgs(r))[:90])
     r = u.get("/tai-khoan/")
     check("U4 hồ sơ đã lưu SĐT", 'value="0907654321"' in r.text, "")
 
-    r = u.post("/tai-khoan/dia-chi/them/", {
-        "recipient_name": "UI Tester", "phone": "0907654321",
-        "address": "45 Nguyễn Huệ, Quận 1, TP.HCM", "label": "Nhà", "is_default": "on",
-    })
+    r = u.post(
+        "/tai-khoan/dia-chi/them/",
+        {
+            "recipient_name": "UI Tester",
+            "phone": "0907654321",
+            "address": "45 Nguyễn Huệ, Quận 1, TP.HCM",
+            "label": "Nhà",
+            "is_default": "on",
+        },
+    )
     check("U5 thêm địa chỉ", u.has_msg(r, "lưu địa chỉ"), "|".join(u.msgs(r))[:90])
     r = u.get("/tai-khoan/")
     check("U6 địa chỉ hiện trong sổ", "45 Nguyễn Huệ" in r.text, "")
     addr_ids = [int(x) for x in re.findall(r"/tai-khoan/dia-chi/(\d+)/", r.text)]
     if addr_ids:
         r = u.post(f"/tai-khoan/dia-chi/{addr_ids[0]}/mac-dinh/")
-        check("U7 đặt địa chỉ mặc định", r.status_code in (200, 302), f"{r.status_code}")
+        check(
+            "U7 đặt địa chỉ mặc định", r.status_code in (200, 302), f"{r.status_code}"
+        )
         r = u.post(f"/tai-khoan/dia-chi/{addr_ids[0]}/xoa/")
         check("U8 xoá địa chỉ", u.has_msg(r, "xóa địa chỉ"), "|".join(u.msgs(r))[:90])
     else:
@@ -257,10 +319,19 @@ def test_user():
 
     r = u.get("/tai-khoan/doi-mat-khau/")
     check("U9 trang đổi mật khẩu", r.status_code == 200, f"{r.status_code}")
-    r = u.post("/tai-khoan/doi-mat-khau/", {
-        "current_password": "UiTest123!", "new_password1": "MatKhauMoi123!", "new_password2": "MatKhauMoi123!",
-    })
-    check("U10 đổi mật khẩu thành công", u.has_msg(r, "thành công"), "|".join(u.msgs(r))[:90])
+    r = u.post(
+        "/tai-khoan/doi-mat-khau/",
+        {
+            "current_password": "UiTest123!",
+            "new_password1": "MatKhauMoi123!",
+            "new_password2": "MatKhauMoi123!",
+        },
+    )
+    check(
+        "U10 đổi mật khẩu thành công",
+        u.has_msg(r, "thành công"),
+        "|".join(u.msgs(r))[:90],
+    )
     u2 = Web("203.0.113.203")
     u2.login("uitestuser", "MatKhauMoi123!")
     r = u2.get("/tai-khoan/", allow_redirects=False)
@@ -269,21 +340,43 @@ def test_user():
     pid = db_rows("select id from products_product where available=1 limit 1")[0][0]
     r = u2.post(f"/yeu-thich/{pid}/toggle/")
     r = u2.get("/yeu-thich/")
-    check("U13 thêm/xem yêu thích", r.status_code == 200 and "yeu-thich" in r.text, f"{r.status_code}")
+    check(
+        "U13 thêm/xem yêu thích",
+        r.status_code == 200 and "yeu-thich" in r.text,
+        f"{r.status_code}",
+    )
     r = u2.post(f"/yeu-thich/{pid}/toggle/")
-    check("U14 bỏ yêu thích", u2.has_msg(r, "bỏ") or r.status_code in (200, 302), "|".join(u2.msgs(r))[:90])
+    check(
+        "U14 bỏ yêu thích",
+        u2.has_msg(r, "bỏ") or r.status_code in (200, 302),
+        "|".join(u2.msgs(r))[:90],
+    )
 
     r = u2.get("/tai-khoan/gioi-thieu/")
-    check("U15 trang giới thiệu bạn bè", r.status_code == 200 and "ref=" in r.text, f"{r.status_code}")
+    check(
+        "U15 trang giới thiệu bạn bè",
+        r.status_code == 200 and "ref=" in r.text,
+        f"{r.status_code}",
+    )
 
     r = u2.get("/don-hang-cua-toi/")
     check("U16 danh sách đơn hàng", r.status_code == 200, f"{r.status_code}")
 
-    r = u2.post(f"/danh-gia/{pid}/", {"rating": "5", "comment": "Sản phẩm rất đẹp, giao nhanh!"})
-    check("U17 gửi đánh giá", u2.has_msg(r, "đánh giá") or u2.has_msg(r, "cảm ơn"), "|".join(u2.msgs(r))[:90])
+    r = u2.post(
+        f"/danh-gia/{pid}/", {"rating": "5", "comment": "Sản phẩm rất đẹp, giao nhanh!"}
+    )
+    check(
+        "U17 gửi đánh giá",
+        u2.has_msg(r, "đánh giá") or u2.has_msg(r, "cảm ơn"),
+        "|".join(u2.msgs(r))[:90],
+    )
 
-    r = u2.post(f"/hoi-dap/{pid}/", {"question": "Sản phẩm này có form rộng không shop?"})
-    check("U18 gửi câu hỏi sản phẩm", u2.has_msg(r, "câu hỏi"), "|".join(u2.msgs(r))[:90])
+    r = u2.post(
+        f"/hoi-dap/{pid}/", {"question": "Sản phẩm này có form rộng không shop?"}
+    )
+    check(
+        "U18 gửi câu hỏi sản phẩm", u2.has_msg(r, "câu hỏi"), "|".join(u2.msgs(r))[:90]
+    )
 
     r = u2.post(f"/bao-khi-co-hang/{pid}/", {"email": "uitestuser@test.com"})
     check(
@@ -299,7 +392,11 @@ def test_user():
     check("U21 xoá giỏ", u2.has_msg(r, "xóa toàn bộ"), "|".join(u2.msgs(r))[:80])
 
     r = u2.get("/tai-khoan/bao-mat-2-lop/")
-    check("U22 user thường không có trang 2FA (404)", r.status_code == 404, f"{r.status_code}")
+    check(
+        "U22 user thường không có trang 2FA (404)",
+        r.status_code == 404,
+        f"{r.status_code}",
+    )
 
     r = u2.get("/api/gdpr/export/")
     check("U23 xuất dữ liệu GDPR", r.status_code == 200, f"{r.status_code}")
@@ -323,7 +420,11 @@ def otp_key(user_id):
 
 def enter_admin(w, username, password, ip):
     r = w.login(username, password)
-    check(f"A1 {username} đăng nhập", "/dang-nhap/" not in r.url, f"{r.status_code} {r.url}")
+    check(
+        f"A1 {username} đăng nhập",
+        "/dang-nhap/" not in r.url,
+        f"{r.status_code} {r.url}",
+    )
     r = w.get("/admin/")
     if r.status_code == 200 and r.url.endswith("/admin/"):
         check(f"A2 {username} vào /admin/ ngay", True, "")
@@ -336,9 +437,17 @@ def enter_admin(w, username, password, ip):
             return False
         w.get("/tai-khoan/bao-mat-2-lop/ma/")
         time.sleep(31 - time.time() % 30)
-        r = w.post("/tai-khoan/bao-mat-2-lop/ma/", {"code": totp(key)}, referer=BASE + "/tai-khoan/bao-mat-2-lop/ma/")
+        r = w.post(
+            "/tai-khoan/bao-mat-2-lop/ma/",
+            {"code": totp(key)},
+            referer=BASE + "/tai-khoan/bao-mat-2-lop/ma/",
+        )
         r = w.get("/admin/")
-        check(f"A2 {username} xác minh 2FA vào /admin/", r.status_code == 200, f"{r.status_code}")
+        check(
+            f"A2 {username} xác minh 2FA vào /admin/",
+            r.status_code == 200,
+            f"{r.status_code}",
+        )
         return r.status_code == 200
     if "/bao-mat-2-lop/" in r.url:
         m = re.search(r"<code>([^<]+)</code>", r.text)
@@ -346,12 +455,24 @@ def enter_admin(w, username, password, ip):
             check(f"A2 {username} trang bật 2FA", False, "không thấy secret")
             return False
         secret = m.group(1).strip()
-        r = w.post("/tai-khoan/bao-mat-2-lop/", {"code": totp(secret)}, referer=BASE + "/tai-khoan/bao-mat-2-lop/")
+        r = w.post(
+            "/tai-khoan/bao-mat-2-lop/",
+            {"code": totp(secret)},
+            referer=BASE + "/tai-khoan/bao-mat-2-lop/",
+        )
         w.get("/tai-khoan/bao-mat-2-lop/ma/")
         time.sleep(31 - time.time() % 30)
-        r = w.post("/tai-khoan/bao-mat-2-lop/ma/", {"code": totp(secret)}, referer=BASE + "/tai-khoan/bao-mat-2-lop/ma/")
+        r = w.post(
+            "/tai-khoan/bao-mat-2-lop/ma/",
+            {"code": totp(secret)},
+            referer=BASE + "/tai-khoan/bao-mat-2-lop/ma/",
+        )
         r = w.get("/admin/")
-        check(f"A2 {username} bật 2FA + vào /admin/", r.status_code == 200, f"{r.status_code}")
+        check(
+            f"A2 {username} bật 2FA + vào /admin/",
+            r.status_code == 200,
+            f"{r.status_code}",
+        )
         return r.status_code == 200
     check(f"A2 {username} vào /admin/", False, f"{r.status_code} {r.url}")
     return False
@@ -363,13 +484,25 @@ def test_staff():
     enter_admin(s, "codexstaff", "staff123", "203.0.113.210")
 
     r = s.get("/admin-dashboard/")
-    check("S1 dashboard nhân viên", r.status_code == 200 and "Doanh thu" in r.text or r.status_code == 200, f"{r.status_code}")
+    check(
+        "S1 dashboard nhân viên",
+        r.status_code == 200 and "Doanh thu" in r.text or r.status_code == 200,
+        f"{r.status_code}",
+    )
 
     r = s.get("/admin/auth/user/")
-    check("S2 staff bị 403 trang quản lý user Django", r.status_code == 403, f"{r.status_code}")
+    check(
+        "S2 staff bị 403 trang quản lý user Django",
+        r.status_code == 403,
+        f"{r.status_code}",
+    )
 
     r = s.get("/admin-dashboard/xuat-don/")
-    check("S3 xuất CSV đơn hàng", r.status_code == 200 and "text/csv" in r.headers.get("content-type", ""), f"{r.status_code} {r.headers.get('content-type','')}")
+    check(
+        "S3 xuất CSV đơn hàng",
+        r.status_code == 200 and "text/csv" in r.headers.get("content-type", ""),
+        f"{r.status_code} {r.headers.get('content-type', '')}",
+    )
 
     r = s.get("/admin-dashboard/xuat-doanh-thu/")
     check("S4 xuất CSV doanh thu", r.status_code == 200, f"{r.status_code}")
@@ -383,24 +516,68 @@ def test_staff():
     con.commit()
     con.close()
 
-    pending = db_rows("select id from orders_order where status='pending' and is_paid=0 order by id desc limit 1")
+    pending = db_rows(
+        "select id from orders_order where status='pending' and is_paid=0 order by id desc limit 1"
+    )
     if pending:
         oid = pending[0][0]
-        r = s.post("/admin-dashboard/", {"action": "update_order_status", "order_id": str(oid), "new_status": "processing"})
-        check("S5 nhân viên cập nhật trạng thái đơn", s.has_msg(r, "chuyển sang trạng thái"), "|".join(s.msgs(r))[:100])
+        r = s.post(
+            "/admin-dashboard/",
+            {
+                "action": "update_order_status",
+                "order_id": str(oid),
+                "new_status": "processing",
+            },
+        )
+        check(
+            "S5 nhân viên cập nhật trạng thái đơn",
+            s.has_msg(r, "chuyển sang trạng thái"),
+            "|".join(s.msgs(r))[:100],
+        )
         r = s.get(f"/admin-dashboard/in-hoa-don/{oid}/")
         check("S6 in hoá đơn", r.status_code == 200, f"{r.status_code}")
     else:
         check("S5 nhân viên cập nhật trạng thái đơn", False, "không có đơn pending")
 
-    r = s.post("/admin-dashboard/", {"action": "save_coupon", "code": "STAFF10", "discount_type": "percent", "value": "10"})
-    check("S7 staff không được tạo mã giảm giá", s.has_msg(r, "Chỉ quản trị viên"), "|".join(s.msgs(r))[:100])
+    r = s.post(
+        "/admin-dashboard/",
+        {
+            "action": "save_coupon",
+            "code": "STAFF10",
+            "discount_type": "percent",
+            "value": "10",
+        },
+    )
+    check(
+        "S7 staff không được tạo mã giảm giá",
+        s.has_msg(r, "Chỉ quản trị viên"),
+        "|".join(s.msgs(r))[:100],
+    )
 
-    r = s.post("/admin-dashboard/", {"action": "create_user", "username": "staffmade", "password": "Abcd1234!", "role": "user"})
-    check("S8 staff không được tạo tài khoản", s.has_msg(r, "Chỉ quản trị viên"), "|".join(s.msgs(r))[:100])
+    r = s.post(
+        "/admin-dashboard/",
+        {
+            "action": "create_user",
+            "username": "staffmade",
+            "password": "Abcd1234!",
+            "role": "user",
+        },
+    )
+    check(
+        "S8 staff không được tạo tài khoản",
+        s.has_msg(r, "Chỉ quản trị viên"),
+        "|".join(s.msgs(r))[:100],
+    )
 
     real_pid = db_rows("select id from products_product order by id limit 1")[0][0]
-    r = s.post("/admin-dashboard/", {"action": "bulk_toggle_available", "product_ids": str(real_pid), "make_available": "1"})
+    r = s.post(
+        "/admin-dashboard/",
+        {
+            "action": "bulk_toggle_available",
+            "product_ids": str(real_pid),
+            "make_available": "1",
+        },
+    )
     check("S9 staff thao tác sản phẩm", r.status_code in (200, 302), f"{r.status_code}")
 
     r = s.get("/api/docs/")
@@ -433,30 +610,75 @@ def test_admin():
     r = a.get("/admin-dashboard/")
     check("AD5 admin dashboard", r.status_code == 200, f"{r.status_code}")
 
-    r = a.post("/admin-dashboard/", {
-        "action": "save_coupon", "code": "ADMINTEST10", "discount_type": "percent",
-        "value": "10", "min_order_amount": "0", "is_active": "on",
-    })
-    check("AD6 admin tạo mã giảm giá", a.has_msg(r, "Đã tạo mã"), "|".join(a.msgs(r))[:100])
+    r = a.post(
+        "/admin-dashboard/",
+        {
+            "action": "save_coupon",
+            "code": "ADMINTEST10",
+            "discount_type": "percent",
+            "value": "10",
+            "min_order_amount": "0",
+            "is_active": "on",
+        },
+    )
+    check(
+        "AD6 admin tạo mã giảm giá",
+        a.has_msg(r, "Đã tạo mã"),
+        "|".join(a.msgs(r))[:100],
+    )
     cid = db_rows("select id from orders_coupon where code='ADMINTEST10'")
     if cid:
-        r = a.post("/admin-dashboard/", {"action": "delete_coupon", "coupon_id": str(cid[0][0])})
-        check("AD7 admin xoá mã giảm giá", a.has_msg(r, "Đã xóa mã"), "|".join(a.msgs(r))[:100])
+        r = a.post(
+            "/admin-dashboard/",
+            {"action": "delete_coupon", "coupon_id": str(cid[0][0])},
+        )
+        check(
+            "AD7 admin xoá mã giảm giá",
+            a.has_msg(r, "Đã xóa mã"),
+            "|".join(a.msgs(r))[:100],
+        )
 
-    r = a.post("/admin-dashboard/", {
-        "action": "create_user", "username": "admintestuser", "password": "Abcd1234!",
-        "email": "admintest@test.com", "role": "user",
-    })
-    check("AD8 admin tạo tài khoản", a.has_msg(r, "Đã tạo tài khoản"), "|".join(a.msgs(r))[:100])
+    r = a.post(
+        "/admin-dashboard/",
+        {
+            "action": "create_user",
+            "username": "admintestuser",
+            "password": "Abcd1234!",
+            "email": "admintest@test.com",
+            "role": "user",
+        },
+    )
+    check(
+        "AD8 admin tạo tài khoản",
+        a.has_msg(r, "Đã tạo tài khoản"),
+        "|".join(a.msgs(r))[:100],
+    )
     uid = db_rows("select id from auth_user where username='admintestuser'")
     if uid:
-        r = a.post("/admin-dashboard/", {"action": "set_user_role", "user_id": str(uid[0][0]), "role": "staff"})
-        check("AD9 admin phân quyền nhân viên", a.has_msg(r, "vai trò"), "|".join(a.msgs(r))[:100])
-        r = a.post("/admin-dashboard/", {"action": "delete_user", "user_id": str(uid[0][0])})
-        check("AD10 admin xoá tài khoản", a.has_msg(r, "Đã xóa tài khoản"), "|".join(a.msgs(r))[:100])
+        r = a.post(
+            "/admin-dashboard/",
+            {"action": "set_user_role", "user_id": str(uid[0][0]), "role": "staff"},
+        )
+        check(
+            "AD9 admin phân quyền nhân viên",
+            a.has_msg(r, "vai trò"),
+            "|".join(a.msgs(r))[:100],
+        )
+        r = a.post(
+            "/admin-dashboard/", {"action": "delete_user", "user_id": str(uid[0][0])}
+        )
+        check(
+            "AD10 admin xoá tài khoản",
+            a.has_msg(r, "Đã xóa tài khoản"),
+            "|".join(a.msgs(r))[:100],
+        )
 
     r = a.post("/admin-dashboard/", {"action": "delete_user", "user_id": "1"})
-    check("AD11 không xoá được chính mình", a.has_msg(r, "chính bạn"), "|".join(a.msgs(r))[:100])
+    check(
+        "AD11 không xoá được chính mình",
+        a.has_msg(r, "chính bạn"),
+        "|".join(a.msgs(r))[:100],
+    )
 
     r = a.get("/api/admin/users/")
     check("AD12 API quản lý user", r.status_code == 200, f"{r.status_code}")

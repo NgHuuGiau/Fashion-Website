@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import SubscribeView, UnsubscribeView, AdminCampaignView, AdminSubscriberView
+from .views import (
+    SubscribeView,
+    UnsubscribeView,
+    AdminCampaignView,
+    AdminSubscriberView,
+)
 
 app_name = "newsletter"
 

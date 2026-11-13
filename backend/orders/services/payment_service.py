@@ -2,6 +2,7 @@
 Payment orchestration service - Part 1: Core functions and session creation
 Ported from ElectroHub - adapted for Django
 """
+
 import re
 from datetime import datetime, timezone, timedelta
 
@@ -85,4 +86,8 @@ def get_paypal_cancel_url(request) -> str:
 
 def _vnpay_transaction_date(payment: Payment) -> datetime:
     """Extract transaction date from payment creation."""
-    return payment.created_at.astimezone(GMT7) if payment.created_at else _now_utc().astimezone(GMT7)
+    return (
+        payment.created_at.astimezone(GMT7)
+        if payment.created_at
+        else _now_utc().astimezone(GMT7)
+    )

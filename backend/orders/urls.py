@@ -161,8 +161,20 @@ urlpatterns = [
     # NEW: Payment session API
     path("api/payment/session/", create_payment_session, name="payment_session"),
     path("api/payment/vnpay/callback/", handle_vnpay_callback, name="vnpay_callback"),
-    path("api/payment/paypal/callback/", handle_paypal_callback, name="paypal_callback"),
+    path(
+        "api/payment/paypal/callback/", handle_paypal_callback, name="paypal_callback"
+    ),
     # PayPal return/cancel URLs
-    path("thanh-toan-paypal/callback/", wallet_return, {"method": "paypal"}, name="paypal_return"),
-    path("thanh-toan-paypal/huy/", wallet_return, {"method": "paypal"}, name="paypal_cancel"),
+    path(
+        "thanh-toan-paypal/callback/",
+        wallet_return,
+        {"method": "paypal"},
+        name="paypal_return",
+    ),
+    path(
+        "thanh-toan-paypal/huy/",
+        wallet_return,
+        {"method": "paypal"},
+        name="paypal_cancel",
+    ),
 ]

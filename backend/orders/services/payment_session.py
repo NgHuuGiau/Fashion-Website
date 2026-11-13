@@ -1,6 +1,7 @@
 """
 Payment orchestration service - Part 2: Session creation
 """
+
 from typing import Dict, Any, Optional
 
 from django.conf import settings
@@ -10,9 +11,12 @@ from orders.models import Order, Payment
 from orders.services.payments import paypal, vnpay
 
 from .payment_service import (
-    _txn_ref, get_client_ip, get_vnpay_return_url,
+    _txn_ref,
+    get_client_ip,
+    get_vnpay_return_url,
     SESSIONABLE,
-    PaymentServiceError, PaymentGatewayError,
+    PaymentServiceError,
+    PaymentGatewayError,
 )
 
 
@@ -38,7 +42,7 @@ def create_payment_session(
             "status": "pending",
             "amount_minor": 0,
             "currency": "VND",
-        }
+        },
     )
 
     if payment.status not in SESSIONABLE:
@@ -48,7 +52,9 @@ def create_payment_session(
     if getattr(settings, "PAYMENT_MODE", "mock") == "mock" or payment_method == "mock":
         return {
             "provider": "mock",
-            "url": request.build_absolute_uri(f"/orders/payment/mock/?order_code={order.order_code}"),
+            "url": request.build_absolute_uri(
+                f"/orders/payment/mock/?order_code={order.order_code}"
+            ),
             "simulation": True,
             "amount_minor": int(order.total_amount * 100),
             "currency": "VND",
@@ -66,7 +72,16 @@ def create_payment_session(
     if payment_method == "vnpay":
         payment.currency = "VND"
         payment.amount_minor = int(order.total_amount * 100)
-        payment.save(update_fields=["provider", "attempt", "txn_ref", "currency", "amount_minor", "updated_at"])
+        payment.save(
+            update_fields=[
+                "provider",
+                "attempt",
+                "txn_ref",
+                "currency",
+                "amount_minor",
+                "updated_at",
+            ]
+        )
 
         try:
             return_url = get_vnpay_return_url(request)
@@ -91,7 +106,16 @@ def create_payment_session(
     elif payment_method == "paypal":
         payment.currency = getattr(settings, "PAYPAL_CURRENCY", "USD").upper()
         payment.amount_minor = paypal.vnd_to_usd_minor(settings, order.total_amount)
-        payment.save(update_fields=["provider", "attempt", "txn_ref", "currency", "amount_minor", "updated_at"])
+        payment.save(
+            update_fields=[
+                "provider",
+                "attempt",
+                "txn_ref",
+                "currency",
+                "amount_minor",
+                "updated_at",
+            ]
+        )
 
         try:
             gateway_order = paypal.create_order(
@@ -127,4 +151,6 @@ def create_payment_session(
         }
 
     else:
-        raise PaymentServiceError(f"Phương thức thanh toán không hỗ trợ: {payment_method}")
+        raise PaymentServiceError(
+            f"Phương thức thanh toán không hỗ trợ: {payment_method}"
+        )

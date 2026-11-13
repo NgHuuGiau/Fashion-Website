@@ -2,6 +2,7 @@
 Newsletter/Email Marketing services for Fashion-Website
 Part 2: SMTP sending functions
 """
+
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -59,6 +60,7 @@ def send_welcome_email(email: str) -> bool:
     """Send welcome email with voucher (sync)"""
     try:
         from .services import render_welcome_email  # avoid circular import
+
         text_content, html_content = render_welcome_email(email)
         return send_smtp_message(
             to_email=email,
