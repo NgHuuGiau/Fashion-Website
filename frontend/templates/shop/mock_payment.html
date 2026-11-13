@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load shop_format %}
+
+{% block title %}Mô phỏng thanh toán - Đơn {{ order.order_code }}{% endblock %}
+{% block body_class %}mock-payment-page{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Bạn đang ở">
+    <a href="{% url 'products:product_list' %}">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'orders:cart_detail' %}">Giỏ hàng</a>
+    <span>/</span>
+    <span>Mô phỏng thanh toán</span>
+</nav>
+
+<section class="section-shell">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Mô phỏng thanh toán (Chỉ Development)</p>
+            <h1>Đơn hàng #{{ order.order_code }}</h1>
+            <p class="text-warning">⚠️ Trang này chỉ dùng cho môi trường development (PAYMENT_MODE=mock)</p>
+        </div>
+    </div>
+
+    <div class="mock-payment-container">
+        <div class="panel mock-payment-card">
+            <div class="panel-head">
+                <h2>Thông tin đơn hàng</h2>
+            </div>
+            <div class="panel-body">
+                <dl class="order-info-grid">
+                    <dt>Mã đơn hàng</dt>
+                    <dd>{{ order.order_code }}</dd>
+                    <dt>Tổng thanh toán</dt>
+                    <dd class="text-primary fw-bold">{{ order.total_amount|vnd }}</dd>
+                    <dt>Phương thức</dt>
+                    <dd><span class="badge badge-mock">MOCK (Mô phỏng)</span></dd>
+                    <dt>Trạng thái</dt>
+                    <dd>
+                        {% if order.is_paid %}
+                            <span class="badge badge-success">Đã thanh toán</span>
+                        {% elif order.status == "cancelled" %}
+                            <span class="badge badge-danger">Đã hủy</span>
+                        {% else %}
+                            <span class="badge badge-warning">Chờ thanh toán</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+
+                <hr class="my-3">
+
+                <div class="mock-actions">
+                    <p class="text-muted mb-3">Chọn kết quả mô phỏng:</p>
+                    <form method="post" class="mock-action-form">
+                        {% csrf_token %}
+                        <div class="btn-group w-100" role="group">
+                            <button type="submit" name="action" value="success" 
+                                    class="btn btn-success btn-lg flex-fill">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                Thanh toán THÀNH CÔNG
+                            </button>
+                            <button type="submit" name="action" value="fail" 
+                                    class="btn btn-danger btn-lg flex-fill">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="15" y1="9" x2="9" y2="15"/>
+                                    <line x1="9" y1="9" x2="15" y2="15"/>
+                                </svg>
+                                Thanh toán THẤT BẠI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+<hr class="my-3">
+
+                <div class="order-summary">
+                    <h4>Chi tiết đơn hàng</h4>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th class="text-end">SL</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td>
+                                    {{ item.product_name }}
+                                    {% if item.selected_color or item.selected_size %}
+                                    <small class="text-muted d-block">
+                                        {% if item.selected_color %}{{ item.selected_color }}{% endif %}
+                                        {% if item.selected_color and item.selected_size %} / {% endif %}
+                                        {% if item.selected_size %}{{ item.selected_size }}{% endif %}
+                                    </small>
+                                </td>
+                                <td class="text-end">{{ item.quantity }}</td>
+                                <td class="text-end">{{ item.price|vnd }}</td>
+                                <td class="text-end">{{ item.quantity|mul:item.price|vnd }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Tạm tính</th>
+                                <th class="text-end">{{ order.subtotal_amount|vnd }}</th>
+                            </tr>
+                            {% if order.discount_amount > 0 %}
+                            <tr>
+                                <th colspan="3" class="text-end">Giảm giá</th>
+                                <th class="text-end text-danger">-{{ order.discount_amount|vnd }}</th>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th colspan="3" class="text-end">Phí ship</th>
+                                <th class="text-end">{{ order.shipping_fee|vnd }}</th>
+                            </tr>
+                            <tr class="table-active fw-bold">
+                                <th colspan="3" class="text-end">TỔNG CỘNG</th>
+                                <th class="text-end text-primary">{{ order.total_amount|vnd }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <strong>Lưu ý:</strong> Trang này chỉ hoạt động khi <code>PAYMENT_MODE=mock</code> trong file <code>.env</code>.
+                    Trên production, hãy chuyển sang VNPay, PayPal hoặc chuyển khoản thực tế.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.mock-payment-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.mock-payment-card {
+    border: 2px dashed var(--color-border);
+}
+.badge-mock {
+    background: var(--color-warning);
+    color: var(--color-text-on-warning);
+    font-size: 0.75rem;
+}
+.mock-action-form .btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+.mock-action-form .btn-lg {
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+}
+.order-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.order-info-grid dt {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+.order-info-grid dd {
+    margin: 0;
+    font-weight: 500;
+}
+.mock-actions {
+    margin: 1.5rem 0;
+}
+.mock-actions .btn {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.mock-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.order-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.order-info-grid dt {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+.order-info-grid dd {
+    margin: 0;
+    font-weight: 500;
+}
+.mock-actions {
+    margin: 1.5rem 0;
+}
+.mock-actions .btn {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.mock-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}

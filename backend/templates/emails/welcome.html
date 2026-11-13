@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <tr>
+            <td style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 40px 30px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">HUUGIAU Fashion</h1>
+                <p style="margin: 10px 0 0; color: #ecf0f1; font-size: 16px;">Thời trang chất lượng - Phong cách riêng</p>
+            </td>
+        </tr>
+
+        <!-- Content -->
+        <tr>
+            <td style="padding: 40px 30px;">
+                <h2 style="margin: 0 0 20px; color: #2c3e50; font-size: 24px;">Chào mừng bạn đến với HUUGIAU Fashion!</h2>
+
+                <p style="margin: 0 0 20px; color: #34495e; font-size: 16px; line-height: 1.6;">
+                    Cảm ơn bạn đã đăng ký nhận bản tin từ <strong>HUUGIAU Fashion</strong>.
+                    Chúng tôi rất hân hạnh được đồng hành cùng bạn trong hành trình khám phá phong cách riêng.
+                </p>
+
+                <!-- Voucher Box -->
+                <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0;">
+                    <p style="margin: 0 0 10px; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Mã ưu đãi chào mừng</p>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 15px; display: inline-block;">
+                        <span style="color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace;">{{ voucher_code }}</span>
+                    </div>
+                    <p style="margin: 15px 0 0; color: #fadbd8; font-size: 14px;">Giảm <strong>10%</strong> cho đơn hàng đầu tiên</p>
+                </div>
+
+                <p style="margin: 0 0 20px; color: #34495e; font-size: 16px; line-height: 1.6;">
+                    Sử dụng mã <strong>{{ voucher_code }}</strong> tại giỏ hàng để được giảm ngay 10% cho đơn hàng đầu tiên của bạn.
+                    Mã áp dụng cho tất cả sản phẩm trên website.
+                </p>
+
+                <p style="margin: 0 0 20px; color: #34495e; font-size: 16px; line-height: 1.6;">
+                    <a href="{{ site_url }}/collections/all" style="display: inline-block; background: #2c3e50; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Mua sắm ngay</a>
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
+
+                <p style="margin: 0; color: #95a5a6; font-size: 13px; line-height: 1.6;">
+                    Bạn có thể hủy nhận bản tin bất cứ lúc nào bằng cách nhấn <a href="{{ unsubscribe_url }}" style="color: #e74c3c;">vào đây</a>.<br>
+                    Nếu bạn không đăng ký nhận tin này, vui lòng bỏ qua email này.
+                </p>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td style="background: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #ecf0f1;">
+                <p style="margin: 0 0 10px; color: #7f8c8d; font-size: 14px;">HUUGIAU Fashion</p>
+                <p style="margin: 0; color: #95a5a6; font-size: 12px;">
+                    Website: <a href="{{ site_url }}" style="color: #3498db;">{{ site_url }}</a><br>
+                    Hotline: 1900-xxxx | Email: support@huugiau.vn
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

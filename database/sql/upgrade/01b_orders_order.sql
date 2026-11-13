@@ -1,0 +1,53 @@
+-- Part 2: Orders tables
+-- BẢNG: orders_order
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'orders_order' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TABLE dbo.orders_order (
+        id BIGINT IDENTITY(1,1) NOT NULL,
+        order_code NVARCHAR(32) NOT NULL,
+        customer_name NVARCHAR(150) NOT NULL,
+        customer_email NVARCHAR(254) NOT NULL,
+        phone NVARCHAR(20) NOT NULL,
+        shipping_address NVARCHAR(MAX) NOT NULL,
+        shipping_ward_name NVARCHAR(150) NULL,
+        note NVARCHAR(MAX) NULL,
+        payment_method NVARCHAR(20) NOT NULL,
+        is_paid BIT NOT NULL DEFAULT 0,
+        status NVARCHAR(20) NOT NULL DEFAULT 'pending',
+        subtotal_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        shipping_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
+        vat_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        user_id BIGINT NULL,
+        coupon_id BIGINT NULL,
+        coupon_code NVARCHAR(30) NULL,
+        points_earned INT NOT NULL DEFAULT 0,
+        points_used INT NOT NULL DEFAULT 0,
+        bank_code NVARCHAR(20) NULL,
+        carrier NVARCHAR(20) NULL,
+        tracking_code NVARCHAR(40) NULL,
+        delivery_time_slot NVARCHAR(20) NULL,
+        gift_note NVARCHAR(255) NULL,
+        gift_wrap BIT NOT NULL DEFAULT 0,
+        delivered_at DATETIME2(3) NULL,
+        refunded_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        vnpay_transaction_id NVARCHAR(64) NULL,
+        gateway_transaction_id NVARCHAR(128) NULL,
+        created_at DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+        updated_at DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+        deleted_at DATETIME2(3) NULL,
+        CONSTRAINT PK_orders_order PRIMARY KEY CLUSTERED (id),
+        CONSTRAINT UQ_orders_order_code UNIQUE (order_code),
+        CONSTRAINT FK_orders_order_user FOREIGN KEY (user_id) REFERENCES dbo.auth_user (id) ON DELETE SET NULL,
+        CONSTRAINT FK_orders_order_coupon FOREIGN KEY (coupon_id) REFERENCES dbo.orders_coupon (id) ON DELETE SET NULL,
+        CONSTRAINT CK_orders_order_subtotal CHECK (subtotal_amount >= 0),
+        CONSTRAINT CK_orders_order_discount CHECK (discount_amount >= 0),
+        CONSTRAINT CK_orders_order_shipping CHECK (shipping_fee >= 0),
+        CONSTRAINT CK_orders_order_vat CHECK (vat_amount >= 0),
+        CONSTRAINT CK_orders_order_total CHECK (total_amount >= 0),
+        CONSTRAINT CK_orders_order_status CHECK (status IN ('pending','confirmed','shipping','done','cancelled','refunded')),
+        CONSTRAINT CK_orders_order_payment CHECK (payment_method IN ('cod','bank_transfer','vnpay','paypal','wallet'))
+    );
+END
+GO
